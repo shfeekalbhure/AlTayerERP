@@ -1,12 +1,75 @@
 -- استكمال شاشة سند القبض: اسم المستلم منه ودورة المراجعة الرقابية.
--- ينفذ هذا الملف مرة واحدة فقط على قاعدة بيانات AlTayerERP.
+-- الملف آمن لإعادة التشغيل؛ كل عمود يضاف فقط إذا كان غير موجود.
 
-ALTER TABLE financial_voucher_headers
-    ADD COLUMN `Received_From_Name` VARCHAR(200) NULL AFTER `Party_ID`,
-    ADD COLUMN `Review_Status` TINYINT UNSIGNED NOT NULL DEFAULT 0 AFTER `Approval_Status`,
-    ADD COLUMN `Reviewed_By_User_ID` VARCHAR(50) NULL AFTER `Review_Status`,
-    ADD COLUMN `Reviewed_At` DATETIME NULL AFTER `Reviewed_By_User_ID`,
-    ADD COLUMN `Review_Notes` VARCHAR(500) NULL AFTER `Reviewed_At`;
+SET @ddl = IF(
+    EXISTS(
+        SELECT 1 FROM information_schema.COLUMNS
+        WHERE TABLE_SCHEMA = DATABASE()
+          AND TABLE_NAME = 'financial_voucher_headers'
+          AND COLUMN_NAME = 'Received_From_Name'
+    ),
+    'SELECT 1',
+    'ALTER TABLE financial_voucher_headers ADD COLUMN `Received_From_Name` VARCHAR(200) NULL AFTER `Party_ID`'
+);
+PREPARE stmt FROM @ddl;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @ddl = IF(
+    EXISTS(
+        SELECT 1 FROM information_schema.COLUMNS
+        WHERE TABLE_SCHEMA = DATABASE()
+          AND TABLE_NAME = 'financial_voucher_headers'
+          AND COLUMN_NAME = 'Review_Status'
+    ),
+    'SELECT 1',
+    'ALTER TABLE financial_voucher_headers ADD COLUMN `Review_Status` TINYINT UNSIGNED NOT NULL DEFAULT 0 AFTER `Approval_Status`'
+);
+PREPARE stmt FROM @ddl;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @ddl = IF(
+    EXISTS(
+        SELECT 1 FROM information_schema.COLUMNS
+        WHERE TABLE_SCHEMA = DATABASE()
+          AND TABLE_NAME = 'financial_voucher_headers'
+          AND COLUMN_NAME = 'Reviewed_By_User_ID'
+    ),
+    'SELECT 1',
+    'ALTER TABLE financial_voucher_headers ADD COLUMN `Reviewed_By_User_ID` VARCHAR(50) NULL AFTER `Review_Status`'
+);
+PREPARE stmt FROM @ddl;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @ddl = IF(
+    EXISTS(
+        SELECT 1 FROM information_schema.COLUMNS
+        WHERE TABLE_SCHEMA = DATABASE()
+          AND TABLE_NAME = 'financial_voucher_headers'
+          AND COLUMN_NAME = 'Reviewed_At'
+    ),
+    'SELECT 1',
+    'ALTER TABLE financial_voucher_headers ADD COLUMN `Reviewed_At` DATETIME NULL AFTER `Reviewed_By_User_ID`'
+);
+PREPARE stmt FROM @ddl;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @ddl = IF(
+    EXISTS(
+        SELECT 1 FROM information_schema.COLUMNS
+        WHERE TABLE_SCHEMA = DATABASE()
+          AND TABLE_NAME = 'financial_voucher_headers'
+          AND COLUMN_NAME = 'Review_Notes'
+    ),
+    'SELECT 1',
+    'ALTER TABLE financial_voucher_headers ADD COLUMN `Review_Notes` VARCHAR(500) NULL AFTER `Reviewed_At`'
+);
+PREPARE stmt FROM @ddl;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
 
 -- تعبئة أسماء الأطراف في السندات القديمة التي كانت تحفظ Party_ID فقط.
 -- السندات القديمة التي لم تحفظ Party_ID لا يمكن استرجاع الاسم لها تلقائيًا.
