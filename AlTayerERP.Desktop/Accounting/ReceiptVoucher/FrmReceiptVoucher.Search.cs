@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Http;
 using System.Net.Http.Json;
 using System.Threading.Tasks;
 using System.Windows.Forms;
@@ -32,7 +33,9 @@ namespace AlTayerERP.Desktop
             public int? Fiscal_Year_ID { get; set; }
             public DateTime Voucher_Date { get; set; }
             public string Cash_Account_ID { get; set; } = string.Empty;
+            public string Cash_Account_Name { get; set; } = string.Empty;
             public string? Party_ID { get; set; }
+            public string? Received_From_Name { get; set; }
             public int? Payment_Method_ID { get; set; }
             public int Currency_ID { get; set; }
             public decimal Exchange_Rate { get; set; }
@@ -44,6 +47,11 @@ namespace AlTayerERP.Desktop
             public string? Against_Text { get; set; }
             public string? Notes { get; set; }
             public bool Is_Posted { get; set; }
+            public byte Approval_Status { get; set; }
+            public byte Review_Status { get; set; }
+            public string? Reviewed_By_User_ID { get; set; }
+            public DateTime? Reviewed_At { get; set; }
+            public string? Review_Notes { get; set; }
             public long? Journal_Entry_ID { get; set; }
             public string? Journal_Entry_No { get; set; }
             public int Edit_Count { get; set; }
@@ -105,14 +113,16 @@ namespace AlTayerERP.Desktop
 
                 enteredValue = enteredValue.Trim();
 
-                // إذا أدخل المستخدم الرقم الكامل نستخدمه كما هو،
-                // وإذا أدخل رقمًا فقط نبني رقم السند الكامل.
-                string voucherNumber =
-                    enteredValue.Contains("-")
-                        ? enteredValue
-                        : BuildReceiptVoucherNumber(enteredValue);
+                bool useCurrentContext =
+                    int.TryParse(enteredValue, out int sequence) && sequence > 0;
 
-                await SearchVoucherAsync(voucherNumber);
+                if (!useCurrentContext && !enteredValue.Contains('-'))
+                {
+                    throw new InvalidOperationException(
+                        "أدخل الرقم التسلسلي فقط مثل 7، أو رقم السند كاملًا كما يظهر في الشاشة.");
+                }
+
+                await SearchVoucherAsync(enteredValue, useCurrentContext);
             }
             catch (Exception ex)
             {
@@ -151,29 +161,25 @@ namespace AlTayerERP.Desktop
                 : string.Empty;
         }
 
-        /// <summary>
-        /// بناء رقم سند القبض الكامل من الرقم التسلسلي.
-        /// مثال: 7 يتحول إلى RCV-2026-0007.
-        /// </summary>
-        private string BuildReceiptVoucherNumber(string sequenceText)
-        {
-            if (!int.TryParse(sequenceText, out int sequence) ||
-                sequence <= 0)
-            {
-                throw new InvalidOperationException(
-                    "أدخل رقم سند صحيحًا، مثال: 7");
-            }
-
-            return $"RCV-{CurrentSession.Year_Name}-{sequence:0000}";
-        }
         #endregion
 
         #region === استدعاء API ===
 
-        private async Task SearchVoucherAsync(string voucherNumber)
+        private async Task SearchVoucherAsync(
+            string voucherNumber,
+            bool useCurrentContext = false)
         {
-            string requestUrl = BuildSearchUrl(voucherNumber);
-            SearchVoucherResponse? searchResponse = await _client.GetFromJsonAsync<SearchVoucherResponse>(requestUrl);
+            string requestUrl = BuildSearchUrl(voucherNumber, useCurrentContext);
+            using HttpResponseMessage response = await _client.GetAsync(requestUrl);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                await ShowVoucherApiErrorAsync(response, "لم يتم العثور على السند المطلوب.");
+                return;
+            }
+
+            SearchVoucherResponse? searchResponse =
+                await response.Content.ReadFromJsonAsync<SearchVoucherResponse>();
 
             if (!ValidateResponse(searchResponse, out string errorMessage))
             {
@@ -184,12 +190,26 @@ namespace AlTayerERP.Desktop
             LoadVoucherIntoScreen(searchResponse!.Data!);
         }
 
-        private string BuildSearchUrl(string voucherNumber)
+        private string BuildSearchUrl(
+            string voucherNumber,
+            bool useCurrentContext)
         {
-            return $"{_baseUrl}FinancialVoucher/ByNumber" +
-                   $"?voucherNumber={Uri.EscapeDataString(voucherNumber)}" +
-                   $"&branchId={CurrentSession.Branch_ID}" +
-                   $"&fiscalYearId={CurrentSession.Year_ID}";
+            int voucherTypeId =
+                cmbVoucherType.SelectedValue == null
+                    ? 1
+                    : Convert.ToInt32(cmbVoucherType.SelectedValue);
+
+            string url = $"{_baseUrl}FinancialVoucher/ByNumber" +
+                         $"?voucherNumber={Uri.EscapeDataString(voucherNumber.Trim())}" +
+                         $"&voucherTypeId={voucherTypeId}";
+
+            if (useCurrentContext)
+            {
+                url += $"&branchId={CurrentSession.Branch_ID}" +
+                       $"&fiscalYearId={CurrentSession.Year_ID}";
+            }
+
+            return url;
         }
 
         private static bool ValidateResponse(SearchVoucherResponse? response, out string errorMessage)
@@ -244,6 +264,15 @@ namespace AlTayerERP.Desktop
         private void LoadHeaderData(FinancialVoucherResponseModel voucher)
         {
             _selectedVoucherId = voucher.Voucher_ID;
+            _loadedVoucherBranchId = voucher.Branch_ID ?? string.Empty;
+            _loadedFiscalYearId = voucher.Fiscal_Year_ID ?? 0;
+            _loadedPartyId = voucher.Party_ID;
+            _loadedReceivedFromName = voucher.Received_From_Name?.Trim() ?? string.Empty;
+            _isCrossContextVoucher =
+                !string.Equals(_loadedVoucherBranchId, CurrentSession.Branch_ID.ToString(), StringComparison.Ordinal) ||
+                (_loadedFiscalYearId > 0 && _loadedFiscalYearId != CurrentSession.Year_ID);
+            _currentApprovalStatus = voucher.Approval_Status;
+            _currentReviewStatus = voucher.Review_Status;
             txtVoucherNo.Text = voucher.Voucher_No ?? string.Empty;
             SetDatePickerValue(dtVoucherDate, voucher.Voucher_Date);
             SetComboBoxValue(cmbVoucherType, voucher.Voucher_Type_ID);
@@ -251,9 +280,22 @@ namespace AlTayerERP.Desktop
             if (int.TryParse(voucher.Branch_ID, out int branchId))
             {
                 SetComboBoxValue(cmbBranch, branchId);
+                if (!string.Equals(cmbBranch.SelectedValue?.ToString(), voucher.Branch_ID, StringComparison.Ordinal))
+                {
+                    cmbBranch.Text = $"الفرع رقم {voucher.Branch_ID}";
+                }
             }
             SetComboBoxValue(cmbCashAccount, voucher.Cash_Account_ID);
+            if (!string.Equals(cmbCashAccount.SelectedValue?.ToString(), voucher.Cash_Account_ID, StringComparison.Ordinal) &&
+                !string.IsNullOrWhiteSpace(voucher.Cash_Account_Name))
+            {
+                cmbCashAccount.Text = voucher.Cash_Account_Name;
+            }
             SetComboBoxValue(cmbParty, voucher.Party_ID);
+            if (!string.IsNullOrWhiteSpace(voucher.Received_From_Name))
+            {
+                cmbParty.Text = voucher.Received_From_Name.Trim();
+            }
             SetComboBoxValue(cmbPaymentMethod, voucher.Payment_Method_ID);
             SetComboBoxValue(cmbCurrency, voucher.Currency_ID);
 
@@ -271,6 +313,10 @@ namespace AlTayerERP.Desktop
             txtHeaderNotes.Text = voucher.Notes ?? string.Empty;
             chkPosted.Checked = voucher.Is_Posted;
             checkBox2.Checked = voucher.Requires_Approval;
+            UpdateReviewStatusDisplay(
+                voucher.Reviewed_By_User_ID,
+                voucher.Reviewed_At,
+                voucher.Review_Notes);
 
             FinancialVoucherDetailResponseModel? cashLine =
                 voucher.Details?.FirstOrDefault(x => x.Line_Type == 1);
@@ -337,13 +383,9 @@ namespace AlTayerERP.Desktop
 
         private void UpdateButtonsState(FinancialVoucherResponseModel voucher)
         {
-            bool isPosted = voucher.Is_Posted;
-            btnSave.Enabled = false;
-            btnEdit.Enabled = !isPosted;
-            btnDelete.Enabled = !isPosted;
-            btnPost.Enabled = !isPosted;
-            btnUnPost.Enabled = isPosted;
-            btnPrint.Enabled = true;
+            _currentApprovalStatus = voucher.Approval_Status;
+            _currentReviewStatus = voucher.Review_Status;
+            UpdateWorkflowButtonsState();
         }
 
         private void UpdateStatusLabels()
@@ -368,6 +410,53 @@ namespace AlTayerERP.Desktop
             return voucher.Foreign_Total > 0m
                 ? voucher.Foreign_Total
                 : voucher.Local_Total;
+        }
+
+        private void UpdateReviewStatusDisplay(
+            string? reviewedBy,
+            DateTime? reviewedAt,
+            string? notes = null)
+        {
+            string statusText = _currentReviewStatus switch
+            {
+                1 => "قيد المراجعة",
+                2 => "تمت المراجعة",
+                3 => "معاد للتصحيح",
+                _ => "غير مراجع"
+            };
+
+            _lblReviewStatus.Text = $"المراجعة: {statusText}";
+            if (_isCrossContextVoucher)
+            {
+                _lblReviewStatus.Text += " | عرض فقط";
+            }
+            _lblReviewStatus.ForeColor = _currentReviewStatus switch
+            {
+                2 => System.Drawing.Color.DarkGreen,
+                3 => System.Drawing.Color.DarkRed,
+                1 => System.Drawing.Color.DarkOrange,
+                _ => System.Drawing.Color.DarkRed
+            };
+
+            string details = $"حالة المراجعة: {statusText}";
+            if (_isCrossContextVoucher)
+            {
+                details += "\nالسند تابع لفرع أو سنة أخرى؛ متاح للعرض والطباعة فقط.";
+            }
+            if (!string.IsNullOrWhiteSpace(reviewedBy))
+            {
+                details += $"\nالمراجع: {reviewedBy}";
+            }
+            if (reviewedAt.HasValue)
+            {
+                details += $"\nالتاريخ: {reviewedAt.Value:yyyy/MM/dd hh:mm tt}";
+            }
+            if (!string.IsNullOrWhiteSpace(notes))
+            {
+                details += $"\nالملاحظات: {notes}";
+            }
+
+            _workflowToolTip.SetToolTip(_lblReviewStatus, details);
         }
 
         #endregion
