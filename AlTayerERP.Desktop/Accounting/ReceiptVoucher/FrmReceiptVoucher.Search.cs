@@ -358,9 +358,13 @@ namespace AlTayerERP.Desktop
 
         private decimal GetHeaderEnteredAmount(FinancialVoucherResponseModel voucher)
         {
-            // حقل المبلغ الرئيسي يعرض القيمة المدخلة بعملة السند:
-            // للعملة الأجنبية نعرض الإجمالي الأجنبي، وللعملة المحلية
-            // يكون الإجمالي الأجنبي صفراً فنرجع الإجمالي المحلي.
+            // السجلات الجديدة تعيد المبلغ الأصلي من العمود Amount.
+            if (voucher.Amount > 0m)
+            {
+                return voucher.Amount;
+            }
+
+            // توافق مع السجلات القديمة التي سبقت إضافة العمود.
             return voucher.Foreign_Total > 0m
                 ? voucher.Foreign_Total
                 : voucher.Local_Total;
