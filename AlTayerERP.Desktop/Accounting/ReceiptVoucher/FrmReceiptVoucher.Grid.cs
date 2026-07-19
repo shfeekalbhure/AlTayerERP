@@ -126,7 +126,15 @@ namespace AlTayerERP.Desktop
                 _isCalculatingGridAmounts = true;
 
                 // التحقق من العمود الذي تم تعديل قيمته
-                if (columnName == colCurrency.Name)
+                if (columnName == colAccountCode.Name ||
+                    columnName == colAccountName.Name)
+                {
+                    object? accountId = row.Cells[columnName].Value;
+                    row.Cells[colAccountCode.Name].Value = accountId;
+                    row.Cells[colAccountName.Name].Value = accountId;
+                    return;
+                }
+                else if (columnName == colCurrency.Name)
                 {
                     UpdateGridRowExchangeRate(row); // تحديث سعر الصرف للعملة الجديدة في الصف
                 }
@@ -222,12 +230,12 @@ namespace AlTayerERP.Desktop
                 dgvVoucherDetails.Rows[rowIndex];
 
             row.Cells["colAccountCode"].Value =
-                lookupForm.SelectedAccountCode;
+                lookupForm.SelectedAccountId;
 
             if (dgvVoucherDetails.Columns.Contains("colAccountName"))
             {
                 row.Cells["colAccountName"].Value =
-                    lookupForm.SelectedAccountName;
+                    lookupForm.SelectedAccountId;
             }
 
             dgvVoucherDetails.EndEdit();
@@ -268,6 +276,7 @@ namespace AlTayerERP.Desktop
             CurrencyLookupModel? defaultCurrency = ResolveDefaultCurrency();
             if (defaultCurrency == null) return;
 
+            e.Row.Cells[colNo.Name].Value = e.Row.Index + 1;
             e.Row.Cells[colCurrency.Name].Value = defaultCurrency.Currency_ID;
             e.Row.Cells[colExchangeRate.Name].Value = NormalizeExchangeRate(defaultCurrency.Exchange_Rate);
             e.Row.Cells[colAmount.Name].Value = 0m;
@@ -557,6 +566,7 @@ namespace AlTayerERP.Desktop
             DataGridViewRow row = dgvVoucherDetails.Rows[rowIndex];
 
             // تعبئة خلايا الصف الجديد بالبيانات الافتراضية
+            row.Cells[colNo.Name].Value = rowIndex + 1;
             row.Cells[colCurrency.Name].Value = defaultCurrency.Currency_ID;
             row.Cells[colExchangeRate.Name].Value = NormalizeExchangeRate(defaultCurrency.Exchange_Rate);
             row.Cells[colAmount.Name].Value = 0m;

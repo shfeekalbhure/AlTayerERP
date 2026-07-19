@@ -125,7 +125,9 @@ namespace AlTayerERP.API.Controllers
             return Ok(new
             {
                 success = true,
-                message = result.Message
+                message = result.Message,
+                voucher_ID = result.VoucherId,
+                voucher_No = result.VoucherNo
             });
         }
 

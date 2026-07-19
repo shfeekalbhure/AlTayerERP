@@ -29,6 +29,7 @@ namespace AlTayerERP.Desktop
         private bool _isLoading = false;
         private bool _isCalculatingAmounts = false;
         private bool _isCalculatingGridAmounts = false;
+        private bool _isSynchronizingReference = false;
 
         // قوائم لتخزين بيانات العملات والحسابات المسترجعة من قاعدة البيانات
         private List<CurrencyLookupModel> _currencyLookups = new();
@@ -85,6 +86,13 @@ namespace AlTayerERP.Desktop
             // ربط حدث تغير قيمة سعر الصرف
             numExchangeRate.ValueChanged -= numExchangeRate_ValueChanged;
             numExchangeRate.ValueChanged += numExchangeRate_ValueChanged;
+
+            // حقلا رقم المرجع يعرضان نفس قيمة قاعدة البيانات؛ نبقيهما متزامنين
+            // حتى لا تضيع قيمة أحدهما عند الحفظ.
+            txtReference.TextChanged -= txtReference_TextChanged;
+            txtReference.TextChanged += txtReference_TextChanged;
+            txtReferenceNo.TextChanged -= txtReferenceNo_TextChanged;
+            txtReferenceNo.TextChanged += txtReferenceNo_TextChanged;
 
             // استدعاء دالة لتسجيل أحداث العمليات الإضافية على السند
             RegisterVoucherActionEvents();
@@ -178,6 +186,34 @@ namespace AlTayerERP.Desktop
         private void numExchangeRate_ValueChanged(object? sender, EventArgs e)
         {
             if (_isLoading || _isCalculatingAmounts) return;
+        }
+
+        private void txtReference_TextChanged(object? sender, EventArgs e)
+        {
+            SynchronizeReferenceText(txtReference, txtReferenceNo);
+        }
+
+        private void txtReferenceNo_TextChanged(object? sender, EventArgs e)
+        {
+            SynchronizeReferenceText(txtReferenceNo, txtReference);
+        }
+
+        private void SynchronizeReferenceText(TextBox source, TextBox target)
+        {
+            if (_isLoading || _isSynchronizingReference || target.Text == source.Text)
+            {
+                return;
+            }
+
+            try
+            {
+                _isSynchronizingReference = true;
+                target.Text = source.Text;
+            }
+            finally
+            {
+                _isSynchronizingReference = false;
+            }
         }
 
         #endregion

@@ -145,8 +145,10 @@ namespace AlTayerERP.Desktop
         private void SetVoucherFieldsEditable(bool editable)
         {
             dtVoucherDate.Enabled = editable;
+            cmbVoucherType.Enabled = editable;
             cmbStatus.Enabled = editable;
-            cmbBranch.Enabled = editable;
+            // الفرع يأتي من جلسة المستخدم ويُحفظ منها، لذلك لا يسمح بتغييره هنا.
+            cmbBranch.Enabled = false;
 
             cmbParty.Enabled = editable;
             cmbCashAccount.Enabled = editable;
@@ -178,6 +180,7 @@ namespace AlTayerERP.Desktop
             numLocalAmount.ReadOnly = true;
             numForeignAmount.ReadOnly = true;
             chkPosted.Enabled = false;
+            checkBox2.Enabled = editable;
             txtReference.ReadOnly = !editable;
             txtReferenceNo.ReadOnly = !editable;
             txtAgainst.ReadOnly = !editable;

@@ -96,6 +96,8 @@ namespace AlTayerERP.Desktop
         {
             public bool Success { get; set; } // حالة نجاح العملية (true/false)
             public string Message { get; set; } = string.Empty; // رسالة الاستجابة القادمة من السيرفر
+            public long? Voucher_ID { get; set; }
+            public string? Voucher_No { get; set; }
         }
 
         #endregion
@@ -195,13 +197,6 @@ namespace AlTayerERP.Desktop
                 CreateFinancialVoucherRequest request =
                    BuildCreateVoucherRequest();
 
-                MessageBox.Show(
-                    $"حالة مربع معلق في الشاشة: {checkBox2.Checked}\n" +
-                    $"القيمة المرسلة إلى الـ API: {request.Requires_Approval}",
-                    "فحص المعلق",
-                    MessageBoxButtons.OK,
-                    MessageBoxIcon.Information);
-
                 FinancialVoucherApiResponse response;
 
                 if (isNewVoucher)
@@ -241,7 +236,11 @@ namespace AlTayerERP.Desktop
                 }
 
                 string voucherNumber =
-                    txtVoucherNo.Text.Trim();
+                    !string.IsNullOrWhiteSpace(response.Voucher_No)
+                        ? response.Voucher_No.Trim()
+                        : txtVoucherNo.Text.Trim();
+
+                txtVoucherNo.Text = voucherNumber;
 
                 // إعادة تحميل السند من قاعدة البيانات للحصول على
                 // معرفه الحقيقي ورقم القيد وبقية البيانات.
@@ -453,12 +452,12 @@ namespace AlTayerERP.Desktop
                 }
 
                 // جلب المبالغ وأسعار الصرف الخاصة بالسطر الحالي لحساب القيمة المحلية واختبارها
-                decimal foreignAmount = GetRowForeignAmount(row);
+                decimal enteredAmount = GetRowEnteredAmount(row);
                 decimal exchangeRate = GetRowExchangeRate(row);
-                decimal localAmount = GetRowLocalAmount(row, foreignAmount, exchangeRate);
+                decimal localAmount = GetRowLocalAmount(row, enteredAmount, exchangeRate);
 
-                // التأكد من أن قيمة المبلغ الأجنبي في السطر أكبر من الصفر
-                if (foreignAmount <= 0m)
+                // المبلغ المدخل مطلوب سواء كانت العملة محلية أو أجنبية.
+                if (enteredAmount <= 0m)
                 {
                     errorMessage = $"المبلغ يجب أن يكون أكبر من صفر في السطر رقم {visibleRowNo}.";
                     dgvVoucherDetails.CurrentCell = row.Cells[colAmount.Name];
@@ -589,13 +588,16 @@ namespace AlTayerERP.Desktop
                 decimal exchangeRate =
                     GetRowExchangeRate(row);
 
+                decimal enteredAmount =
+                    GetRowEnteredAmount(row);
+
                 decimal foreignAmount =
                     GetRowForeignAmount(row);
 
                 decimal localAmount =
                     GetRowLocalAmount(
                         row,
-                        foreignAmount,
+                        enteredAmount,
                         exchangeRate);
 
                 string detailReferenceNo =
@@ -813,15 +815,42 @@ namespace AlTayerERP.Desktop
         private bool RowContainsData(DataGridViewRow row)
         {
             string accountId = GetCellString(row, colAccountCode.Name);
-            decimal amount = GetRowForeignAmount(row);
+            decimal amount = GetRowEnteredAmount(row);
             return !string.IsNullOrWhiteSpace(accountId) || amount > 0m;
         }
 
-        // دالة لجلب قيمة المبلغ بالعملة الأجنبية للسطر الحالي، وتتحقق من العمودين المحتملين للقيمة
+        // المبلغ الذي أدخله المستخدم في عمود المبلغ، مع بدائل آمنة عند تحميل سند قديم.
+        private decimal GetRowEnteredAmount(DataGridViewRow row)
+        {
+            decimal amount = GetCellDecimal(row, colAmount.Name);
+            if (amount > 0m) return amount;
+
+            decimal foreignAmount = GetCellDecimal(row, colForeignAmount.Name);
+            if (foreignAmount > 0m) return foreignAmount;
+
+            return GetCellDecimal(row, colLocalAmount.Name);
+        }
+
+        // العملة المحلية لا تحمل مبلغًا أجنبيًا في قاعدة البيانات.
         private decimal GetRowForeignAmount(DataGridViewRow row)
         {
+            int defaultCurrencyId = Convert.ToInt32(
+                cmbCurrency.SelectedValue,
+                CultureInfo.InvariantCulture);
+
+            int currencyId = GetRowCurrencyId(row, defaultCurrencyId);
+            CurrencyLookupModel? currency =
+                _currencyLookups.FirstOrDefault(x => x.Currency_ID == currencyId);
+
+            if (currency != null &&
+                (currency.Is_Local_Currency ||
+                 currency.Currency_Code.Equals("YER", StringComparison.OrdinalIgnoreCase)))
+            {
+                return 0m;
+            }
+
             decimal foreignAmount = GetCellDecimal(row, colForeignAmount.Name);
-            return foreignAmount > 0m ? foreignAmount : GetCellDecimal(row, colAmount.Name);
+            return foreignAmount > 0m ? foreignAmount : GetRowEnteredAmount(row);
         }
 
         // دالة لجلب سعر الصرف للسطر الحالي، وتعتمد سعر صرف السند الرئيسي في حال لم يحدد سعر خاص بالسطر
@@ -832,14 +861,27 @@ namespace AlTayerERP.Desktop
         }
 
         // دالة لحساب أو جلب قيمة المبلغ بالعملة المحلية للسطر، وتقريب الناتج النهائي إلى خانتين عشريتين
-        private decimal GetRowLocalAmount(DataGridViewRow row, decimal foreignAmount, decimal exchangeRate)
+        private decimal GetRowLocalAmount(DataGridViewRow row, decimal enteredAmount, decimal exchangeRate)
         {
             decimal localAmount = GetCellDecimal(row, colLocalAmount.Name);
             if (localAmount > 0m)
                 return decimal.Round(localAmount, 2, MidpointRounding.AwayFromZero);
 
-            // حساب القيمة المحلية يدوياً عن طريق ضرب القيمة الأجنبية في سعر الصرف الخاص بالسطر
-            return decimal.Round(foreignAmount * exchangeRate, 2, MidpointRounding.AwayFromZero);
+            int defaultCurrencyId = Convert.ToInt32(
+                cmbCurrency.SelectedValue,
+                CultureInfo.InvariantCulture);
+            int currencyId = GetRowCurrencyId(row, defaultCurrencyId);
+            CurrencyLookupModel? currency =
+                _currencyLookups.FirstOrDefault(x => x.Currency_ID == currencyId);
+
+            if (currency != null &&
+                (currency.Is_Local_Currency ||
+                 currency.Currency_Code.Equals("YER", StringComparison.OrdinalIgnoreCase)))
+            {
+                return decimal.Round(enteredAmount, 2, MidpointRounding.AwayFromZero);
+            }
+
+            return decimal.Round(enteredAmount * exchangeRate, 2, MidpointRounding.AwayFromZero);
         }
 
         // دالة لجلب معرف العملة الخاص بالسطر الحالي وتعتمد معرف العملة الرئيسي كخيار افتراضي في حال عدم التحديد
