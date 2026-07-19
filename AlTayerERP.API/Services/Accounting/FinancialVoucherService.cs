@@ -81,6 +81,7 @@ namespace AlTayerERP.API.Services.Accounting
                     Transaction_Date = dto.Transaction_Date,
                     Cash_Account_ID = dto.Cash_Account_ID,
                     Party_ID = dto.Party_ID,
+                    Received_From_Name = dto.Received_From_Name.Trim(),
                     Payment_Method_ID = dto.Payment_Method_ID,
                     Currency_ID = dto.Currency_ID,
                     Exchange_Rate = dto.Exchange_Rate,
@@ -100,6 +101,10 @@ namespace AlTayerERP.API.Services.Accounting
                     Approval_Status = dto.Requires_Approval ? (byte)1 : (byte)0,
                     Approval_Requested_By_User_ID = dto.Requires_Approval ? dto.Created_By : null,
                     Approval_Requested_At = dto.Requires_Approval ? DateTime.Now : null,
+                    Review_Status = 0,
+                    Reviewed_By_User_ID = null,
+                    Reviewed_At = null,
+                    Review_Notes = null,
                     Is_Posted = false,
                     Is_Active = true,
                     Created_By = dto.Created_By,
@@ -365,6 +370,12 @@ namespace AlTayerERP.API.Services.Accounting
                     return (false, "لا يمكن تعديل سند مرحل. يجب إلغاء الترحيل أولًا.");
                 }
 
+                if (voucher.Approval_Status == 2)
+                {
+                    await transaction.RollbackAsync();
+                    return (false, "لا يمكن تعديل سند معتمد. يجب إلغاء الاعتماد أولًا.");
+                }
+
                 DateTime now = DateTime.Now;
                 int oldStatusId = voucher.Voucher_Status_ID;
 
@@ -376,6 +387,7 @@ namespace AlTayerERP.API.Services.Accounting
                 voucher.Transaction_Date = dto.Transaction_Date;
                 voucher.Cash_Account_ID = dto.Cash_Account_ID;
                 voucher.Party_ID = dto.Party_ID;
+                voucher.Received_From_Name = dto.Received_From_Name.Trim();
                 voucher.Payment_Method_ID = dto.Payment_Method_ID;
                 voucher.Currency_ID = dto.Currency_ID;
                 voucher.Exchange_Rate = dto.Exchange_Rate;
@@ -403,6 +415,12 @@ namespace AlTayerERP.API.Services.Accounting
                 voucher.Rejected_By_User_ID = null;
                 voucher.Rejected_At = null;
                 voucher.Rejection_Reason = null;
+
+                // أي تعديل يعيد السند إلى دورة المراجعة من البداية.
+                voucher.Review_Status = 0;
+                voucher.Reviewed_By_User_ID = null;
+                voucher.Reviewed_At = null;
+                voucher.Review_Notes = null;
                 voucher.Updated_By = dto.Updated_By;
                 voucher.Updated_At = now;
                 voucher.Edit_Count += 1;
@@ -516,12 +534,269 @@ namespace AlTayerERP.API.Services.Accounting
         /// حذف سند مالي.
         /// </summary>
         public async Task<(bool Success, string Message)> DeleteAsync(
-            long voucherId)
+            long voucherId,
+            string deletedBy)
         {
-            await Task.CompletedTask;
+            if (voucherId <= 0)
+            {
+                return (false, "معرف السند غير صحيح.");
+            }
 
-            return (true, "سيتم تنفيذ الحذف لاحقاً.");
+            if (string.IsNullOrWhiteSpace(deletedBy))
+            {
+                return (false, "معرف المستخدم الذي نفذ الحذف مطلوب.");
+            }
+
+            try
+            {
+                var voucher = await _context.Financial_Voucher_Headers
+                    .FirstOrDefaultAsync(x => x.Voucher_ID == voucherId && x.Is_Active);
+
+                if (voucher == null)
+                {
+                    return (false, "السند المالي غير موجود أو محذوف مسبقًا.");
+                }
+
+                if (voucher.Is_Posted)
+                {
+                    return (false, "لا يمكن حذف سند مرحل. يجب إلغاء الترحيل أولًا.");
+                }
+
+                if (voucher.Approval_Status == 2)
+                {
+                    return (false, "لا يمكن حذف سند معتمد. يجب إلغاء الاعتماد أولًا.");
+                }
+
+                DateTime now = DateTime.Now;
+                deletedBy = deletedBy.Trim();
+                voucher.Is_Active = false;
+                voucher.Updated_By = deletedBy;
+                voucher.Updated_At = now;
+
+                await _context.Voucher_Action_Logs.AddAsync(new VoucherActionLog
+                {
+                    Voucher_ID = voucher.Voucher_ID,
+                    Action_Type = "DELETE",
+                    Old_Status_ID = voucher.Voucher_Status_ID,
+                    New_Status_ID = voucher.Voucher_Status_ID,
+                    User_ID = deletedBy,
+                    Action_At = now,
+                    Action_Channel = "DESKTOP",
+                    Device_Name = Environment.MachineName,
+                    Notes = "تم حذف السند حذفًا منطقيًا مع الاحتفاظ بسجل الرقابة."
+                });
+
+                await _context.SaveChangesAsync();
+                return (true, $"تم حذف السند رقم {voucher.Voucher_No} بنجاح.");
+            }
+            catch (DbUpdateException ex)
+            {
+                string error = ex.InnerException?.Message ?? ex.Message;
+                return (false, $"تعذر حذف السند في قاعدة البيانات: {error}");
+            }
+            catch (Exception ex)
+            {
+                return (false, $"حدث خطأ أثناء حذف السند: {ex.Message}");
+            }
         }
+
+        /// <summary>
+        /// تأكيد اكتمال المراجعة الرقابية للسند.
+        /// </summary>
+        public async Task<(bool Success, string Message)> MarkReviewedAsync(
+            long voucherId,
+            string userId,
+            string? notes)
+        {
+            if (voucherId <= 0 || string.IsNullOrWhiteSpace(userId))
+            {
+                return (false, "معرف السند والمستخدم مطلوبان لإتمام المراجعة.");
+            }
+
+            try
+            {
+                var voucher = await _context.Financial_Voucher_Headers
+                    .FirstOrDefaultAsync(x => x.Voucher_ID == voucherId && x.Is_Active);
+
+                if (voucher == null)
+                {
+                    return (false, "السند المالي غير موجود.");
+                }
+
+                if (voucher.Is_Posted)
+                {
+                    return (false, "لا يمكن مراجعة سند مرحل.");
+                }
+
+                if (voucher.Approval_Status == 2)
+                {
+                    return (false, "السند معتمد. يجب إلغاء الاعتماد قبل إعادة مراجعته.");
+                }
+
+                DateTime now = DateTime.Now;
+                byte oldReviewStatus = voucher.Review_Status;
+                voucher.Review_Status = 2;
+                voucher.Reviewed_By_User_ID = userId.Trim();
+                voucher.Reviewed_At = now;
+                voucher.Review_Notes = string.IsNullOrWhiteSpace(notes) ? null : notes.Trim();
+                voucher.Updated_By = userId.Trim();
+                voucher.Updated_At = now;
+
+                await _context.Voucher_Action_Logs.AddAsync(new VoucherActionLog
+                {
+                    Voucher_ID = voucher.Voucher_ID,
+                    Action_Type = "REVIEW",
+                    Old_Status_ID = oldReviewStatus,
+                    New_Status_ID = 2,
+                    User_ID = userId.Trim(),
+                    Action_At = now,
+                    Action_Channel = "DESKTOP",
+                    Device_Name = Environment.MachineName,
+                    Notes = voucher.Review_Notes ?? "تمت مراجعة السند رقابيًا."
+                });
+
+                await _context.SaveChangesAsync();
+                return (true, $"تمت مراجعة السند رقم {voucher.Voucher_No} بنجاح.");
+            }
+            catch (Exception ex)
+            {
+                return (false, $"حدث خطأ أثناء مراجعة السند: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// إعادة السند إلى المدخل لتصحيح بياناته.
+        /// </summary>
+        public async Task<(bool Success, string Message)> ReturnForCorrectionAsync(
+            long voucherId,
+            string userId,
+            string reason)
+        {
+            if (voucherId <= 0 || string.IsNullOrWhiteSpace(userId))
+            {
+                return (false, "معرف السند والمستخدم مطلوبان لإعادة السند.");
+            }
+
+            if (string.IsNullOrWhiteSpace(reason))
+            {
+                return (false, "سبب إعادة السند للتصحيح مطلوب.");
+            }
+
+            try
+            {
+                var voucher = await _context.Financial_Voucher_Headers
+                    .FirstOrDefaultAsync(x => x.Voucher_ID == voucherId && x.Is_Active);
+
+                if (voucher == null)
+                {
+                    return (false, "السند المالي غير موجود.");
+                }
+
+                if (voucher.Is_Posted)
+                {
+                    return (false, "لا يمكن إعادة سند مرحل للتصحيح. يجب إلغاء الترحيل أولًا.");
+                }
+
+                if (voucher.Approval_Status == 2)
+                {
+                    return (false, "لا يمكن إعادة سند معتمد للتصحيح. يجب إلغاء الاعتماد أولًا.");
+                }
+
+                DateTime now = DateTime.Now;
+                byte oldReviewStatus = voucher.Review_Status;
+                voucher.Review_Status = 3;
+                voucher.Reviewed_By_User_ID = userId.Trim();
+                voucher.Reviewed_At = now;
+                voucher.Review_Notes = reason.Trim();
+                voucher.Updated_By = userId.Trim();
+                voucher.Updated_At = now;
+
+                await _context.Voucher_Action_Logs.AddAsync(new VoucherActionLog
+                {
+                    Voucher_ID = voucher.Voucher_ID,
+                    Action_Type = "RETURN_CORRECTION",
+                    Old_Status_ID = oldReviewStatus,
+                    New_Status_ID = 3,
+                    User_ID = userId.Trim(),
+                    Action_At = now,
+                    Action_Channel = "DESKTOP",
+                    Device_Name = Environment.MachineName,
+                    Reason = reason.Trim(),
+                    Notes = "تمت إعادة السند للتصحيح."
+                });
+
+                await _context.SaveChangesAsync();
+                return (true, $"تمت إعادة السند رقم {voucher.Voucher_No} للتصحيح.");
+            }
+            catch (Exception ex)
+            {
+                return (false, $"حدث خطأ أثناء إعادة السند للتصحيح: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// يمنع الاعتماد والترحيل قبل اكتمال المراجعة الرقابية.
+        /// </summary>
+        public async Task<(bool Success, string Message)> ValidateReviewedAsync(long voucherId)
+        {
+            var status = await _context.Financial_Voucher_Headers
+                .AsNoTracking()
+                .Where(x => x.Voucher_ID == voucherId && x.Is_Active)
+                .Select(x => (byte?)x.Review_Status)
+                .FirstOrDefaultAsync();
+
+            if (!status.HasValue)
+            {
+                return (false, "السند المالي غير موجود.");
+            }
+
+            return status.Value == 2
+                ? (true, string.Empty)
+                : (false, "يجب تنفيذ مراجعة السند وتأكيد (تمت المراجعة) قبل الاعتماد أو الترحيل.");
+        }
+
+        /// <summary>
+        /// تسجيل عملية طباعة/معاينة السند في سجل الرقابة.
+        /// </summary>
+        public async Task<(bool Success, string Message)> RecordPrintAsync(
+            long voucherId,
+            string userId)
+        {
+            if (voucherId <= 0 || string.IsNullOrWhiteSpace(userId))
+            {
+                return (false, "معرف السند والمستخدم مطلوبان لتسجيل الطباعة.");
+            }
+
+            var voucher = await _context.Financial_Voucher_Headers
+                .FirstOrDefaultAsync(x => x.Voucher_ID == voucherId && x.Is_Active);
+
+            if (voucher == null)
+            {
+                return (false, "السند المالي غير موجود.");
+            }
+
+            DateTime now = DateTime.Now;
+            voucher.Print_Count += 1;
+            voucher.Last_Printed_By = userId.Trim();
+            voucher.Last_Print_Date = now;
+
+            await _context.Voucher_Action_Logs.AddAsync(new VoucherActionLog
+            {
+                Voucher_ID = voucher.Voucher_ID,
+                Action_Type = "PRINT",
+                Old_Status_ID = voucher.Voucher_Status_ID,
+                New_Status_ID = voucher.Voucher_Status_ID,
+                User_ID = userId.Trim(),
+                Action_At = now,
+                Action_Channel = "DESKTOP",
+                Device_Name = Environment.MachineName,
+                Notes = "تم فتح طباعة/معاينة السند."
+            });
+
+            await _context.SaveChangesAsync();
+            return (true, "تم تسجيل عملية الطباعة.");
+        }
+
         /// <summary>
         /// جلب سند مالي كامل بواسطة معرف السند.
         /// يشمل رأس السند والتفاصيل وتوزيعات المستندات.
@@ -597,6 +872,9 @@ namespace AlTayerERP.API.Services.Accounting
                     Party_ID =
                         voucher.Party_ID,
 
+                    Received_From_Name =
+                        voucher.Received_From_Name,
+
                     Party_Name =
                         string.IsNullOrWhiteSpace(voucher.Party_ID)
                             ? string.Empty
@@ -649,6 +927,18 @@ namespace AlTayerERP.API.Services.Accounting
 
                     Approval_Status =
                         voucher.Approval_Status,
+
+                    Review_Status =
+                        voucher.Review_Status,
+
+                    Reviewed_By_User_ID =
+                        voucher.Reviewed_By_User_ID,
+
+                    Reviewed_At =
+                        voucher.Reviewed_At,
+
+                    Review_Notes =
+                        voucher.Review_Notes,
 
                     Is_Posted =
                         voucher.Is_Posted,
@@ -836,62 +1126,88 @@ namespace AlTayerERP.API.Services.Accounting
         }
 
         /// <summary>
-        /// البحث عن سند مالي بواسطة رقم السند والفرع والسنة المالية.
+        /// البحث عن سند مالي بالرقم الكامل، أو بالرقم التسلسلي داخل فرع وسنة.
         /// </summary>
         public async Task<FinancialVoucherResponseDto?>
             GetByVoucherNumberAsync(
                 string voucherNumber,
-                string branchId,
-                int fiscalYearId)
+                string? branchId,
+                int? fiscalYearId,
+                int? voucherTypeId = null)
         {
-            #region التحقق من معاملات البحث
-
             if (string.IsNullOrWhiteSpace(voucherNumber))
             {
                 return null;
             }
 
-            if (string.IsNullOrWhiteSpace(branchId))
-            {
-                return null;
-            }
-
-            if (fiscalYearId <= 0)
-            {
-                return null;
-            }
-
-            voucherNumber =
-                voucherNumber.Trim();
-
-            branchId =
-                branchId.Trim();
-
-            #endregion
-
-            #region البحث عن معرف السند
-
-            long? voucherId =
-                await _context.Financial_Voucher_Headers
+            string searchValue = voucherNumber.Trim();
+            IQueryable<FinancialVoucherHeader> query =
+                _context.Financial_Voucher_Headers
                     .AsNoTracking()
+                    .Where(x => x.Is_Active);
+
+            if (voucherTypeId.HasValue && voucherTypeId.Value > 0)
+            {
+                query = query.Where(x => x.Voucher_Type_ID == voucherTypeId.Value);
+            }
+
+            long? voucherId;
+
+            if (int.TryParse(searchValue, out int sequence) && sequence > 0)
+            {
+                if (string.IsNullOrWhiteSpace(branchId) ||
+                    !fiscalYearId.HasValue ||
+                    fiscalYearId.Value <= 0)
+                {
+                    return null;
+                }
+
+                string currentBranch = branchId.Trim();
+                var candidates = await query
                     .Where(x =>
-                        x.Voucher_No == voucherNumber &&
-                        x.Branch_ID == branchId &&
-                        x.Fiscal_Year_ID == fiscalYearId &&
-                        x.Is_Active)
-                    .Select(x =>
-                        (long?)x.Voucher_ID)
+                        x.Branch_ID == currentBranch &&
+                        x.Fiscal_Year_ID == fiscalYearId.Value)
+                    .Select(x => new { x.Voucher_ID, x.Voucher_No })
+                    .ToListAsync();
+
+                voucherId = candidates
+                    .Where(x => ExtractVoucherSequence(x.Voucher_No) == sequence)
+                    .Select(x => (long?)x.Voucher_ID)
+                    .FirstOrDefault();
+            }
+            else
+            {
+                // الرقم الكامل يبحث مباشرة دون إجباره على فرع أو سنة الشاشة،
+                // وبذلك يمكن فتح سند تابع لفرع أو سنة أخرى.
+                voucherId = await query
+                    .Where(x => x.Voucher_No == searchValue)
+                    .Select(x => (long?)x.Voucher_ID)
                     .FirstOrDefaultAsync();
+            }
 
             if (!voucherId.HasValue)
             {
                 return null;
             }
 
-            #endregion
-
             return await GetByIdAsync(
                 voucherId.Value);
+        }
+
+        private static int? ExtractVoucherSequence(string? voucherNumber)
+        {
+            if (string.IsNullOrWhiteSpace(voucherNumber))
+            {
+                return null;
+            }
+
+            string lastPart = voucherNumber
+                .Split('-', StringSplitOptions.RemoveEmptyEntries)
+                .LastOrDefault() ?? string.Empty;
+
+            return int.TryParse(lastPart, out int sequence)
+                ? sequence
+                : null;
         }
 
 
