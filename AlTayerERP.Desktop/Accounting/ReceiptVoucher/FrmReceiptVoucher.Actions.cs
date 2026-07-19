@@ -641,9 +641,9 @@ namespace AlTayerERP.Desktop
             };
         }
 
-        private async Task<bool> ExecuteVoucherActionAsync(
+        private async Task<bool> ExecuteVoucherActionAsync<TRequest>(
             string action,
-            object request,
+            TRequest request,
             string defaultError,
             string successMessage)
         {
