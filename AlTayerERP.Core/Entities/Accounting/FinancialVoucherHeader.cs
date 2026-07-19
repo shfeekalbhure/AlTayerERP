@@ -61,6 +61,14 @@ namespace AlTayerERP.Core.Entities.Accounting
         [Column("Party_ID")]
         public string? Party_ID { get; set; }
 
+        /// <summary>
+        /// اسم الشخص الذي تم استلام المبلغ منه كما ظهر وقت إنشاء السند.
+        /// يحتفظ بالاسم حتى عند عدم اختيار طرف مسجل أو تغيير اسمه لاحقًا.
+        /// </summary>
+        [MaxLength(200)]
+        [Column("Received_From_Name")]
+        public string? Received_From_Name { get; set; }
+
         [Column("Payment_Method_ID")]
         public int? Payment_Method_ID { get; set; }
 
@@ -158,6 +166,25 @@ namespace AlTayerERP.Core.Entities.Accounting
         [MaxLength(500)]
         [Column("Rejection_Reason")]
         public string? Rejection_Reason { get; set; }
+
+        /// <summary>
+        /// حالة المراجعة الرقابية: 0 غير مراجع، 1 قيد المراجعة،
+        /// 2 تمت المراجعة، 3 معاد للتصحيح.
+        /// </summary>
+        [Required]
+        [Column("Review_Status")]
+        public byte Review_Status { get; set; } = 0;
+
+        [MaxLength(50)]
+        [Column("Reviewed_By_User_ID")]
+        public string? Reviewed_By_User_ID { get; set; }
+
+        [Column("Reviewed_At")]
+        public DateTime? Reviewed_At { get; set; }
+
+        [MaxLength(500)]
+        [Column("Review_Notes")]
+        public string? Review_Notes { get; set; }
         #endregion
 
         #region سادساً: بيانات الرقابة والتعديل والطباعة والتراجع
