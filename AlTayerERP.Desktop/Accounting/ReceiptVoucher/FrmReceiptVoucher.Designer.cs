@@ -133,8 +133,8 @@
             colDescription = new DataGridViewTextBoxColumn();
             colCostCenter = new DataGridViewComboBoxColumn();
             colReferenceNo = new DataGridViewTextBoxColumn();
-            colReferenceName = new DataGridViewComboBoxColumn();
-            colReferenceType = new DataGridViewComboBoxColumn();
+            colReferenceName = new DataGridViewTextBoxColumn();
+            colReferenceType = new DataGridViewTextBoxColumn();
             colReferenceDate = new DataGridViewTextBoxColumn();
             colAmount = new DataGridViewTextBoxColumn();
             colCurrency = new DataGridViewComboBoxColumn();
@@ -1498,8 +1498,8 @@
         private DataGridViewTextBoxColumn colDescription;
         private DataGridViewComboBoxColumn colCostCenter;
         private DataGridViewTextBoxColumn colReferenceNo;
-        private DataGridViewComboBoxColumn colReferenceName;
-        private DataGridViewComboBoxColumn colReferenceType;
+        private DataGridViewTextBoxColumn colReferenceName;
+        private DataGridViewTextBoxColumn colReferenceType;
         private DataGridViewTextBoxColumn colReferenceDate;
         private DataGridViewTextBoxColumn colAmount;
         private DataGridViewComboBoxColumn colCurrency;
