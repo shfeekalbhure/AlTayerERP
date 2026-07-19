@@ -31,6 +31,17 @@ namespace AlTayerERP.Desktop
         private bool _isCalculatingGridAmounts = false;
         private bool _isSynchronizingReference = false;
 
+        // حالة السند المحملة للتحكم الصحيح في دورة المراجعة والاعتماد والترحيل.
+        private byte _currentReviewStatus = 0;
+        private byte _currentApprovalStatus = 0;
+        private string _loadedVoucherBranchId = string.Empty;
+        private int _loadedFiscalYearId = 0;
+        private string? _loadedPartyId;
+        private string _loadedReceivedFromName = string.Empty;
+        private bool _isCrossContextVoucher = false;
+        private readonly Label _lblReviewStatus = new Label();
+        private readonly ToolTip _workflowToolTip = new ToolTip();
+
         // قوائم لتخزين بيانات العملات والحسابات المسترجعة من قاعدة البيانات
         private List<CurrencyLookupModel> _currencyLookups = new();
         private List<AccountLookupModel> _accountLookups = new();
@@ -121,6 +132,23 @@ namespace AlTayerERP.Desktop
             txtJournalNo.ReadOnly = true;
             chkPosted.Enabled = false;
 
+            // زرا الاستيراد والتصدير غير منفذين في هذه الشاشة؛ نستفيد من مكانهما
+            // لإظهار عمليتي المراجعة الفعليتين ونخفي الأزرار غير الجاهزة.
+            btnImport.Text = "تمت المراجعة";
+            btnImport.Location = new System.Drawing.Point(350, 12);
+            btnImport.Size = new System.Drawing.Size(90, 29);
+            btnExport.Text = "إعادة للتصحيح";
+            btnExport.Location = new System.Drawing.Point(443, 12);
+            btnExport.Size = new System.Drawing.Size(110, 29);
+            btnAttachments.Visible = false;
+            button1.Visible = false;
+
+            _lblReviewStatus.AutoSize = true;
+            _lblReviewStatus.Location = new System.Drawing.Point(1278, 12);
+            _lblReviewStatus.Text = "المراجعة: غير مراجع";
+            _lblReviewStatus.ForeColor = System.Drawing.Color.DarkRed;
+            pnlTotals.Controls.Add(_lblReviewStatus);
+
             // إعداد عناصر التحكم الرقمية وشبكة البيانات وحقول المبالغ
             ConfigureNumericControls();
             ConfigureVoucherGrid();
@@ -130,6 +158,12 @@ namespace AlTayerERP.Desktop
         // دالة لضبط حدود وخصائص حقول الإدخال الرقمية الخاصة بالمبالغ وسعر الصرف
         private void ConfigureNumericControls()
         {
+            numAmount.DecimalPlaces = 2;
+            numAmount.Minimum = 0m;
+            numAmount.Maximum = 999999999999m;
+            numAmount.Increment = 1m;
+            numAmount.ThousandsSeparator = true;
+
             // إعداد حقل سعر الصرف (عدد الخانات العشرية، الحدود الدنيا والعليا، قيمة الزيادة، والقيمة الافتراضية)
             numExchangeRate.DecimalPlaces = 6;
             numExchangeRate.Minimum = 0.000001m;
@@ -171,8 +205,26 @@ namespace AlTayerERP.Desktop
         // حدث يتم استدعاؤه عند تغيير العملة المحددة
         private void cmbCurrency_SelectedIndexChanged(object? sender, EventArgs e)
         {
-            if (_isLoading || _isCalculatingAmounts) return; // تخطي العملية إذا كان النظام في حالة تحميل أو حساب
-            CalculateHeaderCurrencyAmounts(); // إعادة حساب مبالغ الترويسة بناءً على العملة الجديدة
+            if (_isLoading || _isCalculatingAmounts) return;
+
+            CurrencyLookupModel? selectedCurrency = GetSelectedCurrency();
+            if (selectedCurrency == null) return;
+
+            _isCalculatingAmounts = true;
+            try
+            {
+                bool isLocal = selectedCurrency.Is_Local_Currency ||
+                    selectedCurrency.Currency_Code.Equals("YER", StringComparison.OrdinalIgnoreCase);
+                SetNumericValueSafe(
+                    numExchangeRate,
+                    isLocal ? 1m : NormalizeExchangeRate(selectedCurrency.Exchange_Rate));
+            }
+            finally
+            {
+                _isCalculatingAmounts = false;
+            }
+
+            CalculateHeaderCurrencyAmounts();
         }
 
         // حدث يتم استدعاؤه عند تغيير قيمة المبلغ الرئيسي
@@ -186,6 +238,7 @@ namespace AlTayerERP.Desktop
         private void numExchangeRate_ValueChanged(object? sender, EventArgs e)
         {
             if (_isLoading || _isCalculatingAmounts) return;
+            CalculateHeaderCurrencyAmounts();
         }
 
         private void txtReference_TextChanged(object? sender, EventArgs e)
@@ -248,14 +301,14 @@ namespace AlTayerERP.Desktop
                 else if (isLocal == 0)
                 {
                     // 0️⃣ إذا كانت القيمة تساوي 0 (عملة أجنبية - دولار أو سعودي)
-                    decimal exchangeRate = NormalizeExchangeRate(selectedCurrency.Exchange_Rate);
+                    decimal exchangeRate = NormalizeExchangeRate(numExchangeRate.Value);
                     SetNumericValueSafe(numExchangeRate, exchangeRate);
                     SetNumericValueSafe(numForeignAmount, enteredAmount); // الأجنبي يساوي الرئيسي
 
                     decimal localAmount = decimal.Round(enteredAmount * exchangeRate, 2);
                     SetNumericValueSafe(numLocalAmount, localAmount); // المحلي = حاصل الضرب
 
-                    numForeignAmount.ReadOnly = false;
+                    numForeignAmount.ReadOnly = true;
                     numExchangeRate.ReadOnly = false;
                 }
             }
