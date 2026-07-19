@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="AlTayerERP.API/AlTayerERP.API.csproj" />
+  <Project Path="AlTayerERP.Core/AlTayerERP.Core.csproj" />
+  <Project Path="AlTayerERP.Desktop/AlTayerERP.Desktop.csproj" />
+  <Project Path="AlTayerERP.Infrastructure/AlTayerERP.Infrastructure.csproj" />
+</Solution>

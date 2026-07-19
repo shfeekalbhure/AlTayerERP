@@ -1,0 +1,203 @@
+﻿using System.Windows.Forms;
+
+namespace AlTayerERP.Desktop
+{
+    /// <summary>
+    /// التحكم في حالات شاشة سند القبض:
+    /// عرض، جديد، تعديل.
+    /// </summary>
+    public partial class FrmReceiptVoucher
+    {
+        #region === حالات الشاشة ===
+
+        private enum VoucherScreenMode
+        {
+            View,
+            New,
+            Edit
+        }
+
+        private VoucherScreenMode _screenMode =
+            VoucherScreenMode.View;
+
+        #endregion
+
+        #region === تغيير حالة الشاشة ===
+
+        /// <summary>
+        /// وضع العرض:
+        /// يقفل حقول السند ويمنع التعديل المباشر.
+        /// </summary>
+        private void SetViewMode()
+        {
+            _screenMode = VoucherScreenMode.View;
+
+            SetVoucherFieldsEditable(false);
+
+            btnNew.Enabled = true;
+            btnSearch.Enabled = true;
+            btnEdit.Enabled = _selectedVoucherId > 0;
+            btnDelete.Enabled = _selectedVoucherId > 0;
+            btnRefresh.Enabled = _selectedVoucherId > 0;
+            btnPrint.Enabled = _selectedVoucherId > 0;
+            btnViewJournalEntry.Enabled = _selectedVoucherId > 0;
+
+            btnSave.Enabled = false;
+            btnUndo.Enabled = false;
+
+            btnPost.Enabled =
+                _selectedVoucherId > 0 && !chkPosted.Checked;
+
+            btnUnPost.Enabled =
+                _selectedVoucherId > 0 && chkPosted.Checked;
+
+            btnApprove.Enabled = _selectedVoucherId > 0;
+      //      btnUnApprove.Enabled = _selectedVoucherId > 0;
+        }
+
+        /// <summary>
+        /// وضع إنشاء سند جديد.
+        /// </summary>
+        private void SetNewMode()
+        {
+            _screenMode = VoucherScreenMode.New;
+
+            SetVoucherFieldsEditable(true);
+
+            btnNew.Enabled = false;
+            btnSearch.Enabled = false;
+            btnEdit.Enabled = false;
+            btnDelete.Enabled = false;
+            btnRefresh.Enabled = false;
+            btnPrint.Enabled = false;
+            btnViewJournalEntry.Enabled = false;
+
+            btnSave.Enabled = true;
+            btnUndo.Enabled = true;
+
+            btnPost.Enabled = false;
+            btnUnPost.Enabled = false;
+            btnApprove.Enabled = false;
+      //      btnUnApprove.Enabled = false;
+
+            cmbParty.Focus();
+        }
+
+        /// <summary>
+        /// وضع تعديل سند محفوظ.
+        /// </summary>
+        private void SetEditMode()
+        {
+            if (_selectedVoucherId <= 0)
+            {
+                MessageBox.Show(
+                    "ابحث عن السند المراد تعديله أولًا.",
+                    "تنبيه",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Warning);
+
+                return;
+            }
+
+            if (chkPosted.Checked)
+            {
+                MessageBox.Show(
+                    "لا يمكن تعديل سند مرحل.\n" +
+                    "يجب إلغاء الترحيل أولًا.",
+                    "السند مرحل",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Warning);
+
+                return;
+            }
+
+            _screenMode = VoucherScreenMode.Edit;
+
+            SetVoucherFieldsEditable(true);
+
+            btnNew.Enabled = false;
+            btnSearch.Enabled = false;
+            btnEdit.Enabled = false;
+            btnDelete.Enabled = false;
+            btnRefresh.Enabled = false;
+            btnPrint.Enabled = false;
+            btnViewJournalEntry.Enabled = false;
+
+            btnSave.Enabled = true;
+            btnUndo.Enabled = true;
+
+            btnPost.Enabled = false;
+            btnUnPost.Enabled = false;
+            btnApprove.Enabled = false;
+       //     btnUnApprove.Enabled = false;
+
+            cmbParty.Focus();
+        }
+
+        #endregion
+
+        #region === فتح وقفل الحقول ===
+
+        /// <summary>
+        /// فتح أو قفل حقول الإدخال.
+        /// الحقول التعريفية وحقول النظام تبقى مقفلة دائمًا.
+        /// </summary>
+        private void SetVoucherFieldsEditable(bool editable)
+        {
+            dtVoucherDate.Enabled = editable;
+            cmbStatus.Enabled = editable;
+            cmbBranch.Enabled = editable;
+
+            cmbParty.Enabled = editable;
+            cmbCashAccount.Enabled = editable;
+            cmbCurrency.Enabled = editable;
+            cmbPaymentMethod.Enabled = editable;
+
+            numAmount.ReadOnly = !editable;
+            txtHeaderNotes.ReadOnly = !editable;
+
+            dgvVoucherDetails.ReadOnly = !editable;
+            dgvVoucherDetails.AllowUserToAddRows = editable;
+            dgvVoucherDetails.AllowUserToDeleteRows = editable;
+
+            // حقول محمية دائمًا
+            txtVoucherNo.ReadOnly = true;
+            txtJournalNo.ReadOnly = true;
+
+            txtCreatedBy.ReadOnly = true;
+            txtCreatedDate.ReadOnly = true;
+            txtUpdatedBy.ReadOnly = true;
+            txtUpdatedDate.ReadOnly = true;
+
+            txtTotalAmount.ReadOnly = true;
+            txtTotalForeignAmount.ReadOnly = true;
+            txtDifference.ReadOnly = true;
+            cmbCostCenter.Enabled = editable;
+            dtReferenceDate.Enabled = editable;
+
+            numLocalAmount.ReadOnly = true;
+            numForeignAmount.ReadOnly = true;
+            chkPosted.Enabled = false;
+            txtReference.ReadOnly = !editable;
+            txtReferenceNo.ReadOnly = !editable;
+            txtAgainst.ReadOnly = !editable;
+
+            // سعر الصرف يفتح فقط للعملة الأجنبية
+            CurrencyLookupModel? currency =
+                GetSelectedCurrency();
+
+            bool foreignCurrency =
+                currency != null &&
+                !currency.Is_Local_Currency &&
+                !string.Equals(
+                    currency.Currency_Code,
+                    "YER",
+                    System.StringComparison.OrdinalIgnoreCase);
+
+            numExchangeRate.ReadOnly =
+                !editable || !foreignCurrency;
+        }
+
+        #endregion
+    }
+}

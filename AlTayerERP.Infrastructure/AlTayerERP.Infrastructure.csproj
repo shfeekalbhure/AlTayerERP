@@ -1,0 +1,27 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<!-- استهداف منصة .NET 8.0 المستقرة وطويلة الدعم (LTS) -->
+		<TargetFramework>net8.0</TargetFramework>
+
+		<!-- تفعيل ميزة الاستدعاء التلقائي للمكتبات الشائعة لتقليل أسطر الـ using -->
+		<ImplicitUsings>enable</ImplicitUsings>
+
+		<!-- تفعيل حماية الكود من القيم الفارغة ونقاط الضعف (Null Safety) -->
+		<Nullable>enable</Nullable>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<!-- محرك ربط EF Core بقواعد بيانات MySQL (تم ضبطه على الإصدار المستقر والمتوافق تماماً مع .NET 8) -->
+		<PackageReference Include="Pomelo.EntityFrameworkCore.MySql" Version="8.0.2" />
+
+		<!-- أدوات إدارة EF Core داخل الـ Package Manager Console لتنفيذ الـ Migrations والـ Scaffold -->
+		<PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="8.0.12" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<!-- ربط وتضمين مشروع الطبقة الأساسية (Core) التي تحتوي على الـ Entities والـ Interfaces -->
+		<ProjectReference Include="..\AlTayerERP.Core\AlTayerERP.Core.csproj" />
+	</ItemGroup>
+
+</Project>

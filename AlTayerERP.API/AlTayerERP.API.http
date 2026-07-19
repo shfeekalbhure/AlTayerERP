@@ -1,0 +1,6 @@
+@AlTayerERP.API_HostAddress = http://localhost:5012
+
+GET {{AlTayerERP.API_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

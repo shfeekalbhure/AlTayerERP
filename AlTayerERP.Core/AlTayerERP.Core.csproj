@@ -1,0 +1,14 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<!-- استهداف منصة .NET 8.0 المستقرة لتتوافق مع بقية مشاريع النظام (API, Desktop, Infrastructure) -->
+		<TargetFramework>net8.0</TargetFramework>
+
+		<!-- تفعيل ميزة الاستدعاء التلقائي للمكتبات لتقليل أسطر الـ using في كلاسات البزنس -->
+		<ImplicitUsings>enable</ImplicitUsings>
+
+		<!-- تفعيل حماية الكود من القيم الفارغة (Null Safety) لمنع أخطاء الـ Run-time المفاجئة -->
+		<Nullable>enable</Nullable>
+	</PropertyGroup>
+
+</Project>

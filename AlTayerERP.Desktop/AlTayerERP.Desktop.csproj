@@ -1,0 +1,111 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<!-- نوع المشروع: تطبيق Windows Forms -->
+		<OutputType>WinExe</OutputType>
+
+		<!-- إصدار .NET المستخدم -->
+		<TargetFramework>net8.0-windows</TargetFramework>
+
+		<!-- تفعيل فحص القيم الفارغة -->
+		<Nullable>enable</Nullable>
+
+		<!-- تفعيل Windows Forms -->
+		<UseWindowsForms>true</UseWindowsForms>
+
+		<!-- إضافة الاستدعاءات العامة تلقائيًا -->
+		<ImplicitUsings>enable</ImplicitUsings>
+	</PropertyGroup>
+
+	<!-- مراجع المشاريع -->
+	<ItemGroup>
+		<ProjectReference Include="..\AlTayerERP.Core\AlTayerERP.Core.csproj" />
+	</ItemGroup>
+
+	<!-- ملف الموارد العام للمشروع -->
+	<ItemGroup>
+		<Compile Update="Properties\Resources.Designer.cs">
+			<DesignTime>True</DesignTime>
+			<AutoGen>True</AutoGen>
+			<DependentUpon>Resources.resx</DependentUpon>
+		</Compile>
+
+		<EmbeddedResource Update="Properties\Resources.resx">
+			<Generator>ResXFileCodeGenerator</Generator>
+			<LastGenOutput>Resources.Designer.cs</LastGenOutput>
+		</EmbeddedResource>
+	</ItemGroup>
+
+	<!-- الشاشة الرئيسية لسند القبض -->
+	<ItemGroup>
+		<Compile Update="Accounting\ReceiptVoucher\FrmReceiptVoucher.cs" />
+
+		<Compile Update="Accounting\ReceiptVoucher\FrmReceiptVoucher.Designer.cs">
+			<DependentUpon>FrmReceiptVoucher.cs</DependentUpon>
+			<AutoGen>True</AutoGen>
+			<DesignTime>True</DesignTime>
+		</Compile>
+	</ItemGroup>
+
+	<!--
+      إزالة أي تسجيل تلقائي لملف موارد سند القبض،
+      ثم تسجيل ملف الموارد الصحيح مرة واحدة فقط.
+  -->
+	<ItemGroup>
+		<EmbeddedResource Remove="**\FrmReceiptVoucher.resx" />
+
+		<EmbeddedResource Include="Accounting\ReceiptVoucher\FrmReceiptVoucher.resx">
+			<DependentUpon>FrmReceiptVoucher.cs</DependentUpon>
+			<LogicalName>AlTayerERP.Desktop.FrmReceiptVoucher.resources</LogicalName>
+		</EmbeddedResource>
+	</ItemGroup>
+
+	<!--
+      أجزاء شاشة سند القبض ملفات كود عادية،
+      وليست شاشات مستقلة ولا ملفات تصميم.
+  -->
+	<ItemGroup>
+		<Compile Update="Accounting\ReceiptVoucher\FrmReceiptVoucher.Load.cs">
+			<AutoGen>False</AutoGen>
+			<DesignTime>False</DesignTime>
+		</Compile>
+
+		<Compile Update="Accounting\ReceiptVoucher\FrmReceiptVoucher.New.cs">
+			<AutoGen>False</AutoGen>
+			<DesignTime>False</DesignTime>
+		</Compile>
+
+		<Compile Update="Accounting\ReceiptVoucher\FrmReceiptVoucher.Grid.cs">
+			<AutoGen>False</AutoGen>
+			<DesignTime>False</DesignTime>
+		</Compile>
+
+		<Compile Update="Accounting\ReceiptVoucher\FrmReceiptVoucher.Save.cs">
+			<AutoGen>False</AutoGen>
+			<DesignTime>False</DesignTime>
+		</Compile>
+
+		<Compile Update="Accounting\ReceiptVoucher\FrmReceiptVoucher.Search.cs">
+			<AutoGen>False</AutoGen>
+			<DesignTime>False</DesignTime>
+		</Compile>
+	</ItemGroup>
+
+	<!-- شاشة سند الصرف -->
+	<ItemGroup>
+		<Compile Update="FrmPaymentVoucher.cs">
+			<SubType>Form</SubType>
+		</Compile>
+	</ItemGroup>
+	<ItemGroup>
+	  <Folder Include="Common\AccountLookup\" />
+	</ItemGroup>
+
+	<!-- المجلدات التنظيمية -->
+
+	<!-- إيقاف نسخة البرنامج قبل البناء -->
+	<Target Name="PreBuild" BeforeTargets="PreBuildEvent">
+		<Exec Command="taskkill /f /fi &quot;pid gt 0&quot; /im AlTayerERP.Desktop.exe 2&gt;nul 1&gt;nul" IgnoreExitCode="true" />
+	</Target>
+
+</Project>

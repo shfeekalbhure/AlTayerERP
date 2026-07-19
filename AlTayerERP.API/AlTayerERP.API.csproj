@@ -1,0 +1,27 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+
+	<PropertyGroup>
+		<!-- تحديد بيئة العمل المستهدفة وهي .NET 8.0 -->
+		<TargetFramework>net8.0</TargetFramework>
+
+		<!-- تفعيل خاصية تنبيهات القيم الفارغة (Null Safety) -->
+		<Nullable>enable</Nullable>
+
+		<!-- تفعيل ميزة الاستدعاء التلقائي لملفات النظام الشائعة (Implicit Usings) -->
+		<ImplicitUsings>enable</ImplicitUsings>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<!-- حزمة Swagger الشاملة لتوليد واجهة وتوثيق ومواصفات الـ API لبيئة .NET 8 -->
+		<PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<!-- ربط وتضمين مشروع الطبقة الأساسية للنظام (Core) -->
+		<ProjectReference Include="..\AlTayerERP.Core\AlTayerERP.Core.csproj" />
+
+		<!-- ربط وتضمين مشروع طبقة البنية التحتية وقواعد البيانات (Infrastructure) -->
+		<ProjectReference Include="..\AlTayerERP.Infrastructure\AlTayerERP.Infrastructure.csproj" />
+	</ItemGroup>
+
+</Project>
