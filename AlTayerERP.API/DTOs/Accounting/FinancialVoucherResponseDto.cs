@@ -42,6 +42,8 @@ namespace AlTayerERP.API.DTOs.Accounting
 
         public string? Party_Name { get; set; }
 
+        public string? Received_From_Name { get; set; }
+
         public int? Payment_Method_ID { get; set; }
 
         public string? Payment_Method_Name { get; set; }
@@ -85,6 +87,17 @@ namespace AlTayerERP.API.DTOs.Accounting
         public bool Requires_Approval { get; set; }
 
         public byte Approval_Status { get; set; }
+
+        /// <summary>
+        /// 0 غير مراجع، 1 قيد المراجعة، 2 تمت المراجعة، 3 معاد للتصحيح.
+        /// </summary>
+        public byte Review_Status { get; set; }
+
+        public string? Reviewed_By_User_ID { get; set; }
+
+        public DateTime? Reviewed_At { get; set; }
+
+        public string? Review_Notes { get; set; }
 
         public bool Is_Posted { get; set; }
 
