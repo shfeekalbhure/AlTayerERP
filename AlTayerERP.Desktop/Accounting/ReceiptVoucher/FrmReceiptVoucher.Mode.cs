@@ -36,8 +36,6 @@ namespace AlTayerERP.Desktop
 
             btnNew.Enabled = true;
             btnSearch.Enabled = true;
-            btnEdit.Enabled = _selectedVoucherId > 0;
-            btnDelete.Enabled = _selectedVoucherId > 0;
             btnRefresh.Enabled = _selectedVoucherId > 0;
             btnPrint.Enabled = _selectedVoucherId > 0;
             btnViewJournalEntry.Enabled = _selectedVoucherId > 0;
@@ -45,14 +43,7 @@ namespace AlTayerERP.Desktop
             btnSave.Enabled = false;
             btnUndo.Enabled = false;
 
-            btnPost.Enabled =
-                _selectedVoucherId > 0 && !chkPosted.Checked;
-
-            btnUnPost.Enabled =
-                _selectedVoucherId > 0 && chkPosted.Checked;
-
-            btnApprove.Enabled = _selectedVoucherId > 0;
-      //      btnUnApprove.Enabled = _selectedVoucherId > 0;
+            UpdateWorkflowButtonsState();
         }
 
         /// <summary>
@@ -78,7 +69,9 @@ namespace AlTayerERP.Desktop
             btnPost.Enabled = false;
             btnUnPost.Enabled = false;
             btnApprove.Enabled = false;
-      //      btnUnApprove.Enabled = false;
+            btnCancelApprove.Enabled = false;
+            btnImport.Enabled = false;
+            btnExport.Enabled = false;
 
             cmbParty.Focus();
         }
@@ -111,6 +104,16 @@ namespace AlTayerERP.Desktop
                 return;
             }
 
+            if (_currentApprovalStatus == 2)
+            {
+                MessageBox.Show(
+                    "لا يمكن تعديل سند معتمد.\nيجب إلغاء الاعتماد أولًا.",
+                    "السند معتمد",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Warning);
+                return;
+            }
+
             _screenMode = VoucherScreenMode.Edit;
 
             SetVoucherFieldsEditable(true);
@@ -129,12 +132,36 @@ namespace AlTayerERP.Desktop
             btnPost.Enabled = false;
             btnUnPost.Enabled = false;
             btnApprove.Enabled = false;
-       //     btnUnApprove.Enabled = false;
+            btnCancelApprove.Enabled = false;
+            btnImport.Enabled = false;
+            btnExport.Enabled = false;
 
             cmbParty.Focus();
         }
 
         #endregion
+
+        /// <summary>
+        /// توحيد حالة أزرار دورة السند حتى لا تنفذ عملية بترتيب خاطئ.
+        /// </summary>
+        private void UpdateWorkflowButtonsState()
+        {
+            bool hasVoucher = _selectedVoucherId > 0;
+            bool isPosted = chkPosted.Checked;
+            bool isApproved = _currentApprovalStatus == 2;
+            bool isReviewed = _currentReviewStatus == 2;
+            bool requiresApproval = checkBox2.Checked;
+            bool allowedContext = !_isCrossContextVoucher;
+
+            btnEdit.Enabled = allowedContext && hasVoucher && !isPosted && !isApproved;
+            btnDelete.Enabled = allowedContext && hasVoucher && !isPosted && !isApproved;
+            btnImport.Enabled = allowedContext && hasVoucher && !isPosted && !isApproved && !isReviewed;
+            btnExport.Enabled = allowedContext && hasVoucher && !isPosted && !isApproved && _currentReviewStatus != 3;
+            btnApprove.Enabled = allowedContext && hasVoucher && !isPosted && requiresApproval && isReviewed && !isApproved;
+            btnCancelApprove.Enabled = allowedContext && hasVoucher && !isPosted && requiresApproval && isApproved;
+            btnPost.Enabled = allowedContext && hasVoucher && !isPosted && isReviewed && (!requiresApproval || isApproved);
+            btnUnPost.Enabled = allowedContext && hasVoucher && isPosted;
+        }
 
         #region === فتح وقفل الحقول ===
 
@@ -145,8 +172,9 @@ namespace AlTayerERP.Desktop
         private void SetVoucherFieldsEditable(bool editable)
         {
             dtVoucherDate.Enabled = editable;
-            cmbVoucherType.Enabled = editable;
-            cmbStatus.Enabled = editable;
+            // هذه شاشة سند قبض؛ نوع السند وحالته الأساسية يحددان من النظام.
+            cmbVoucherType.Enabled = false;
+            cmbStatus.Enabled = false;
             // الفرع يأتي من جلسة المستخدم ويُحفظ منها، لذلك لا يسمح بتغييره هنا.
             cmbBranch.Enabled = false;
 

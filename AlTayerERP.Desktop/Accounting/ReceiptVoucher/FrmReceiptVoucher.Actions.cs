@@ -5,6 +5,7 @@ using System.Drawing.Printing;
 using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Json;
+using System.Text.Json;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
@@ -47,6 +48,22 @@ namespace AlTayerERP.Desktop
             btnApprove.Click -= btnApprove_Click;
             btnApprove.Click += btnApprove_Click;
 
+            btnCancelApprove.Click -= btnCancelApprove_Click;
+            btnCancelApprove.Click += btnCancelApprove_Click;
+
+            btnPost.Click -= btnPost_Click;
+            btnPost.Click += btnPost_Click;
+
+            btnUnPost.Click -= btnUnPost_Click;
+            btnUnPost.Click += btnUnPost_Click;
+
+            // استخدمنا زري الاستيراد والتصدير السابقين لدورة المراجعة.
+            btnImport.Click -= btnReview_Click;
+            btnImport.Click += btnReview_Click;
+
+            btnExport.Click -= btnReturnForCorrection_Click;
+            btnExport.Click += btnReturnForCorrection_Click;
+
 
 
         }
@@ -64,6 +81,14 @@ namespace AlTayerERP.Desktop
             public string? Device_Name { get; set; }
 
             public string? Notes { get; set; }
+        }
+
+        private sealed class VoucherReasonActionRequest
+        {
+            public string User_ID { get; set; } = string.Empty;
+            public string Reason { get; set; } = string.Empty;
+            public string Action_Channel { get; set; } = "DESKTOP";
+            public string? Device_Name { get; set; }
         }
 
         #endregion
@@ -115,7 +140,7 @@ namespace AlTayerERP.Desktop
                 btnDelete.Enabled = false;
 
                 // تجهيز اسم المستخدم وإرسال طلب الحذف إلى الـ API
-                string userName = Uri.EscapeDataString(CurrentSession.Username ?? CurrentSession.Full_Name ?? string.Empty);
+                string userName = Uri.EscapeDataString(CurrentSession.User_ID.ToString());
                 HttpResponseMessage response = await _client.DeleteAsync(
                     $"{_baseUrl}FinancialVoucher/{_selectedVoucherId}?deletedBy={userName}");
 
@@ -140,7 +165,10 @@ namespace AlTayerERP.Desktop
             finally
             {
                 // إعادة تفعيل الزر وإرجاع شكل المؤشر
-                btnDelete.Enabled = true;
+                if (_screenMode == VoucherScreenMode.View)
+                {
+                    UpdateWorkflowButtonsState();
+                }
                 UseWaitCursor = false;
             }
         }
@@ -254,7 +282,7 @@ namespace AlTayerERP.Desktop
         #region === زر الطباعة ===
 
         // الحدث الخاص بالنقر على زر الطباعة والمعاينة
-        private void btnPrint_Click(object? sender, EventArgs e)
+        private async void btnPrint_Click(object? sender, EventArgs e)
         {
             // التحقق من اختيار السند
             if (_selectedVoucherId <= 0)
@@ -284,6 +312,8 @@ namespace AlTayerERP.Desktop
 
                 // عرض نافذة المعاينة
                 preview.ShowDialog(this);
+
+                await RecordPrintOperationAsync();
             }
             catch (Exception ex)
             {
@@ -339,6 +369,16 @@ namespace AlTayerERP.Desktop
                     MessageBoxButtons.OK,
                     MessageBoxIcon.Information);
 
+                return;
+            }
+
+            if (_currentReviewStatus != 2)
+            {
+                MessageBox.Show(
+                    "يجب الضغط على (تمت المراجعة) قبل اعتماد السند.",
+                    "المراجعة مطلوبة",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Warning);
                 return;
             }
 
@@ -424,13 +464,255 @@ namespace AlTayerERP.Desktop
             {
                 UseWaitCursor = false;
 
-                btnApprove.Enabled =
-                    _selectedVoucherId > 0 &&
-                    !chkPosted.Checked;
+                if (_screenMode == VoucherScreenMode.View)
+                {
+                    UpdateWorkflowButtonsState();
+                }
             }
         }
 
         #endregion
+
+        #region === المراجعة والاعتماد والترحيل ===
+
+        private async void btnReview_Click(object? sender, EventArgs e)
+        {
+            if (_selectedVoucherId <= 0 || chkPosted.Checked || _currentApprovalStatus == 2)
+            {
+                return;
+            }
+
+            DialogResult confirmation = MessageBox.Show(
+                $"هل تؤكد أنك راجعت جميع بيانات السند رقم:\n{txtVoucherNo.Text.Trim()}؟",
+                "تأكيد المراجعة",
+                MessageBoxButtons.YesNo,
+                MessageBoxIcon.Question,
+                MessageBoxDefaultButton.Button2);
+
+            if (confirmation != DialogResult.Yes) return;
+
+            var request = new VoucherActionRequest
+            {
+                User_ID = CurrentSession.User_ID.ToString(),
+                Action_Channel = "DESKTOP",
+                Device_Name = Environment.MachineName,
+                Notes = "تمت مراجعة بيانات سند القبض كاملة من شاشة سطح المكتب."
+            };
+
+            await ExecuteVoucherActionAsync(
+                "review",
+                request,
+                "تعذر تأكيد مراجعة السند.",
+                "تمت مراجعة السند بنجاح.");
+        }
+
+        private async void btnReturnForCorrection_Click(object? sender, EventArgs e)
+        {
+            if (_selectedVoucherId <= 0 || chkPosted.Checked || _currentApprovalStatus == 2)
+            {
+                return;
+            }
+
+            string reason = Microsoft.VisualBasic.Interaction.InputBox(
+                "اكتب سبب إعادة السند للتصحيح:",
+                "إعادة للتصحيح",
+                string.Empty).Trim();
+
+            if (string.IsNullOrWhiteSpace(reason))
+            {
+                MessageBox.Show("سبب الإعادة مطلوب.", "إعادة للتصحيح",
+                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            var request = BuildReasonRequest(reason);
+            await ExecuteVoucherActionAsync(
+                "return-for-correction",
+                request,
+                "تعذر إعادة السند للتصحيح.",
+                "تمت إعادة السند للتصحيح.");
+        }
+
+        private async void btnCancelApprove_Click(object? sender, EventArgs e)
+        {
+            if (_selectedVoucherId <= 0 || chkPosted.Checked || _currentApprovalStatus != 2)
+            {
+                return;
+            }
+
+            string reason = Microsoft.VisualBasic.Interaction.InputBox(
+                "اكتب سبب إلغاء اعتماد السند:",
+                "إلغاء الاعتماد",
+                string.Empty).Trim();
+
+            if (string.IsNullOrWhiteSpace(reason))
+            {
+                MessageBox.Show("سبب إلغاء الاعتماد مطلوب.", "إلغاء الاعتماد",
+                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            await ExecuteVoucherActionAsync(
+                "cancel-approval",
+                BuildReasonRequest(reason),
+                "تعذر إلغاء اعتماد السند.",
+                "تم إلغاء اعتماد السند بنجاح.");
+        }
+
+        private async void btnPost_Click(object? sender, EventArgs e)
+        {
+            if (_selectedVoucherId <= 0 || chkPosted.Checked)
+            {
+                return;
+            }
+
+            if (_currentReviewStatus != 2)
+            {
+                MessageBox.Show("يجب إتمام المراجعة قبل الترحيل.", "المراجعة مطلوبة",
+                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            if (checkBox2.Checked && _currentApprovalStatus != 2)
+            {
+                MessageBox.Show("هذا السند معلّق ويجب اعتماده قبل الترحيل.", "الاعتماد مطلوب",
+                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            DialogResult confirmation = MessageBox.Show(
+                $"هل تريد ترحيل السند رقم:\n{txtVoucherNo.Text.Trim()} وإنشاء القيد المحاسبي؟",
+                "تأكيد الترحيل",
+                MessageBoxButtons.YesNo,
+                MessageBoxIcon.Question,
+                MessageBoxDefaultButton.Button2);
+
+            if (confirmation != DialogResult.Yes) return;
+
+            var request = new VoucherActionRequest
+            {
+                User_ID = CurrentSession.User_ID.ToString(),
+                Action_Channel = "DESKTOP",
+                Device_Name = Environment.MachineName,
+                Notes = "تم ترحيل سند القبض من شاشة سطح المكتب."
+            };
+
+            await ExecuteVoucherActionAsync(
+                "post",
+                request,
+                "تعذر ترحيل السند.",
+                "تم ترحيل السند وإنشاء القيد المحاسبي بنجاح.");
+        }
+
+        private async void btnUnPost_Click(object? sender, EventArgs e)
+        {
+            if (_selectedVoucherId <= 0 || !chkPosted.Checked)
+            {
+                return;
+            }
+
+            string reason = Microsoft.VisualBasic.Interaction.InputBox(
+                "اكتب سبب إلغاء ترحيل السند:",
+                "إلغاء الترحيل",
+                string.Empty).Trim();
+
+            if (string.IsNullOrWhiteSpace(reason))
+            {
+                MessageBox.Show("سبب إلغاء الترحيل مطلوب.", "إلغاء الترحيل",
+                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            await ExecuteVoucherActionAsync(
+                "unpost",
+                BuildReasonRequest(reason),
+                "تعذر إلغاء ترحيل السند.",
+                "تم إلغاء ترحيل السند بنجاح.");
+        }
+
+        private VoucherReasonActionRequest BuildReasonRequest(string reason)
+        {
+            return new VoucherReasonActionRequest
+            {
+                User_ID = CurrentSession.User_ID.ToString(),
+                Reason = reason,
+                Action_Channel = "DESKTOP",
+                Device_Name = Environment.MachineName
+            };
+        }
+
+        private async Task<bool> ExecuteVoucherActionAsync<TRequest>(
+            string action,
+            TRequest request,
+            string defaultError,
+            string successMessage)
+        {
+            try
+            {
+                UseWaitCursor = true;
+                using HttpResponseMessage response = await _client.PostAsJsonAsync(
+                    $"{_baseUrl}FinancialVoucher/{_selectedVoucherId}/{action}",
+                    request);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    await ShowVoucherApiErrorAsync(response, defaultError);
+                    return false;
+                }
+
+                MessageBox.Show(successMessage, "سند القبض",
+                    MessageBoxButtons.OK, MessageBoxIcon.Information);
+
+                string voucherNumber = txtVoucherNo.Text.Trim();
+                if (!string.IsNullOrWhiteSpace(voucherNumber))
+                {
+                    await SearchVoucherAsync(voucherNumber);
+                }
+
+                SetViewMode();
+                return true;
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"{defaultError}\n\n{ex.Message}", "خطأ",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return false;
+            }
+            finally
+            {
+                UseWaitCursor = false;
+            }
+        }
+
+        private async Task RecordPrintOperationAsync()
+        {
+            var request = new VoucherActionRequest
+            {
+                User_ID = CurrentSession.User_ID.ToString(),
+                Action_Channel = "DESKTOP",
+                Device_Name = Environment.MachineName,
+                Notes = "تم فتح معاينة طباعة سند القبض."
+            };
+
+            using HttpResponseMessage response = await _client.PostAsJsonAsync(
+                $"{_baseUrl}FinancialVoucher/{_selectedVoucherId}/record-print",
+                request);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                await ShowVoucherApiErrorAsync(response, "تعذر تسجيل عملية الطباعة.");
+                return;
+            }
+
+            string voucherNumber = txtVoucherNo.Text.Trim();
+            if (!string.IsNullOrWhiteSpace(voucherNumber))
+            {
+                await SearchVoucherAsync(voucherNumber);
+            }
+        }
+
+        #endregion
+
         #region === تصميم صفحة الطباعة ===
 
         // رسم محتويات صفحة الطباعة
@@ -673,6 +955,21 @@ namespace AlTayerERP.Desktop
         private static async Task ShowVoucherApiErrorAsync(HttpResponseMessage response, string defaultMessage)
         {
             string errorMessage = await response.Content.ReadAsStringAsync();
+            if (!string.IsNullOrWhiteSpace(errorMessage))
+            {
+                try
+                {
+                    using JsonDocument document = JsonDocument.Parse(errorMessage);
+                    if (document.RootElement.TryGetProperty("message", out JsonElement messageElement))
+                    {
+                        errorMessage = messageElement.GetString() ?? errorMessage;
+                    }
+                }
+                catch (JsonException)
+                {
+                    // الاستجابة نص عادي وليست JSON.
+                }
+            }
             if (string.IsNullOrWhiteSpace(errorMessage))
                 errorMessage = $"{defaultMessage}\nرمز الخطأ: {(int)response.StatusCode}";
 

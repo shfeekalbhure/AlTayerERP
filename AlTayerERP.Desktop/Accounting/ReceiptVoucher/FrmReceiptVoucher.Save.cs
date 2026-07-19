@@ -28,6 +28,7 @@ namespace AlTayerERP.Desktop
             public DateTime Transaction_Date { get; set; } // تاريخ الحركة المالية
             public string Cash_Account_ID { get; set; } = string.Empty; // معرف حساب الصندوق أو البنك
             public string? Party_ID { get; set; } // معرف العميل أو المورد أو الحساب المرتبط
+            public string? Received_From_Name { get; set; } // اسم الشخص المستلم منه كما ظهر في السند
             public int? Payment_Method_ID { get; set; } // معرف طريقة الدفع
             public int Currency_ID { get; set; } // معرف العملة
             public decimal Exchange_Rate { get; set; } // سعر صرف العملة
@@ -132,6 +133,10 @@ namespace AlTayerERP.Desktop
             {
                 return;
             }
+
+            // تثبيت قيمة الخلية التي يكتب فيها المستخدم قبل بدء التحقق والحفظ.
+            Validate();
+            dgvVoucherDetails.EndEdit();
 
             // عند التعديل يجب أن يكون السند محفوظًا.
             if (isEditingVoucher && _selectedVoucherId <= 0)
@@ -375,11 +380,27 @@ namespace AlTayerERP.Desktop
                 return false;
             }
 
+            string receivedFromName = GetReceivedFromName();
+            if (string.IsNullOrWhiteSpace(receivedFromName) ||
+                receivedFromName.Equals("بدون طرف محدد", StringComparison.OrdinalIgnoreCase))
+            {
+                errorMessage = "يرجى إدخال اسم الشخص في حقل استلمت من السيد.";
+                cmbParty.Focus();
+                return false;
+            }
+
             // التحقق من اختيار عملة السند من القائمة المنسدلة
             if (cmbCurrency.SelectedValue == null)
             {
                 errorMessage = "يرجى اختيار عملة السند.";
                 cmbCurrency.Focus();
+                return false;
+            }
+
+            if (cmbPaymentMethod.SelectedValue == null)
+            {
+                errorMessage = "يرجى اختيار طريقة السداد.";
+                cmbPaymentMethod.Focus();
                 return false;
             }
 
@@ -452,6 +473,14 @@ namespace AlTayerERP.Desktop
                     return false;
                 }
 
+                string cashAccountId = cmbCashAccount.SelectedValue?.ToString()?.Trim() ?? string.Empty;
+                if (string.Equals(accountId, cashAccountId, StringComparison.OrdinalIgnoreCase))
+                {
+                    errorMessage = $"لا يمكن اختيار حساب الصندوق نفسه كحساب مقابل في السطر رقم {visibleRowNo}.";
+                    dgvVoucherDetails.CurrentCell = row.Cells[colAccountCode.Name];
+                    return false;
+                }
+
                 // جلب المبالغ وأسعار الصرف الخاصة بالسطر الحالي لحساب القيمة المحلية واختبارها
                 decimal enteredAmount = GetRowEnteredAmount(row);
                 decimal exchangeRate = GetRowExchangeRate(row);
@@ -477,6 +506,16 @@ namespace AlTayerERP.Desktop
                 if (localAmount <= 0m)
                 {
                     errorMessage = $"المبلغ المحلي يجب أن يكون أكبر من صفر في السطر رقم {visibleRowNo}.";
+                    return false;
+                }
+
+                string referenceDateText = GetCellString(row, colReferenceDate.Name);
+                if (!string.IsNullOrWhiteSpace(referenceDateText) &&
+                    !DateTime.TryParse(referenceDateText, CultureInfo.CurrentCulture, DateTimeStyles.None, out _) &&
+                    !DateTime.TryParse(referenceDateText, CultureInfo.InvariantCulture, DateTimeStyles.None, out _))
+                {
+                    errorMessage = $"تاريخ المرجع غير صحيح في السطر رقم {visibleRowNo}.";
+                    dgvVoucherDetails.CurrentCell = row.Cells[colReferenceDate.Name];
                     return false;
                 }
 
@@ -515,22 +554,39 @@ namespace AlTayerERP.Desktop
             int voucherStatusId = Convert.ToInt32(cmbStatus.SelectedValue, CultureInfo.InvariantCulture);
             string cashAccountId = cmbCashAccount.SelectedValue?.ToString()?.Trim() ?? string.Empty;
             string? partyId = cmbParty.SelectedValue?.ToString()?.Trim();
+            string receivedFromName = GetReceivedFromName();
+            if (_screenMode == VoucherScreenMode.Edit &&
+                string.IsNullOrWhiteSpace(partyId) &&
+                string.Equals(receivedFromName, _loadedReceivedFromName, StringComparison.Ordinal) &&
+                !string.IsNullOrWhiteSpace(_loadedPartyId))
+            {
+                partyId = _loadedPartyId;
+            }
             int? paymentMethodId = TryConvertNullableInt(cmbPaymentMethod.SelectedValue);
             int currencyId = Convert.ToInt32(cmbCurrency.SelectedValue, CultureInfo.InvariantCulture);
             string? defaultCostCenterId = cmbCostCenter.SelectedValue?.ToString()?.Trim();
             string referenceNo = !string.IsNullOrWhiteSpace(txtReference.Text) ? txtReference.Text.Trim() : txtReferenceNo.Text.Trim();
+            string branchId =
+                _screenMode == VoucherScreenMode.Edit && !string.IsNullOrWhiteSpace(_loadedVoucherBranchId)
+                    ? _loadedVoucherBranchId
+                    : CurrentSession.Branch_ID.ToString(CultureInfo.InvariantCulture);
+            int fiscalYearId =
+                _screenMode == VoucherScreenMode.Edit && _loadedFiscalYearId > 0
+                    ? _loadedFiscalYearId
+                    : CurrentSession.Year_ID;
 
             // إنشاء وتعبئة كائن الطلب الرئيسي لبيانات رأس السند المالي
             var request = new CreateFinancialVoucherRequest
             {
                 Voucher_Type_ID = voucherTypeId,
                 Voucher_Status_ID = voucherStatusId,
-                Branch_ID = CurrentSession.Branch_ID.ToString(CultureInfo.InvariantCulture),
-                Fiscal_Year_ID = CurrentSession.Year_ID,
+                Branch_ID = branchId,
+                Fiscal_Year_ID = fiscalYearId,
                 Voucher_Date = dtVoucherDate.Value.Date,
                 Transaction_Date = dtVoucherDate.Value,
                 Cash_Account_ID = cashAccountId,
                 Party_ID = string.IsNullOrWhiteSpace(partyId) ? null : partyId,
+                Received_From_Name = receivedFromName,
                 Payment_Method_ID = paymentMethodId,
                 Currency_ID = currencyId,
                 Exchange_Rate = decimal.Round(numExchangeRate.Value, 6, MidpointRounding.AwayFromZero),
@@ -802,6 +858,22 @@ namespace AlTayerERP.Desktop
 
 
 
+
+        /// <summary>
+        /// يعيد الاسم الظاهر في حقل استلمت من السيد، سواء اختير طرف مسجل
+        /// أو كتب المستخدم اسمًا يدويًا.
+        /// </summary>
+        private string GetReceivedFromName()
+        {
+            if (cmbParty.SelectedItem is PartyLookupModel selectedParty &&
+                !string.IsNullOrWhiteSpace(selectedParty.Party_ID) &&
+                !string.IsNullOrWhiteSpace(selectedParty.Party_Name_AR))
+            {
+                return selectedParty.Party_Name_AR.Trim();
+            }
+
+            return cmbParty.Text?.Trim() ?? string.Empty;
+        }
 
         #region === قراءة الصفوف ===
 

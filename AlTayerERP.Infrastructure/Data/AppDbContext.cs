@@ -362,6 +362,9 @@ namespace AlTayerERP.Infrastructure.Data
                 entity.Property(e => e.Amount).HasPrecision(18, 2);
                 entity.Property(e => e.Foreign_Total).HasPrecision(18, 2);
                 entity.Property(e => e.Local_Total).HasPrecision(18, 2);
+                entity.Property(e => e.Received_From_Name).HasMaxLength(200);
+                entity.Property(e => e.Review_Notes).HasMaxLength(500);
+                entity.Property(e => e.Reviewed_By_User_ID).HasMaxLength(50);
 
                 // علاقة رأس وتفاصيل (One-to-Many): السند يمتلك تفاصيل متعددة، وعند حذف السند تُحذف تفاصيله تلقائيًا
                 entity.HasMany(e => e.Details)

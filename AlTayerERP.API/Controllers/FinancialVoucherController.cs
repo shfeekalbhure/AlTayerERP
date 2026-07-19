@@ -259,7 +259,9 @@ namespace AlTayerERP.API.Controllers
         /// حذف سند مالي غير مرحل.
         /// </summary>
         [HttpDelete("{voucherId:long}")]
-        public async Task<IActionResult> Delete(long voucherId)
+        public async Task<IActionResult> Delete(
+            long voucherId,
+            [FromQuery] string deletedBy)
         {
             if (voucherId <= 0)
             {
@@ -270,7 +272,16 @@ namespace AlTayerERP.API.Controllers
                 });
             }
 
-            var result = await _service.DeleteAsync(voucherId);
+            if (string.IsNullOrWhiteSpace(deletedBy))
+            {
+                return BadRequest(new
+                {
+                    success = false,
+                    message = "معرف المستخدم الذي نفذ الحذف مطلوب."
+                });
+            }
+
+            var result = await _service.DeleteAsync(voucherId, deletedBy);
 
             if (!result.Success)
             {
@@ -288,13 +299,14 @@ namespace AlTayerERP.API.Controllers
             });
         }
         /// <summary>
-        /// البحث عن سند مالي بواسطة رقم السند والفرع والسنة المالية.
+        /// البحث بالرقم الكامل، أو بالرقم التسلسلي ضمن فرع وسنة الشاشة.
         /// </summary>
         [HttpGet("ByNumber")]
         public async Task<IActionResult> GetByNumber(
             [FromQuery] string voucherNumber,
-            [FromQuery] string branchId,
-            [FromQuery] int fiscalYearId)
+            [FromQuery] string? branchId = null,
+            [FromQuery] int? fiscalYearId = null,
+            [FromQuery] int? voucherTypeId = null)
         {
             #region التحقق من بيانات البحث
 
@@ -307,21 +319,16 @@ namespace AlTayerERP.API.Controllers
                 });
             }
 
-            if (string.IsNullOrWhiteSpace(branchId))
+            bool sequenceSearch = int.TryParse(voucherNumber.Trim(), out int sequence) && sequence > 0;
+            if (sequenceSearch &&
+                (string.IsNullOrWhiteSpace(branchId) ||
+                 !fiscalYearId.HasValue ||
+                 fiscalYearId.Value <= 0))
             {
                 return BadRequest(new
                 {
                     success = false,
-                    message = "معرف الفرع مطلوب."
-                });
-            }
-
-            if (fiscalYearId <= 0)
-            {
-                return BadRequest(new
-                {
-                    success = false,
-                    message = "معرف السنة المالية غير صحيح."
+                    message = "عند البحث بالرقم فقط يجب تحديد فرع وسنة الشاشة."
                 });
             }
 
@@ -331,7 +338,8 @@ namespace AlTayerERP.API.Controllers
                 await _service.GetByVoucherNumberAsync(
                     voucherNumber,
                     branchId,
-                    fiscalYearId);
+                    fiscalYearId,
+                    voucherTypeId);
 
             if (voucher == null)
             {
@@ -353,6 +361,68 @@ namespace AlTayerERP.API.Controllers
         }
 
         #region اعتماد السند
+
+        #region مراجعة السند
+
+        [HttpPost("{voucherId:long}/review")]
+        public async Task<IActionResult> Review(
+            long voucherId,
+            [FromBody] VoucherActionRequest request)
+        {
+            if (request == null || string.IsNullOrWhiteSpace(request.User_ID))
+            {
+                return BadRequest(new { success = false, message = "معرف المستخدم مطلوب للمراجعة." });
+            }
+
+            var result = await _service.MarkReviewedAsync(
+                voucherId,
+                request.User_ID,
+                request.Notes);
+
+            return result.Success
+                ? Ok(new { success = true, message = result.Message })
+                : BadRequest(new { success = false, message = result.Message });
+        }
+
+        [HttpPost("{voucherId:long}/return-for-correction")]
+        public async Task<IActionResult> ReturnForCorrection(
+            long voucherId,
+            [FromBody] VoucherReasonActionRequest request)
+        {
+            if (request == null ||
+                string.IsNullOrWhiteSpace(request.User_ID) ||
+                string.IsNullOrWhiteSpace(request.Reason))
+            {
+                return BadRequest(new { success = false, message = "معرف المستخدم وسبب الإعادة مطلوبان." });
+            }
+
+            var result = await _service.ReturnForCorrectionAsync(
+                voucherId,
+                request.User_ID,
+                request.Reason);
+
+            return result.Success
+                ? Ok(new { success = true, message = result.Message })
+                : BadRequest(new { success = false, message = result.Message });
+        }
+
+        [HttpPost("{voucherId:long}/record-print")]
+        public async Task<IActionResult> RecordPrint(
+            long voucherId,
+            [FromBody] VoucherActionRequest request)
+        {
+            if (request == null || string.IsNullOrWhiteSpace(request.User_ID))
+            {
+                return BadRequest(new { success = false, message = "معرف المستخدم مطلوب لتسجيل الطباعة." });
+            }
+
+            var result = await _service.RecordPrintAsync(voucherId, request.User_ID);
+            return result.Success
+                ? Ok(new { success = true, message = result.Message })
+                : BadRequest(new { success = false, message = result.Message });
+        }
+
+        #endregion
 
         /// <summary>
         /// اعتماد سند مالي.
@@ -379,6 +449,16 @@ namespace AlTayerERP.API.Controllers
                 {
                     success = false,
                     message = "معرف المستخدم مطلوب لاعتماد السند."
+                });
+            }
+
+            var reviewValidation = await _service.ValidateReviewedAsync(voucherId);
+            if (!reviewValidation.Success)
+            {
+                return BadRequest(new
+                {
+                    success = false,
+                    message = reviewValidation.Message
                 });
             }
 
@@ -507,6 +587,16 @@ namespace AlTayerERP.API.Controllers
                 {
                     success = false,
                     message = "معرف المستخدم مطلوب لترحيل السند."
+                });
+            }
+
+            var reviewValidation = await _service.ValidateReviewedAsync(voucherId);
+            if (!reviewValidation.Success)
+            {
+                return BadRequest(new
+                {
+                    success = false,
+                    message = reviewValidation.Message
                 });
             }
 
