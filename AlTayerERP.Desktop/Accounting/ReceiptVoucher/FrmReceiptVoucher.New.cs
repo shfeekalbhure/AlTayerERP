@@ -27,6 +27,14 @@ namespace AlTayerERP.Desktop
         private void NewVoucher()
         {
             _selectedVoucherId = 0;
+            _currentReviewStatus = 0;
+            _currentApprovalStatus = 0;
+            _loadedVoucherBranchId = CurrentSession.Branch_ID.ToString();
+            _loadedFiscalYearId = CurrentSession.Year_ID;
+            _loadedPartyId = null;
+            _loadedReceivedFromName = string.Empty;
+            _isCrossContextVoucher = false;
+            UpdateReviewStatusDisplay(null, null);
             txtVoucherNo.Text = "جاري توليد الرقم...";
 
             dtVoucherDate.Value = DateTime.Today;
@@ -44,7 +52,6 @@ namespace AlTayerERP.Desktop
 
             SetNumericValueSafe(numForeignAmount, 0m);
             SetNumericValueSafe(numLocalAmount, 0m);
-            SetDefaultCurrencyAndExchangeRate();
             dgvVoucherDetails.Rows.Clear();
             AddNewVoucherDetailRow();
             // تصفير المبلغ
@@ -68,7 +75,6 @@ namespace AlTayerERP.Desktop
             txtUpdatedDate.Clear();
 
             
-            cmbPaymentMethod.Text = "نقداً";
             dtVoucherDate.Value = DateTime.Today;
             dtReferenceDate.Value = DateTime.Today;
         }
