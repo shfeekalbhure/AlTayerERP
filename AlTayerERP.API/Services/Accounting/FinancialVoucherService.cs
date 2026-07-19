@@ -28,14 +28,14 @@ namespace AlTayerERP.API.Services.Accounting
         /// <summary>
         /// إنشاء سند مالي جديد.
         /// </summary>
-        public async Task<(bool Success, string Message)> CreateAsync(CreateFinancialVoucherDto dto)
+        public async Task<(bool Success, string Message, long? VoucherId, string? VoucherNo)> CreateAsync(CreateFinancialVoucherDto dto)
         {
             // 1) التحقق من صحة السند
             var validation = await _validator.ValidateAsync(dto);
 
             if (!validation.IsValid)
             {
-                return (false, validation.ErrorMessage);
+                return (false, validation.ErrorMessage, null, null);
             }
 
             // 2) بدء معاملة قاعدة بيانات لضمان حفظ الرأس والتفاصيل والتوزيعات معًا
@@ -51,7 +51,7 @@ namespace AlTayerERP.API.Services.Accounting
                 {
                     await transaction.RollbackAsync();
 
-                    return (false, "إجمالي المدين لا يساوي إجمالي الدائن.");
+                    return (false, "إجمالي المدين لا يساوي إجمالي الدائن.", null, null);
                 }
 
                 decimal localTotal = totalDebit;
@@ -97,6 +97,8 @@ namespace AlTayerERP.API.Services.Accounting
                     Source_Document_No = dto.Source_Document_No,
                     Requires_Approval = dto.Requires_Approval,
                     Approval_Status = dto.Requires_Approval ? (byte)1 : (byte)0,
+                    Approval_Requested_By_User_ID = dto.Requires_Approval ? dto.Created_By : null,
+                    Approval_Requested_At = dto.Requires_Approval ? DateTime.Now : null,
                     Is_Posted = false,
                     Is_Active = true,
                     Created_By = dto.Created_By,
@@ -140,7 +142,7 @@ namespace AlTayerERP.API.Services.Accounting
                     if (remainingBalance < 0)
                     {
                         await transaction.RollbackAsync();
-                        return (false, $"المبلغ المحصل للمستند {allocationDto.Document_No} أكبر من رصيده المتبقي.");
+                        return (false, $"المبلغ المحصل للمستند {allocationDto.Document_No} أكبر من رصيده المتبقي.", null, null);
                     }
 
                     voucher.DocumentAllocations.Add(new DocumentAllocation
@@ -183,7 +185,9 @@ namespace AlTayerERP.API.Services.Accounting
 
                 return (
                     true,
-                    $"تم حفظ السند المالي بنجاح. رقم السند: {voucher.Voucher_No}"
+                    $"تم حفظ السند المالي بنجاح. رقم السند: {voucher.Voucher_No}",
+                    voucher.Voucher_ID,
+                    voucher.Voucher_No
                 );
             }
             catch (DbUpdateException ex)
@@ -192,13 +196,13 @@ namespace AlTayerERP.API.Services.Accounting
 
                 string error = ex.InnerException?.Message ?? ex.Message;
 
-                return (false, $"تعذر حفظ السند في قاعدة البيانات: {error}");
+                return (false, $"تعذر حفظ السند في قاعدة البيانات: {error}", null, null);
             }
             catch (Exception ex)
             {
                 await transaction.RollbackAsync();
 
-                return (false, $"حدث خطأ أثناء حفظ السند المالي: {ex.Message}");
+                return (false, $"حدث خطأ أثناء حفظ السند المالي: {ex.Message}", null, null);
             }
         }
 
@@ -292,9 +296,213 @@ namespace AlTayerERP.API.Services.Accounting
         public async Task<(bool Success, string Message)> UpdateAsync(
             UpdateFinancialVoucherDto dto)
         {
-            await Task.CompletedTask;
+            if (dto.Details == null || dto.Details.Count < 2)
+            {
+                return (false, "يجب أن يحتوي السند على سطرين محاسبيين على الأقل.");
+            }
 
-            return (true, "سيتم تنفيذ التعديل لاحقاً.");
+            foreach (var detail in dto.Details)
+            {
+                if (detail.Debit_Amount < 0m || detail.Credit_Amount < 0m)
+                {
+                    return (false, $"لا يسمح بمبلغ سالب في السطر رقم {detail.Line_No}.");
+                }
+
+                if (detail.Debit_Amount > 0m && detail.Credit_Amount > 0m)
+                {
+                    return (false, $"لا يمكن أن يكون السطر رقم {detail.Line_No} مدينًا ودائنًا معًا.");
+                }
+
+                if (detail.Debit_Amount == 0m && detail.Credit_Amount == 0m)
+                {
+                    return (false, $"يجب إدخال مبلغ مدين أو دائن في السطر رقم {detail.Line_No}.");
+                }
+
+                if (detail.Local_Amount <= 0m)
+                {
+                    return (false, $"المبلغ المحلي في السطر رقم {detail.Line_No} يجب أن يكون أكبر من صفر.");
+                }
+            }
+
+            decimal totalDebit = decimal.Round(dto.Details.Sum(x => x.Debit_Amount), 2);
+            decimal totalCredit = decimal.Round(dto.Details.Sum(x => x.Credit_Amount), 2);
+
+            if (totalDebit != totalCredit)
+            {
+                return (false, "إجمالي المدين لا يساوي إجمالي الدائن.");
+            }
+
+            var cashLines = dto.Details.Where(x => x.Line_Type == 1).ToList();
+            if (cashLines.Count != 1)
+            {
+                return (false, "يجب أن يحتوي السند على سطر صندوق أو بنك واحد فقط.");
+            }
+
+            var cashCurrencies = cashLines.Select(x => x.Currency_ID).Distinct().ToList();
+            decimal foreignTotal = cashCurrencies.Count == 1
+                ? decimal.Round(cashLines.Sum(x => x.Foreign_Amount), 2)
+                : 0m;
+
+            await using var transaction = await _context.Database.BeginTransactionAsync();
+
+            try
+            {
+                var voucher = await _context.Financial_Voucher_Headers
+                    .Include(x => x.Details)
+                    .Include(x => x.DocumentAllocations)
+                    .FirstOrDefaultAsync(x => x.Voucher_ID == dto.Voucher_ID && x.Is_Active);
+
+                if (voucher == null)
+                {
+                    await transaction.RollbackAsync();
+                    return (false, "السند المالي غير موجود.");
+                }
+
+                if (voucher.Is_Posted)
+                {
+                    await transaction.RollbackAsync();
+                    return (false, "لا يمكن تعديل سند مرحل. يجب إلغاء الترحيل أولًا.");
+                }
+
+                DateTime now = DateTime.Now;
+                int oldStatusId = voucher.Voucher_Status_ID;
+
+                voucher.Voucher_Type_ID = dto.Voucher_Type_ID;
+                voucher.Voucher_Status_ID = dto.Voucher_Status_ID;
+                voucher.Branch_ID = dto.Branch_ID;
+                voucher.Fiscal_Year_ID = dto.Fiscal_Year_ID;
+                voucher.Voucher_Date = dto.Voucher_Date;
+                voucher.Transaction_Date = dto.Transaction_Date;
+                voucher.Cash_Account_ID = dto.Cash_Account_ID;
+                voucher.Party_ID = dto.Party_ID;
+                voucher.Payment_Method_ID = dto.Payment_Method_ID;
+                voucher.Currency_ID = dto.Currency_ID;
+                voucher.Exchange_Rate = dto.Exchange_Rate;
+                voucher.Foreign_Total = foreignTotal;
+                voucher.Local_Total = totalDebit;
+                voucher.Reference_No = dto.Reference_No;
+                voucher.Reference_Date = dto.Reference_Date;
+                voucher.Against_Text = dto.Against_Text;
+                voucher.Description = dto.Description;
+                voucher.Notes = dto.Notes;
+                voucher.Module_ID = dto.Module_ID;
+                voucher.Document_Type_ID = dto.Document_Type_ID;
+                voucher.Document_ID = dto.Document_ID;
+                voucher.Source_Document_No = dto.Source_Document_No;
+                voucher.Requires_Approval = dto.Requires_Approval;
+
+                // أي تعديل مالي يعيد حالة الاعتماد إلى البداية حتى لا يبقى
+                // سند معدل معتمدًا ببيانات قديمة.
+                voucher.Approval_Status = dto.Requires_Approval ? (byte)1 : (byte)0;
+                voucher.Approval_Requested_By_User_ID = dto.Requires_Approval ? dto.Updated_By : null;
+                voucher.Approval_Requested_At = dto.Requires_Approval ? now : null;
+                voucher.Approved_By_User_ID = null;
+                voucher.Approved_At = null;
+                voucher.Rejected_By_User_ID = null;
+                voucher.Rejected_At = null;
+                voucher.Rejection_Reason = null;
+                voucher.Updated_By = dto.Updated_By;
+                voucher.Updated_At = now;
+                voucher.Edit_Count += 1;
+
+                _context.Financial_Voucher_Details.RemoveRange(voucher.Details);
+                voucher.Details.Clear();
+
+                foreach (var detailDto in dto.Details.OrderBy(x => x.Line_No))
+                {
+                    voucher.Details.Add(new FinancialVoucherDetail
+                    {
+                        Line_No = detailDto.Line_No,
+                        Account_ID = detailDto.Account_ID,
+                        Description = detailDto.Description,
+                        Cost_Center_ID = detailDto.Cost_Center_ID,
+                        Project_ID = detailDto.Project_ID,
+                        Reference_Type = detailDto.Reference_Type,
+                        Reference_No = detailDto.Reference_No,
+                        Reference_Name = detailDto.Reference_Name,
+                        Reference_Date = detailDto.Reference_Date,
+                        Currency_ID = detailDto.Currency_ID,
+                        Exchange_Rate = detailDto.Exchange_Rate,
+                        Foreign_Amount = detailDto.Foreign_Amount,
+                        Local_Amount = detailDto.Local_Amount,
+                        Debit_Amount = detailDto.Debit_Amount,
+                        Credit_Amount = detailDto.Credit_Amount,
+                        Line_Type = detailDto.Line_Type,
+                        Notes = detailDto.Notes,
+                        Created_By = dto.Updated_By,
+                        Created_At = now,
+                        Updated_By = dto.Updated_By,
+                        Updated_At = now
+                    });
+                }
+
+                _context.Document_Allocations.RemoveRange(voucher.DocumentAllocations);
+                voucher.DocumentAllocations.Clear();
+
+                foreach (var allocationDto in dto.Allocations ?? new List<UpdateDocumentAllocationDto>())
+                {
+                    decimal remainingBalance = decimal.Round(
+                        allocationDto.Document_Total -
+                        allocationDto.Collected_Before -
+                        allocationDto.Collected_Now,
+                        2);
+
+                    if (remainingBalance < 0m)
+                    {
+                        await transaction.RollbackAsync();
+                        return (false, $"المبلغ المحصل للمستند {allocationDto.Document_No} أكبر من رصيده المتبقي.");
+                    }
+
+                    voucher.DocumentAllocations.Add(new DocumentAllocation
+                    {
+                        Module_ID = allocationDto.Module_ID,
+                        Document_Type_ID = allocationDto.Document_Type_ID,
+                        Document_ID = allocationDto.Document_ID,
+                        Document_No = allocationDto.Document_No,
+                        Party_ID = allocationDto.Party_ID,
+                        Currency_ID = allocationDto.Currency_ID,
+                        Exchange_Rate = allocationDto.Exchange_Rate,
+                        Document_Total = allocationDto.Document_Total,
+                        Collected_Before = allocationDto.Collected_Before,
+                        Collected_Now = allocationDto.Collected_Now,
+                        Remaining_Balance = remainingBalance,
+                        Is_Active = true,
+                        Notes = allocationDto.Notes,
+                        Created_By = dto.Updated_By,
+                        Created_At = now,
+                        Updated_By = dto.Updated_By,
+                        Updated_At = now
+                    });
+                }
+
+                voucher.VoucherActionLogs.Add(new VoucherActionLog
+                {
+                    Action_Type = "UPDATE",
+                    Old_Status_ID = oldStatusId,
+                    New_Status_ID = voucher.Voucher_Status_ID,
+                    User_ID = dto.Updated_By,
+                    Action_At = now,
+                    Action_Channel = "DESKTOP",
+                    Device_Name = Environment.MachineName,
+                    Notes = "تم تعديل بيانات السند وتفاصيله."
+                });
+
+                await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
+
+                return (true, $"تم تعديل السند المالي بنجاح. رقم السند: {voucher.Voucher_No}");
+            }
+            catch (DbUpdateException ex)
+            {
+                await transaction.RollbackAsync();
+                string error = ex.InnerException?.Message ?? ex.Message;
+                return (false, $"تعذر تعديل السند في قاعدة البيانات: {error}");
+            }
+            catch (Exception ex)
+            {
+                await transaction.RollbackAsync();
+                return (false, $"حدث خطأ أثناء تعديل السند المالي: {ex.Message}");
+            }
         }
 
         /// <summary>
@@ -383,7 +591,12 @@ namespace AlTayerERP.API.Services.Accounting
                         voucher.Party_ID,
 
                     Party_Name =
-                        string.Empty,
+                        string.IsNullOrWhiteSpace(voucher.Party_ID)
+                            ? string.Empty
+                            : _context.Parties
+                                .Where(x => x.Party_ID == voucher.Party_ID)
+                                .Select(x => x.Party_Name_AR)
+                                .FirstOrDefault() ?? string.Empty,
 
                     Payment_Method_ID =
                         voucher.Payment_Method_ID,
@@ -432,6 +645,35 @@ namespace AlTayerERP.API.Services.Accounting
 
                     Journal_Entry_ID =
                         voucher.Journal_Entry_ID,
+
+                    Journal_Entry_No =
+                        voucher.Journal_Entry_ID.HasValue
+                            ? _context.Journal_Entry_Headers
+                                .Where(x => x.Journal_Entry_ID == voucher.Journal_Entry_ID.Value)
+                                .Select(x => x.Entry_No)
+                                .FirstOrDefault()
+                            : null,
+
+                    Edit_Count =
+                        voucher.Edit_Count,
+
+                    Print_Count =
+                        voucher.Print_Count,
+
+                    Last_Printed_By =
+                        voucher.Last_Printed_By,
+
+                    Last_Print_Date =
+                        voucher.Last_Print_Date,
+
+                    Undo_Count =
+                        voucher.Undo_Count,
+
+                    Last_Undo_By =
+                        voucher.Last_Undo_By,
+
+                    Last_Undo_At =
+                        voucher.Last_Undo_At,
 
                     Created_By =
                         voucher.Created_By,
