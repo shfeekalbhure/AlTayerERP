@@ -49,6 +49,11 @@ namespace AlTayerERP.Desktop
             // تفعيل التنقل القياسي عبر زر Tab
             dgvVoucherDetails.StandardTab = true;
 
+            // الأعمدة الناتجة عن الحساب لا تعدل يدويًا حتى لا تختلف عن المبلغ الأصلي.
+            colNo.ReadOnly = true;
+            colForeignAmount.ReadOnly = true;
+            colLocalAmount.ReadOnly = true;
+
             // إلغاء التسجيل أولاً ثم إعادة التسجيل لمنع التكرار في الأحداث
             dgvVoucherDetails.CurrentCellDirtyStateChanged -= dgvVoucherDetails_CurrentCellDirtyStateChanged;
             dgvVoucherDetails.CellEndEdit -= dgvVoucherDetails_CellEndEdit;
