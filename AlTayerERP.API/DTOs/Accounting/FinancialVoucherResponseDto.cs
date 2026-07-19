@@ -85,6 +85,8 @@ namespace AlTayerERP.API.DTOs.Accounting
 
         public long? Journal_Entry_ID { get; set; }
 
+        public string? Journal_Entry_No { get; set; }
+
         #endregion
 
 
