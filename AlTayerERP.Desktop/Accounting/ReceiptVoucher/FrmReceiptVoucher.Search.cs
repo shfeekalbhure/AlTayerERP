@@ -358,13 +358,16 @@ namespace AlTayerERP.Desktop
 
         private decimal GetHeaderEnteredAmount(FinancialVoucherResponseModel voucher)
         {
-            if (voucher.Amount > 0m) return voucher.Amount;
+            // السجلات الجديدة تعيد المبلغ الأصلي من العمود Amount.
+            if (voucher.Amount > 0m)
+            {
+                return voucher.Amount;
+            }
 
-            CurrencyLookupModel? currency = _currencyLookups.FirstOrDefault(x => x.Currency_ID == voucher.Currency_ID);
-            if (currency != null && currency.Is_Local_Currency)
-                return voucher.Local_Total;
-
-            return voucher.Foreign_Total;
+            // توافق مع السجلات القديمة التي سبقت إضافة العمود.
+            return voucher.Foreign_Total > 0m
+                ? voucher.Foreign_Total
+                : voucher.Local_Total;
         }
 
         #endregion

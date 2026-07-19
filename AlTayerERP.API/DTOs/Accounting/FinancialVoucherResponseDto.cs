@@ -52,6 +52,11 @@ namespace AlTayerERP.API.DTOs.Accounting
 
         public decimal Exchange_Rate { get; set; }
 
+        /// <summary>
+        /// المبلغ الأصلي المدخل بعملة السند.
+        /// </summary>
+        public decimal Amount { get; set; }
+
         public decimal Foreign_Total { get; set; }
 
         public decimal Local_Total { get; set; }

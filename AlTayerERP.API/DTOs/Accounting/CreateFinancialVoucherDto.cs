@@ -50,6 +50,9 @@ namespace AlTayerERP.API.DTOs.Accounting
         [Range(0.000001, double.MaxValue, ErrorMessage = "سعر الصرف يجب أن يكون أكبر من صفر.")]
         public decimal Exchange_Rate { get; set; } = 1.000000m;
 
+        [Range(0.01, double.MaxValue, ErrorMessage = "المبلغ يجب أن يكون أكبر من صفر.")]
+        public decimal Amount { get; set; }
+
         [Range(0, double.MaxValue)]
         public decimal Foreign_Total { get; set; }
 

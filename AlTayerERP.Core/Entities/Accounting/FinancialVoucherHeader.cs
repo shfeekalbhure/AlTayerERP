@@ -72,6 +72,13 @@ namespace AlTayerERP.Core.Entities.Accounting
         [Column("Exchange_Rate", TypeName = "decimal(18,6)")]
         public decimal Exchange_Rate { get; set; } = 1.000000m;
 
+        /// <summary>
+        /// المبلغ الأصلي الذي أدخله المستخدم بعملة السند.
+        /// </summary>
+        [Required]
+        [Column("Amount", TypeName = "decimal(18,2)")]
+        public decimal Amount { get; set; } = 0.00m;
+
         [Required]
         [Column("Foreign_Total", TypeName = "decimal(18,2)")]
         public decimal Foreign_Total { get; set; } = 0.00m;

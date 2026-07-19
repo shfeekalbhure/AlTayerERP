@@ -84,6 +84,7 @@ namespace AlTayerERP.API.Services.Accounting
                     Payment_Method_ID = dto.Payment_Method_ID,
                     Currency_ID = dto.Currency_ID,
                     Exchange_Rate = dto.Exchange_Rate,
+                    Amount = dto.Amount,
                     Foreign_Total = foreignTotal,
                     Local_Total = localTotal,
                     Reference_No = dto.Reference_No,
@@ -378,6 +379,7 @@ namespace AlTayerERP.API.Services.Accounting
                 voucher.Payment_Method_ID = dto.Payment_Method_ID;
                 voucher.Currency_ID = dto.Currency_ID;
                 voucher.Exchange_Rate = dto.Exchange_Rate;
+                voucher.Amount = dto.Amount;
                 voucher.Foreign_Total = foreignTotal;
                 voucher.Local_Total = totalDebit;
                 voucher.Reference_No = dto.Reference_No;
@@ -617,6 +619,9 @@ namespace AlTayerERP.API.Services.Accounting
 
                     Exchange_Rate =
                         voucher.Exchange_Rate,
+
+                    Amount =
+                        voucher.Amount,
 
                     Foreign_Total =
                         voucher.Foreign_Total,

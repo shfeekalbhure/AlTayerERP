@@ -31,6 +31,7 @@ namespace AlTayerERP.Desktop
             public int? Payment_Method_ID { get; set; } // معرف طريقة الدفع
             public int Currency_ID { get; set; } // معرف العملة
             public decimal Exchange_Rate { get; set; } // سعر صرف العملة
+            public decimal Amount { get; set; } // المبلغ الأصلي المدخل بعملة السند
             public decimal Foreign_Total { get; set; } // إجمالي المبلغ بالعملة الأجنبية
             public decimal Local_Total { get; set; } // إجمالي المبلغ بالعملة المحلية
             public string? Reference_No { get; set; } // رقم المرجع
@@ -533,6 +534,7 @@ namespace AlTayerERP.Desktop
                 Payment_Method_ID = paymentMethodId,
                 Currency_ID = currencyId,
                 Exchange_Rate = decimal.Round(numExchangeRate.Value, 6, MidpointRounding.AwayFromZero),
+                Amount = decimal.Round(numAmount.Value, 2, MidpointRounding.AwayFromZero),
                 Foreign_Total = decimal.Round(numForeignAmount.Value, 2, MidpointRounding.AwayFromZero),
                 Local_Total = decimal.Round(numLocalAmount.Value, 2, MidpointRounding.AwayFromZero),
                 Reference_No = string.IsNullOrWhiteSpace(referenceNo) ? null : referenceNo,
