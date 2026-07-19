@@ -359,6 +359,7 @@ namespace AlTayerERP.Infrastructure.Data
 
                 // ضبط دقة الأرقام العشرية لأسعار الصرف والإجماليات بالعملة المحلية والأجنبية
                 entity.Property(e => e.Exchange_Rate).HasPrecision(18, 6);
+                entity.Property(e => e.Amount).HasPrecision(18, 2);
                 entity.Property(e => e.Foreign_Total).HasPrecision(18, 2);
                 entity.Property(e => e.Local_Total).HasPrecision(18, 2);
 
