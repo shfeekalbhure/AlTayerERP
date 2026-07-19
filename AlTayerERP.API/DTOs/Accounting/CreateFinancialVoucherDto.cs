@@ -42,6 +42,10 @@ namespace AlTayerERP.API.DTOs.Accounting
         [MaxLength(50)]
         public string? Party_ID { get; set; }
 
+        [Required(ErrorMessage = "اسم الشخص في حقل استلمت من السيد مطلوب.")]
+        [MaxLength(200)]
+        public string Received_From_Name { get; set; } = string.Empty;
+
         public int? Payment_Method_ID { get; set; }
 
         [Required(ErrorMessage = "العملة مطلوبة.")]
