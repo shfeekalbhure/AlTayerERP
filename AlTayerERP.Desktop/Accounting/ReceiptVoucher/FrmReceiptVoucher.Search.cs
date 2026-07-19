@@ -28,6 +28,8 @@ namespace AlTayerERP.Desktop
             public string Voucher_No { get; set; } = string.Empty;
             public int Voucher_Type_ID { get; set; }
             public int Voucher_Status_ID { get; set; }
+            public string Branch_ID { get; set; } = string.Empty;
+            public int? Fiscal_Year_ID { get; set; }
             public DateTime Voucher_Date { get; set; }
             public string Cash_Account_ID { get; set; } = string.Empty;
             public string? Party_ID { get; set; }
@@ -42,10 +44,12 @@ namespace AlTayerERP.Desktop
             public string? Against_Text { get; set; }
             public string? Notes { get; set; }
             public bool Is_Posted { get; set; }
+            public long? Journal_Entry_ID { get; set; }
+            public string? Journal_Entry_No { get; set; }
             public int Edit_Count { get; set; }
             public int Print_Count { get; set; }
-            public DateTime? Last_Print_At { get; set; }
-            public string? Last_Print_By { get; set; }
+            public DateTime? Last_Print_Date { get; set; }
+            public string? Last_Printed_By { get; set; }
             public string? Created_By { get; set; }
             public DateTime Created_At { get; set; }
             public string? Updated_By { get; set; }
@@ -244,6 +248,10 @@ namespace AlTayerERP.Desktop
             SetDatePickerValue(dtVoucherDate, voucher.Voucher_Date);
             SetComboBoxValue(cmbVoucherType, voucher.Voucher_Type_ID);
             SetComboBoxValue(cmbStatus, voucher.Voucher_Status_ID);
+            if (int.TryParse(voucher.Branch_ID, out int branchId))
+            {
+                SetComboBoxValue(cmbBranch, branchId);
+            }
             SetComboBoxValue(cmbCashAccount, voucher.Cash_Account_ID);
             SetComboBoxValue(cmbParty, voucher.Party_ID);
             SetComboBoxValue(cmbPaymentMethod, voucher.Payment_Method_ID);
@@ -262,6 +270,16 @@ namespace AlTayerERP.Desktop
             txtAgainst.Text = voucher.Against_Text ?? string.Empty;
             txtHeaderNotes.Text = voucher.Notes ?? string.Empty;
             chkPosted.Checked = voucher.Is_Posted;
+            checkBox2.Checked = voucher.Requires_Approval;
+
+            FinancialVoucherDetailResponseModel? cashLine =
+                voucher.Details?.FirstOrDefault(x => x.Line_Type == 1);
+            SetComboBoxValue(cmbCostCenter, cashLine?.Cost_Center_ID);
+
+            txtJournalNo.Text =
+                !string.IsNullOrWhiteSpace(voucher.Journal_Entry_No)
+                    ? voucher.Journal_Entry_No
+                    : voucher.Journal_Entry_ID?.ToString() ?? string.Empty;
         }
 
         private void LoadSystemInfo(FinancialVoucherResponseModel voucher)
@@ -272,8 +290,8 @@ namespace AlTayerERP.Desktop
             txtUpdatedDate.Text = FormatDateTime(voucher.Updated_At);
             SafeSetText(txtEditCount, voucher.Edit_Count.ToString());
             SafeSetText(txtPrintCount, voucher.Print_Count.ToString());
-            SafeSetText(txtLastPrintDate, FormatDateTime(voucher.Last_Print_At));
-            SafeSetText(txtLastPrintedBy, voucher.Last_Print_By ?? string.Empty);
+            SafeSetText(txtLastPrintDate, FormatDateTime(voucher.Last_Print_Date));
+            SafeSetText(txtLastPrintedBy, voucher.Last_Printed_By ?? string.Empty);
         }
 
         private void LoadDetailsGrid(FinancialVoucherResponseModel voucher)
@@ -288,6 +306,7 @@ namespace AlTayerERP.Desktop
                 int rowIndex = dgvVoucherDetails.Rows.Add();
                 DataGridViewRow row = dgvVoucherDetails.Rows[rowIndex];
 
+                SetCellValue(row, colNo, rowIndex + 1);
                 SetCellValue(row, colAccountCode, detail.Account_ID);
                 SetCellValue(row, colAccountName, detail.Account_ID);
                 SetCellValue(row, colDescription, detail.Description);
