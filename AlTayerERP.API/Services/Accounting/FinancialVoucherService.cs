@@ -436,43 +436,48 @@ namespace AlTayerERP.API.Services.Accounting
                     });
                 }
 
-                _context.Document_Allocations.RemoveRange(voucher.DocumentAllocations);
-                voucher.DocumentAllocations.Clear();
-
-                foreach (var allocationDto in dto.Allocations ?? new List<UpdateDocumentAllocationDto>())
+                // شاشة سند القبض الحالية لا تعرض التوزيعات التشغيلية؛ لذلك إذا لم
+                // ترسل توزيعات نحافظ على الموجود بدل حذفه دون قصد.
+                if (dto.Allocations != null && dto.Allocations.Count > 0)
                 {
-                    decimal remainingBalance = decimal.Round(
-                        allocationDto.Document_Total -
-                        allocationDto.Collected_Before -
-                        allocationDto.Collected_Now,
-                        2);
+                    _context.Document_Allocations.RemoveRange(voucher.DocumentAllocations);
+                    voucher.DocumentAllocations.Clear();
 
-                    if (remainingBalance < 0m)
+                    foreach (var allocationDto in dto.Allocations)
                     {
-                        await transaction.RollbackAsync();
-                        return (false, $"المبلغ المحصل للمستند {allocationDto.Document_No} أكبر من رصيده المتبقي.");
+                        decimal remainingBalance = decimal.Round(
+                            allocationDto.Document_Total -
+                            allocationDto.Collected_Before -
+                            allocationDto.Collected_Now,
+                            2);
+
+                        if (remainingBalance < 0m)
+                        {
+                            await transaction.RollbackAsync();
+                            return (false, $"المبلغ المحصل للمستند {allocationDto.Document_No} أكبر من رصيده المتبقي.");
+                        }
+
+                        voucher.DocumentAllocations.Add(new DocumentAllocation
+                        {
+                            Module_ID = allocationDto.Module_ID,
+                            Document_Type_ID = allocationDto.Document_Type_ID,
+                            Document_ID = allocationDto.Document_ID,
+                            Document_No = allocationDto.Document_No,
+                            Party_ID = allocationDto.Party_ID,
+                            Currency_ID = allocationDto.Currency_ID,
+                            Exchange_Rate = allocationDto.Exchange_Rate,
+                            Document_Total = allocationDto.Document_Total,
+                            Collected_Before = allocationDto.Collected_Before,
+                            Collected_Now = allocationDto.Collected_Now,
+                            Remaining_Balance = remainingBalance,
+                            Is_Active = true,
+                            Notes = allocationDto.Notes,
+                            Created_By = dto.Updated_By,
+                            Created_At = now,
+                            Updated_By = dto.Updated_By,
+                            Updated_At = now
+                        });
                     }
-
-                    voucher.DocumentAllocations.Add(new DocumentAllocation
-                    {
-                        Module_ID = allocationDto.Module_ID,
-                        Document_Type_ID = allocationDto.Document_Type_ID,
-                        Document_ID = allocationDto.Document_ID,
-                        Document_No = allocationDto.Document_No,
-                        Party_ID = allocationDto.Party_ID,
-                        Currency_ID = allocationDto.Currency_ID,
-                        Exchange_Rate = allocationDto.Exchange_Rate,
-                        Document_Total = allocationDto.Document_Total,
-                        Collected_Before = allocationDto.Collected_Before,
-                        Collected_Now = allocationDto.Collected_Now,
-                        Remaining_Balance = remainingBalance,
-                        Is_Active = true,
-                        Notes = allocationDto.Notes,
-                        Created_By = dto.Updated_By,
-                        Created_At = now,
-                        Updated_By = dto.Updated_By,
-                        Updated_At = now
-                    });
                 }
 
                 voucher.VoucherActionLogs.Add(new VoucherActionLog
