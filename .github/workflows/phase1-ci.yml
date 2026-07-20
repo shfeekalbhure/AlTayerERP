@@ -1,0 +1,45 @@
+name: Phase 1 CI
+
+on:
+  pull_request:
+    branches: [ master ]
+  push:
+    branches:
+      - master
+      - 'agent/phase1-*'
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build API and Desktop
+    runs-on: windows-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+          cache: true
+          cache-dependency-path: |
+            AlTayerERP.API/AlTayerERP.API.csproj
+            AlTayerERP.Core/AlTayerERP.Core.csproj
+            AlTayerERP.Infrastructure/AlTayerERP.Infrastructure.csproj
+            AlTayerERP.Desktop/AlTayerERP.Desktop.csproj
+
+      - name: Restore API
+        run: dotnet restore AlTayerERP.API/AlTayerERP.API.csproj
+
+      - name: Build API
+        run: dotnet build AlTayerERP.API/AlTayerERP.API.csproj --configuration Release --no-restore
+
+      - name: Restore Desktop
+        run: dotnet restore AlTayerERP.Desktop/AlTayerERP.Desktop.csproj
+
+      - name: Build Desktop
+        run: dotnet build AlTayerERP.Desktop/AlTayerERP.Desktop.csproj --configuration Release --no-restore
