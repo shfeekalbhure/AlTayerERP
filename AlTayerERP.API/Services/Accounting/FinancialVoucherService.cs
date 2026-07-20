@@ -634,7 +634,6 @@ namespace AlTayerERP.API.Services.Accounting
                 }
 
                 DateTime now = DateTime.Now;
-                byte oldReviewStatus = voucher.Review_Status;
                 voucher.Review_Status = 2;
                 voucher.Reviewed_By_User_ID = userId.Trim();
                 voucher.Reviewed_At = now;
@@ -646,8 +645,9 @@ namespace AlTayerERP.API.Services.Accounting
                 {
                     Voucher_ID = voucher.Voucher_ID,
                     Action_Type = "REVIEW",
-                    Old_Status_ID = oldReviewStatus,
-                    New_Status_ID = 2,
+                    // حقلا الحالة مرتبطان بجدول حالات السند، وليس بحالة المراجعة.
+                    Old_Status_ID = voucher.Voucher_Status_ID,
+                    New_Status_ID = voucher.Voucher_Status_ID,
                     User_ID = userId.Trim(),
                     Action_At = now,
                     Action_Channel = "DESKTOP",
@@ -703,7 +703,6 @@ namespace AlTayerERP.API.Services.Accounting
                 }
 
                 DateTime now = DateTime.Now;
-                byte oldReviewStatus = voucher.Review_Status;
                 voucher.Review_Status = 3;
                 voucher.Reviewed_By_User_ID = userId.Trim();
                 voucher.Reviewed_At = now;
@@ -715,8 +714,9 @@ namespace AlTayerERP.API.Services.Accounting
                 {
                     Voucher_ID = voucher.Voucher_ID,
                     Action_Type = "RETURN_CORRECTION",
-                    Old_Status_ID = oldReviewStatus,
-                    New_Status_ID = 3,
+                    // حقلا الحالة مرتبطان بجدول حالات السند، وليس بحالة المراجعة.
+                    Old_Status_ID = voucher.Voucher_Status_ID,
+                    New_Status_ID = voucher.Voucher_Status_ID,
                     User_ID = userId.Trim(),
                     Action_At = now,
                     Action_Channel = "DESKTOP",
