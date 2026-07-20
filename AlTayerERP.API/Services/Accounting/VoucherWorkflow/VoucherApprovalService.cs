@@ -203,9 +203,6 @@ namespace AlTayerERP.API.Services.Accounting.VoucherWorkflow
 
                 #region تحديث بيانات الاعتماد
 
-                byte oldApprovalStatus =
-                    voucher.Approval_Status;
-
                 DateTime actionDate =
                     DateTime.Now;
 
@@ -240,8 +237,8 @@ namespace AlTayerERP.API.Services.Accounting.VoucherWorkflow
                 await _auditService.LogAsync(
                     voucherId: voucher.Voucher_ID,
                     actionType: VoucherAuditService.APPROVE,
-                    oldStatusId: oldApprovalStatus,
-                    newStatusId: ApprovalApproved,
+                    oldStatusId: voucher.Voucher_Status_ID,
+                    newStatusId: voucher.Voucher_Status_ID,
                     userId: userId,
                     actionChannel: actionChannel,
                     deviceName: deviceName,
@@ -379,9 +376,6 @@ namespace AlTayerERP.API.Services.Accounting.VoucherWorkflow
                     );
                 }
 
-                byte oldApprovalStatus =
-                    voucher.Approval_Status;
-
                 DateTime actionDate =
                     DateTime.Now;
 
@@ -404,8 +398,8 @@ namespace AlTayerERP.API.Services.Accounting.VoucherWorkflow
                     voucherId: voucher.Voucher_ID,
                     actionType:
                         VoucherAuditService.CANCEL_APPROVAL,
-                    oldStatusId: oldApprovalStatus,
-                    newStatusId: ApprovalPending,
+                    oldStatusId: voucher.Voucher_Status_ID,
+                    newStatusId: voucher.Voucher_Status_ID,
                     userId: userId,
                     actionChannel: actionChannel,
                     deviceName: deviceName,
@@ -532,9 +526,6 @@ namespace AlTayerERP.API.Services.Accounting.VoucherWorkflow
                     );
                 }
 
-                byte oldApprovalStatus =
-                    voucher.Approval_Status;
-
                 DateTime actionDate =
                     DateTime.Now;
 
@@ -565,8 +556,8 @@ namespace AlTayerERP.API.Services.Accounting.VoucherWorkflow
                 await _auditService.LogAsync(
                     voucherId: voucher.Voucher_ID,
                     actionType: VoucherAuditService.REJECT,
-                    oldStatusId: oldApprovalStatus,
-                    newStatusId: ApprovalRejected,
+                    oldStatusId: voucher.Voucher_Status_ID,
+                    newStatusId: voucher.Voucher_Status_ID,
                     userId: userId,
                     actionChannel: actionChannel,
                     deviceName: deviceName,
@@ -681,9 +672,6 @@ namespace AlTayerERP.API.Services.Accounting.VoucherWorkflow
                     );
                 }
 
-                byte oldApprovalStatus =
-                    voucher.Approval_Status;
-
                 DateTime actionDate =
                     DateTime.Now;
 
@@ -715,8 +703,8 @@ namespace AlTayerERP.API.Services.Accounting.VoucherWorkflow
                     voucherId: voucher.Voucher_ID,
                     actionType:
                         VoucherAuditService.REQUEST_REVISION,
-                    oldStatusId: oldApprovalStatus,
-                    newStatusId: ApprovalNeedsRevision,
+                    oldStatusId: voucher.Voucher_Status_ID,
+                    newStatusId: voucher.Voucher_Status_ID,
                     userId: userId,
                     actionChannel: actionChannel,
                     deviceName: deviceName,
