@@ -23,7 +23,7 @@ public sealed class PagedLookupResultDto<T>
 /// </summary>
 public sealed class ReferenceLookupItemDto
 {
-    public string ID { get; init; } = string.Empty;
+    public int ID { get; init; }
 
     public string Code { get; init; } = string.Empty;
 
