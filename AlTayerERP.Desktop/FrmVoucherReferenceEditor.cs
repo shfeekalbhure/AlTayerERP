@@ -75,7 +75,7 @@ namespace AlTayerERP.Desktop
             shell.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
             shell.RowStyles.Add(new RowStyle(SizeType.Absolute, 74));
             shell.RowStyles.Add(new RowStyle(SizeType.Absolute, 52));
-            shell.RowStyles.Add(new RowStyle(SizeType.Absolute, 46));
+            shell.RowStyles.Add(new RowStyle(SizeType.Absolute, 58));
             shell.RowStyles.Add(new RowStyle(SizeType.AutoSize));
             shell.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
             shell.RowStyles.Add(new RowStyle(SizeType.Absolute, 28));
@@ -223,12 +223,12 @@ namespace AlTayerERP.Desktop
 
             foreach (var field in _fields)
             {
-                var panel = new Panel { Width = 220, Height = 66, Margin = new Padding(5) };
+                var panel = new Panel { Width = 250, Height = 94, Margin = new Padding(6) };
                 panel.Controls.Add(new Label
                 {
                     Text = field.Caption,
                     Dock = DockStyle.Top,
-                    Height = 24,
+                    Height = 28,
                     ForeColor = Color.FromArgb(55, 65, 81),
                     TextAlign = ContentAlignment.MiddleRight
                 });
@@ -270,6 +270,8 @@ namespace AlTayerERP.Desktop
                     }
                 };
 
+                ConfigureEditorInput(input);
+
                 _inputs[field.Code] = input;
                 panel.Controls.Add(input);
                 editor.Controls.Add(panel);
@@ -286,6 +288,40 @@ namespace AlTayerERP.Desktop
             card.Controls.Add(editor);
             card.Controls.Add(title);
             return card;
+        }
+
+        /// <summary>
+        /// توحيد أبعاد عناصر الإدخال حتى تكون واضحة وقابلة للاستخدام في الشاشات العربية.
+        /// </summary>
+        private static void ConfigureEditorInput(Control input)
+        {
+            input.Dock = DockStyle.Bottom;
+            input.Height = 36;
+            input.Margin = new Padding(0, 4, 0, 0);
+            input.Font = new Font("Segoe UI", 10F);
+
+            switch (input)
+            {
+                case ComboBox combo:
+                    combo.AutoSize = false;
+                    combo.Height = 36;
+                    combo.DropDownHeight = 240;
+                    break;
+                case DateTimePicker date:
+                    date.Height = 36;
+                    break;
+                case NumericUpDown number:
+                    number.Height = 36;
+                    number.TextAlign = HorizontalAlignment.Right;
+                    break;
+                case TextBox text:
+                    text.MinimumSize = new Size(0, 30);
+                    text.TextAlign = HorizontalAlignment.Right;
+                    break;
+                case CheckBox check:
+                    check.Height = 36;
+                    break;
+            }
         }
 
         private Control CreateGridCard()
