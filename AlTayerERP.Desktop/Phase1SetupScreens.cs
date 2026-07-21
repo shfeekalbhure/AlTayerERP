@@ -415,16 +415,26 @@ namespace AlTayerERP.Desktop
     public enum SetupFieldKind { Text, Number, Date, YesNo, Notes }
     public sealed record SetupField(string Code, string Caption, SetupFieldKind Kind = SetupFieldKind.Text, int MaxLength = 150, bool DefaultTrue = false);
 
-    public sealed class FrmParties : FrmPhase1SetupBase
+    /// <summary>
+    /// إدارة فعلية للأطراف المالية ضمن الشركة الحالية، لا تقبل نطاق شركة من الواجهة.
+    /// </summary>
+    public sealed class FrmParties : FrmVoucherReferenceEditor
     {
-        public FrmParties() : base("إدارة الأطراف المالية",
-            new("Party_Code", "كود الطرف"), new("Party_Name_AR", "الاسم العربي"),
-            new("Party_Name_EN", "الاسم الإنجليزي"), new("Party_Type", "نوع الطرف"),
-            new("Mobile_No", "الجوال"), new("Phone_No", "الهاتف"), new("Identity_No", "رقم الهوية"),
-            new("Tax_No", "الرقم الضريبي"), new("Account_ID", "الحساب المرتبط"),
-            new("Credit_Limit", "الحد الائتماني", SetupFieldKind.Number),
-            new("Address", "العنوان", SetupFieldKind.Notes), new("Is_Active", "الحالة", SetupFieldKind.YesNo, DefaultTrue: true),
-            new("Notes", "ملاحظات", SetupFieldKind.Notes)) { }
+        public FrmParties() : base("إدارة الأطراف المالية", "Parties", "Party_ID",
+            new("Party_Code", "كود الطرف"),
+            new("Party_Name_AR", "الاسم العربي"),
+            new("Party_Name_EN", "الاسم الإنجليزي"),
+            new("Party_Type", "نوع الطرف", ReferenceEditorFieldKind.Choice,
+                Options: new[] { "عميل", "مورد", "موظف", "مندوب", "وكيل", "جهة حكومية", "أخرى" }),
+            new("Mobile_No", "الجوال"),
+            new("Phone_No", "الهاتف"),
+            new("Identity_No", "رقم الهوية"),
+            new("Tax_No", "الرقم الضريبي"),
+            new("Account_ID", "الحساب المرتبط"),
+            new("Credit_Limit", "الحد الائتماني", ReferenceEditorFieldKind.Number),
+            new("Address", "العنوان"),
+            new("Notes", "ملاحظات"),
+            new("Is_Active", "فعال", ReferenceEditorFieldKind.Boolean, DefaultBoolean: true)) { }
     }
 
     public sealed class FrmBanks : FrmPhase1SetupBase
