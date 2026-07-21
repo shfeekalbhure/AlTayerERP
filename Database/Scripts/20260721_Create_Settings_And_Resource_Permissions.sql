@@ -136,6 +136,7 @@ JOIN (
     UNION ALL SELECT 'EDIT', 'تعديل', 1, 0, 30
     UNION ALL SELECT 'DELETE', 'حذف', 1, 1, 40
     UNION ALL SELECT 'REVIEW', 'تمت المراجعة', 1, 0, 50
+    UNION ALL SELECT 'RETURN_CORRECTION', 'إعادة للتصحيح', 1, 1, 55
     UNION ALL SELECT 'APPROVE', 'اعتماد', 1, 0, 60
     UNION ALL SELECT 'CANCEL_APPROVAL', 'إلغاء الاعتماد', 1, 1, 70
     UNION ALL SELECT 'POST', 'ترحيل', 1, 0, 80
