@@ -125,8 +125,8 @@ namespace AlTayerERP.API.Controllers
             if (request == null)
                 return BadRequest("بيانات الصلاحيات مطلوبة.");
 
-            request.Fields ??= new List<UserResourcePermissionItemDto>();
-            request.Actions ??= new List<UserResourcePermissionItemDto>();
+            List<UserResourcePermissionItemDto> fields = request.Fields ?? new List<UserResourcePermissionItemDto>();
+            List<UserResourcePermissionItemDto> actions = request.Actions ?? new List<UserResourcePermissionItemDto>();
 
             bool userExists = await _context.Users.AsNoTracking()
                 .AnyAsync(x => x.User_ID == userId && x.Is_Active);
@@ -149,8 +149,8 @@ namespace AlTayerERP.API.Controllers
                 .Select(x => x.Action_Code)
                 .ToListAsync();
 
-            if (request.Fields.Any(x => !validFields.Contains(x.Resource_Code)) ||
-                request.Actions.Any(x => !validActions.Contains(x.Resource_Code)))
+            if (fields.Any(x => !validFields.Contains(x.Resource_Code)) ||
+                actions.Any(x => !validActions.Contains(x.Resource_Code)))
             {
                 return BadRequest("توجد موارد لا تنتمي إلى الشاشة المختارة.");
             }
@@ -161,13 +161,13 @@ namespace AlTayerERP.API.Controllers
                 .ToListAsync();
             _context.User_Resource_Permissions.RemoveRange(old);
 
-            foreach (var field in request.Fields)
+            foreach (var field in fields)
             {
                 AddPermission(userId, fieldType, field.Resource_Code, "VIEW", field.View_Mode);
                 AddPermission(userId, fieldType, field.Resource_Code, "EDIT", field.Edit_Mode);
             }
 
-            foreach (var action in request.Actions)
+            foreach (var action in actions)
                 AddPermission(userId, actionType, action.Resource_Code, "EXECUTE", action.Execute_Mode);
 
             await _context.SaveChangesAsync();
