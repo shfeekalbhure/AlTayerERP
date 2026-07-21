@@ -20,6 +20,8 @@ namespace AlTayerERP.Desktop.Services
         public static string Username { get; set; } = "";
         public static string Full_Name { get; set; } = "";
         public static bool Is_System_Admin { get; set; }
+        // رمز الجلسة يصدره الخادم بعد التحقق؛ لا يخزن على القرص.
+        public static string Access_Token { get; set; } = "";
         public static string Currency_Code { get; set; } = "YER";
         public static string Language { get; set; } = "AR";
         public static DateTime Login_Time { get; set; } = DateTime.Now;
@@ -48,6 +50,8 @@ namespace AlTayerERP.Desktop.Services
             Username = "";
             Full_Name = "";
             Is_System_Admin = false;
+            Access_Token = "";
+            ApiService.ClearSessionToken();
             Currency_Code = "YER";
             Language = "AR";
             Login_Time = DateTime.Now;
