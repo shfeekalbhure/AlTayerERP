@@ -46,7 +46,6 @@ namespace AlTayerERP.Desktop.Services
         public static void SetScreenPermissions(IEnumerable<ScreenPermissionState>? permissions)
         {
             _screenPermissions.Clear();
-            _resourcePermissions.Clear();
 
             if (permissions == null)
                 return;
