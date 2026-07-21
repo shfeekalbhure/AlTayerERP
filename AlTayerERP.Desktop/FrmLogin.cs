@@ -23,7 +23,7 @@ namespace AlTayerERP.Desktop
             btnExit.Click += (_, _) => Application.Exit();
             btnAboutSystem.Click += (_, _) => MessageBox.Show("نظام الطائر لإدارة النقل والشحن\nالإصدار 1.0.0", "حول النظام");
             btnConnectionSettings.Click += (_, _) => MessageBox.Show("عنوان الـ API الحالي:\n" + _baseUrl, "إعدادات الاتصال");
-            cmbCompany.SelectedIndexChanged += cmbCompany_SelectedIndexChanged;
+            // حدث تغيير الشركة مربوط من ملف التصميم مرة واحدة لتفادي تكرار تحميل القوائم.
             cmbUsername.DropDownStyle = ComboBoxStyle.DropDown;
             cmbUsername.AutoCompleteMode = AutoCompleteMode.None;
             txtPassword.PasswordChar = '*';
