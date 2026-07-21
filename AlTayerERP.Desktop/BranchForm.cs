@@ -28,6 +28,9 @@ namespace AlTayerERP.Desktop
         public BranchForm()
         {
             InitializeComponent();
+
+            // توحيد شكل الشاشة القديمة والاختصارات العربية دون تغيير منطقها.
+            ArabicErpFormStyle.Apply(this);
             this.Load -= BranchForm_Load;
             this.Load += BranchForm_Load;
             printDocument.PrintPage += PrintDocument_PrintPage;
