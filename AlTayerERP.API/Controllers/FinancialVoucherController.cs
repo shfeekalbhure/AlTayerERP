@@ -921,22 +921,46 @@ namespace AlTayerERP.API.Controllers
             var screenPermission = await _context.RolePermissions.AsNoTracking()
                 .FirstOrDefaultAsync(x => x.Role_ID == roleId && x.Screen_ID == screenId.Value);
 
-            return actionCode switch
+            switch (actionCode)
             {
-                "ADD" => screenPermission?.Can_Add == true,
-                "EDIT" => screenPermission?.Can_Edit == true,
-                "DELETE" => screenPermission?.Can_Delete == true,
-                "APPROVE" => screenPermission?.Can_Approve == true,
-                "UNAPPROVE" => screenPermission?.Can_UnApprove == true,
-                "PRINT" => screenPermission?.Can_Print == true,
-                _ => await _context.Role_Resource_Permissions.AsNoTracking().AnyAsync(x =>
-                    x.Role_ID == roleId &&
-                    x.Resource_Type == "ACTION:" + screenId.Value &&
+                case "ADD":
+                    return screenPermission?.Can_Add == true;
+                case "EDIT":
+                    return screenPermission?.Can_Edit == true;
+                case "DELETE":
+                    return screenPermission?.Can_Delete == true;
+                case "APPROVE":
+                    return screenPermission?.Can_Approve == true;
+                case "UNAPPROVE":
+                    return screenPermission?.Can_UnApprove == true;
+                case "PRINT":
+                    return screenPermission?.Can_Print == true;
+            }
+
+            if (!int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out int userId))
+                return false;
+
+            string resourceType = "ACTION:" + screenId.Value;
+            var userPermission = await _context.User_Resource_Permissions.AsNoTracking()
+                .FirstOrDefaultAsync(x =>
+                    x.User_ID == userId &&
+                    x.Resource_Type == resourceType &&
                     x.Resource_Code == actionCode &&
                     x.Permission_Code == "EXECUTE" &&
-                    x.Effect &&
-                    x.Is_Active)
-            };
+                    x.Is_Active &&
+                    (x.Effective_To == null || x.Effective_To >= DateTime.UtcNow));
+
+            // الاستثناء الفردي للمستخدم يعلو على صلاحية الدور، سواء بالمنح أو المنع.
+            if (userPermission != null)
+                return userPermission.Effect;
+
+            return await _context.Role_Resource_Permissions.AsNoTracking().AnyAsync(x =>
+                x.Role_ID == roleId &&
+                x.Resource_Type == resourceType &&
+                x.Resource_Code == actionCode &&
+                x.Permission_Code == "EXECUTE" &&
+                x.Effect &&
+                x.Is_Active);
         }
 
         /// <summary>
