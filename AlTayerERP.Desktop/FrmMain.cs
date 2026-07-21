@@ -15,6 +15,16 @@ namespace AlTayerERP.Desktop
         public FrmMain()
         {
             InitializeComponent();
+
+            if (!CurrentSession.IsLoggedIn)
+            {
+                MessageBox.Show("انتهت الجلسة أو أن بياناتها غير مكتملة. سجل الدخول من جديد.", "الجلسة", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                BeginInvoke(new Action(Close));
+                return;
+            }
+
+            btnLogout.Click += btnLogout_Click;
+            btnSettings.Click += btnSettings_Click;
             lblCompanyName.Text = "جاري التحميل...";
             lblCurrentBranch.Text = "الفرع\n" + CurrentSession.Branch_ID;
             lblFiscalYear.Text = "جاري التحميل...";
@@ -124,6 +134,26 @@ namespace AlTayerERP.Desktop
                 _ => null
             };
             form?.ShowDialog(this);
+        }
+
+        private void btnLogout_Click(object? sender, EventArgs e)
+        {
+            if (MessageBox.Show("هل تريد تسجيل الخروج من الجلسة الحالية؟", "تسجيل الخروج", MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes)
+                return;
+
+            CurrentSession.Clear();
+            Close();
+        }
+
+        private void btnSettings_Click(object? sender, EventArgs e)
+        {
+            if (!CurrentSession.Is_System_Admin)
+            {
+                MessageBox.Show("هذه الشاشة مخصصة لمدير النظام.", "الصلاحيات", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            new FrmGeneralSettings().ShowDialog(this);
         }
 
         private void btnUsers_Click(object sender, EventArgs e) => new FrmUsers().ShowDialog(this);
