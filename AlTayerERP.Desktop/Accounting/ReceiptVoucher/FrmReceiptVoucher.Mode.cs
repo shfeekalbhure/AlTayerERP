@@ -234,6 +234,7 @@ namespace AlTayerERP.Desktop
                                        System.StringComparison.OrdinalIgnoreCase);
 
             numExchangeRate.ReadOnly = !canEdit || !foreignCurrency;
+            ApplyFieldResourceRestrictions();
         }
     }
 }
