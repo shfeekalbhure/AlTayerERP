@@ -159,6 +159,7 @@ namespace AlTayerERP.Desktop
             ConfigureNumericControls();
             ConfigureVoucherGrid();
             ConfigureHeaderAmountFields();
+            ConfigureReferenceLookupButtons();
         }
 
         // دالة لضبط حدود وخصائص حقول الإدخال الرقمية الخاصة بالمبالغ وسعر الصرف
