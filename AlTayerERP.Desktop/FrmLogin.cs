@@ -18,6 +18,9 @@ namespace AlTayerERP.Desktop
         public FrmLogin()
         {
             InitializeComponent();
+
+            // تطبيق المظهر العربي الموحد دون تغيير منطق الشاشة.
+            ArabicErpFormStyle.Apply(this);
             Load += FrmLogin_Load;
             btnLogin.Click += btnLogin_Click;
             btnExit.Click += (_, _) => Application.Exit();
