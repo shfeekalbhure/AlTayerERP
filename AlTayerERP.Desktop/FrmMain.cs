@@ -16,6 +16,7 @@ namespace AlTayerERP.Desktop
         {
             InitializeComponent();
 
+            // منع فتح الواجهة الرئيسية مباشرة بدون سياق دخول كامل.
             if (!CurrentSession.IsLoggedIn)
             {
                 MessageBox.Show("انتهت الجلسة أو أن بياناتها غير مكتملة. سجل الدخول من جديد.", "الجلسة", MessageBoxButtons.OK, MessageBoxIcon.Warning);
@@ -61,6 +62,7 @@ namespace AlTayerERP.Desktop
             public string Year_Name { get; set; } = "";
         }
 
+        // بناء شجرة النظام حسب مستوى الجلسة؛ شاشات التهيئة الحساسة لمدير النظام فقط.
         private void BuildMainMenu()
         {
             tvMainMenu.Nodes.Clear();
@@ -136,6 +138,7 @@ namespace AlTayerERP.Desktop
             form?.ShowDialog(this);
         }
 
+        // إنهاء الجلسة المحلية وإرجاع المستخدم إلى شاشة الدخول.
         private void btnLogout_Click(object? sender, EventArgs e)
         {
             if (MessageBox.Show("هل تريد تسجيل الخروج من الجلسة الحالية؟", "تسجيل الخروج", MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes)
@@ -145,6 +148,7 @@ namespace AlTayerERP.Desktop
             Close();
         }
 
+        // بوابة الإعدادات العامة لا تُفتح إلا لمدير النظام إلى أن يكتمل محرك الصلاحيات التفصيلي.
         private void btnSettings_Click(object? sender, EventArgs e)
         {
             if (!CurrentSession.Is_System_Admin)
