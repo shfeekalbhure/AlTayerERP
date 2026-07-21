@@ -1,5 +1,6 @@
 ﻿using AlTayerERP.API.DTOs.Accounting;
 using AlTayerERP.Infrastructure.Data;
+using Microsoft.EntityFrameworkCore;
 
 namespace AlTayerERP.API.Services.Accounting
 {
@@ -26,8 +27,72 @@ namespace AlTayerERP.API.Services.Accounting
             if (!result.IsValid)
                 return result;
 
-            // سنضيف بقية قواعد التحقق هنا خطوة خطوة.
-            await Task.CompletedTask;
+            // قواعد سند القبض لا تثق بما تعرضه الواجهة؛ تتحقق من الطريقة
+            // والصندوق والسطر النقدي في قاعدة البيانات قبل إنشاء أي حركة.
+            result = await ValidateReceiptVoucherAsync(voucher);
+            if (!result.IsValid)
+                return result;
+
+            return (true, string.Empty);
+        }
+
+        /// <summary>
+        /// قواعد سند القبض: حساب صندوق/بنك نشط، طريقة سداد صالحة،
+        /// وسطر نقدي واحد مطابق للرأس والمبلغ المحلي.
+        /// </summary>
+        private async Task<(bool IsValid, string ErrorMessage)> ValidateReceiptVoucherAsync(
+            CreateFinancialVoucherDto voucher)
+        {
+            // لا تطبق قواعد اتجاه القبض على الأنواع الأخرى التي ستأتي في مراحل لاحقة.
+            if (voucher.Voucher_Type_ID != 1)
+                return (true, string.Empty);
+
+            if (!int.TryParse(voucher.Branch_ID, out int branchId))
+                return (false, "فرع السند غير صالح.");
+
+            bool cashAccountIsAvailable = await _context.Cash_Boxes.AsNoTracking()
+                .AnyAsync(x => x.Account_ID == voucher.Cash_Account_ID &&
+                               x.Branch_ID == branchId &&
+                               x.Is_Active);
+            if (!cashAccountIsAvailable)
+            {
+                return (false, "حساب الصندوق أو البنك غير نشط أو لا يتبع فرع السند.");
+            }
+
+            if (!voucher.Payment_Method_ID.HasValue)
+                return (false, "طريقة السداد مطلوبة في سند القبض.");
+
+            var paymentMethod = await _context.Payment_Methods.AsNoTracking()
+                .FirstOrDefaultAsync(x => x.Payment_Method_ID == voucher.Payment_Method_ID.Value && x.Is_Active);
+            if (paymentMethod == null)
+                return (false, "طريقة السداد المختارة غير موجودة أو غير نشطة.");
+
+            if (paymentMethod.Requires_Reference && string.IsNullOrWhiteSpace(voucher.Reference_No))
+                return (false, "رقم المرجع مطلوب لطريقة السداد المختارة.");
+
+            if (paymentMethod.Requires_Reference_Date && !voucher.Reference_Date.HasValue)
+                return (false, "تاريخ المرجع مطلوب لطريقة السداد المختارة.");
+
+            var cashLines = voucher.Details.Where(x => x.Line_Type == 1).ToList();
+            if (cashLines.Count != 1)
+                return (false, "يجب أن يحتوي سند القبض على سطر صندوق أو بنك واحد فقط.");
+
+            var cashLine = cashLines[0];
+            if (!string.Equals(cashLine.Account_ID, voucher.Cash_Account_ID, StringComparison.Ordinal))
+                return (false, "حساب سطر الصندوق لا يطابق حساب الصندوق أو البنك في رأس السند.");
+
+            if (cashLine.Currency_ID != voucher.Currency_ID)
+                return (false, "عملة سطر الصندوق لا تطابق عملة رأس سند القبض.");
+
+            if (cashLine.Debit_Amount <= 0m || cashLine.Credit_Amount != 0m)
+                return (false, "سطر الصندوق في سند القبض يجب أن يكون مديناً فقط.");
+
+            decimal expectedLocalAmount = decimal.Round(voucher.Amount * voucher.Exchange_Rate, 2);
+            if (decimal.Round(cashLine.Local_Amount, 2) != expectedLocalAmount ||
+                decimal.Round(cashLine.Debit_Amount, 2) != expectedLocalAmount)
+            {
+                return (false, "مبلغ سطر الصندوق لا يطابق مبلغ سند القبض بعد تحويل العملة.");
+            }
 
             return (true, string.Empty);
         }
