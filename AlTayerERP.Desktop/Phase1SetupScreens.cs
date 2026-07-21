@@ -471,9 +471,9 @@ namespace AlTayerERP.Desktop
         public FrmExchangeRates() : base("إدارة أسعار الصرف", "ExchangeRates", "Exchange_Rate_ID",
             new("Rate_Date", "تاريخ السريان", ReferenceEditorFieldKind.Date),
             new("Currency_Code", "كود العملة"),
-            new("Exchange_Rate", "سعر الصرف", ReferenceEditorFieldKind.Number),
-            new("Min_Rate", "الحد الأدنى", ReferenceEditorFieldKind.Number),
-            new("Max_Rate", "الحد الأعلى", ReferenceEditorFieldKind.Number),
+            new("Exchange_Rate", "سعر الصرف", ReferenceEditorFieldKind.Number, DecimalPlaces: 6),
+            new("Min_Rate", "الحد الأدنى", ReferenceEditorFieldKind.Number, DecimalPlaces: 6),
+            new("Max_Rate", "الحد الأعلى", ReferenceEditorFieldKind.Number, DecimalPlaces: 6),
             new("Is_Default", "السعر الافتراضي", ReferenceEditorFieldKind.Boolean),
             new("Notes", "ملاحظات"),
             new("Is_Active", "فعال", ReferenceEditorFieldKind.Boolean, DefaultBoolean: true)) { }
