@@ -65,16 +65,13 @@ namespace AlTayerERP.Desktop
                 CurrentSession.Year_Name = data.Year_Name;
 
                 lblCompanyName.Text = "شركة\n" + data.Company_Name_AR;
-                lblCurrentBranch.Text = "الفرع
-" + data.Branch_Name;
+                lblCurrentBranch.Text = "الفرع\n" + data.Branch_Name;
                 lblFiscalYear.Text = "السنة المالية\n" + data.Year_Name;
             }
             catch
             {
-                lblCompanyName.Text = "شركة
-" + CurrentSession.Company_ID;
-                lblFiscalYear.Text = "السنة المالية
-" + CurrentSession.Year_ID;
+                lblCompanyName.Text = "شركة\n" + CurrentSession.Company_ID;
+                lblFiscalYear.Text = "السنة المالية\n" + CurrentSession.Year_ID;
             }
         }
 
