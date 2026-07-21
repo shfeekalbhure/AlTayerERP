@@ -19,6 +19,7 @@ namespace AlTayerERP.Desktop
     {
         private readonly string _endpoint;
         private readonly string _idProperty;
+        private readonly object _newIdValue;
         private readonly IReadOnlyList<ReferenceEditorField> _fields;
         private readonly HttpClient _client = ApiService.Client;
         private readonly Dictionary<string, Control> _inputs = new();
@@ -44,10 +45,24 @@ namespace AlTayerERP.Desktop
             string endpoint,
             string idProperty,
             params ReferenceEditorField[] fields)
+            : this(title, endpoint, idProperty, 0, fields)
+        {
+        }
+
+        /// <summary>
+        /// يسمح للمحررات ذات المفتاح النصي (مثل الطرف المالي) بتحديد قيمة سجل جديد مناسبة.
+        /// </summary>
+        protected FrmVoucherReferenceEditor(
+            string title,
+            string endpoint,
+            string idProperty,
+            object newIdValue,
+            params ReferenceEditorField[] fields)
         {
             Text = title;
             _endpoint = endpoint;
             _idProperty = idProperty;
+            _newIdValue = newIdValue;
             _fields = fields;
             StartPosition = FormStartPosition.CenterParent;
             RightToLeft = RightToLeft.Yes;
@@ -500,7 +515,7 @@ namespace AlTayerERP.Desktop
                 return;
             }
 
-            var payload = new Dictionary<string, object?> { [_idProperty] = _selectedId };
+            var payload = new Dictionary<string, object?> { [_idProperty] = _selectedId ?? _newIdValue };
 
             foreach (var field in _fields)
             {
