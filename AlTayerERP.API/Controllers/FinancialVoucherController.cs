@@ -411,6 +411,9 @@ namespace AlTayerERP.API.Controllers
                 return BadRequest(new { success = false, message = "بيانات تنفيذ المراجعة مطلوبة." });
             }
 
+            if (!await CanExecuteReceiptActionAsync("REVIEW"))
+                return StatusCode(403, new { success = false, message = "ليس لديك صلاحية مراجعة سند القبض." });
+
             if (!TryBindCurrentActor(request, out string currentUserId))
                 return Unauthorized(new { success = false, message = "رمز الدخول لا يحتوي معرف المستخدم." });
 
@@ -434,6 +437,9 @@ namespace AlTayerERP.API.Controllers
                 return BadRequest(new { success = false, message = "سبب الإعادة للتصحيح مطلوب." });
             }
 
+            if (!await CanExecuteReceiptActionAsync("RETURN_CORRECTION"))
+                return StatusCode(403, new { success = false, message = "ليس لديك صلاحية إعادة السند للتصحيح." });
+
             if (!TryBindCurrentActor(request, out string currentUserId))
                 return Unauthorized(new { success = false, message = "رمز الدخول لا يحتوي معرف المستخدم." });
 
@@ -456,6 +462,9 @@ namespace AlTayerERP.API.Controllers
             {
                 return BadRequest(new { success = false, message = "بيانات تسجيل الطباعة مطلوبة." });
             }
+
+            if (!await CanExecuteReceiptActionAsync("PRINT"))
+                return StatusCode(403, new { success = false, message = "ليس لديك صلاحية طباعة سند القبض." });
 
             if (!TryBindCurrentActor(request, out string currentUserId))
                 return Unauthorized(new { success = false, message = "رمز الدخول لا يحتوي معرف المستخدم." });
@@ -494,6 +503,9 @@ namespace AlTayerERP.API.Controllers
                     message = "بيانات تنفيذ الاعتماد مطلوبة."
                 });
             }
+
+            if (!await CanExecuteReceiptActionAsync("APPROVE"))
+                return StatusCode(403, new { success = false, message = "ليس لديك صلاحية اعتماد سند القبض." });
 
             string? currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             if (string.IsNullOrWhiteSpace(currentUserId))
@@ -595,6 +607,9 @@ namespace AlTayerERP.API.Controllers
                 });
             }
 
+            if (!await CanExecuteReceiptActionAsync("UNAPPROVE"))
+                return StatusCode(403, new { success = false, message = "ليس لديك صلاحية إلغاء اعتماد سند القبض." });
+
             if (!TryBindCurrentActor(request, out string currentUserId))
                 return Unauthorized(new { success = false, message = "رمز الدخول لا يحتوي معرف المستخدم." });
 
@@ -664,6 +679,9 @@ namespace AlTayerERP.API.Controllers
                     message = "بيانات تنفيذ الترحيل مطلوبة."
                 });
             }
+
+            if (!await CanExecuteReceiptActionAsync("POST"))
+                return StatusCode(403, new { success = false, message = "ليس لديك صلاحية ترحيل سند القبض." });
 
             if (!TryBindCurrentActor(request, out string currentUserId))
                 return Unauthorized(new { success = false, message = "رمز الدخول لا يحتوي معرف المستخدم." });
@@ -744,6 +762,9 @@ namespace AlTayerERP.API.Controllers
                     message = "بيانات تنفيذ فك الترحيل مطلوبة."
                 });
             }
+
+            if (!await CanExecuteReceiptActionAsync("UNPOST"))
+                return StatusCode(403, new { success = false, message = "ليس لديك صلاحية فك ترحيل سند القبض." });
 
             string? currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             if (string.IsNullOrWhiteSpace(currentUserId))
@@ -848,6 +869,43 @@ namespace AlTayerERP.API.Controllers
                     posting = postingStatus
                 }
             });
+        }
+
+        /// <summary>
+        /// يتحقق من صلاحية الإجراء الحساسة على الخادم، ولا يعتمد على حالة الزر في الواجهة.
+        /// </summary>
+        private async Task<bool> CanExecuteReceiptActionAsync(string actionCode)
+        {
+            if (User.IsInRole("SystemAdmin"))
+                return true;
+
+            if (!int.TryParse(User.FindFirstValue("role_id"), out int roleId))
+                return false;
+
+            int? screenId = await _context.SystemScreens.AsNoTracking()
+                .Where(x => x.Screen_Code == "ReceiptVoucher" && x.Is_Active)
+                .Select(x => (int?)x.Screen_ID)
+                .FirstOrDefaultAsync();
+
+            if (!screenId.HasValue)
+                return false;
+
+            var screenPermission = await _context.RolePermissions.AsNoTracking()
+                .FirstOrDefaultAsync(x => x.Role_ID == roleId && x.Screen_ID == screenId.Value);
+
+            return actionCode switch
+            {
+                "APPROVE" => screenPermission?.Can_Approve == true,
+                "UNAPPROVE" => screenPermission?.Can_UnApprove == true,
+                "PRINT" => screenPermission?.Can_Print == true,
+                _ => await _context.Role_Resource_Permissions.AsNoTracking().AnyAsync(x =>
+                    x.Role_ID == roleId &&
+                    x.Resource_Type == "ACTION:" + screenId.Value &&
+                    x.Resource_Code == actionCode &&
+                    x.Permission_Code == "EXECUTE" &&
+                    x.Effect &&
+                    x.Is_Active)
+            };
         }
 
         /// <summary>
