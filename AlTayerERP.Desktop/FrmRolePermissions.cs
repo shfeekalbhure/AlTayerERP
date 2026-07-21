@@ -34,6 +34,8 @@ namespace AlTayerERP.Desktop
         private Button btnClearAll = new();
         private readonly Label lblRecordCount = new() { AutoSize = false, Width = 150 };
         private bool _normalizingPermissions;
+        // يحتفظ بحالة مربع الاختيار الظاهر في رأس كل عمود صلاحية.
+        private readonly Dictionary<string, bool> _columnSelectionStates = new(StringComparer.Ordinal);
 
         public FrmRolePermissions()
         {
@@ -95,6 +97,8 @@ namespace AlTayerERP.Desktop
                     dgvPermissions.CommitEdit(DataGridViewDataErrorContexts.Commit);
             };
             dgvPermissions.CellValueChanged += dgvPermissions_CellValueChanged;
+            // النقر على مربع الاختيار في رأس العمود يطبق الصلاحية على جميع الشاشات.
+            dgvPermissions.ColumnHeaderMouseClick += dgvPermissions_ColumnHeaderMouseClick;
             KeyDown += FrmRolePermissions_KeyDown;
         }
 
@@ -268,13 +272,24 @@ namespace AlTayerERP.Desktop
                 DefaultCellStyle = new DataGridViewCellStyle { Alignment = DataGridViewContentAlignment.MiddleRight }
             });
 
-        private void AddCheckColumn(string property, string title) =>
+        /// <summary>
+        /// يضيف عمود صلاحية مع مربع اختيار في رأسه.
+        /// النقر على العنوان يحدد أو يلغي الصلاحية نفسها لجميع الشاشات.
+        /// </summary>
+        private void AddCheckColumn(string property, string title)
+        {
+            _columnSelectionStates[property] = false;
             dgvPermissions.Columns.Add(new DataGridViewCheckBoxColumn
             {
                 DataPropertyName = property,
-                HeaderText = title,
-                Width = 76
+                HeaderText = BuildCheckHeader(property, title),
+                Width = 90,
+                SortMode = DataGridViewColumnSortMode.NotSortable
             });
+        }
+
+        private string BuildCheckHeader(string property, string title) =>
+            $"{(_columnSelectionStates.TryGetValue(property, out var selected) && selected ? "☑" : "☐")} {title}";
 
         /// <summary>
         /// تطبيق صلاحية العرض على الصفوف كلها لتسهيل التهيئة الأولية للدور.
@@ -301,6 +316,7 @@ namespace AlTayerERP.Desktop
             }
 
             dgvPermissions.Refresh();
+            SynchronizePermissionHeaders();
         }
 
         private async Task LoadRolesAsync()
@@ -345,6 +361,7 @@ namespace AlTayerERP.Desktop
                 dgvPermissions.DataSource = rows;
                 lblRecordCount.Text = $"عدد الشاشات: {rows.Count}";
                 FilterRows();
+                SynchronizePermissionHeaders();
             }
             catch (Exception ex)
             {
@@ -438,6 +455,97 @@ namespace AlTayerERP.Desktop
             }
 
             dgvPermissions.Refresh();
+            SynchronizePermissionHeaders();
+        }
+
+        /// <summary>
+        /// عند النقر على عنوان عمود صلاحية يتم تطبيق القيمة على كل الصفوف.
+        /// تمنح أي عملية حق العرض تلقائياً، وإلغاء العرض يلغي العمليات التابعة له.
+        /// </summary>
+        private void dgvPermissions_ColumnHeaderMouseClick(object? sender, DataGridViewCellMouseEventArgs e)
+        {
+            if (e.ColumnIndex < 0)
+                return;
+
+            var property = dgvPermissions.Columns[e.ColumnIndex].DataPropertyName;
+            if (string.IsNullOrWhiteSpace(property) || !property.StartsWith("Can_", StringComparison.Ordinal))
+                return;
+
+            var selectAll = !_columnSelectionStates.TryGetValue(property, out var isSelected) || !isSelected;
+            SetColumnPermission(property, selectAll);
+        }
+
+        private void SetColumnPermission(string property, bool value)
+        {
+            if (dgvPermissions.DataSource is not List<PermissionRow> rows)
+                return;
+
+            _normalizingPermissions = true;
+            try
+            {
+                foreach (var row in rows)
+                {
+                    if (property == nameof(PermissionRow.Can_View))
+                    {
+                        row.Can_View = value;
+                        if (!value)
+                            row.ClearActions();
+                    }
+                    else
+                    {
+                        SetActionValue(row, property, value);
+                        if (value)
+                            row.Can_View = true;
+                    }
+                }
+            }
+            finally
+            {
+                _normalizingPermissions = false;
+            }
+
+            dgvPermissions.Refresh();
+            SynchronizePermissionHeaders();
+        }
+
+        /// <summary>يعكس حالة الصفوف في مربعات الاختيار الموجودة برؤوس الأعمدة.</summary>
+        private void SynchronizePermissionHeaders()
+        {
+            if (dgvPermissions.DataSource is not List<PermissionRow> rows)
+                return;
+
+            foreach (DataGridViewColumn column in dgvPermissions.Columns)
+            {
+                var property = column.DataPropertyName;
+                if (string.IsNullOrWhiteSpace(property) || !property.StartsWith("Can_", StringComparison.Ordinal))
+                    continue;
+
+                _columnSelectionStates[property] = rows.Count > 0 && rows.All(row =>
+                    property == nameof(PermissionRow.Can_View)
+                        ? row.Can_View
+                        : GetActionValue(row, property));
+
+                column.HeaderText = BuildCheckHeader(property, column.HeaderText
+                    .Replace("☐ ", string.Empty)
+                    .Replace("☑ ", string.Empty));
+            }
+
+            dgvPermissions.InvalidateColumn(-1);
+        }
+
+        private static void SetActionValue(PermissionRow row, string property, bool value)
+        {
+            switch (property)
+            {
+                case nameof(PermissionRow.Can_Add): row.Can_Add = value; break;
+                case nameof(PermissionRow.Can_Edit): row.Can_Edit = value; break;
+                case nameof(PermissionRow.Can_Delete): row.Can_Delete = value; break;
+                case nameof(PermissionRow.Can_Print): row.Can_Print = value; break;
+                case nameof(PermissionRow.Can_Export): row.Can_Export = value; break;
+                case nameof(PermissionRow.Can_Import): row.Can_Import = value; break;
+                case nameof(PermissionRow.Can_Approve): row.Can_Approve = value; break;
+                case nameof(PermissionRow.Can_UnApprove): row.Can_UnApprove = value; break;
+            }
         }
 
         private static bool GetActionValue(PermissionRow row, string property) => property switch
