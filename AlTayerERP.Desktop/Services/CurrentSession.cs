@@ -34,6 +34,8 @@ namespace AlTayerERP.Desktop.Services
 
         private static readonly Dictionary<string, ScreenPermissionState> _screenPermissions =
             new(StringComparer.OrdinalIgnoreCase);
+        private static readonly HashSet<string> _resourcePermissions =
+            new(StringComparer.OrdinalIgnoreCase);
 
         public static bool IsLoggedIn =>
             User_ID > 0 &&
@@ -44,6 +46,7 @@ namespace AlTayerERP.Desktop.Services
         public static void SetScreenPermissions(IEnumerable<ScreenPermissionState>? permissions)
         {
             _screenPermissions.Clear();
+            _resourcePermissions.Clear();
 
             if (permissions == null)
                 return;
@@ -54,6 +57,45 @@ namespace AlTayerERP.Desktop.Services
                     _screenPermissions[permission.Screen_Code] = permission;
             }
         }
+
+        public static void SetResourcePermissions(IEnumerable<ResourcePermissionState>? permissions)
+        {
+            _resourcePermissions.Clear();
+            if (permissions == null)
+                return;
+
+            foreach (ResourcePermissionState permission in permissions)
+            {
+                if (!string.IsNullOrWhiteSpace(permission.Screen_Code) &&
+                    !string.IsNullOrWhiteSpace(permission.Resource_Kind) &&
+                    !string.IsNullOrWhiteSpace(permission.Resource_Code) &&
+                    !string.IsNullOrWhiteSpace(permission.Permission_Code))
+                {
+                    _resourcePermissions.Add(ResourceKey(
+                        permission.Screen_Code,
+                        permission.Resource_Kind,
+                        permission.Resource_Code,
+                        permission.Permission_Code));
+                }
+            }
+        }
+
+        public static bool CanResourceExecute(
+            string screenCode,
+            string resourceKind,
+            string resourceCode,
+            string permissionCode)
+        {
+            return Is_System_Admin || _resourcePermissions.Contains(
+                ResourceKey(screenCode, resourceKind, resourceCode, permissionCode));
+        }
+
+        private static string ResourceKey(
+            string screenCode,
+            string resourceKind,
+            string resourceCode,
+            string permissionCode) =>
+            screenCode + "|" + resourceKind + "|" + resourceCode + "|" + permissionCode;
 
         public static bool CanViewScreen(string screenCode) =>
             Is_System_Admin ||
@@ -112,6 +154,14 @@ namespace AlTayerERP.Desktop.Services
             Login_Time = DateTime.Now;
 
             _screenPermissions.Clear();
+        }
+
+        public sealed class ResourcePermissionState
+        {
+            public string Screen_Code { get; set; } = "";
+            public string Resource_Kind { get; set; } = "";
+            public string Resource_Code { get; set; } = "";
+            public string Permission_Code { get; set; } = "";
         }
 
         public sealed class ScreenPermissionState
