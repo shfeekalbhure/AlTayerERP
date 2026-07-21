@@ -34,7 +34,7 @@ namespace AlTayerERP.Desktop.Services
 
         private static readonly Dictionary<string, ScreenPermissionState> _screenPermissions =
             new(StringComparer.OrdinalIgnoreCase);
-        private static readonly HashSet<string> _resourcePermissions =
+        private static readonly Dictionary<string, bool> _resourcePermissions =
             new(StringComparer.OrdinalIgnoreCase);
 
         public static bool IsLoggedIn =>
@@ -70,11 +70,11 @@ namespace AlTayerERP.Desktop.Services
                     !string.IsNullOrWhiteSpace(permission.Resource_Code) &&
                     !string.IsNullOrWhiteSpace(permission.Permission_Code))
                 {
-                    _resourcePermissions.Add(ResourceKey(
+                    _resourcePermissions[ResourceKey(
                         permission.Screen_Code,
                         permission.Resource_Kind,
                         permission.Resource_Code,
-                        permission.Permission_Code));
+                        permission.Permission_Code)] = permission.Effect;
                 }
             }
         }
@@ -85,8 +85,10 @@ namespace AlTayerERP.Desktop.Services
             string resourceCode,
             string permissionCode)
         {
-            return Is_System_Admin || _resourcePermissions.Contains(
-                ResourceKey(screenCode, resourceKind, resourceCode, permissionCode));
+            return Is_System_Admin ||
+                (_resourcePermissions.TryGetValue(
+                    ResourceKey(screenCode, resourceKind, resourceCode, permissionCode),
+                    out bool effect) && effect);
         }
 
         private static string ResourceKey(
@@ -153,6 +155,7 @@ namespace AlTayerERP.Desktop.Services
             Login_Time = DateTime.Now;
 
             _screenPermissions.Clear();
+            _resourcePermissions.Clear();
         }
 
         public sealed class ResourcePermissionState
@@ -161,6 +164,7 @@ namespace AlTayerERP.Desktop.Services
             public string Resource_Kind { get; set; } = "";
             public string Resource_Code { get; set; } = "";
             public string Permission_Code { get; set; } = "";
+            public bool Effect { get; set; }
         }
 
         public sealed class ScreenPermissionState
