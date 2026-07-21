@@ -19,11 +19,7 @@ namespace AlTayerERP.Desktop
         public FrmLogin()
         {
             InitializeComponent();
-
-            // تطبيق المظهر العربي الموحد دون تغيير منطق الشاشة.
-            ArabicErpFormStyle.Apply(this);
-            ApplyLoginVisuals();
-            Load += FrmLogin_Load;
+Load += FrmLogin_Load;
             btnLogin.Click += btnLogin_Click;
             btnExit.Click += (_, _) => Application.Exit();
             btnAboutSystem.Click += (_, _) => MessageBox.Show("نظام الطائر لإدارة النقل والشحن\nالإصدار 1.0.0", "حول النظام");
