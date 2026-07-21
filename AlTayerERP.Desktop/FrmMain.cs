@@ -31,9 +31,6 @@ namespace AlTayerERP.Desktop
                 return;
             }
 
-            ApplyMainShellVisuals();
-            BuildDashboard();
-
             btnLogout.Click += btnLogout_Click;
             btnSettings.Click += btnSettings_Click;
             lblCompanyName.Text = "جاري التحميل...";
