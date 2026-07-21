@@ -121,7 +121,17 @@ namespace AlTayerERP.API.Controllers
 
             string createdBy = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "SYSTEM";
 
-            // لا نحدّث القيمة السابقة حتى يبقى السجل التدقيقي كاملاً.
+            // نعطل القيمة الفعالة السابقة فقط، ثم نضيف سجلاً جديداً لحفظ التاريخ التدقيقي.
+            var previousValues = await _context.Setting_Scope_Values
+                .Where(x => x.Setting_ID == settingId &&
+                            x.Scope_Type == scopeType &&
+                            x.Scope_ID == scopeId &&
+                            x.Is_Active)
+                .ToListAsync();
+
+            foreach (var previousValue in previousValues)
+                previousValue.Is_Active = false;
+
             _context.Setting_Scope_Values.Add(new AlTayerERP.Core.Entities.Configuration.SettingScopeValue
             {
                 Setting_ID = settingId,
