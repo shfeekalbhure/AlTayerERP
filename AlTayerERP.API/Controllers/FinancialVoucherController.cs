@@ -406,14 +406,17 @@ namespace AlTayerERP.API.Controllers
             long voucherId,
             [FromBody] VoucherActionRequest request)
         {
-            if (request == null || string.IsNullOrWhiteSpace(request.User_ID))
+            if (request == null)
             {
-                return BadRequest(new { success = false, message = "معرف المستخدم مطلوب للمراجعة." });
+                return BadRequest(new { success = false, message = "بيانات تنفيذ المراجعة مطلوبة." });
             }
+
+            if (!TryBindCurrentActor(request, out string currentUserId))
+                return Unauthorized(new { success = false, message = "رمز الدخول لا يحتوي معرف المستخدم." });
 
             var result = await _service.MarkReviewedAsync(
                 voucherId,
-                request.User_ID,
+                currentUserId,
                 request.Notes);
 
             return result.Success
@@ -426,16 +429,17 @@ namespace AlTayerERP.API.Controllers
             long voucherId,
             [FromBody] VoucherReasonActionRequest request)
         {
-            if (request == null ||
-                string.IsNullOrWhiteSpace(request.User_ID) ||
-                string.IsNullOrWhiteSpace(request.Reason))
+            if (request == null || string.IsNullOrWhiteSpace(request.Reason))
             {
-                return BadRequest(new { success = false, message = "معرف المستخدم وسبب الإعادة مطلوبان." });
+                return BadRequest(new { success = false, message = "سبب الإعادة للتصحيح مطلوب." });
             }
+
+            if (!TryBindCurrentActor(request, out string currentUserId))
+                return Unauthorized(new { success = false, message = "رمز الدخول لا يحتوي معرف المستخدم." });
 
             var result = await _service.ReturnForCorrectionAsync(
                 voucherId,
-                request.User_ID,
+                currentUserId,
                 request.Reason);
 
             return result.Success
@@ -448,12 +452,15 @@ namespace AlTayerERP.API.Controllers
             long voucherId,
             [FromBody] VoucherActionRequest request)
         {
-            if (request == null || string.IsNullOrWhiteSpace(request.User_ID))
+            if (request == null)
             {
-                return BadRequest(new { success = false, message = "معرف المستخدم مطلوب لتسجيل الطباعة." });
+                return BadRequest(new { success = false, message = "بيانات تسجيل الطباعة مطلوبة." });
             }
 
-            var result = await _service.RecordPrintAsync(voucherId, request.User_ID);
+            if (!TryBindCurrentActor(request, out string currentUserId))
+                return Unauthorized(new { success = false, message = "رمز الدخول لا يحتوي معرف المستخدم." });
+
+            var result = await _service.RecordPrintAsync(voucherId, currentUserId);
             return result.Success
                 ? Ok(new { success = true, message = result.Message })
                 : BadRequest(new { success = false, message = result.Message });
@@ -535,7 +542,7 @@ namespace AlTayerERP.API.Controllers
             var result =
                 await _approvalService.ApproveAsync(
                     voucherId: voucherId,
-                    userId: request.User_ID,
+                    userId: currentUserId,
                     actionChannel: request.Action_Channel,
                     deviceName: request.Device_Name,
                     ipAddress: ipAddress,
@@ -579,15 +586,17 @@ namespace AlTayerERP.API.Controllers
                 });
             }
 
-            if (request == null ||
-                string.IsNullOrWhiteSpace(request.User_ID))
+            if (request == null)
             {
                 return BadRequest(new
                 {
                     success = false,
-                    message = "معرف المستخدم مطلوب لإلغاء الاعتماد."
+                    message = "بيانات تنفيذ إلغاء الاعتماد مطلوبة."
                 });
             }
+
+            if (!TryBindCurrentActor(request, out string currentUserId))
+                return Unauthorized(new { success = false, message = "رمز الدخول لا يحتوي معرف المستخدم." });
 
             if (string.IsNullOrWhiteSpace(request.Reason))
             {
@@ -604,7 +613,7 @@ namespace AlTayerERP.API.Controllers
             var result =
                 await _approvalService.CancelApprovalAsync(
                     voucherId: voucherId,
-                    userId: request.User_ID,
+                    userId: currentUserId,
                     reason: request.Reason,
                     actionChannel: request.Action_Channel,
                     deviceName: request.Device_Name,
@@ -647,15 +656,17 @@ namespace AlTayerERP.API.Controllers
                 });
             }
 
-            if (request == null ||
-                string.IsNullOrWhiteSpace(request.User_ID))
+            if (request == null)
             {
                 return BadRequest(new
                 {
                     success = false,
-                    message = "معرف المستخدم مطلوب لترحيل السند."
+                    message = "بيانات تنفيذ الترحيل مطلوبة."
                 });
             }
+
+            if (!TryBindCurrentActor(request, out string currentUserId))
+                return Unauthorized(new { success = false, message = "رمز الدخول لا يحتوي معرف المستخدم." });
 
             var reviewValidation = await _service.ValidateReviewedAsync(voucherId);
             if (!reviewValidation.Success)
@@ -837,6 +848,19 @@ namespace AlTayerERP.API.Controllers
                     posting = postingStatus
                 }
             });
+        }
+
+        /// <summary>
+        /// يثبت هوية منفذ العملية من الرمز الموثوق ويمنع انتحالها في جسم الطلب.
+        /// </summary>
+        private bool TryBindCurrentActor(VoucherActionRequest request, out string userId)
+        {
+            userId = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? string.Empty;
+            if (string.IsNullOrWhiteSpace(userId))
+                return false;
+
+            request.User_ID = userId;
+            return true;
         }
 
         /// <summary>
