@@ -110,13 +110,16 @@ namespace AlTayerERP.API.Controllers
             SystemSetting setting;
             if (request.Setting_ID > 0)
             {
-                setting = await _context.System_Settings
-                    .FirstOrDefaultAsync(x => x.Setting_ID == request.Setting_ID)
-                    ?? throw new InvalidOperationException("الإعداد غير موجود.");
+                var existingSetting = await _context.System_Settings
+                    .FirstOrDefaultAsync(x => x.Setting_ID == request.Setting_ID);
+                if (existingSetting == null)
+                    return NotFound(new { message = "الإعداد غير موجود." });
 
                 // لا يسمح بتعديل إعداد من سياق شركة/فرع/سنة أخرى.
-                if (!IsVisibleInSession(setting, session))
+                if (!IsVisibleInSession(existingSetting, session))
                     return NotFound(new { message = "الإعداد غير موجود ضمن نطاق الجلسة الحالية." });
+
+                setting = existingSetting;
             }
             else
             {
