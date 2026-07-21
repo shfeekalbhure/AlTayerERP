@@ -36,7 +36,8 @@ namespace AlTayerERP.Desktop
             MultiSelect = false
         };
 
-        private int _selectedId;
+        // قد يكون المفتاح رقمياً في القوائم المرجعية أو نصياً في الأطراف المالية.
+        private object? _selectedId;
 
         protected FrmVoucherReferenceEditor(
             string title,
@@ -430,7 +431,9 @@ namespace AlTayerERP.Desktop
             if (_grid.CurrentRow?.Tag is not Dictionary<string, JsonElement> row)
                 return;
 
-            _selectedId = row.TryGetValue(_idProperty, out var id) && id.TryGetInt32(out var value) ? value : 0;
+            _selectedId = row.TryGetValue(_idProperty, out var id)
+                ? ReadIdentifier(id)
+                : null;
 
             foreach (var field in _fields)
             {
@@ -539,7 +542,7 @@ namespace AlTayerERP.Desktop
 
         private void ClearEditor()
         {
-            _selectedId = 0;
+            _selectedId = null;
             foreach (var field in _fields)
             {
                 var input = _inputs[field.Code];
@@ -595,6 +598,14 @@ namespace AlTayerERP.Desktop
                 e.SuppressKeyPress = true;
             }
         }
+
+        private static object? ReadIdentifier(JsonElement value) => value.ValueKind switch
+        {
+            JsonValueKind.Number when value.TryGetInt32(out var integer) => integer,
+            JsonValueKind.Number when value.TryGetInt64(out var longInteger) => longInteger,
+            JsonValueKind.String => value.GetString(),
+            _ => null
+        };
 
         private static string ReadJsonValue(JsonElement value) => value.ValueKind switch
         {
