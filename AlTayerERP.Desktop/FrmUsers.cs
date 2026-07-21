@@ -49,9 +49,7 @@ namespace AlTayerERP.Desktop
             InitializeComponent();
 
             // توحيد شكل الشاشة القديمة والاختصارات العربية دون تغيير منطقها.
-            ArabicErpFormStyle.Apply(this);
-
-            // --- ربط الأحداث الأساسية للشاشة والأزرار مع إلغاء الاشتراك أولاً لمنع التكرار ---
+// --- ربط الأحداث الأساسية للشاشة والأزرار مع إلغاء الاشتراك أولاً لمنع التكرار ---
             this.Load -= FrmUsers_Load;
             this.Load += FrmUsers_Load;
 
