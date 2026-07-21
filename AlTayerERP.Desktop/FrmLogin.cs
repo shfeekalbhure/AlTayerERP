@@ -160,6 +160,8 @@ namespace AlTayerERP.Desktop
                 CurrentSession.Username = result.Login_Name;
                 CurrentSession.Full_Name = result.Full_Name;
                 CurrentSession.Is_System_Admin = result.Is_System_Admin;
+                CurrentSession.Access_Token = result.Access_Token;
+                ApiService.ApplySessionToken(result.Access_Token);
                 CurrentSession.Login_Time = DateTime.Now;
 
                 // تُغلق الشاشة الرئيسية عند الخروج فتظهر شاشة الدخول نفسها من جديد.
@@ -176,7 +178,7 @@ namespace AlTayerERP.Desktop
     }
 
     public class LoginRequest { public string Company_ID { get; set; } = ""; public int Branch_ID { get; set; } public int Year_ID { get; set; } public int User_ID { get; set; } public string Login_Name { get; set; } = ""; public string Password { get; set; } = ""; }
-    public class LoginResultModel { public int User_ID { get; set; } public string Full_Name { get; set; } = ""; public string Login_Name { get; set; } = ""; public int Role_ID { get; set; } public int Branch_ID { get; set; } public string Company_ID { get; set; } = ""; public int Year_ID { get; set; } public bool Is_System_Admin { get; set; } public bool Must_Change_Password { get; set; } }
+    public class LoginResultModel { public int User_ID { get; set; } public string Full_Name { get; set; } = ""; public string Login_Name { get; set; } = ""; public int Role_ID { get; set; } public int Branch_ID { get; set; } public string Company_ID { get; set; } = ""; public int Year_ID { get; set; } public bool Is_System_Admin { get; set; } public bool Must_Change_Password { get; set; } public string Access_Token { get; set; } = ""; }
     public class FiscalYearLookupModel { public int Fiscal_Year_ID { get; set; } public string Year_Name { get; set; } = ""; public bool Is_Default { get; set; } }
     public class UserLookupModel { public int User_ID { get; set; } public string Login_Name { get; set; } = ""; public int Branch_ID { get; set; } }
 }
