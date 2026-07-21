@@ -447,13 +447,20 @@ namespace AlTayerERP.Desktop
             new("Notes", "ملاحظات", SetupFieldKind.Notes)) { }
     }
 
-    public sealed class FrmFiscalPeriods : FrmPhase1SetupBase
+    /// <summary>
+    /// فترات فعلية للسنة والفرع الحاليين؛ يمنع الخادم التداخل والإقفال بلا سبب.
+    /// </summary>
+    public sealed class FrmFiscalPeriods : FrmVoucherReferenceEditor
     {
-        public FrmFiscalPeriods() : base("إدارة الفترات المالية",
-            new("Period_Code", "كود الفترة"), new("Period_Name", "اسم الفترة"),
-            new("Start_Date", "تاريخ البداية", SetupFieldKind.Date), new("End_Date", "تاريخ النهاية", SetupFieldKind.Date),
-            new("Is_Closed", "مقفلة", SetupFieldKind.YesNo), new("Close_Date", "تاريخ الإقفال", SetupFieldKind.Date),
-            new("Close_Reason", "سبب الإقفال", SetupFieldKind.Notes)) { }
+        public FrmFiscalPeriods() : base("إدارة الفترات المالية", "FiscalPeriods", "Fiscal_Period_ID",
+            new("Period_Code", "كود الفترة"),
+            new("Period_Name", "اسم الفترة"),
+            new("Start_Date", "تاريخ البداية", ReferenceEditorFieldKind.Date),
+            new("End_Date", "تاريخ النهاية", ReferenceEditorFieldKind.Date),
+            new("Is_Closed", "مقفلة", ReferenceEditorFieldKind.Boolean),
+            new("Close_Date", "تاريخ الإقفال", ReferenceEditorFieldKind.Date),
+            new("Close_Reason", "سبب الإقفال"),
+            new("Is_Active", "فعالة", ReferenceEditorFieldKind.Boolean, DefaultBoolean: true)) { }
     }
 
     public sealed class FrmExchangeRates : FrmPhase1SetupBase
