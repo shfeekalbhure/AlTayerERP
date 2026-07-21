@@ -90,7 +90,7 @@ namespace AlTayerERP.Desktop
             {
                 var screens = await _client.GetFromJsonAsync<List<ScreenAccessRow>>($"{_baseUrl}RolePermissions/GetScreens") ?? new();
                 var permissions = await _client.GetFromJsonAsync<List<RolePermissionRow>>(
-                    $"{_baseUrl}RolePermissions/GetRolePermissions/${CurrentSession.Role_ID}") ?? new();
+                    $"{_baseUrl}RolePermissions/GetRolePermissions/{CurrentSession.Role_ID}") ?? new();
 
                 _allowedScreenCodes = screens
                     .Where(screen => permissions.Any(permission =>
