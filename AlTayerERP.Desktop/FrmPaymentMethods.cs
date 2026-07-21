@@ -10,8 +10,7 @@ using System.Windows.Forms;
 namespace AlTayerERP.Desktop
 {
     /// <summary>
-    /// إدارة طرق السداد المرجعية لسندات القبض.
-    /// الكتابة متاحة لمدير النظام فقط ومحمية برمز Bearer لدى الخادم.
+    /// شاشة تعريف طرق السداد وفق قالب واجهات الطائر المحاسبية.
     /// </summary>
     public class FrmPaymentMethods : Form
     {
@@ -28,12 +27,18 @@ namespace AlTayerERP.Desktop
         private readonly CheckBox chkCash = new() { Text = "نقدي" };
         private readonly CheckBox chkBank = new() { Text = "بنكي" };
         private readonly CheckBox chkActive = new() { Text = "نشط", Checked = true };
-        private readonly Button btnNew = new() { Text = "جديد" };
-        private readonly Button btnSave = new() { Text = "حفظ" };
-        private readonly Button btnDeactivate = new() { Text = "تعطيل" };
-        private readonly Button btnRefresh = new() { Text = "تحديث" };
+
+        private readonly ToolStripButton btnNew = new("جديد");
+        private readonly ToolStripButton btnSave = new("حفظ");
+        private readonly ToolStripButton btnDeactivate = new("تعطيل");
+        private readonly ToolStripButton btnRefresh = new("تحديث");
+        private readonly ToolStripButton btnSearch = new("بحث");
 
         private int _selectedId;
+        private readonly Label lblRecordUser = CreateAuditValue();
+        private readonly Label lblRecordDate = CreateAuditValue();
+        private readonly Label lblLastUpdate = CreateAuditValue();
+        private readonly Label lblStatus = CreateAuditValue();
 
         public FrmPaymentMethods()
         {
@@ -46,79 +51,227 @@ namespace AlTayerERP.Desktop
         {
             Text = "طرق السداد";
             StartPosition = FormStartPosition.CenterParent;
+            WindowState = FormWindowState.Maximized;
+            MinimumSize = new Size(1040, 650);
             RightToLeft = RightToLeft.Yes;
             RightToLeftLayout = true;
-            Font = new Font("Tahoma", 10F);
-            Width = 1120;
-            Height = 690;
-            MinimumSize = new Size(900, 560);
+            Font = new Font("Tahoma", 9F);
+            BackColor = Color.FromArgb(245, 245, 240);
+
+            var header = new Panel
+            {
+                Dock = DockStyle.Top,
+                Height = 42,
+                BackColor = Color.FromArgb(52, 123, 177)
+            };
+            header.Controls.Add(new Label
+            {
+                Text = "طرق السداد",
+                Dock = DockStyle.Fill,
+                ForeColor = Color.White,
+                Font = new Font("Tahoma", 14F, FontStyle.Bold),
+                TextAlign = ContentAlignment.MiddleCenter
+            });
+
+            var toolbar = new ToolStrip
+            {
+                Dock = DockStyle.Top,
+                Height = 36,
+                GripStyle = ToolStripGripStyle.Hidden,
+                BackColor = Color.FromArgb(245, 245, 240),
+                RightToLeft = RightToLeft.Yes,
+                RenderMode = ToolStripRenderMode.System
+            };
+            toolbar.Items.AddRange(new ToolStripItem[]
+            {
+                btnNew, new ToolStripSeparator(), btnSave, new ToolStripSeparator(),
+                btnDeactivate, new ToolStripSeparator(), btnRefresh, new ToolStripSeparator(),
+                btnSearch
+            });
 
             btnNew.Click += (_, _) => ClearForm();
             btnRefresh.Click += async (_, _) => await LoadItemsAsync();
             btnSave.Click += async (_, _) => await SaveAsync();
             btnDeactivate.Click += async (_, _) => await DeactivateAsync();
+            btnSearch.Click += (_, _) => txtCode.Focus();
+
+            var tabs = new TabControl
+            {
+                Dock = DockStyle.Fill,
+                RightToLeftLayout = true,
+                Appearance = TabAppearance.Normal
+            };
+            var mainTab = new TabPage("البيانات الرئيسية") { BackColor = BackColor };
+            var noteTab = new TabPage("بيانات إضافية") { BackColor = BackColor };
+            noteTab.Controls.Add(new Label
+            {
+                Text = "تظهر هنا خصائص إضافية عند اعتمادها في إعدادات النظام.",
+                Dock = DockStyle.Top,
+                Padding = new Padding(12),
+                TextAlign = ContentAlignment.MiddleRight
+            });
+
+            var entryGroup = new GroupBox
+            {
+                Text = "بيانات طريقة السداد",
+                Dock = DockStyle.Top,
+                Height = 182,
+                Padding = new Padding(12),
+                RightToLeft = RightToLeft.Yes
+            };
+            entryGroup.Controls.Add(BuildEntryLayout());
+
+            var gridGroup = new GroupBox
+            {
+                Text = "طرق السداد المعرفة",
+                Dock = DockStyle.Fill,
+                Padding = new Padding(8)
+            };
+            gridGroup.Controls.Add(dgvItems);
+
+            mainTab.Controls.Add(gridGroup);
+            mainTab.Controls.Add(entryGroup);
+            tabs.TabPages.Add(mainTab);
+            tabs.TabPages.Add(noteTab);
+
+            var audit = BuildAuditFooter();
+
+            Controls.Add(tabs);
+            Controls.Add(audit);
+            Controls.Add(toolbar);
+            Controls.Add(header);
+
             chkReference.CheckedChanged += (_, _) =>
             {
                 if (!chkReference.Checked)
                     chkReferenceDate.Checked = false;
             };
             dgvItems.SelectionChanged += (_, _) => LoadSelected();
-
-            var toolbar = new FlowLayoutPanel
-            {
-                Dock = DockStyle.Top,
-                Height = 50,
-                Padding = new Padding(8),
-                FlowDirection = FlowDirection.RightToLeft
-            };
-            toolbar.Controls.AddRange(new Control[] { btnNew, btnSave, btnDeactivate, btnRefresh });
-
-            var editor = new TableLayoutPanel
-            {
-                Dock = DockStyle.Top,
-                Height = 170,
-                ColumnCount = 4,
-                RowCount = 3,
-                Padding = new Padding(10)
-            };
-            editor.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
-            editor.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
-            editor.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
-            editor.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
-
-            AddEditor(editor, "الكود", txtCode, 0, 0);
-            AddEditor(editor, "الاسم العربي", txtNameAr, 2, 0);
-            AddEditor(editor, "الاسم الإنجليزي", txtNameEn, 0, 1);
-            nudOrder.Minimum = 0;
-            nudOrder.Maximum = 999999;
-            AddEditor(editor, "ترتيب العرض", nudOrder, 2, 1);
-
-            var flags = new FlowLayoutPanel { Dock = DockStyle.Fill, FlowDirection = FlowDirection.RightToLeft };
-            flags.Controls.AddRange(new Control[] { chkActive, chkCash, chkBank, chkReference, chkReferenceDate });
-            editor.Controls.Add(flags, 0, 2);
-            editor.SetColumnSpan(flags, 4);
-
-            Controls.Add(dgvItems);
-            Controls.Add(editor);
-            Controls.Add(toolbar);
         }
 
-        private static void AddEditor(TableLayoutPanel layout, string label, Control input, int column, int row)
+        private TableLayoutPanel BuildEntryLayout()
+        {
+            var layout = new TableLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                ColumnCount = 4,
+                RowCount = 3,
+                RightToLeft = RightToLeft.Yes
+            };
+            layout.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+            layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
+            layout.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+            layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
+            layout.RowStyles.Add(new RowStyle(SizeType.Percent, 33));
+            layout.RowStyles.Add(new RowStyle(SizeType.Percent, 33));
+            layout.RowStyles.Add(new RowStyle(SizeType.Percent, 34));
+
+            ApplyInputStyle(txtCode);
+            ApplyInputStyle(txtNameAr);
+            ApplyInputStyle(txtNameEn);
+            nudOrder.BackColor = InputBackColor;
+            nudOrder.Minimum = 0;
+            nudOrder.Maximum = 999999;
+
+            AddField(layout, "الكود", txtCode, 0, 0);
+            AddField(layout, "الاسم العربي", txtNameAr, 2, 0);
+            AddField(layout, "الاسم الإنجليزي", txtNameEn, 0, 1);
+            AddField(layout, "ترتيب العرض", nudOrder, 2, 1);
+
+            var flags = new FlowLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                FlowDirection = FlowDirection.RightToLeft,
+                Padding = new Padding(4)
+            };
+            flags.Controls.AddRange(new Control[]
+            {
+                chkActive, chkCash, chkBank, chkReference, chkReferenceDate
+            });
+            layout.Controls.Add(flags, 0, 2);
+            layout.SetColumnSpan(flags, 4);
+            return layout;
+        }
+
+        private static readonly Color InputBackColor = Color.FromArgb(255, 255, 224);
+
+        private static void ApplyInputStyle(TextBox textBox)
+        {
+            textBox.BackColor = InputBackColor;
+            textBox.BorderStyle = BorderStyle.FixedSingle;
+        }
+
+        private static void AddField(
+            TableLayoutPanel layout, string label, Control input, int column, int row)
         {
             input.Dock = DockStyle.Fill;
-            layout.Controls.Add(new Label
+            var caption = new Label
             {
                 Text = label + ":",
-                TextAlign = ContentAlignment.MiddleRight,
                 AutoSize = true,
+                TextAlign = ContentAlignment.MiddleRight,
+                Dock = DockStyle.Fill,
                 Padding = new Padding(4)
-            }, column, row);
+            };
+            layout.Controls.Add(caption, column, row);
             layout.Controls.Add(input, column + 1, row);
+        }
+
+        private Panel BuildAuditFooter()
+        {
+            var audit = new Panel
+            {
+                Dock = DockStyle.Bottom,
+                Height = 52,
+                BackColor = Color.FromArgb(232, 231, 255),
+                BorderStyle = BorderStyle.FixedSingle
+            };
+            var table = new TableLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                ColumnCount = 8,
+                RightToLeft = RightToLeft.Yes,
+                Padding = new Padding(6, 8, 6, 4)
+            };
+
+            for (int i = 0; i < 8; i++)
+                table.ColumnStyles.Add(new ColumnStyle(i % 2 == 0 ? SizeType.AutoSize : SizeType.Percent, i % 2 == 0 ? 0 : 25));
+
+            AddAuditField(table, "مدخل السجل", lblRecordUser, 0);
+            AddAuditField(table, "تاريخ الإدخال", lblRecordDate, 2);
+            AddAuditField(table, "آخر تعديل", lblLastUpdate, 4);
+            AddAuditField(table, "الحالة", lblStatus, 6);
+
+            audit.Controls.Add(table);
+            return audit;
+        }
+
+        private static Label CreateAuditValue()
+        {
+            return new Label
+            {
+                BorderStyle = BorderStyle.FixedSingle,
+                BackColor = Color.White,
+                TextAlign = ContentAlignment.MiddleCenter,
+                Dock = DockStyle.Fill
+            };
+        }
+
+        private static void AddAuditField(TableLayoutPanel table, string label, Label value, int column)
+        {
+            table.Controls.Add(new Label
+            {
+                Text = label + ":",
+                AutoSize = true,
+                TextAlign = ContentAlignment.MiddleRight,
+                Padding = new Padding(3)
+            }, column, 0);
+            table.Controls.Add(value, column + 1, 0);
         }
 
         private static DataGridView CreateGrid()
         {
-            return new DataGridView
+            var grid = new DataGridView
             {
                 Dock = DockStyle.Fill,
                 ReadOnly = true,
@@ -129,8 +282,29 @@ namespace AlTayerERP.Desktop
                 SelectionMode = DataGridViewSelectionMode.FullRowSelect,
                 AutoGenerateColumns = true,
                 AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill,
-                RowHeadersVisible = false
+                RowHeadersVisible = false,
+                BackgroundColor = Color.White,
+                BorderStyle = BorderStyle.Fixed3D,
+                EnableHeadersVisualStyles = false,
+                GridColor = Color.Gray,
+                AlternatingRowsDefaultCellStyle = new DataGridViewCellStyle
+                {
+                    BackColor = Color.FromArgb(247, 247, 247)
+                },
+                RowsDefaultCellStyle = new DataGridViewCellStyle
+                {
+                    SelectionBackColor = Color.FromArgb(206, 244, 246),
+                    SelectionForeColor = Color.Black
+                },
+                ColumnHeadersDefaultCellStyle = new DataGridViewCellStyle
+                {
+                    BackColor = Color.FromArgb(225, 242, 246),
+                    ForeColor = Color.Black,
+                    Alignment = DataGridViewContentAlignment.MiddleCenter,
+                    Font = new Font("Tahoma", 9F, FontStyle.Bold)
+                }
             };
+            return grid;
         }
 
         private void ConfigurePermissions()
@@ -162,7 +336,6 @@ namespace AlTayerERP.Desktop
                 List<PaymentMethodItem>? items =
                     await _client.GetFromJsonAsync<List<PaymentMethodItem>>(_baseUrl + "PaymentMethods");
                 dgvItems.DataSource = items ?? new List<PaymentMethodItem>();
-                _selectedId = 0;
                 ClearForm();
             }
             catch (Exception ex)
@@ -191,6 +364,11 @@ namespace AlTayerERP.Desktop
             chkCash.Checked = item.Is_Cash;
             chkBank.Checked = item.Is_Bank;
             chkActive.Checked = item.Is_Active;
+
+            lblRecordUser.Text = "النظام";
+            lblRecordDate.Text = DateTime.Now.ToString("yyyy-MM-dd HH:mm");
+            lblLastUpdate.Text = DateTime.Now.ToString("yyyy-MM-dd HH:mm");
+            lblStatus.Text = item.Is_Active ? "نشط" : "موقوف";
         }
 
         private void ClearForm()
@@ -205,6 +383,10 @@ namespace AlTayerERP.Desktop
             chkCash.Checked = false;
             chkBank.Checked = false;
             chkActive.Checked = true;
+            lblRecordUser.Text = string.Empty;
+            lblRecordDate.Text = string.Empty;
+            lblLastUpdate.Text = string.Empty;
+            lblStatus.Text = "جديد";
             txtCode.Focus();
         }
 
