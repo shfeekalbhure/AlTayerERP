@@ -45,6 +45,8 @@ namespace AlTayerERP.Desktop
         // قوائم لتخزين بيانات العملات والحسابات المسترجعة من قاعدة البيانات
         private List<CurrencyLookupModel> _currencyLookups = new();
         private List<AccountLookupModel> _accountLookups = new();
+        private List<CashBoxLookupModel> _cashBoxLookups = new();
+        private List<CostCenterLookupModel> _costCenterLookups = new();
 
         #endregion
 
@@ -107,6 +109,10 @@ namespace AlTayerERP.Desktop
 
             // استدعاء دالة لتسجيل أحداث العمليات الإضافية على السند
             RegisterVoucherActionEvents();
+
+            // ربط F9 بالنوافذ المنبثقة للمراجع المحاسبية.
+            KeyDown -= FrmReceiptVoucher_KeyDown;
+            KeyDown += FrmReceiptVoucher_KeyDown;
         }
 
         #endregion
