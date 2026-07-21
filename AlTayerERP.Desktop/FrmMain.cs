@@ -1,4 +1,4 @@
-﻿// استدعاء مكتبات النظام الأساسية للتعامل مع الواجهات
+// استدعاء مكتبات النظام الأساسية للتعامل مع الواجهات
 using System;
 using System.Collections.Generic;
 using System.Drawing;
@@ -19,7 +19,7 @@ namespace AlTayerERP.Desktop
         private readonly HttpClient _client = ApiService.Client;
         private readonly string _baseUrl = ApiService.BaseUrl;
         private readonly Dictionary<string, Form> _openedForms = new();
-        private readonly Timer _statusTimer = new();
+        private readonly System.Windows.Forms.Timer _statusTimer = new();
         private TabControl? _workspaceTabs;
         private Label? _welcomeLabel;
 
