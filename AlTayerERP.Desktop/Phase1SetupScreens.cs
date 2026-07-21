@@ -437,14 +437,22 @@ namespace AlTayerERP.Desktop
             new("Is_Active", "فعال", ReferenceEditorFieldKind.Boolean, DefaultBoolean: true)) { }
     }
 
-    public sealed class FrmBanks : FrmPhase1SetupBase
+    /// <summary>
+    /// إدارة فعلية للحسابات البنكية ضمن الشركة الحالية.
+    /// </summary>
+    public sealed class FrmBanks : FrmVoucherReferenceEditor
     {
-        public FrmBanks() : base("إدارة البنوك والحسابات البنكية",
-            new("Bank_Code", "كود البنك"), new("Bank_Name_AR", "اسم البنك العربي"),
-            new("Bank_Name_EN", "اسم البنك الإنجليزي"), new("Account_No", "رقم الحساب البنكي"),
-            new("IBAN", "IBAN"), new("Currency", "العملة"), new("GL_Account", "الحساب المحاسبي"),
-            new("Branch_Name", "فرع البنك"), new("Is_Active", "الحالة", SetupFieldKind.YesNo, DefaultTrue: true),
-            new("Notes", "ملاحظات", SetupFieldKind.Notes)) { }
+        public FrmBanks() : base("إدارة البنوك والحسابات البنكية", "BankAccounts", "Bank_Account_ID",
+            new("Bank_Code", "كود البنك"),
+            new("Bank_Name_AR", "اسم البنك العربي"),
+            new("Bank_Name_EN", "اسم البنك الإنجليزي"),
+            new("Account_No", "رقم الحساب البنكي"),
+            new("IBAN", "IBAN"),
+            new("Currency_Code", "كود العملة"),
+            new("GL_Account", "الحساب المحاسبي"),
+            new("Branch_Name", "فرع البنك"),
+            new("Notes", "ملاحظات"),
+            new("Is_Active", "الحالة", ReferenceEditorFieldKind.Boolean, DefaultBoolean: true)) { }
     }
 
     /// <summary>
