@@ -167,15 +167,17 @@ namespace AlTayerERP.Desktop
             var card = new Panel
             {
                 Dock = DockStyle.Fill,
-                BackColor = SystemColors.Control,
-                BorderStyle = BorderStyle.None,
-                Padding = new Padding(10, 7, 10, 7),
+                BackColor = Color.White,
+                BorderStyle = BorderStyle.FixedSingle,
+                Padding = new Padding(10, 6, 10, 6),
                 Margin = new Padding(0, 0, 0, 6)
             };
 
             _searchBox.PlaceholderText = "بحث سريع بالكود أو الاسم…";
             _searchBox.Dock = DockStyle.Fill;
             _searchBox.BorderStyle = BorderStyle.FixedSingle;
+            _searchBox.Font = new Font("Segoe UI", 10F);
+            _searchBox.TextAlign = HorizontalAlignment.Right;
             _searchBox.TextChanged += (_, _) => FilterGrid();
 
             card.Controls.Add(_searchBox);
@@ -198,8 +200,8 @@ namespace AlTayerERP.Desktop
             {
                 Dock = DockStyle.Top,
                 AutoSize = true,
-                BackColor = SystemColors.Control,
-                BorderStyle = BorderStyle.None,
+                BackColor = Color.White,
+                BorderStyle = BorderStyle.FixedSingle,
                 Padding = new Padding(14, 10, 14, 10),
                 Margin = new Padding(0, 0, 0, 8)
             };
@@ -225,12 +227,21 @@ namespace AlTayerERP.Desktop
 
             foreach (var field in _fields)
             {
-                var panel = new Panel { Width = 250, Height = 94, Margin = new Padding(6) };
+                // إطار مستقل لكل حقل حتى لا تختفي حدود الإدخال في الشاشات العربية.
+                var panel = new Panel
+                {
+                    Width = 250,
+                    Height = 86,
+                    Margin = new Padding(6),
+                    Padding = new Padding(8, 4, 8, 6),
+                    BackColor = Color.White,
+                    BorderStyle = BorderStyle.FixedSingle
+                };
                 panel.Controls.Add(new Label
                 {
                     Text = field.Caption,
                     Dock = DockStyle.Top,
-                    Height = 28,
+                    Height = 24,
                     ForeColor = Color.FromArgb(55, 65, 81),
                     TextAlign = ContentAlignment.MiddleRight
                 });
@@ -298,30 +309,32 @@ namespace AlTayerERP.Desktop
         private static void ConfigureEditorInput(Control input)
         {
             input.Dock = DockStyle.Bottom;
-            input.Height = 36;
+            input.Height = 34;
             input.Margin = new Padding(0, 4, 0, 0);
+            input.BackColor = Color.White;
             input.Font = new Font("Segoe UI", 10F);
 
             switch (input)
             {
                 case ComboBox combo:
                     combo.AutoSize = false;
-                    combo.Height = 36;
+                    combo.Height = 34;
                     combo.DropDownHeight = 240;
                     break;
                 case DateTimePicker date:
-                    date.Height = 36;
+                    date.Height = 34;
                     break;
                 case NumericUpDown number:
-                    number.Height = 36;
+                    number.Height = 34;
                     number.TextAlign = HorizontalAlignment.Right;
                     break;
                 case TextBox text:
                     text.MinimumSize = new Size(0, 30);
+                    text.BorderStyle = BorderStyle.FixedSingle;
                     text.TextAlign = HorizontalAlignment.Right;
                     break;
                 case CheckBox check:
-                    check.Height = 36;
+                    check.Height = 34;
                     break;
             }
         }
@@ -331,8 +344,8 @@ namespace AlTayerERP.Desktop
             var card = new Panel
             {
                 Dock = DockStyle.Fill,
-                BackColor = SystemColors.Control,
-                BorderStyle = BorderStyle.None,
+                BackColor = Color.White,
+                BorderStyle = BorderStyle.FixedSingle,
                 Padding = new Padding(1)
             };
 
@@ -551,7 +564,10 @@ namespace AlTayerERP.Desktop
                 payload[field.Code] = input switch
                 {
                     CheckBox checkBox => checkBox.Checked,
-                    NumericUpDown number => Convert.ToInt32(number.Value),
+                    // لا نقرب القيم العشرية: سعر الصرف قد يصل إلى ست منازل عشرية.
+                    NumericUpDown number => number.DecimalPlaces == 0
+                        ? Convert.ToInt32(number.Value)
+                        : number.Value,
                     DateTimePicker datePicker => datePicker.Checked ? datePicker.Value.Date : null,
                     ComboBox comboBox => comboBox.SelectedItem?.ToString(),
                     TextBox textBox => textBox.Text.Trim(),
