@@ -31,6 +31,7 @@ namespace AlTayerERP.Desktop
             CancelButton = btnExit;
         }
 
+        // تهيئة الشاشة والتحقق من إمكانية قراءة بيانات الشركات قبل تفعيل الدخول.
         private async void FrmLogin_Load(object? sender, EventArgs e)
         {
             lblApiStatus.Text = "API: جاري الفحص...";
@@ -69,6 +70,7 @@ namespace AlTayerERP.Desktop
             if (cmbCompany.SelectedValue != null) await LoadCompanyContextAsync();
         }
 
+        // تحميل الفروع والسنوات للشركة المختارة فقط؛ لا تُحمّل المستخدمين قبل التحقق.
         private async Task LoadCompanyContextAsync()
         {
             var companyId = cmbCompany.SelectedValue?.ToString();
@@ -104,6 +106,7 @@ namespace AlTayerERP.Desktop
             catch (Exception ex) { MessageBox.Show("تعذر تحميل بيانات الشركة.\n" + ex.Message, "الدخول", MessageBoxButtons.OK, MessageBoxIcon.Warning); }
         }
 
+        // لا يُنشأ السياق المحلي إلا بعد قبول الخادم لكامل سياق الدخول.
         private async void btnLogin_Click(object? sender, EventArgs e)
         {
             if (cmbCompany.SelectedValue == null || cmbBranch.SelectedValue == null ||
@@ -140,6 +143,7 @@ namespace AlTayerERP.Desktop
                 var result = await response.Content.ReadFromJsonAsync<LoginResultModel>();
                 if (result == null) throw new InvalidOperationException("لم تُرجع الخدمة جلسة صالحة.");
 
+                // حفظ البيانات التي أعادها الخادم فقط، فهي المرجع الموثوق للجلسة.
                 CurrentSession.Company_ID = result.Company_ID;
                 CurrentSession.Company_Name = cmbCompany.Text;
                 CurrentSession.Branch_ID = result.Branch_ID;
@@ -153,6 +157,7 @@ namespace AlTayerERP.Desktop
                 CurrentSession.Is_System_Admin = result.Is_System_Admin;
                 CurrentSession.Login_Time = DateTime.Now;
 
+                // تُغلق الشاشة الرئيسية عند الخروج فتظهر شاشة الدخول نفسها من جديد.
                 Hide();
                 using var main = new FrmMain();
                 main.ShowDialog(this);
