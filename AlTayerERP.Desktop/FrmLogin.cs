@@ -24,6 +24,8 @@ namespace AlTayerERP.Desktop
             btnAboutSystem.Click += (_, _) => MessageBox.Show("نظام الطائر لإدارة النقل والشحن\nالإصدار 1.0.0", "حول النظام");
             btnConnectionSettings.Click += (_, _) => MessageBox.Show("عنوان الـ API الحالي:\n" + _baseUrl, "إعدادات الاتصال");
             cmbCompany.SelectedIndexChanged += cmbCompany_SelectedIndexChanged;
+            cmbUsername.DropDownStyle = ComboBoxStyle.DropDown;
+            cmbUsername.AutoCompleteMode = AutoCompleteMode.None;
             txtPassword.PasswordChar = '*';
             AcceptButton = btnLogin;
             CancelButton = btnExit;
@@ -74,12 +76,12 @@ namespace AlTayerERP.Desktop
 
             var branchesTask = _client.GetFromJsonAsync<List<BranchLookupModel>>($"{_baseUrl}Branches/GetActiveBranchesLookup?companyId={companyId}");
             var yearsTask = _client.GetFromJsonAsync<List<FiscalYearLookupModel>>($"{_baseUrl}FiscalYears?companyId={companyId}");
-            var usersTask = _client.GetFromJsonAsync<List<UserLookupModel>>($"{_baseUrl}Users/GetUsersLookup?companyId={companyId}");
-            await Task.WhenAll(branchesTask, yearsTask, usersTask);
+            await Task.WhenAll(branchesTask, yearsTask);
 
             Bind(cmbBranch, branchesTask.Result ?? new(), "Branch_Name", "Branch_ID");
             Bind(cmbFiscalYear, yearsTask.Result ?? new(), "Year_Name", "Fiscal_Year_ID");
-            Bind(cmbUsername, usersTask.Result ?? new(), "Login_Name", "User_ID");
+            cmbUsername.DataSource = null;
+            cmbUsername.Text = "";
 
             var defaultYear = (yearsTask.Result ?? new()).FirstOrDefault(x => x.Is_Default);
             if (defaultYear != null) cmbFiscalYear.SelectedValue = defaultYear.Fiscal_Year_ID;
@@ -105,7 +107,7 @@ namespace AlTayerERP.Desktop
         private async void btnLogin_Click(object? sender, EventArgs e)
         {
             if (cmbCompany.SelectedValue == null || cmbBranch.SelectedValue == null ||
-                cmbFiscalYear.SelectedValue == null || cmbUsername.SelectedValue == null ||
+                cmbFiscalYear.SelectedValue == null || string.IsNullOrWhiteSpace(cmbUsername.Text) ||
                 string.IsNullOrWhiteSpace(txtPassword.Text))
             {
                 MessageBox.Show("حدد الشركة والفرع والسنة المالية والمستخدم، ثم أدخل كلمة المرور.", "بيانات ناقصة", MessageBoxButtons.OK, MessageBoxIcon.Warning);
@@ -120,7 +122,8 @@ namespace AlTayerERP.Desktop
                     Company_ID = cmbCompany.SelectedValue.ToString() ?? "",
                     Branch_ID = Convert.ToInt32(cmbBranch.SelectedValue),
                     Year_ID = Convert.ToInt32(cmbFiscalYear.SelectedValue),
-                    User_ID = Convert.ToInt32(cmbUsername.SelectedValue),
+                    User_ID = 0,
+                    Login_Name = cmbUsername.Text.Trim(),
                     Password = txtPassword.Text
                 };
 
@@ -162,7 +165,7 @@ namespace AlTayerERP.Desktop
         }
     }
 
-    public class LoginRequest { public string Company_ID { get; set; } = ""; public int Branch_ID { get; set; } public int Year_ID { get; set; } public int User_ID { get; set; } public string Password { get; set; } = ""; }
+    public class LoginRequest { public string Company_ID { get; set; } = ""; public int Branch_ID { get; set; } public int Year_ID { get; set; } public int User_ID { get; set; } public string Login_Name { get; set; } = ""; public string Password { get; set; } = ""; }
     public class LoginResultModel { public int User_ID { get; set; } public string Full_Name { get; set; } = ""; public string Login_Name { get; set; } = ""; public int Role_ID { get; set; } public int Branch_ID { get; set; } public string Company_ID { get; set; } = ""; public int Year_ID { get; set; } public bool Is_System_Admin { get; set; } public bool Must_Change_Password { get; set; } }
     public class FiscalYearLookupModel { public int Fiscal_Year_ID { get; set; } public string Year_Name { get; set; } = ""; public bool Is_Default { get; set; } }
     public class UserLookupModel { public int User_ID { get; set; } public string Login_Name { get; set; } = ""; public int Branch_ID { get; set; } }
