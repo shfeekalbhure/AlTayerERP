@@ -32,7 +32,7 @@ namespace AlTayerERP.Desktop
         private List<UserListModel> _usersCache = new();
 
         // ذاكرة كاش مؤقتة لحفظ أسماء شاشات النظام المجلوبة من قاعدة البيانات لغرض بناء جدول صلاحيات الوظائف
-        private List<ScreenPermissionModel> _screensCache = new();
+        private List<UserScreenLookupModel> _screensCache = new();
 
         // ذاكرة كاش مؤقتة لحفظ الصلاحيات الفعلية المجلوبة للدور (Role) المحدد حالياً
         private List<RolePermissionModel> _rolePermissionsCache = new();
@@ -156,7 +156,7 @@ namespace AlTayerERP.Desktop
         /// <summary>
         /// المحرك العام لجدول صلاحيات الوظائف (قراءة كاش الشاشات وزرع الأسطر)
         /// </summary>
-        private async Task FillPermissionGridAsync(DataGridView grid, List<ScreenPermissionModel> data)
+        private async Task FillPermissionGridAsync(DataGridView grid, List<UserScreenLookupModel> data)
         {
             grid.SuspendLayout();
             try
@@ -207,7 +207,7 @@ namespace AlTayerERP.Desktop
         {
             try
             {
-                var screens = await _client.GetFromJsonAsync<List<ScreenPermissionModel>>($"{_baseUrl}RolePermissions/GetScreens");
+                var screens = await _client.GetFromJsonAsync<List<UserScreenLookupModel>>($"{_baseUrl}RolePermissions/GetScreens");
                 _screensCache = screens ?? new();
                 await FillPermissionGridAsync(dgvFunctionPermissions, _screensCache);
             }
@@ -604,6 +604,6 @@ namespace AlTayerERP.Desktop
     public class UserDetailModel { public int User_ID { get; set; } public string Company_ID { get; set; } = string.Empty; public int Branch_ID { get; set; } public int Role_ID { get; set; } public string User_Code { get; set; } = string.Empty; public string Full_Name { get; set; } = string.Empty; public string Login_Name { get; set; } = string.Empty; public string? Phone { get; set; } public string? Email { get; set; } public string? Notes { get; set; } public bool Must_Change_Password { get; set; } public bool Is_Active { get; set; } }
     public class BranchLookupModel { public int Branch_ID { get; set; } public string Branch_Name { get; set; } = string.Empty; }
     public class RoleLookupModel { public int Role_ID { get; set; } public string Role_Name { get; set; } = string.Empty; }
-    public class ScreenPermissionModel { public int Screen_ID { get; set; } public string Screen_Code { get; set; } = string.Empty; public string Screen_Name { get; set; } = string.Empty; public string Module_Name { get; set; } = string.Empty; }
+    public class UserScreenLookupModel { public int Screen_ID { get; set; } public string Screen_Code { get; set; } = string.Empty; public string Screen_Name { get; set; } = string.Empty; public string Module_Name { get; set; } = string.Empty; }
     public class RolePermissionModel { public int Permission_ID { get; set; } public int Role_ID { get; set; } public int Screen_ID { get; set; } public bool Can_View { get; set; } public bool Can_Add { get; set; } public bool Can_Edit { get; set; } public bool Can_Delete { get; set; } public bool Can_Print { get; set; } public bool Can_Approve { get; set; } }
 }
