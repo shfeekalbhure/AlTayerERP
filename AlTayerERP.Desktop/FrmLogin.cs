@@ -82,7 +82,7 @@ namespace AlTayerERP.Desktop
             if (string.IsNullOrWhiteSpace(companyId)) return;
 
             var branchesTask = _client.GetFromJsonAsync<List<BranchLookupModel>>($"{_baseUrl}Branches/GetActiveBranchesLookup?companyId={companyId}");
-            var yearsTask = _client.GetFromJsonAsync<List<FiscalYearLookupModel>>($"{_baseUrl}FiscalYears?companyId={companyId}");
+            var yearsTask = _client.GetFromJsonAsync<List<FiscalYearLookupModel>>($"{_baseUrl}FiscalYears/Lookup?companyId={companyId}");
             await Task.WhenAll(branchesTask, yearsTask);
 
             Bind(cmbBranch, branchesTask.Result ?? new(), "Branch_Name", "Branch_ID");
