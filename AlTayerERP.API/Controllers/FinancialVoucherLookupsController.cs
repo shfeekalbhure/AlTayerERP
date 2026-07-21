@@ -1,4 +1,5 @@
 ﻿using AlTayerERP.API.DTOs.Accounting;
+using AlTayerERP.API.Services;
 using AlTayerERP.Infrastructure.Data;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -58,17 +59,19 @@ namespace AlTayerERP.API.Controllers
         {
             #region التحقق من المعاملات
 
-            if (string.IsNullOrWhiteSpace(companyId))
+            // لا يسمح بتحميل قوائم فرع آخر بتغيير معاملات الرابط.
+            if (HttpContext.Items["ServerSession"] is not ServerSession session)
+                return Unauthorized("انتهت الجلسة أو أنها غير صالحة.");
+
+            if (!string.Equals(companyId?.Trim(), session.Company_ID, StringComparison.Ordinal) ||
+                branchId != session.Branch_ID)
             {
-                return BadRequest(
-                    "معرف الشركة مطلوب.");
+                return Forbid();
             }
 
-            if (branchId <= 0)
-            {
-                return BadRequest(
-                    "معرف الفرع مطلوب.");
-            }
+            // يعتمد الاستعلام اللاحق دائماً على نطاق الجلسة الموثوق.
+            companyId = session.Company_ID;
+            branchId = session.Branch_ID;
 
             #endregion
 
