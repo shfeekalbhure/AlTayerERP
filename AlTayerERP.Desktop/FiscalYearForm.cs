@@ -36,6 +36,9 @@ private readonly HttpClient _client = ApiService.Client;
         {
             InitializeComponent();
 
+            // توحيد شكل الشاشة القديمة والاختصارات العربية دون تغيير منطقها.
+            ArabicErpFormStyle.Apply(this);
+
             // إعداد أعمدة وخصائص جدول عرض البيانات
             SetupFiscalYearsGrid();
 
