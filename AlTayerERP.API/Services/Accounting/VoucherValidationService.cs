@@ -44,8 +44,11 @@ namespace AlTayerERP.API.Services.Accounting
                 return (false, "أرقام سطور السند أو حساباته غير صالحة.");
             }
 
+            if (!int.TryParse(voucher.Branch_ID, out var branchId))
+                return (false, "معرف الفرع غير صالح.");
+
             var branch = await _context.Tenant_Branches.AsNoTracking()
-                .FirstOrDefaultAsync(x => x.Branch_ID.ToString() == voucher.Branch_ID && x.Is_Active);
+                .FirstOrDefaultAsync(x => x.Branch_ID == branchId && x.Is_Active);
             if (branch == null)
                 return (false, "الفرع المحدد غير موجود أو غير فعال.");
 
