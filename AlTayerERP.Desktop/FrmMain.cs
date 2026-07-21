@@ -90,6 +90,7 @@ namespace AlTayerERP.Desktop
                 AddMenuItem(adminNode, "Users", "المستخدمون والصلاحيات");
                 AddMenuItem(adminNode, "Roles", "الأدوار");
                 AddMenuItem(adminNode, "RolePermissions", "صلاحيات الأدوار");
+                AddMenuItem(adminNode, "UserResourcePermissions", "استثناءات صلاحيات المستخدم");
                 AddMenuItem(adminNode, "NumberingSettings", "إعدادات الترقيم");
                 AddMenuItem(adminNode, "Settings", "إدارة الإعدادات");
                 AddMenuItem(adminNode, "SystemCatalog", "كتالوج النظام");
@@ -166,6 +167,9 @@ namespace AlTayerERP.Desktop
                     break;
                 case "RolePermissions":
                     new FrmRolePermissions().ShowDialog(this);
+                    break;
+                case "UserResourcePermissions":
+                    new FrmUserResourcePermissions().ShowDialog(this);
                     break;
                 case "NumberingSettings":
                     new FrmNumberingSettings().ShowDialog(this);
