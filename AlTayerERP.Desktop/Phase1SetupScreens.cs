@@ -512,12 +512,20 @@ namespace AlTayerERP.Desktop
             new("Is_Active", "فعالة", ReferenceEditorFieldKind.Boolean, DefaultBoolean: true)) { }
     }
 
-    public sealed class FrmGeneralSettings : FrmPhase1SetupBase
+    /// <summary>
+    /// إعدادات فعلية متعددة المستويات: عام، شركة، فرع، أو سنة مالية.
+    /// يفرض API سياق الشركة والفرع والسنة من الجلسة الحالية.
+    /// </summary>
+    public sealed class FrmGeneralSettings : FrmVoucherReferenceEditor
     {
-        public FrmGeneralSettings() : base("الإعدادات العامة والمالية",
-            new("Setting_Key", "مفتاح الإعداد"), new("Setting_Name", "اسم الإعداد"),
-            new("Setting_Value", "القيمة"), new("Scope", "النطاق: شركة/فرع/سنة"),
-            new("Effective_Date", "تاريخ السريان", SetupFieldKind.Date),
-            new("Is_Active", "فعال", SetupFieldKind.YesNo, DefaultTrue: true), new("Description", "الوصف", SetupFieldKind.Notes)) { }
+        public FrmGeneralSettings() : base("الإعدادات العامة والمالية", "SystemSettings", "Setting_ID",
+            new("Setting_Key", "مفتاح الإعداد"),
+            new("Setting_Name", "اسم الإعداد"),
+            new("Setting_Value", "القيمة"),
+            new("Scope", "نطاق الإعداد", ReferenceEditorFieldKind.Choice,
+                Options: new[] { "SYSTEM", "COMPANY", "BRANCH", "FISCAL_YEAR" }),
+            new("Effective_Date", "تاريخ السريان", ReferenceEditorFieldKind.Date),
+            new("Description", "الوصف"),
+            new("Is_Active", "فعال", ReferenceEditorFieldKind.Boolean, DefaultBoolean: true)) { }
     }
 }
