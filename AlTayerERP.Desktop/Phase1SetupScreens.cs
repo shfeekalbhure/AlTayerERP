@@ -28,7 +28,7 @@ namespace AlTayerERP.Desktop
             RightToLeft = RightToLeft.Yes;
             RightToLeftLayout = true;
             Font = new Font("Segoe UI", 9.5F);
-            BackColor = Color.FromArgb(244, 247, 251);
+            BackColor = SystemColors.Control;
             Width = 1220;
             Height = 760;
             MinimumSize = new Size(980, 650);
@@ -40,12 +40,12 @@ namespace AlTayerERP.Desktop
                 BackColor = BackColor,
                 ColumnCount = 1,
                 RowCount = 5,
-                Padding = new Padding(14)
+                Padding = new Padding(10)
             };
             shell.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
-            shell.RowStyles.Add(new RowStyle(SizeType.Absolute, 74));
-            shell.RowStyles.Add(new RowStyle(SizeType.Absolute, 52));
-            shell.RowStyles.Add(new RowStyle(SizeType.Absolute, 58));
+            shell.RowStyles.Add(new RowStyle(SizeType.Absolute, 0));
+            shell.RowStyles.Add(new RowStyle(SizeType.Absolute, 54));
+            shell.RowStyles.Add(new RowStyle(SizeType.Absolute, 40));
             shell.RowStyles.Add(new RowStyle(SizeType.AutoSize));
             shell.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
 
@@ -64,8 +64,10 @@ namespace AlTayerERP.Desktop
             var header = new Panel
             {
                 Dock = DockStyle.Fill,
-                BackColor = Color.FromArgb(27, 62, 104),
-                Padding = new Padding(20, 10, 20, 10),
+                BackColor = SystemColors.Control,
+                Height = 0,
+                Visible = false,
+                Padding = Padding.Empty,
                 Margin = new Padding(0, 0, 0, 8)
             };
 
@@ -112,8 +114,8 @@ namespace AlTayerERP.Desktop
             var toolbar = new FlowLayoutPanel
             {
                 Dock = DockStyle.Fill,
-                BackColor = Color.White,
-                BorderStyle = BorderStyle.FixedSingle,
+                BackColor = SystemColors.Control,
+                BorderStyle = BorderStyle.None,
                 Padding = new Padding(8),
                 FlowDirection = FlowDirection.RightToLeft,
                 WrapContents = false,
@@ -138,8 +140,8 @@ namespace AlTayerERP.Desktop
             var card = new Panel
             {
                 Dock = DockStyle.Fill,
-                BackColor = Color.White,
-                BorderStyle = BorderStyle.FixedSingle,
+                BackColor = SystemColors.Control,
+                BorderStyle = BorderStyle.None,
                 Padding = new Padding(10, 7, 10, 7),
                 Margin = new Padding(0, 0, 0, 6)
             };
@@ -169,8 +171,8 @@ namespace AlTayerERP.Desktop
             {
                 Dock = DockStyle.Top,
                 AutoSize = true,
-                BackColor = Color.White,
-                BorderStyle = BorderStyle.FixedSingle,
+                BackColor = SystemColors.Control,
+                BorderStyle = BorderStyle.None,
                 Padding = new Padding(14, 10, 14, 10),
                 Margin = new Padding(0, 0, 0, 8)
             };
@@ -207,8 +209,8 @@ namespace AlTayerERP.Desktop
             var card = new Panel
             {
                 Dock = DockStyle.Fill,
-                BackColor = Color.White,
-                BorderStyle = BorderStyle.FixedSingle,
+                BackColor = SystemColors.Control,
+                BorderStyle = BorderStyle.None,
                 Padding = new Padding(1)
             };
 
@@ -371,12 +373,12 @@ namespace AlTayerERP.Desktop
                 Width = 118,
                 Height = 32,
                 Margin = new Padding(4, 0, 4, 0),
-                FlatStyle = FlatStyle.Flat,
-                FlatAppearance = { BorderSize = 0 },
-                BackColor = color,
-                ForeColor = Color.White,
-                Cursor = Cursors.Hand,
-                Font = new Font("Segoe UI", 8.5F, FontStyle.Bold)
+                FlatStyle = FlatStyle.Standard,
+                UseVisualStyleBackColor = true,
+                BackColor = SystemColors.Control,
+                ForeColor = SystemColors.ControlText,
+                Cursor = Cursors.Default,
+                Font = new Font("Segoe UI", 9F, FontStyle.Regular)
             };
 
             if (click != null)
