@@ -47,6 +47,7 @@ builder.Services.AddScoped<CashBoxNumberService>();
 builder.Services.AddScoped<ApprovalService>();
 builder.Services.AddScoped<FinancialPolicyService>();
 builder.Services.AddScoped<AccountNumberService>();
+builder.Services.AddScoped<SystemScreenCatalogSeeder>();
 
 
 // ====================================================================
@@ -70,6 +71,13 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
+
+// تجهيز كتالوج الشاشات مرة عند بدء الخدمة حتى تعمل صلاحيات الأدوار مع شجرة النظام.
+using (var scope = app.Services.CreateScope())
+{
+    var screenCatalogSeeder = scope.ServiceProvider.GetRequiredService<SystemScreenCatalogSeeder>();
+    await screenCatalogSeeder.EnsureSeededAsync();
+}
 
 // ====================================================================
 // [6] تفعيل Swagger في بيئة التطوير
