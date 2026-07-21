@@ -39,6 +39,7 @@ namespace AlTayerERP.Desktop
         private async void FrmLogin_Load(object? sender, EventArgs e)
         {
             CurrentSession.Clear();
+            ApiService.ClearAccessToken();
 
             try
             {
@@ -194,6 +195,7 @@ namespace AlTayerERP.Desktop
                 CurrentSession.Branch_Name = cmbBranch.Text;
                 CurrentSession.Year_ID = result.Year_ID;
                 CurrentSession.Year_Name = cmbFiscalYear.Text;
+                ApiService.SetAccessToken(result.Access_Token);
                 CurrentSession.User_ID = result.User_ID;
                 CurrentSession.Role_ID = result.Role_ID;
                 CurrentSession.Username = result.Login_Name;
@@ -327,6 +329,7 @@ namespace AlTayerERP.Desktop
         public string Company_ID { get; set; } = string.Empty;
         public int Year_ID { get; set; }
         public bool Is_System_Admin { get; set; }
+        public string Access_Token { get; set; } = string.Empty;
         public List<ScreenPermissionModel> Screen_Permissions { get; set; } = new();
     }
 
