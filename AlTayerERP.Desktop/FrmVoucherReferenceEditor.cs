@@ -45,24 +45,14 @@ namespace AlTayerERP.Desktop
             string endpoint,
             string idProperty,
             params ReferenceEditorField[] fields)
-            : this(title, endpoint, idProperty, 0, fields)
-        {
-        }
-
-        /// <summary>
-        /// يسمح للمحررات ذات المفتاح النصي (مثل الطرف المالي) بتحديد قيمة سجل جديد مناسبة.
-        /// </summary>
-        protected FrmVoucherReferenceEditor(
-            string title,
-            string endpoint,
-            string idProperty,
-            object newIdValue,
-            params ReferenceEditorField[] fields)
         {
             Text = title;
             _endpoint = endpoint;
             _idProperty = idProperty;
-            _newIdValue = newIdValue;
+            // أغلب القوائم تستخدم معرفاً رقمياً؛ الطرف المالي وحده مفتاحه نصي.
+            _newIdValue = string.Equals(idProperty, "Party_ID", StringComparison.Ordinal)
+                ? string.Empty
+                : 0;
             _fields = fields;
             StartPosition = FormStartPosition.CenterParent;
             RightToLeft = RightToLeft.Yes;
