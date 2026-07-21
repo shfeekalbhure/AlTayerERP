@@ -91,4 +91,20 @@ app.UseAuthorization();
 
 app.MapControllers();
 
+// نقطة حالة خفيفة لتفصل بين وصول تطبيق سطح المكتب للـ API وبين جاهزية قاعدة البيانات.
+app.MapGet("/api/health", async (AppDbContext db) =>
+{
+    try
+    {
+        var databaseReady = await db.Database.CanConnectAsync();
+        return databaseReady
+            ? Results.Ok(new { api = "ready", database = "ready" })
+            : Results.StatusCode(StatusCodes.Status503ServiceUnavailable);
+    }
+    catch
+    {
+        return Results.StatusCode(StatusCodes.Status503ServiceUnavailable);
+    }
+});
+
 app.Run();
