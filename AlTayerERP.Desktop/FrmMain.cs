@@ -19,6 +19,9 @@ namespace AlTayerERP.Desktop
         {
             InitializeComponent();
 
+            // تطبيق المظهر العربي الموحد دون تغيير منطق الشاشة.
+            ArabicErpFormStyle.Apply(this);
+
             // منع فتح الواجهة الرئيسية مباشرة بدون سياق دخول كامل.
             if (!CurrentSession.IsLoggedIn)
             {
