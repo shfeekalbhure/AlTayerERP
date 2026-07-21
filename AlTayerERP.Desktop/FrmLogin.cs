@@ -208,7 +208,8 @@ namespace AlTayerERP.Desktop
                         Screen_Code = x.Screen_Code,
                         Resource_Kind = x.Resource_Kind,
                         Resource_Code = x.Resource_Code,
-                        Permission_Code = x.Permission_Code
+                        Permission_Code = x.Permission_Code,
+                        Effect = x.Effect
                     }));
                 CurrentSession.SetScreenPermissions(
                     result.Screen_Permissions.Select(x => new CurrentSession.ScreenPermissionState
@@ -348,6 +349,7 @@ namespace AlTayerERP.Desktop
         public string Resource_Kind { get; set; } = string.Empty;
         public string Resource_Code { get; set; } = string.Empty;
         public string Permission_Code { get; set; } = string.Empty;
+        public bool Effect { get; set; }
     }
 
     public sealed class ScreenPermissionModel
