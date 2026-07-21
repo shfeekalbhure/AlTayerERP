@@ -479,14 +479,44 @@ namespace AlTayerERP.API.Controllers
                 });
             }
 
-            if (request == null ||
-                string.IsNullOrWhiteSpace(request.User_ID))
+            if (request == null)
             {
                 return BadRequest(new
                 {
                     success = false,
-                    message = "معرف المستخدم مطلوب لاعتماد السند."
+                    message = "بيانات تنفيذ الاعتماد مطلوبة."
                 });
+            }
+
+            string? currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrWhiteSpace(currentUserId))
+            {
+                return Unauthorized(new { success = false, message = "رمز الدخول لا يحتوي معرف المستخدم." });
+            }
+
+            // هوية منفذ الاعتماد تؤخذ من الرمز الموثوق ولا تقبل من جسم الطلب.
+            request.User_ID = currentUserId;
+
+            bool? preventCreatorApproval = await ResolveBooleanSettingAsync(
+                "ReceiptVoucher.PreventCreatorApproval",
+                "ReceiptVoucher",
+                "ACCOUNTING");
+
+            if (preventCreatorApproval == true)
+            {
+                string? createdBy = await _context.Financial_Voucher_Headers.AsNoTracking()
+                    .Where(x => x.Voucher_ID == voucherId)
+                    .Select(x => x.Created_By)
+                    .FirstOrDefaultAsync();
+
+                if (string.Equals(createdBy, currentUserId, StringComparison.OrdinalIgnoreCase))
+                {
+                    return BadRequest(new
+                    {
+                        success = false,
+                        message = "لا يمكن لمنشئ سند القبض اعتماد السند حسب إعدادات الرقابة."
+                    });
+                }
             }
 
             var reviewValidation = await _service.ValidateReviewedAsync(voucherId);
