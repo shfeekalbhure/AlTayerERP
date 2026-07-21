@@ -56,6 +56,9 @@ namespace AlTayerERP.Infrastructure.Data
 
         #region 3. إعدادات الترقيم والرقابة والاعتمادات
 
+        // جدول إعدادات عامة قابلة للتخصيص على مستوى النظام/الشركة/الفرع/السنة.
+        public DbSet<SystemSetting> System_Settings { get; set; } = null!;
+
         // جدول إعدادات ترميز وترقيم المستندات (مثل السندات والفواتير) لكل فرع
         public DbSet<NumberingSetting> Numbering_Settings { get; set; } = null!;
 
