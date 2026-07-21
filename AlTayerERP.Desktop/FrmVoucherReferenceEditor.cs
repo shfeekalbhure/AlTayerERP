@@ -243,6 +243,19 @@ namespace AlTayerERP.Desktop
                         DecimalPlaces = 0,
                         ThousandsSeparator = true
                     },
+                    ReferenceEditorFieldKind.Date => new DateTimePicker
+                    {
+                        Dock = DockStyle.Fill,
+                        Format = DateTimePickerFormat.Short,
+                        ShowCheckBox = true,
+                        Checked = false
+                    },
+                    ReferenceEditorFieldKind.Choice => new ComboBox
+                    {
+                        Dock = DockStyle.Fill,
+                        DropDownStyle = ComboBoxStyle.DropDownList,
+                        DataSource = (field.Options ?? Array.Empty<string>()).ToArray()
+                    },
                     _ => new TextBox
                     {
                         Dock = DockStyle.Fill,
@@ -433,6 +446,23 @@ namespace AlTayerERP.Desktop
                     case NumericUpDown number when json.TryGetDecimal(out var decimalValue):
                         number.Value = Math.Min(number.Maximum, Math.Max(number.Minimum, decimalValue));
                         break;
+                    case DateTimePicker datePicker:
+                        if (json.ValueKind == JsonValueKind.String &&
+                            DateTime.TryParse(json.GetString(), out var parsedDate))
+                        {
+                            datePicker.Value = parsedDate;
+                            datePicker.Checked = true;
+                        }
+                        else
+                        {
+                            datePicker.Checked = false;
+                        }
+                        break;
+                    case ComboBox comboBox:
+                        var selected = ReadJsonValue(json);
+                        if (comboBox.Items.Contains(selected))
+                            comboBox.SelectedItem = selected;
+                        break;
                     case TextBox textBox:
                         textBox.Text = ReadJsonValue(json);
                         break;
@@ -450,7 +480,8 @@ namespace AlTayerERP.Desktop
 
             var required = _fields
                 .Where(field => field.Kind == ReferenceEditorFieldKind.Text &&
-                    (field.Code.EndsWith("_Code", StringComparison.Ordinal) ||
+(field.Code.EndsWith("_Code", StringComparison.Ordinal) ||
+                     field.Code.EndsWith("_Key", StringComparison.Ordinal) ||
                      field.Code.EndsWith("_Name_AR", StringComparison.Ordinal) ||
                      field.Code.EndsWith("_Name", StringComparison.Ordinal)))
                 .FirstOrDefault(field => _inputs[field.Code] is TextBox textBox && string.IsNullOrWhiteSpace(textBox.Text));
@@ -471,6 +502,8 @@ namespace AlTayerERP.Desktop
                 {
                     CheckBox checkBox => checkBox.Checked,
                     NumericUpDown number => Convert.ToInt32(number.Value),
+                    DateTimePicker datePicker => datePicker.Checked ? datePicker.Value.Date : null,
+                    ComboBox comboBox => comboBox.SelectedItem?.ToString(),
                     TextBox textBox => textBox.Text.Trim(),
                     _ => null
                 };
@@ -513,6 +546,13 @@ namespace AlTayerERP.Desktop
                         break;
                     case NumericUpDown number:
                         number.Value = 0;
+                        break;
+                    case DateTimePicker datePicker:
+                        datePicker.Value = DateTime.Today;
+                        datePicker.Checked = false;
+                        break;
+                    case ComboBox comboBox when comboBox.Items.Count > 0:
+                        comboBox.SelectedIndex = 0;
                         break;
                     case TextBox textBox:
                         textBox.Clear();
@@ -562,12 +602,13 @@ namespace AlTayerERP.Desktop
         };
     }
 
-    public enum ReferenceEditorFieldKind { Text, Number, Boolean }
+    public enum ReferenceEditorFieldKind { Text, Number, Boolean, Date, Choice }
 
     public sealed record ReferenceEditorField(
         string Code,
         string Caption,
         ReferenceEditorFieldKind Kind = ReferenceEditorFieldKind.Text,
         int MaxLength = 150,
-        bool DefaultBoolean = false);
+        bool DefaultBoolean = false,
+        IReadOnlyList<string>? Options = null);
 }
