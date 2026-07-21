@@ -152,30 +152,38 @@ namespace AlTayerERP.Desktop
             new("Notes", "ملاحظات", SetupFieldKind.Notes)) { }
     }
 
-    public sealed class FrmPaymentMethods : FrmPhase1SetupBase
+    public sealed class FrmPaymentMethods : FrmVoucherReferenceEditor
     {
-        public FrmPaymentMethods() : base("إدارة طرق السداد",
-            new("Payment_Method_Code", "الكود"), new("Payment_Method_Name_AR", "الاسم العربي"),
-            new("Payment_Method_Name_EN", "الاسم الإنجليزي"), new("Requires_Reference", "يتطلب مرجع", SetupFieldKind.YesNo),
-            new("Requires_Reference_Date", "يتطلب تاريخ مرجع", SetupFieldKind.YesNo),
-            new("Is_Cash", "نقدي", SetupFieldKind.YesNo), new("Is_Bank", "بنكي", SetupFieldKind.YesNo),
-            new("Sort_Order", "ترتيب الظهور", SetupFieldKind.Number), new("Is_Active", "فعال", SetupFieldKind.YesNo, DefaultTrue: true)) { }
+        public FrmPaymentMethods() : base("إدارة طرق السداد", "VoucherReferenceData/PaymentMethods", "Payment_Method_ID",
+            new("Payment_Method_Code", "الكود"),
+            new("Payment_Method_Name_AR", "الاسم العربي"),
+            new("Payment_Method_Name_EN", "الاسم الإنجليزي"),
+            new("Requires_Reference", "يتطلب مرجع", ReferenceEditorFieldKind.Boolean),
+            new("Requires_Reference_Date", "يتطلب تاريخ مرجع", ReferenceEditorFieldKind.Boolean),
+            new("Is_Cash", "نقدي", ReferenceEditorFieldKind.Boolean),
+            new("Is_Bank", "بنكي", ReferenceEditorFieldKind.Boolean),
+            new("Sort_Order", "ترتيب الظهور", ReferenceEditorFieldKind.Number),
+            new("Is_Active", "فعال", ReferenceEditorFieldKind.Boolean, DefaultBoolean: true)) { }
     }
 
-    public sealed class FrmVoucherTypes : FrmPhase1SetupBase
+    public sealed class FrmVoucherTypes : FrmVoucherReferenceEditor
     {
-        public FrmVoucherTypes() : base("إدارة أنواع السندات",
-            new("Voucher_Type_Code", "الكود"), new("Voucher_Type_Name_AR", "الاسم العربي"),
-            new("Voucher_Type_Name_EN", "الاسم الإنجليزي"), new("Sort_Order", "ترتيب الظهور", SetupFieldKind.Number),
-            new("Is_Active", "فعال", SetupFieldKind.YesNo, DefaultTrue: true)) { }
+        public FrmVoucherTypes() : base("إدارة أنواع السندات", "VoucherReferenceData/VoucherTypes", "Voucher_Type_ID",
+            new("Voucher_Type_Code", "الكود"),
+            new("Voucher_Type_Name_AR", "الاسم العربي"),
+            new("Voucher_Type_Name_EN", "الاسم الإنجليزي"),
+            new("Sort_Order", "ترتيب الظهور", ReferenceEditorFieldKind.Number),
+            new("Is_Active", "فعال", ReferenceEditorFieldKind.Boolean, DefaultBoolean: true)) { }
     }
 
-    public sealed class FrmVoucherStatuses : FrmPhase1SetupBase
+    public sealed class FrmVoucherStatuses : FrmVoucherReferenceEditor
     {
-        public FrmVoucherStatuses() : base("إدارة حالات السندات",
-            new("Voucher_Status_Code", "الكود"), new("Voucher_Status_Name_AR", "الاسم العربي"),
-            new("Voucher_Status_Name_EN", "الاسم الإنجليزي"), new("Sort_Order", "ترتيب الظهور", SetupFieldKind.Number),
-            new("Is_Active", "فعال", SetupFieldKind.YesNo, DefaultTrue: true)) { }
+        public FrmVoucherStatuses() : base("إدارة حالات السندات", "VoucherReferenceData/VoucherStatuses", "Voucher_Status_ID",
+            new("Voucher_Status_Code", "الكود"),
+            new("Voucher_Status_Name_AR", "الاسم العربي"),
+            new("Voucher_Status_Name_EN", "الاسم الإنجليزي"),
+            new("Sort_Order", "ترتيب الظهور", ReferenceEditorFieldKind.Number),
+            new("Is_Active", "فعال", ReferenceEditorFieldKind.Boolean, DefaultBoolean: true)) { }
     }
 
     public sealed class FrmApprovalPolicies : FrmPhase1SetupBase
