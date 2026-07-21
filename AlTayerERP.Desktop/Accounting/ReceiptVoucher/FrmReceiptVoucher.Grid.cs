@@ -172,11 +172,16 @@ namespace AlTayerERP.Desktop
         /// </summary>
         private void dgvVoucherDetails_CellDoubleClick(object? sender, DataGridViewCellEventArgs e)
         {
-            // التأكد من أن المستخدم نقر على سطر حقيقي وداخل عمود رقم الحساب colAccountCode
-            if (e.RowIndex >= 0 && dgvVoucherDetails.Columns[e.ColumnIndex].Name == "colAccountCode")
-            {
+            if (e.RowIndex < 0 || e.ColumnIndex < 0)
+                return;
+
+            string columnName = dgvVoucherDetails.Columns[e.ColumnIndex].Name;
+
+            // يفتح الحساب أو مركز التكلفة بحسب الخلية التي نقر عليها المستخدم.
+            if (columnName == colAccountCode.Name)
                 OpenAccountLookupForm(e.RowIndex);
-            }
+            else if (columnName == colCostCenter.Name)
+                OpenGridCostCenterLookup(e.RowIndex);
         }
 
         /// <summary>
@@ -189,11 +194,21 @@ namespace AlTayerERP.Desktop
             int rowIndex = dgvVoucherDetails.CurrentCell.RowIndex;
             string columnName = dgvVoucherDetails.CurrentCell.OwningColumn.Name;
 
-            // إذا ضغط المستخدم F9 وهو واقفاHistorical على عمود رقم الحساب
-            if (e.KeyCode == Keys.F9 && columnName == "colAccountCode" && rowIndex >= 0)
+            if (e.KeyCode != Keys.F9 || rowIndex < 0)
+                return;
+
+            // F9 يفتح المرجع المناسب للخلية الحالية.
+            if (columnName == colAccountCode.Name)
             {
                 e.Handled = true;
+                e.SuppressKeyPress = true;
                 OpenAccountLookupForm(rowIndex);
+            }
+            else if (columnName == colCostCenter.Name)
+            {
+                e.Handled = true;
+                e.SuppressKeyPress = true;
+                OpenGridCostCenterLookup(rowIndex);
             }
         }
 
