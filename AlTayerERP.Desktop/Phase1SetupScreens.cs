@@ -140,15 +140,17 @@ namespace AlTayerERP.Desktop
             var card = new Panel
             {
                 Dock = DockStyle.Fill,
-                BackColor = SystemColors.Control,
-                BorderStyle = BorderStyle.None,
-                Padding = new Padding(10, 7, 10, 7),
+                BackColor = Color.White,
+                BorderStyle = BorderStyle.FixedSingle,
+                Padding = new Padding(10, 6, 10, 6),
                 Margin = new Padding(0, 0, 0, 6)
             };
 
             _searchBox.PlaceholderText = "بحث سريع بالكود أو الاسم أو الرقم المرجعي…";
             _searchBox.Dock = DockStyle.Fill;
             _searchBox.BorderStyle = BorderStyle.FixedSingle;
+            _searchBox.Font = new Font("Segoe UI", 10F);
+            _searchBox.TextAlign = HorizontalAlignment.Right;
             _searchBox.TextChanged += (_, _) => FilterGrid();
 
             card.Controls.Add(_searchBox);
@@ -171,8 +173,8 @@ namespace AlTayerERP.Desktop
             {
                 Dock = DockStyle.Top,
                 AutoSize = true,
-                BackColor = SystemColors.Control,
-                BorderStyle = BorderStyle.None,
+                BackColor = Color.White,
+                BorderStyle = BorderStyle.FixedSingle,
                 Padding = new Padding(14, 10, 14, 10),
                 Margin = new Padding(0, 0, 0, 8)
             };
@@ -209,8 +211,8 @@ namespace AlTayerERP.Desktop
             var card = new Panel
             {
                 Dock = DockStyle.Fill,
-                BackColor = SystemColors.Control,
-                BorderStyle = BorderStyle.None,
+                BackColor = Color.White,
+                BorderStyle = BorderStyle.FixedSingle,
                 Padding = new Padding(1)
             };
 
@@ -276,16 +278,20 @@ namespace AlTayerERP.Desktop
             var isNotes = field.Kind == SetupFieldKind.Notes;
             var panel = new Panel
             {
+                // إطار مستقل لكل حقل يمنع ظهور الحقول المسطحة أو غير الواضحة.
                 Width = isNotes ? 520 : 250,
-                Height = isNotes ? 126 : 94,
-                Margin = new Padding(6)
+                Height = isNotes ? 126 : 86,
+                Margin = new Padding(6),
+                Padding = new Padding(8, 4, 8, 6),
+                BackColor = Color.White,
+                BorderStyle = BorderStyle.FixedSingle
             };
 
             panel.Controls.Add(new Label
             {
                 Text = field.Caption,
                 Dock = DockStyle.Top,
-                Height = 28,
+                Height = 24,
                 ForeColor = Color.FromArgb(55, 65, 81),
                 TextAlign = ContentAlignment.MiddleRight
             });
@@ -341,25 +347,27 @@ namespace AlTayerERP.Desktop
         private static void ConfigureSetupInput(Control input, bool isNotes)
         {
             input.Dock = DockStyle.Bottom;
-            input.Height = isNotes ? 82 : 36;
+            input.Height = isNotes ? 82 : 34;
             input.Margin = new Padding(0, 4, 0, 0);
             input.Font = new Font("Segoe UI", 10F);
+            input.BackColor = Color.White;
 
             switch (input)
             {
                 case DateTimePicker date:
-                    date.Height = 36;
+                    date.Height = 34;
                     break;
                 case NumericUpDown number:
-                    number.Height = 36;
+                    number.Height = 34;
                     number.TextAlign = HorizontalAlignment.Right;
                     break;
                 case TextBox text when !isNotes:
                     text.MinimumSize = new Size(0, 30);
+                    text.BorderStyle = BorderStyle.FixedSingle;
                     text.TextAlign = HorizontalAlignment.Right;
                     break;
                 case CheckBox check:
-                    check.Height = 36;
+                    check.Height = 34;
                     break;
             }
         }
