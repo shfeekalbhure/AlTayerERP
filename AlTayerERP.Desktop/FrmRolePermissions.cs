@@ -28,10 +28,10 @@ namespace AlTayerERP.Desktop
             SelectionMode = DataGridViewSelectionMode.FullRowSelect,
             MultiSelect = false
         };
-        private readonly Button btnSave = new();
-        private readonly Button btnRefresh = new();
-        private readonly Button btnGrantViewAll = new();
-        private readonly Button btnClearAll = new();
+        private Button btnSave = new();
+        private Button btnRefresh = new();
+        private Button btnGrantViewAll = new();
+        private Button btnClearAll = new();
         private readonly Label lblRecordCount = new() { AutoSize = false, Width = 150 };
         private bool _normalizingPermissions;
 
