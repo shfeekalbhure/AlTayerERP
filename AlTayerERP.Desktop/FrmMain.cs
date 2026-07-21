@@ -178,8 +178,13 @@ namespace AlTayerERP.Desktop
                 AddScreen(accountingNode, "Parties", "الأطراف المالية");
             }
 
-            tvMainMenu.Nodes.Add(adminNode);
-            tvMainMenu.Nodes.Add(accountingNode);
+            // لا نعرض قسماً فارغاً للمستخدم إذا لم تكن له أي شاشة مسموح بها داخله.
+            if (adminNode.Nodes.Count > 0)
+                tvMainMenu.Nodes.Add(adminNode);
+
+            if (accountingNode.Nodes.Count > 0)
+                tvMainMenu.Nodes.Add(accountingNode);
+
             tvMainMenu.ExpandAll();
         }
 
