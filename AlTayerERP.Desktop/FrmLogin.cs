@@ -41,6 +41,11 @@ namespace AlTayerERP.Desktop
             lblDateTime.Text = DateTime.Now.ToString("yyyy/MM/dd HH:mm");
             try
             {
+                // الفحص مستقل عن تحميل القوائم حتى لا يظهر اتصال قاعدة البيانات كاذباً عند فشلها.
+                var health = await _client.GetAsync($"{_baseUrl}health");
+                if (!health.IsSuccessStatusCode)
+                    throw new HttpRequestException("خدمة النظام أو قاعدة البيانات غير جاهزة.");
+
                 await LoadCompaniesAsync();
                 lblApiStatus.Text = "API: متصل";
                 lblDatabaseStatus.Text = "قاعدة البيانات: متصلة";
