@@ -190,7 +190,7 @@ namespace AlTayerERP.API.Controllers
                     Action_Overrides = actions.Count(x => !string.Equals(x.Execute_Mode, Inherit, StringComparison.OrdinalIgnoreCase))
                 }),
                 Action_Channel = "DESKTOP",
-                Device_Name = Request.Headers.UserAgent.ToString(),
+                Device_Name = Request.Headers["User-Agent"].ToString(),
                 IP_Address = HttpContext.Connection.RemoteIpAddress?.ToString(),
                 Notes = "تم تعديل استثناءات صلاحيات المستخدم."
             });
