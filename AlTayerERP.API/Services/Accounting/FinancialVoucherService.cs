@@ -1140,11 +1140,23 @@ namespace AlTayerERP.API.Services.Accounting
                 return null;
             }
 
+            // النطاق إلزامي للبحث بالرقم الكامل أو الرقم التسلسلي.
+            // لا تسمح الخدمة ذاتها بتجاوز الفرع والسنة حتى لو استدعاها مسار آخر.
+            if (string.IsNullOrWhiteSpace(branchId) ||
+                !fiscalYearId.HasValue ||
+                fiscalYearId.Value <= 0)
+            {
+                return null;
+            }
+
             string searchValue = voucherNumber.Trim();
+            string currentBranch = branchId.Trim();
             IQueryable<FinancialVoucherHeader> query =
                 _context.Financial_Voucher_Headers
                     .AsNoTracking()
-                    .Where(x => x.Is_Active);
+                    .Where(x => x.Is_Active &&
+                                x.Branch_ID == currentBranch &&
+                                x.Fiscal_Year_ID == fiscalYearId.Value);
 
             if (voucherTypeId.HasValue && voucherTypeId.Value > 0)
             {
@@ -1155,18 +1167,7 @@ namespace AlTayerERP.API.Services.Accounting
 
             if (int.TryParse(searchValue, out int sequence) && sequence > 0)
             {
-                if (string.IsNullOrWhiteSpace(branchId) ||
-                    !fiscalYearId.HasValue ||
-                    fiscalYearId.Value <= 0)
-                {
-                    return null;
-                }
-
-                string currentBranch = branchId.Trim();
                 var candidates = await query
-                    .Where(x =>
-                        x.Branch_ID == currentBranch &&
-                        x.Fiscal_Year_ID == fiscalYearId.Value)
                     .Select(x => new { x.Voucher_ID, x.Voucher_No })
                     .ToListAsync();
 
@@ -1177,8 +1178,6 @@ namespace AlTayerERP.API.Services.Accounting
             }
             else
             {
-                // الرقم الكامل يبحث مباشرة دون إجباره على فرع أو سنة الشاشة،
-                // وبذلك يمكن فتح سند تابع لفرع أو سنة أخرى.
                 voucherId = await query
                     .Where(x => x.Voucher_No == searchValue)
                     .Select(x => (long?)x.Voucher_ID)
