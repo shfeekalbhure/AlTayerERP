@@ -434,7 +434,13 @@ namespace AlTayerERP.Desktop
             try
             {
                 UseWaitCursor = true;
-                var rows = await _client.GetFromJsonAsync<List<Dictionary<string, JsonElement>>>(_endpoint) ?? new();
+                using var response = await _client.GetAsync(_endpoint);
+                if (!response.IsSuccessStatusCode)
+                {
+                    throw new ReferenceDataLoadException(response.StatusCode, await response.Content.ReadAsStringAsync());
+                }
+
+                var rows = await response.Content.ReadFromJsonAsync<List<Dictionary<string, JsonElement>>>() ?? new();
                 _grid.Rows.Clear();
 
                 foreach (var row in rows)
@@ -457,7 +463,7 @@ namespace AlTayerERP.Desktop
             catch (Exception ex)
             {
                 MessageBox.Show(
-                    "تعذر تحميل البيانات. تحقق من اتصال API وصلاحيتك ثم أعد المحاولة.\n\n" + ex.Message,
+                    BuildLoadErrorMessage(ex),
                     Text,
                     MessageBoxButtons.OK,
                     MessageBoxIcon.Error);
@@ -465,6 +471,39 @@ namespace AlTayerERP.Desktop
             finally
             {
                 UseWaitCursor = false;
+            }
+        }
+
+        /// <summary>
+        /// يحول أخطاء التحميل التقنية إلى رسالة عربية قابلة للتنفيذ.
+        /// حالة 500 في هذه الشاشات تعني غالباً أن جداول المرحلة الأولى أو أعمدتها
+        /// لم تُطبّق بعد على قاعدة البيانات، وليست خطأ في إدخال المستخدم.
+        /// </summary>
+        private static string BuildLoadErrorMessage(Exception exception)
+        {
+            if (exception is ReferenceDataLoadException apiError &&
+                (int)apiError.StatusCode >= 500)
+            {
+                return "تعذر تحميل البيانات لأن قاعدة البيانات تحتاج إلى تحديث المرحلة الأولى.\n\n" +
+                       "شغّل ملف Database/2026-07-21_phase1_setup_compatibility.sql مرة واحدة، " +
+                       "ثم أعد تشغيل خدمة API والشاشة.\n\n" +
+                       "رمز الاستجابة: " + (int)apiError.StatusCode + ".";
+            }
+
+            return "تعذر تحميل البيانات. تحقق من اتصال API وصلاحيتك ثم أعد المحاولة.";
+        }
+
+        /// <summary>
+        /// يحمل رمز حالة API ومحتوى الخطأ للاستخدام التشخيصي داخل التطبيق فقط.
+        /// </summary>
+        private sealed class ReferenceDataLoadException : Exception
+        {
+            public System.Net.HttpStatusCode StatusCode { get; }
+
+            public ReferenceDataLoadException(System.Net.HttpStatusCode statusCode, string responseContent)
+                : base(responseContent)
+            {
+                StatusCode = statusCode;
             }
         }
 
