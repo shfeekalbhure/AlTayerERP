@@ -1,5 +1,6 @@
 using AlTayerERP.Desktop.Common;
 using System;
+using System.Drawing;
 using System.Linq;
 using System.Windows.Forms;
 
@@ -10,6 +11,52 @@ namespace AlTayerERP.Desktop
     /// </summary>
     public partial class FrmReceiptVoucher
     {
+        private readonly Button _btnCashLookup = CreateLookupButton();
+        private readonly Button _btnCostCenterLookup = CreateLookupButton();
+
+        /// <summary>
+        /// يضيف زري البحث للماوس بجانب الحقول التي تدعم اختصار F9.
+        /// </summary>
+        private void ConfigureReferenceLookupButtons()
+        {
+            AttachLookupButton(cmbCashAccount, _btnCashLookup, OpenCashBoxLookup);
+            AttachLookupButton(cmbCostCenter, _btnCostCenterLookup, OpenCostCenterLookup);
+        }
+
+        private static Button CreateLookupButton()
+        {
+            return new Button
+            {
+                Text = "…",
+                Width = 26,
+                Height = 28,
+                FlatStyle = FlatStyle.System,
+                TabStop = false,
+                AccessibleName = "فتح شاشة البحث"
+            };
+        }
+
+        private static void AttachLookupButton(
+            ComboBox combo,
+            Button button,
+            Action openLookup)
+        {
+            if (combo.Parent == null)
+                return;
+
+            if (button.Parent != combo.Parent)
+                combo.Parent.Controls.Add(button);
+
+            button.Location = new Point(combo.Left - button.Width - 3, combo.Top);
+            button.Click -= LookupButtonClick;
+            button.Click += LookupButtonClick;
+
+            void LookupButtonClick(object? sender, EventArgs e)
+            {
+                openLookup();
+            }
+        }
+
         private void FrmReceiptVoucher_KeyDown(object? sender, KeyEventArgs e)
         {
             if (e.KeyCode != Keys.F9)
