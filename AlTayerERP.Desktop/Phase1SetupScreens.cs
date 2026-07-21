@@ -523,7 +523,13 @@ namespace AlTayerERP.Desktop
             new("Setting_Name", "اسم الإعداد"),
             new("Setting_Value", "القيمة"),
             new("Scope", "نطاق الإعداد", ReferenceEditorFieldKind.Choice,
-                Options: new[] { "SYSTEM", "COMPANY", "BRANCH", "FISCAL_YEAR" }),
+                Options: new[]
+                {
+                    "SYSTEM | عام للنظام",
+                    "COMPANY | خاص بالشركة",
+                    "BRANCH | خاص بالفرع",
+                    "FISCAL_YEAR | خاص بالسنة المالية"
+                }),
             new("Effective_Date", "تاريخ السريان", ReferenceEditorFieldKind.Date),
             new("Description", "الوصف"),
             new("Is_Active", "فعال", ReferenceEditorFieldKind.Boolean, DefaultBoolean: true)) { }
