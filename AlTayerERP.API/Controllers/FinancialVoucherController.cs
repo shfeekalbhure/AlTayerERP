@@ -1,5 +1,6 @@
 ﻿using AlTayerERP.API.Controllers;
 using AlTayerERP.API.DTOs.Accounting;
+using AlTayerERP.API.Services;
 using AlTayerERP.API.Services.Accounting;
 using AlTayerERP.API.Services.Accounting.VoucherWorkflow;
 using Microsoft.AspNetCore.Mvc;
@@ -41,6 +42,12 @@ namespace AlTayerERP.API.Controllers
         }
 
         #endregion
+
+        // تتولى الطبقة الوسطى التحقق من الرمز؛ هذه الدالة تمنع الاعتماد على معرّف مستخدم مرسل من العميل.
+        private ServerSession GetServerSession() =>
+            HttpContext.Items["ServerSession"] as ServerSession
+            ?? throw new InvalidOperationException("جلسة الخادم غير متاحة.");
+
         #region نماذج طلبات الاعتماد والترحيل
 
         /// <summary>
@@ -111,6 +118,13 @@ namespace AlTayerERP.API.Controllers
                 return BadRequest(ModelState);
             }
 
+            var session = GetServerSession();
+            // نطاق السند والمستخدم المنشئ يأتي من جلسة الخادم فقط.
+            dto.Branch_ID = session.Branch_ID.ToString();
+            dto.Fiscal_Year_ID = session.Year_ID;
+            dto.Created_By = session.User_ID.ToString();
+            dto.Updated_By = session.User_ID.ToString();
+
             var result = await _service.CreateAsync(dto);
 
             if (!result.Success)
@@ -149,10 +163,11 @@ namespace AlTayerERP.API.Controllers
                 });
             }
 
+            var session = GetServerSession();
             var result =
                 await _journalEntryInquiryService.GetByVoucherNoAsync(
                     voucherNo,
-                    branchId,
+                    session.Branch_ID.ToString(),
                     voucherTypeId);
 
             if (result == null)
@@ -237,6 +252,12 @@ namespace AlTayerERP.API.Controllers
                 return BadRequest(ModelState);
             }
 
+            var session = GetServerSession();
+            // لا يسمح للعميل بنقل السند إلى فرع أو سنة أخرى.
+            dto.Branch_ID = session.Branch_ID.ToString();
+            dto.Fiscal_Year_ID = session.Year_ID;
+            dto.Updated_By = session.User_ID.ToString();
+
             var result = await _service.UpdateAsync(dto);
 
             if (!result.Success)
@@ -259,9 +280,7 @@ namespace AlTayerERP.API.Controllers
         /// حذف سند مالي غير مرحل.
         /// </summary>
         [HttpDelete("{voucherId:long}")]
-        public async Task<IActionResult> Delete(
-            long voucherId,
-            [FromQuery] string deletedBy)
+        public async Task<IActionResult> Delete(long voucherId)
         {
             if (voucherId <= 0)
             {
@@ -272,16 +291,7 @@ namespace AlTayerERP.API.Controllers
                 });
             }
 
-            if (string.IsNullOrWhiteSpace(deletedBy))
-            {
-                return BadRequest(new
-                {
-                    success = false,
-                    message = "معرف المستخدم الذي نفذ الحذف مطلوب."
-                });
-            }
-
-            var result = await _service.DeleteAsync(voucherId, deletedBy);
+            var result = await _service.DeleteAsync(voucherId, GetServerSession().User_ID.ToString());
 
             if (!result.Success)
             {
@@ -334,11 +344,12 @@ namespace AlTayerERP.API.Controllers
 
             #endregion
 
+            var session = GetServerSession();
             var voucher =
                 await _service.GetByVoucherNumberAsync(
                     voucherNumber,
-                    branchId,
-                    fiscalYearId,
+                    session.Branch_ID.ToString(),
+                    session.Year_ID,
                     voucherTypeId);
 
             if (voucher == null)
@@ -369,14 +380,14 @@ namespace AlTayerERP.API.Controllers
             long voucherId,
             [FromBody] VoucherActionRequest request)
         {
-            if (request == null || string.IsNullOrWhiteSpace(request.User_ID))
+            if (request == null)
             {
                 return BadRequest(new { success = false, message = "معرف المستخدم مطلوب للمراجعة." });
             }
 
             var result = await _service.MarkReviewedAsync(
                 voucherId,
-                request.User_ID,
+                GetServerSession().User_ID.ToString(),
                 request.Notes);
 
             return result.Success
@@ -390,7 +401,7 @@ namespace AlTayerERP.API.Controllers
             [FromBody] VoucherReasonActionRequest request)
         {
             if (request == null ||
-                string.IsNullOrWhiteSpace(request.User_ID) ||
+                string.IsNullOrWhiteSpace(GetServerSession().User_ID.ToString()) ||
                 string.IsNullOrWhiteSpace(request.Reason))
             {
                 return BadRequest(new { success = false, message = "معرف المستخدم وسبب الإعادة مطلوبان." });
@@ -398,7 +409,7 @@ namespace AlTayerERP.API.Controllers
 
             var result = await _service.ReturnForCorrectionAsync(
                 voucherId,
-                request.User_ID,
+                GetServerSession().User_ID.ToString(),
                 request.Reason);
 
             return result.Success
@@ -411,12 +422,12 @@ namespace AlTayerERP.API.Controllers
             long voucherId,
             [FromBody] VoucherActionRequest request)
         {
-            if (request == null || string.IsNullOrWhiteSpace(request.User_ID))
+            if (request == null)
             {
                 return BadRequest(new { success = false, message = "معرف المستخدم مطلوب لتسجيل الطباعة." });
             }
 
-            var result = await _service.RecordPrintAsync(voucherId, request.User_ID);
+            var result = await _service.RecordPrintAsync(voucherId, GetServerSession().User_ID.ToString());
             return result.Success
                 ? Ok(new { success = true, message = result.Message })
                 : BadRequest(new { success = false, message = result.Message });
@@ -442,8 +453,7 @@ namespace AlTayerERP.API.Controllers
                 });
             }
 
-            if (request == null ||
-                string.IsNullOrWhiteSpace(request.User_ID))
+            if (request == null)
             {
                 return BadRequest(new
                 {
@@ -468,7 +478,7 @@ namespace AlTayerERP.API.Controllers
             var result =
                 await _approvalService.ApproveAsync(
                     voucherId: voucherId,
-                    userId: request.User_ID,
+                    userId: GetServerSession().User_ID.ToString(),
                     actionChannel: request.Action_Channel,
                     deviceName: request.Device_Name,
                     ipAddress: ipAddress,
@@ -512,8 +522,7 @@ namespace AlTayerERP.API.Controllers
                 });
             }
 
-            if (request == null ||
-                string.IsNullOrWhiteSpace(request.User_ID))
+            if (request == null)
             {
                 return BadRequest(new
                 {
@@ -537,7 +546,7 @@ namespace AlTayerERP.API.Controllers
             var result =
                 await _approvalService.CancelApprovalAsync(
                     voucherId: voucherId,
-                    userId: request.User_ID,
+                    userId: GetServerSession().User_ID.ToString(),
                     reason: request.Reason,
                     actionChannel: request.Action_Channel,
                     deviceName: request.Device_Name,
@@ -580,8 +589,7 @@ namespace AlTayerERP.API.Controllers
                 });
             }
 
-            if (request == null ||
-                string.IsNullOrWhiteSpace(request.User_ID))
+            if (request == null)
             {
                 return BadRequest(new
                 {
@@ -606,7 +614,7 @@ namespace AlTayerERP.API.Controllers
             var result =
                 await _postingService.PostAsync(
                     voucherId: voucherId,
-                    userId: request.User_ID,
+                    userId: GetServerSession().User_ID.ToString(),
                     actionChannel: request.Action_Channel,
                     deviceName: request.Device_Name,
                     ipAddress: ipAddress,
@@ -658,8 +666,7 @@ namespace AlTayerERP.API.Controllers
                 });
             }
 
-            if (request == null ||
-                string.IsNullOrWhiteSpace(request.User_ID))
+            if (request == null)
             {
                 return BadRequest(new
                 {
@@ -683,7 +690,7 @@ namespace AlTayerERP.API.Controllers
             var result =
                 await _postingService.UnpostAsync(
                     voucherId: voucherId,
-                    userId: request.User_ID,
+                    userId: GetServerSession().User_ID.ToString(),
                     reason: request.Reason,
                     actionChannel: request.Action_Channel,
                     deviceName: request.Device_Name,
