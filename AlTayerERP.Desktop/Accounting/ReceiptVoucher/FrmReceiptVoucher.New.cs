@@ -85,6 +85,16 @@ namespace AlTayerERP.Desktop
 
         private async void btnNew_Click(object? sender, EventArgs e)
         {
+            if (!CanReceiptAction("ADD"))
+            {
+                MessageBox.Show(
+                    "ليس لديك صلاحية إنشاء سند قبض.",
+                    "رفض الوصول",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Warning);
+                return;
+            }
+
             try
             {
                 _isLoading = true;
