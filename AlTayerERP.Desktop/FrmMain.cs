@@ -31,11 +31,9 @@ namespace AlTayerERP.Desktop
             }
 
             lblCompanyName.Text = "جاري التحميل...";
-            lblCurrentBranch.Text = "الفرع
-" + CurrentSession.Branch_ID;
+            lblCurrentBranch.Text = "الفرع\n" + CurrentSession.Branch_ID;
             lblFiscalYear.Text = "جاري التحميل...";
-            lblCurrentUser.Text = "المستخدم
-" + CurrentSession.Username;
+            lblCurrentUser.Text = "المستخدم\n" + CurrentSession.Username;
 
             _ = LoadSessionDetailsAsync();
             BuildMainMenu();
@@ -66,12 +64,10 @@ namespace AlTayerERP.Desktop
                 CurrentSession.Branch_Name = data.Branch_Name;
                 CurrentSession.Year_Name = data.Year_Name;
 
-                lblCompanyName.Text = "شركة
-" + data.Company_Name_AR;
+                lblCompanyName.Text = "شركة\n" + data.Company_Name_AR;
                 lblCurrentBranch.Text = "الفرع
 " + data.Branch_Name;
-                lblFiscalYear.Text = "السنة المالية
-" + data.Year_Name;
+                lblFiscalYear.Text = "السنة المالية\n" + data.Year_Name;
             }
             catch
             {
