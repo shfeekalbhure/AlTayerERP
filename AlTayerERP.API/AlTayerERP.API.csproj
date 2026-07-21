@@ -14,6 +14,7 @@
 	<ItemGroup>
 		<!-- حزمة Swagger الشاملة لتوليد واجهة وتوثيق ومواصفات الـ API لبيئة .NET 8 -->
 		<PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2" />
+		<PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.0" />
 	</ItemGroup>
 
 	<ItemGroup>
