@@ -2,8 +2,13 @@
 using AlTayerERP.API.DTOs.Accounting;
 using AlTayerERP.API.Services.Accounting;
 using AlTayerERP.API.Services.Accounting.VoucherWorkflow;
+using AlTayerERP.Infrastructure.Data;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using System;
+using System.Linq;
+using System.Security.Claims;
 
 
 
@@ -25,6 +30,7 @@ namespace AlTayerERP.API.Controllers
         private readonly JournalEntryInquiryService _journalEntryInquiryService;
         private readonly VoucherApprovalService _approvalService;
         private readonly VoucherPostingService _postingService;
+        private readonly AppDbContext _context;
 
         #endregion
 
@@ -34,12 +40,14 @@ namespace AlTayerERP.API.Controllers
             FinancialVoucherService service,
             JournalEntryInquiryService journalEntryInquiryService,
             VoucherApprovalService approvalService,
-            VoucherPostingService postingService)
+            VoucherPostingService postingService,
+            AppDbContext context)
         {
             _service = service;
             _journalEntryInquiryService = journalEntryInquiryService;
             _approvalService = approvalService;
             _postingService = postingService;
+            _context = context;
         }
 
         #endregion
@@ -111,6 +119,33 @@ namespace AlTayerERP.API.Controllers
             if (!ModelState.IsValid)
             {
                 return BadRequest(ModelState);
+            }
+
+            string? currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            string? currentBranchId = User.FindFirstValue("branch_id");
+            string? currentYearId = User.FindFirstValue("year_id");
+
+            if (string.IsNullOrWhiteSpace(currentUserId) ||
+                string.IsNullOrWhiteSpace(currentBranchId) ||
+                !int.TryParse(currentYearId, out int currentFiscalYearId))
+            {
+                return Unauthorized(new { success = false, message = "رمز الدخول لا يحتوي بيانات الجلسة المالية كاملة." });
+            }
+
+            // لا يقبل الخادم هوية منشئ أو فرع أو سنة من جسم الطلب؛ يعتمد سياق الجلسة الموثوق.
+            dto.Created_By = currentUserId;
+            dto.Branch_ID = currentBranchId;
+            dto.Fiscal_Year_ID = currentFiscalYearId;
+
+            if (dto.Voucher_Type_ID == 1)
+            {
+                bool? requiresApproval = await ResolveBooleanSettingAsync(
+                    "ReceiptVoucher.RequiresApproval",
+                    "ReceiptVoucher",
+                    "ACCOUNTING");
+
+                if (requiresApproval.HasValue)
+                    dto.Requires_Approval = requiresApproval.Value;
             }
 
             var result = await _service.CreateAsync(dto);
@@ -755,6 +790,63 @@ namespace AlTayerERP.API.Controllers
                     posting = postingStatus
                 }
             });
+        }
+
+        /// <summary>
+        /// يحدد القيمة الفعالة لإعداد منطقي وفق نطاق جلسة المستخدم الحالية.
+        /// </summary>
+        private async Task<bool?> ResolveBooleanSettingAsync(
+            string settingCode,
+            string screenCode,
+            string moduleName)
+        {
+            var setting = await _context.System_Settings.AsNoTracking()
+                .FirstOrDefaultAsync(x => x.Setting_Code == settingCode && x.Is_Active);
+
+            if (setting == null)
+                return null;
+
+            string? userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            string? roleId = User.FindFirstValue("role_id");
+            string? companyId = User.FindFirstValue("company_id");
+            string? branchId = User.FindFirstValue("branch_id");
+
+            var scopes = new[]
+            {
+                new { Type = "USER", Id = userId },
+                new { Type = "ROLE", Id = roleId },
+                new { Type = "SCREEN", Id = screenCode },
+                new { Type = "MODULE", Id = moduleName },
+                new { Type = "BRANCH", Id = branchId },
+                new { Type = "COMPANY", Id = companyId },
+                new { Type = "GLOBAL", Id = "GLOBAL" }
+            }
+            .Where(x => !string.IsNullOrWhiteSpace(x.Id))
+            .ToList();
+
+            var values = await _context.Setting_Scope_Values.AsNoTracking()
+                .Where(x => x.Setting_ID == setting.Setting_ID &&
+                            x.Is_Active &&
+                            (x.Effective_From == null || x.Effective_From <= DateTime.UtcNow) &&
+                            (x.Effective_To == null || x.Effective_To >= DateTime.UtcNow))
+                .OrderByDescending(x => x.Created_At)
+                .ToListAsync();
+
+            string? rawValue = setting.Default_Value;
+            foreach (var scope in scopes)
+            {
+                var scopedValue = values.FirstOrDefault(x =>
+                    string.Equals(x.Scope_Type, scope.Type, StringComparison.OrdinalIgnoreCase) &&
+                    string.Equals(x.Scope_ID, scope.Id, StringComparison.OrdinalIgnoreCase));
+
+                if (scopedValue != null)
+                {
+                    rawValue = scopedValue.Value;
+                    break;
+                }
+            }
+
+            return bool.TryParse(rawValue, out bool value) ? value : null;
         }
 
         #endregion
