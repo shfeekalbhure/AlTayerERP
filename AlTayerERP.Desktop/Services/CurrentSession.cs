@@ -1,78 +1,91 @@
-﻿using System;
+using System;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace AlTayerERP.Desktop.Services
 {
     /// <summary>
-    /// يحتفظ ببيانات جلسة المستخدم الحالية.
-    /// جميع شاشات النظام تعتمد على هذا الكلاس.
+    /// يحتفظ ببيانات جلسة المستخدم الحالية والصلاحيات الفعلية التي أعادها الخادم.
+    /// لا تعد صلاحيات الواجهة بديلاً عن تحقق الـ API.
     /// </summary>
     public static class CurrentSession
     {
-        #region بيانات الشركة
-
         public static string Company_ID { get; set; } = "";
-
         public static string Company_Name { get; set; } = "";
 
-        #endregion
-
-        #region بيانات الفرع
-
         public static int Branch_ID { get; set; }
-
         public static string Branch_Name { get; set; } = "";
 
-        #endregion
-
-        #region السنة المالية
-
         public static int Year_ID { get; set; }
-
         public static string Year_Name { get; set; } = "";
-
         public static DateTime? FiscalYear_StartDate { get; set; }
-
         public static DateTime? FiscalYear_EndDate { get; set; }
 
-        #endregion
-
-        #region المستخدم
-
         public static int User_ID { get; set; }
-
         public static int Role_ID { get; set; }
-
         public static string Username { get; set; } = "";
-
         public static string Full_Name { get; set; } = "";
-
         public static bool Is_System_Admin { get; set; }
 
-        #endregion
-
-        #region إعدادات عامة
-
         public static string Currency_Code { get; set; } = "YER";
-
         public static string Language { get; set; } = "AR";
-
         public static DateTime Login_Time { get; set; } = DateTime.Now;
+        public static string Device_Name { get; } = Environment.MachineName;
 
-        public static string Device_Name { get; set; }
-            = Environment.MachineName;
+        private static readonly Dictionary<string, ScreenPermissionState> _screenPermissions =
+            new(StringComparer.OrdinalIgnoreCase);
 
-        #endregion
-
-        /// <summary>
-        /// هل المستخدم سجل الدخول بنجاح؟
-        /// </summary>
         public static bool IsLoggedIn =>
             User_ID > 0 &&
-            !string.IsNullOrWhiteSpace(Company_ID);
+            !string.IsNullOrWhiteSpace(Company_ID) &&
+            Branch_ID > 0 &&
+            Year_ID > 0;
 
-        /// <summary>
-        /// مسح بيانات الجلسة عند تسجيل الخروج.
-        /// </summary>
+        public static void SetScreenPermissions(IEnumerable<ScreenPermissionState>? permissions)
+        {
+            _screenPermissions.Clear();
+
+            if (permissions == null)
+                return;
+
+            foreach (ScreenPermissionState permission in permissions)
+            {
+                if (!string.IsNullOrWhiteSpace(permission.Screen_Code))
+                    _screenPermissions[permission.Screen_Code] = permission;
+            }
+        }
+
+        public static bool CanViewScreen(string screenCode) =>
+            Is_System_Admin ||
+            (_screenPermissions.TryGetValue(screenCode, out ScreenPermissionState? permission) &&
+             permission.Can_View);
+
+        public static bool CanExecute(string screenCode, string actionCode)
+        {
+            if (Is_System_Admin)
+                return true;
+
+            if (!_screenPermissions.TryGetValue(screenCode, out ScreenPermissionState? permission))
+                return false;
+
+            return actionCode.ToUpperInvariant() switch
+            {
+                "VIEW" => permission.Can_View,
+                "ADD" => permission.Can_Add,
+                "EDIT" => permission.Can_Edit,
+                "DELETE" => permission.Can_Delete,
+                "PRINT" => permission.Can_Print,
+                "EXPORT" => permission.Can_Export,
+                "IMPORT" => permission.Can_Import,
+                "APPROVE" => permission.Can_Approve,
+                "UNAPPROVE" => permission.Can_UnApprove,
+                _ => false
+            };
+        }
+
+        public static IReadOnlyCollection<ScreenPermissionState> GetScreenPermissions() =>
+            _screenPermissions.Values.ToList().AsReadOnly();
+
         public static void Clear()
         {
             Company_ID = "";
@@ -95,10 +108,24 @@ namespace AlTayerERP.Desktop.Services
 
             Currency_Code = "YER";
             Language = "AR";
-
             Is_System_Admin = false;
-
             Login_Time = DateTime.Now;
+
+            _screenPermissions.Clear();
+        }
+
+        public sealed class ScreenPermissionState
+        {
+            public string Screen_Code { get; set; } = "";
+            public bool Can_View { get; set; }
+            public bool Can_Add { get; set; }
+            public bool Can_Edit { get; set; }
+            public bool Can_Delete { get; set; }
+            public bool Can_Print { get; set; }
+            public bool Can_Export { get; set; }
+            public bool Can_Import { get; set; }
+            public bool Can_Approve { get; set; }
+            public bool Can_UnApprove { get; set; }
         }
     }
 }
