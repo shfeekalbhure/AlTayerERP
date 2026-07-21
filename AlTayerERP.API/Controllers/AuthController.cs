@@ -141,13 +141,34 @@ namespace AlTayerERP.API.Controllers
                         .Where(x => x.Is_Active)
                         .ToDictionaryAsync(x => x.Screen_ID, x => x.Screen_Code);
 
-                    var rawPermissions = await _context.Role_Resource_Permissions.AsNoTracking()
-                        .Where(x => x.Role_ID == user.Role_ID && x.Is_Active && x.Effect)
-                        .ToListAsync();
+                    // تبدأ الصلاحية من الدور، ثم يحل استثناء المستخدم مكانها إن وُجد.
+                    // لا نرسل أي قرار غير فعّال إلى الواجهة.
+                    var effectivePermissions = new Dictionary<string, (string Type, string Code, string Permission, bool Effect)>(
+                        StringComparer.OrdinalIgnoreCase);
 
-                    foreach (var item in rawPermissions)
+                    var roleResources = await _context.Role_Resource_Permissions.AsNoTracking()
+                        .Where(x => x.Role_ID == user.Role_ID && x.Is_Active)
+                        .ToListAsync();
+                    foreach (var item in roleResources)
                     {
-                        string[] parts = item.Resource_Type.Split(':', 2);
+                        effectivePermissions[BuildResourceKey(item.Resource_Type, item.Resource_Code, item.Permission_Code)] =
+                            (item.Resource_Type, item.Resource_Code, item.Permission_Code, item.Effect);
+                    }
+
+                    var userResources = await _context.User_Resource_Permissions.AsNoTracking()
+                        .Where(x => x.User_ID == user.User_ID &&
+                                    x.Is_Active &&
+                                    (x.Effective_To == null || x.Effective_To >= DateTime.UtcNow))
+                        .ToListAsync();
+                    foreach (var item in userResources)
+                    {
+                        effectivePermissions[BuildResourceKey(item.Resource_Type, item.Resource_Code, item.Permission_Code)] =
+                            (item.Resource_Type, item.Resource_Code, item.Permission_Code, item.Effect);
+                    }
+
+                    foreach (var item in effectivePermissions.Values)
+                    {
+                        string[] parts = item.Type.Split(':', 2);
                         if (parts.Length != 2 || !int.TryParse(parts[1], out int screenId) ||
                             !screensById.TryGetValue(screenId, out string? screenCode))
                         {
@@ -158,8 +179,9 @@ namespace AlTayerERP.API.Controllers
                         {
                             Screen_Code = screenCode,
                             Resource_Kind = parts[0],
-                            Resource_Code = item.Resource_Code,
-                            Permission_Code = item.Permission_Code
+                            Resource_Code = item.Code,
+                            Permission_Code = item.Permission,
+                            Effect = item.Effect
                         });
                     }
                 }
@@ -188,6 +210,9 @@ namespace AlTayerERP.API.Controllers
                 });
             }
         }
+
+        private static string BuildResourceKey(string type, string code, string permission) =>
+            type + "|" + code + "|" + permission;
 
         private string CreateAccessToken(User user, Role role, LoginRequestDto request, string companyId)
         {
@@ -298,6 +323,7 @@ namespace AlTayerERP.API.Controllers
         public string Resource_Kind { get; set; } = string.Empty;
         public string Resource_Code { get; set; } = string.Empty;
         public string Permission_Code { get; set; } = string.Empty;
+        public bool Effect { get; set; }
     }
 
     public sealed class ScreenPermissionDto
