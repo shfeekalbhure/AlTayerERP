@@ -189,6 +189,11 @@ namespace AlTayerERP.API.Controllers
                 });
             }
 
+            // يستبدل الفرع القادم من الطلب بفرع الجلسة لمنع الاستعلام العابر للفروع.
+            branchId = User.FindFirstValue("branch_id");
+            if (string.IsNullOrWhiteSpace(branchId))
+                return Unauthorized(new { success = false, message = "رمز الدخول لا يحتوي الفرع." });
+
             var result =
                 await _journalEntryInquiryService.GetByVoucherNoAsync(
                     voucherNo,
@@ -227,6 +232,9 @@ namespace AlTayerERP.API.Controllers
                     message = "معرف السند غير صحيح."
                 });
             }
+
+            if (!await IsVoucherInCurrentSessionContextAsync(voucherId))
+                return NotFound(new { success = false, message = "السند غير موجود في نطاق جلسة المستخدم." });
 
             var voucher = await _service.GetByIdAsync(voucherId);
 
@@ -277,7 +285,7 @@ namespace AlTayerERP.API.Controllers
                 return BadRequest(ModelState);
             }
 
-            if (!await CanExecuteReceiptActionAsync("EDIT"))
+            if (!await CanExecuteReceiptActionAsync("EDIT", voucherId))
                 return StatusCode(403, new { success = false, message = "ليس لديك صلاحية تعديل سند القبض." });
 
             string? currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -339,7 +347,7 @@ namespace AlTayerERP.API.Controllers
                 });
             }
 
-            if (!await CanExecuteReceiptActionAsync("DELETE"))
+            if (!await CanExecuteReceiptActionAsync("DELETE", voucherId))
                 return StatusCode(403, new { success = false, message = "ليس لديك صلاحية حذف سند القبض." });
 
             string? currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -399,6 +407,16 @@ namespace AlTayerERP.API.Controllers
 
             #endregion
 
+            // البحث محصور دائماً بفرع وسنة جلسة الدخول.
+            branchId = User.FindFirstValue("branch_id");
+            if (!int.TryParse(User.FindFirstValue("year_id"), out int sessionYearId) ||
+                string.IsNullOrWhiteSpace(branchId))
+            {
+                return Unauthorized(new { success = false, message = "رمز الدخول لا يحتوي نطاق البحث المالي." });
+            }
+
+            fiscalYearId = sessionYearId;
+
             var voucher =
                 await _service.GetByVoucherNumberAsync(
                     voucherNumber,
@@ -439,7 +457,7 @@ namespace AlTayerERP.API.Controllers
                 return BadRequest(new { success = false, message = "بيانات تنفيذ المراجعة مطلوبة." });
             }
 
-            if (!await CanExecuteReceiptActionAsync("REVIEW"))
+            if (!await CanExecuteReceiptActionAsync("REVIEW", voucherId))
                 return StatusCode(403, new { success = false, message = "ليس لديك صلاحية مراجعة سند القبض." });
 
             if (!TryBindCurrentActor(request, out string currentUserId))
@@ -465,7 +483,7 @@ namespace AlTayerERP.API.Controllers
                 return BadRequest(new { success = false, message = "سبب الإعادة للتصحيح مطلوب." });
             }
 
-            if (!await CanExecuteReceiptActionAsync("RETURN_CORRECTION"))
+            if (!await CanExecuteReceiptActionAsync("RETURN_CORRECTION", voucherId))
                 return StatusCode(403, new { success = false, message = "ليس لديك صلاحية إعادة السند للتصحيح." });
 
             if (!TryBindCurrentActor(request, out string currentUserId))
@@ -491,7 +509,7 @@ namespace AlTayerERP.API.Controllers
                 return BadRequest(new { success = false, message = "بيانات تسجيل الطباعة مطلوبة." });
             }
 
-            if (!await CanExecuteReceiptActionAsync("PRINT"))
+            if (!await CanExecuteReceiptActionAsync("PRINT", voucherId))
                 return StatusCode(403, new { success = false, message = "ليس لديك صلاحية طباعة سند القبض." });
 
             if (!TryBindCurrentActor(request, out string currentUserId))
@@ -532,7 +550,7 @@ namespace AlTayerERP.API.Controllers
                 });
             }
 
-            if (!await CanExecuteReceiptActionAsync("APPROVE"))
+            if (!await CanExecuteReceiptActionAsync("APPROVE", voucherId))
                 return StatusCode(403, new { success = false, message = "ليس لديك صلاحية اعتماد سند القبض." });
 
             string? currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -635,7 +653,7 @@ namespace AlTayerERP.API.Controllers
                 });
             }
 
-            if (!await CanExecuteReceiptActionAsync("UNAPPROVE"))
+            if (!await CanExecuteReceiptActionAsync("UNAPPROVE", voucherId))
                 return StatusCode(403, new { success = false, message = "ليس لديك صلاحية إلغاء اعتماد سند القبض." });
 
             if (!TryBindCurrentActor(request, out string currentUserId))
@@ -708,7 +726,7 @@ namespace AlTayerERP.API.Controllers
                 });
             }
 
-            if (!await CanExecuteReceiptActionAsync("POST"))
+            if (!await CanExecuteReceiptActionAsync("POST", voucherId))
                 return StatusCode(403, new { success = false, message = "ليس لديك صلاحية ترحيل سند القبض." });
 
             if (!TryBindCurrentActor(request, out string currentUserId))
@@ -791,7 +809,7 @@ namespace AlTayerERP.API.Controllers
                 });
             }
 
-            if (!await CanExecuteReceiptActionAsync("UNPOST"))
+            if (!await CanExecuteReceiptActionAsync("UNPOST", voucherId))
                 return StatusCode(403, new { success = false, message = "ليس لديك صلاحية فك ترحيل سند القبض." });
 
             string? currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -902,8 +920,16 @@ namespace AlTayerERP.API.Controllers
         /// <summary>
         /// يتحقق من صلاحية الإجراء الحساسة على الخادم، ولا يعتمد على حالة الزر في الواجهة.
         /// </summary>
-        private async Task<bool> CanExecuteReceiptActionAsync(string actionCode)
+        private async Task<bool> CanExecuteReceiptActionAsync(
+            string actionCode,
+            long? voucherId = null)
         {
+            if (voucherId.HasValue &&
+                !await IsVoucherInCurrentSessionContextAsync(voucherId.Value))
+            {
+                return false;
+            }
+
             if (User.IsInRole("SystemAdmin"))
                 return true;
 
@@ -961,6 +987,27 @@ namespace AlTayerERP.API.Controllers
                 x.Permission_Code == "EXECUTE" &&
                 x.Effect &&
                 x.Is_Active);
+        }
+
+        /// <summary>
+        /// يتحقق من أن السند يتبع الفرع والسنة المختارين عند تسجيل الدخول.
+        /// </summary>
+        private async Task<bool> IsVoucherInCurrentSessionContextAsync(long voucherId)
+        {
+            string? branchId = User.FindFirstValue("branch_id");
+            string? yearId = User.FindFirstValue("year_id");
+
+            if (string.IsNullOrWhiteSpace(branchId) ||
+                !int.TryParse(yearId, out int fiscalYearId))
+            {
+                return false;
+            }
+
+            return await _context.Financial_Voucher_Headers.AsNoTracking()
+                .AnyAsync(x => x.Voucher_ID == voucherId &&
+                               x.Is_Active &&
+                               x.Branch_ID == branchId &&
+                               x.Fiscal_Year_ID == fiscalYearId);
         }
 
         /// <summary>
