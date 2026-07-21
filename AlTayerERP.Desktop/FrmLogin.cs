@@ -1,6 +1,7 @@
 using AlTayerERP.Desktop.Services;
 using System;
 using System.Collections.Generic;
+using System.Drawing;
 using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Json;
@@ -21,6 +22,7 @@ namespace AlTayerERP.Desktop
 
             // تطبيق المظهر العربي الموحد دون تغيير منطق الشاشة.
             ArabicErpFormStyle.Apply(this);
+            ApplyLoginVisuals();
             Load += FrmLogin_Load;
             btnLogin.Click += btnLogin_Click;
             btnExit.Click += (_, _) => Application.Exit();
@@ -32,6 +34,73 @@ namespace AlTayerERP.Desktop
             txtPassword.PasswordChar = '*';
             AcceptButton = btnLogin;
             CancelButton = btnExit;
+        }
+
+        /// <summary>
+        /// تنسيق شاشة الدخول على نموذج بطاقة الشركة وبطاقة بيانات الدخول.
+        /// يحافظ على الحقول الحالية والربط الآمن مع الـ API.
+        /// </summary>
+        private void ApplyLoginVisuals()
+        {
+            var navy = Color.FromArgb(8, 49, 92);
+            var blue = Color.FromArgb(30, 104, 194);
+
+            Width = 1180;
+            Height = 700;
+            MinimumSize = new Size(1000, 620);
+            StartPosition = FormStartPosition.CenterScreen;
+            BackColor = Color.FromArgb(245, 248, 252);
+
+            pnlHeader.BackColor = Color.White;
+            pnlHeader.BorderStyle = BorderStyle.FixedSingle;
+            pnlHeader.Padding = new Padding(24, 8, 24, 8);
+            lblSystemTitle.Font = new Font("Segoe UI", 17F, FontStyle.Bold);
+            lblSystemTitle.ForeColor = navy;
+            lblSystemSubtitle.Font = new Font("Segoe UI", 10F);
+            lblSystemSubtitle.ForeColor = blue;
+
+            pnlCompanyInfo.BackColor = Color.White;
+            pnlCompanyInfo.BorderStyle = BorderStyle.FixedSingle;
+            pnlCompanyInfo.Padding = new Padding(22);
+            lblCompanyTitle.Font = new Font("Segoe UI", 12F, FontStyle.Bold);
+            lblCompanyTitle.ForeColor = navy;
+            lblCompanyName.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
+            foreach (var label in new[] { lblCompanyAddress, lblCompanyPhone, lblCompanyEmail })
+                label.Font = new Font("Segoe UI", 9.5F);
+
+            pnlLogin.BackColor = Color.White;
+            pnlLogin.BorderStyle = BorderStyle.FixedSingle;
+            pnlLogin.Padding = new Padding(28);
+            grpLogin.Font = new Font("Segoe UI", 12F, FontStyle.Bold);
+            grpLogin.ForeColor = navy;
+            grpLogin.BackColor = Color.White;
+
+            foreach (var input in new Control[] { cmbCompany, cmbBranch, cmbFiscalYear, cmbUsername, txtPassword })
+            {
+                input.Font = new Font("Segoe UI", 10F);
+                input.BackColor = Color.White;
+            }
+
+            btnLogin.FlatStyle = FlatStyle.Flat;
+            btnLogin.FlatAppearance.BorderSize = 0;
+            btnLogin.BackColor = blue;
+            btnLogin.ForeColor = Color.White;
+            btnLogin.Font = new Font("Segoe UI", 11F, FontStyle.Bold);
+            btnLogin.Height = Math.Max(btnLogin.Height, 42);
+
+            foreach (var button in new[] { btnAboutSystem, btnConnectionSettings, btnExit })
+            {
+                button.FlatStyle = FlatStyle.Flat;
+                button.FlatAppearance.BorderColor = Color.FromArgb(190, 205, 220);
+                button.BackColor = Color.White;
+                button.ForeColor = navy;
+                button.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+            }
+
+            pnlStatusBar.BackColor = Color.White;
+            pnlStatusBar.BorderStyle = BorderStyle.FixedSingle;
+            lblApiStatus.ForeColor = Color.FromArgb(0, 132, 78);
+            lblDatabaseStatus.ForeColor = Color.FromArgb(0, 132, 78);
         }
 
         // تهيئة الشاشة والتحقق من إمكانية قراءة بيانات الشركات قبل تفعيل الدخول.
