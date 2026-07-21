@@ -1,0 +1,33 @@
+name: تحقق المرحلة الأولى
+
+on:
+  push:
+    branches:
+      - master
+      - agent/session-permissions-foundation
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  build:
+    name: بناء النظام والتحقق من الترجمة
+    runs-on: windows-latest
+
+    steps:
+      - name: جلب المصدر
+        uses: actions/checkout@v4
+
+      - name: تجهيز .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: استعادة الحزم
+        run: dotnet restore AlTayerERP.slnx
+
+      - name: بناء نسخة Release
+        run: dotnet build AlTayerERP.slnx --configuration Release --no-restore
+
+      - name: تشغيل اختبارات الوحدة عند توفرها
+        run: dotnet test AlTayerERP.slnx --configuration Release --no-build --no-restore --no-ansi
