@@ -757,6 +757,10 @@ namespace AlTayerERP.API.Controllers
                 });
             }
 
+            // يبقى سجل التدقيق واضحاً حتى عند تعطيل إلزام السبب من الإعداد.
+            if (!requiresUnpostReason && string.IsNullOrWhiteSpace(request.Reason))
+                request.Reason = "لم يطلب سبب فك الترحيل حسب الإعداد المعتمد.";
+
             string? ipAddress =
                 HttpContext.Connection.RemoteIpAddress?.ToString();
 
