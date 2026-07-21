@@ -864,6 +864,19 @@ namespace AlTayerERP.API.Controllers
         }
 
         /// <summary>
+        /// نسخة طلبات الإجراءات التي تحتوي سبباً إلزامياً أو اختيارياً.
+        /// </summary>
+        private bool TryBindCurrentActor(VoucherReasonActionRequest request, out string userId)
+        {
+            userId = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? string.Empty;
+            if (string.IsNullOrWhiteSpace(userId))
+                return false;
+
+            request.User_ID = userId;
+            return true;
+        }
+
+        /// <summary>
         /// يحدد القيمة الفعالة لإعداد منطقي وفق نطاق جلسة المستخدم الحالية.
         /// </summary>
         private async Task<bool?> ResolveBooleanSettingAsync(
