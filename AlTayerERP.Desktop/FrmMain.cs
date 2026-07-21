@@ -97,6 +97,7 @@ namespace AlTayerERP.Desktop
                 AddMenuItem(accountingNode, "Currencies", "العملات");
                 AddMenuItem(accountingNode, "CostCenters", "مراكز التكلفة");
                 AddMenuItem(accountingNode, "CashBoxes", "الصناديق");
+                AddMenuItem(accountingNode, "PaymentMethods", "طرق السداد");
                 AddMenuItem(accountingNode, "ReceiptVoucher", "سند القبض");
 
                 if (adminNode.Nodes.Count > 0)
@@ -178,6 +179,9 @@ namespace AlTayerERP.Desktop
                     break;
                 case "CashBoxes":
                     new FrmCashBoxes().ShowDialog(this);
+                    break;
+                case "PaymentMethods":
+                    new FrmPaymentMethods().ShowDialog(this);
                     break;
                 case "ReceiptVoucher":
                     new FrmReceiptVoucher().ShowDialog(this);
