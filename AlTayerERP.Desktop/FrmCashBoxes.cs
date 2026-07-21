@@ -24,6 +24,9 @@ namespace AlTayerERP.Desktop
         {
             InitializeComponent();
 
+            // تطبيق الثيم العربي الموحد والاختصارات على الشاشة القديمة.
+            ArabicErpFormStyle.Apply(this);
+
             // ربط الأحداث (Events) 
             Load += FrmCashBoxes_Load;
 
