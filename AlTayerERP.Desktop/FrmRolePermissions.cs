@@ -19,6 +19,8 @@ namespace AlTayerERP.Desktop
         private readonly DataGridView dgvPermissions = new() { Dock = DockStyle.Fill, AutoGenerateColumns = false, AllowUserToAddRows = false, RowHeadersVisible = false };
         private readonly Button btnSave = new() { Text = "حفظ الصلاحيات", AutoSize = true };
         private readonly Button btnRefresh = new() { Text = "تحديث", AutoSize = true };
+        private readonly Button btnGrantViewAll = new() { Text = "منح العرض للجميع", AutoSize = true };
+        private readonly Button btnClearAll = new() { Text = "إلغاء كل الصلاحيات", AutoSize = true };
 
         public FrmRolePermissions()
         {
@@ -34,6 +36,8 @@ namespace AlTayerERP.Desktop
             toolbar.Controls.Add(cmbRoles);
             cmbRoles.Width = 260;
             toolbar.Controls.Add(btnSave);
+            toolbar.Controls.Add(btnGrantViewAll);
+            toolbar.Controls.Add(btnClearAll);
             toolbar.Controls.Add(btnRefresh);
 
             Controls.Add(dgvPermissions);
@@ -55,6 +59,8 @@ namespace AlTayerERP.Desktop
             cmbRoles.SelectedIndexChanged += async (_, _) => await LoadPermissionsAsync();
             btnRefresh.Click += async (_, _) => await LoadRolesAsync();
             btnSave.Click += async (_, _) => await SavePermissionsAsync();
+            btnGrantViewAll.Click += (_, _) => SetAllViewPermissions(true);
+            btnClearAll.Click += (_, _) => SetAllViewPermissions(false);
         }
 
         private void AddTextColumn(string property, string title, int width) =>
@@ -62,6 +68,32 @@ namespace AlTayerERP.Desktop
 
         private void AddCheckColumn(string property, string title) =>
             dgvPermissions.Columns.Add(new DataGridViewCheckBoxColumn { DataPropertyName = property, HeaderText = title, Width = 68 });
+
+        // تطبيق صلاحية العرض على الصفوف كلها لتسهيل التهيئة الأولية للدور.
+        private void SetAllViewPermissions(bool canView)
+        {
+            if (dgvPermissions.DataSource is not List<PermissionRow> rows)
+                return;
+
+            foreach (var row in rows)
+            {
+                row.Can_View = canView;
+                if (!canView)
+                {
+                    // عند منع العرض تُلغى صلاحيات العمليات التابعة للشاشة لمنع صلاحية متناقضة.
+                    row.Can_Add = false;
+                    row.Can_Edit = false;
+                    row.Can_Delete = false;
+                    row.Can_Print = false;
+                    row.Can_Export = false;
+                    row.Can_Import = false;
+                    row.Can_Approve = false;
+                    row.Can_UnApprove = false;
+                }
+            }
+
+            dgvPermissions.Refresh();
+        }
 
         private async Task LoadRolesAsync()
         {
@@ -103,8 +135,17 @@ namespace AlTayerERP.Desktop
 
         private async Task SavePermissionsAsync()
         {
-            if (dgvPermissions.DataSource is not List<PermissionRow> rows || rows.Count == 0)
+            if (!CurrentSession.Is_System_Admin)
+            {
+                MessageBox.Show("حفظ الصلاحيات مخصص لمدير النظام.", "الصلاحيات", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
+            }
+
+            if (dgvPermissions.DataSource is not List<PermissionRow> rows || rows.Count == 0)
+            {
+                MessageBox.Show("اختر دوراً أولاً.", "الصلاحيات", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
 
             btnSave.Enabled = false;
             try
