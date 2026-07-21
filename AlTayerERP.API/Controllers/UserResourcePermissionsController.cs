@@ -125,6 +125,9 @@ namespace AlTayerERP.API.Controllers
             if (request == null)
                 return BadRequest("بيانات الصلاحيات مطلوبة.");
 
+            request.Fields ??= new List<UserResourcePermissionItemDto>();
+            request.Actions ??= new List<UserResourcePermissionItemDto>();
+
             bool userExists = await _context.Users.AsNoTracking()
                 .AnyAsync(x => x.User_ID == userId && x.Is_Active);
             if (!userExists)
@@ -221,8 +224,8 @@ namespace AlTayerERP.API.Controllers
     {
         public int Screen_ID { get; set; }
         public string Screen_Code { get; set; } = string.Empty;
-        public List<UserResourcePermissionItemDto> Fields { get; set; } = new();
-        public List<UserResourcePermissionItemDto> Actions { get; set; } = new();
+        public List<UserResourcePermissionItemDto>? Fields { get; set; } = new();
+        public List<UserResourcePermissionItemDto>? Actions { get; set; } = new();
     }
 
     public class UserResourcePermissionItemDto
