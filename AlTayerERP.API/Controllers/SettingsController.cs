@@ -24,10 +24,6 @@ namespace AlTayerERP.API.Controllers
             "GLOBAL", "GROUP", "COMPANY", "BRANCH", "MODULE", "SCREEN", "ROLE", "USER"
         };
 
-        private static readonly string[] AllowedDataTypes =
-        {
-            "STRING", "INTEGER", "DECIMAL", "BOOLEAN", "DATE", "JSON"
-        };
 
         private readonly AppDbContext _context;
 
@@ -126,7 +122,7 @@ namespace AlTayerERP.API.Controllers
             string createdBy = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "SYSTEM";
 
             // لا نحدّث القيمة السابقة حتى يبقى السجل التدقيقي كاملاً.
-            _context.Setting_Scope_Values.Add(new Core.Entities.Configuration.SettingScopeValue
+            _context.Setting_Scope_Values.Add(new AlTayerERP.Core.Entities.Configuration.SettingScopeValue
             {
                 Setting_ID = settingId,
                 Scope_Type = scopeType,
