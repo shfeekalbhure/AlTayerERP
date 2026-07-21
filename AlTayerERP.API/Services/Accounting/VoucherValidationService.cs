@@ -45,6 +45,9 @@ namespace AlTayerERP.API.Services.Accounting
             if (voucher.Voucher_Type_ID != 1)
                 return (true, string.Empty);
 
+            if (voucher.Details == null || voucher.Details.Count < 2)
+                return (false, "يجب أن يحتوي السند على سطرين محاسبيين على الأقل.");
+
             if (!int.TryParse(voucher.Branch_ID, out int branchId))
                 return (false, "فرع السند غير صالح.");
 
