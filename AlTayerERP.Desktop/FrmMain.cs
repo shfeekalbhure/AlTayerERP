@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Json;
 using System.Threading.Tasks;
@@ -11,6 +13,7 @@ namespace AlTayerERP.Desktop
     {
         private readonly HttpClient _client = ApiService.Client;
         private readonly string _baseUrl = ApiService.BaseUrl;
+        private HashSet<string> _allowedScreenCodes = new(StringComparer.OrdinalIgnoreCase);
 
         public FrmMain()
         {
@@ -34,6 +37,7 @@ namespace AlTayerERP.Desktop
             _ = RefreshConnectionStatusAsync();
             lblStatusTime.Text = DateTime.Now.ToString("yyyy/MM/dd HH:mm");
             BuildMainMenu();
+            _ = LoadAllowedScreensAsync();
             tvMainMenu.NodeMouseDoubleClick -= tvMainMenu_NodeMouseDoubleClick;
             tvMainMenu.NodeMouseDoubleClick += tvMainMenu_NodeMouseDoubleClick;
         }
@@ -76,6 +80,57 @@ namespace AlTayerERP.Desktop
             }
         }
 
+        // تحميل صلاحيات العرض الفعلية للدور الحالي؛ مدير النظام يملك وصولاً كاملاً.
+        private async Task LoadAllowedScreensAsync()
+        {
+            if (CurrentSession.Is_System_Admin)
+                return;
+
+            try
+            {
+                var screens = await _client.GetFromJsonAsync<List<ScreenAccessRow>>($"{_baseUrl}RolePermissions/GetScreens") ?? new();
+                var permissions = await _client.GetFromJsonAsync<List<RolePermissionRow>>(
+                    $"{_baseUrl}RolePermissions/GetRolePermissions/${CurrentSession.Role_ID}") ?? new();
+
+                _allowedScreenCodes = screens
+                    .Where(screen => permissions.Any(permission =>
+                        permission.Screen_ID == screen.Screen_ID && permission.Can_View))
+                    .Select(screen => screen.Screen_Code)
+                    .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+                BuildMainMenu();
+            }
+            catch
+            {
+                // في حال تعذر الجلب لا نمنح صلاحيات افتراضية للمستخدم العادي.
+                _allowedScreenCodes.Clear();
+                BuildMainMenu();
+                MessageBox.Show("تعذر تحميل صلاحيات الدور؛ تم إخفاء الشاشات لحماية النظام.",
+                    "الصلاحيات", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
+        }
+
+        private bool CanOpenScreen(string screenCode) =>
+            CurrentSession.Is_System_Admin || _allowedScreenCodes.Contains(screenCode);
+
+        private void AddScreen(TreeNode parent, string screenCode, string caption)
+        {
+            if (CanOpenScreen(screenCode))
+                parent.Nodes.Add(screenCode, caption);
+        }
+
+        private sealed class ScreenAccessRow
+        {
+            public int Screen_ID { get; set; }
+            public string Screen_Code { get; set; } = "";
+        }
+
+        private sealed class RolePermissionRow
+        {
+            public int Screen_ID { get; set; }
+            public bool Can_View { get; set; }
+        }
+
         private sealed class SessionInfoResponse
         {
             public string Company_Name_AR { get; set; } = "";
@@ -89,38 +144,38 @@ namespace AlTayerERP.Desktop
             tvMainMenu.Nodes.Clear();
 
             TreeNode adminNode = new("الإدارة العامة");
-            adminNode.Nodes.Add("Companies", "الشركات");
-            adminNode.Nodes.Add("Branches", "الفروع");
-            adminNode.Nodes.Add("FiscalYears", "السنوات المالية");
-            adminNode.Nodes.Add("Users", "المستخدمون");
-            adminNode.Nodes.Add("Roles", "الأدوار");
+            AddScreen(adminNode, "Companies", "الشركات");
+            AddScreen(adminNode, "Branches", "الفروع");
+            AddScreen(adminNode, "FiscalYears", "السنوات المالية");
+            AddScreen(adminNode, "Users", "المستخدمون");
+            AddScreen(adminNode, "Roles", "الأدوار");
 
             TreeNode accountingNode = new("الحسابات");
-            accountingNode.Nodes.Add("ChartOfAccounts", "الدليل المحاسبي");
-            accountingNode.Nodes.Add("Currencies", "العملات");
-            accountingNode.Nodes.Add("CostCenters", "مراكز التكلفة");
-            accountingNode.Nodes.Add("CashBoxes", "الصناديق");
-            accountingNode.Nodes.Add("ReceiptVoucher", "سند القبض");
+            AddScreen(accountingNode, "ChartOfAccounts", "الدليل المحاسبي");
+            AddScreen(accountingNode, "Currencies", "العملات");
+            AddScreen(accountingNode, "CostCenters", "مراكز التكلفة");
+            AddScreen(accountingNode, "CashBoxes", "الصناديق");
+            AddScreen(accountingNode, "ReceiptVoucher", "سند القبض");
 
             // شاشات التهيئة الحساسة مخصصة لمدير النظام إلى أن يكتمل محرك الصلاحيات التفصيلي.
             if (CurrentSession.Is_System_Admin)
             {
-                adminNode.Nodes.Add("RolePermissions", "صلاحيات الأدوار");
+                AddScreen(adminNode, "RolePermissions", "صلاحيات الأدوار");
 
                 TreeNode setupNode = new("التهيئة والإعدادات");
-                setupNode.Nodes.Add("GeneralSettings", "الإعدادات العامة والمالية");
-                setupNode.Nodes.Add("SystemScreens", "كتالوج شاشات النظام");
-                setupNode.Nodes.Add("NumberingSettings", "إعدادات الترقيم");
-                setupNode.Nodes.Add("FiscalPeriods", "الفترات المالية");
-                setupNode.Nodes.Add("ExchangeRates", "أسعار الصرف");
-                setupNode.Nodes.Add("PaymentMethods", "طرق السداد");
-                setupNode.Nodes.Add("VoucherTypes", "أنواع السندات");
-                setupNode.Nodes.Add("VoucherStatuses", "حالات السندات");
-                setupNode.Nodes.Add("ApprovalPolicies", "سياسات الاعتماد والسقوف");
+                AddScreen(setupNode, "GeneralSettings", "الإعدادات العامة والمالية");
+                AddScreen(setupNode, "SystemScreens", "كتالوج شاشات النظام");
+                AddScreen(setupNode, "NumberingSettings", "إعدادات الترقيم");
+                AddScreen(setupNode, "FiscalPeriods", "الفترات المالية");
+                AddScreen(setupNode, "ExchangeRates", "أسعار الصرف");
+                AddScreen(setupNode, "PaymentMethods", "طرق السداد");
+                AddScreen(setupNode, "VoucherTypes", "أنواع السندات");
+                AddScreen(setupNode, "VoucherStatuses", "حالات السندات");
+                AddScreen(setupNode, "ApprovalPolicies", "سياسات الاعتماد والسقوف");
                 adminNode.Nodes.Add(setupNode);
 
-                accountingNode.Nodes.Add("Banks", "البنوك والحسابات البنكية");
-                accountingNode.Nodes.Add("Parties", "الأطراف المالية");
+                AddScreen(accountingNode, "Banks", "البنوك والحسابات البنكية");
+                AddScreen(accountingNode, "Parties", "الأطراف المالية");
             }
 
             tvMainMenu.Nodes.Add(adminNode);
@@ -130,6 +185,12 @@ namespace AlTayerERP.Desktop
 
         private void tvMainMenu_NodeMouseDoubleClick(object? sender, TreeNodeMouseClickEventArgs e)
         {
+            if (!string.IsNullOrWhiteSpace(e.Node.Name) && !CanOpenScreen(e.Node.Name))
+            {
+                MessageBox.Show("ليس لديك صلاحية لفتح هذه الشاشة.", "الصلاحيات", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
             Form? form = e.Node.Name switch
             {
                 "Companies" => new CompanyForm(),
