@@ -180,6 +180,9 @@ namespace AlTayerERP.API.Controllers
             [FromQuery] string? branchId = null,
             [FromQuery] int? voucherTypeId = null)
         {
+            if (!await CanExecuteReceiptActionAsync("VIEW"))
+                return StatusCode(403, new { success = false, message = "ليس لديك صلاحية استعراض سندات القبض." });
+
             if (string.IsNullOrWhiteSpace(voucherNo))
             {
                 return BadRequest(new
@@ -224,6 +227,9 @@ namespace AlTayerERP.API.Controllers
         [HttpGet("{voucherId:long}")]
         public async Task<IActionResult> GetById(long voucherId)
         {
+            if (!await CanExecuteReceiptActionAsync("VIEW"))
+                return StatusCode(403, new { success = false, message = "ليس لديك صلاحية استعراض سندات القبض." });
+
             if (voucherId <= 0)
             {
                 return BadRequest(new
@@ -382,6 +388,9 @@ namespace AlTayerERP.API.Controllers
             [FromQuery] int? voucherTypeId = null)
         {
             #region التحقق من بيانات البحث
+
+            if (!await CanExecuteReceiptActionAsync("VIEW"))
+                return StatusCode(403, new { success = false, message = "ليس لديك صلاحية استعراض سندات القبض." });
 
             if (string.IsNullOrWhiteSpace(voucherNumber))
             {
@@ -878,6 +887,9 @@ namespace AlTayerERP.API.Controllers
         public async Task<IActionResult> GetWorkflowStatus(
             long voucherId)
         {
+            if (!await CanExecuteReceiptActionAsync("VIEW"))
+                return StatusCode(403, new { success = false, message = "ليس لديك صلاحية استعراض حالة السند." });
+
             if (voucherId <= 0)
             {
                 return BadRequest(new
@@ -977,6 +989,8 @@ namespace AlTayerERP.API.Controllers
 
             switch (actionCode)
             {
+                case "VIEW":
+                    return screenPermission?.Can_View == true;
                 case "ADD":
                     return screenPermission?.Can_Add == true;
                 case "EDIT":
