@@ -392,6 +392,16 @@ namespace AlTayerERP.API.Controllers
                 });
             }
 
+            // لا يعتمد البحث على نطاق مرسل من الواجهة؛ الفرع والسنة من جلسة المستخدم.
+            branchId = User.FindFirstValue("branch_id");
+            if (!int.TryParse(User.FindFirstValue("year_id"), out int sessionYearId) ||
+                string.IsNullOrWhiteSpace(branchId))
+            {
+                return Unauthorized(new { success = false, message = "رمز الدخول لا يحتوي نطاق البحث المالي." });
+            }
+
+            fiscalYearId = sessionYearId;
+
             bool sequenceSearch = int.TryParse(voucherNumber.Trim(), out int sequence) && sequence > 0;
             if (sequenceSearch &&
                 (string.IsNullOrWhiteSpace(branchId) ||
@@ -406,16 +416,6 @@ namespace AlTayerERP.API.Controllers
             }
 
             #endregion
-
-            // البحث محصور دائماً بفرع وسنة جلسة الدخول.
-            branchId = User.FindFirstValue("branch_id");
-            if (!int.TryParse(User.FindFirstValue("year_id"), out int sessionYearId) ||
-                string.IsNullOrWhiteSpace(branchId))
-            {
-                return Unauthorized(new { success = false, message = "رمز الدخول لا يحتوي نطاق البحث المالي." });
-            }
-
-            fiscalYearId = sessionYearId;
 
             var voucher =
                 await _service.GetByVoucherNumberAsync(
