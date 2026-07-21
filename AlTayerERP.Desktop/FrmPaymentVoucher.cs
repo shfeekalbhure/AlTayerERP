@@ -16,10 +16,7 @@ namespace AlTayerERP.Desktop
         public FrmPaymentVoucher()
         {
             InitializeComponent();
-
-            // تطبيق المظهر العربي الموحد دون تغيير منطق الشاشة.
-            ArabicErpFormStyle.Apply(this);
-        }
+}
 
         private void flowLayoutPanel1_Paint(object sender, PaintEventArgs e)
         {
