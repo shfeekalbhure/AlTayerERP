@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Net.Http;
 
 namespace AlTayerERP.Desktop.Services
@@ -9,11 +9,12 @@ namespace AlTayerERP.Desktop.Services
     public static class ApiService
     {
         /// <summary>
-        /// الرابط الأساسي للـ API.
+        /// رابط API المحلي لبيئة التطوير.
         /// يجب أن ينتهي بشرطة مائلة /.
+        /// يجب أن يطابق منفذ HTTPS في launchSettings لمشروع AlTayerERP.API.
         /// </summary>
         public static readonly string BaseUrl =
-            "https://localhost:7011/api/";
+            "https://localhost:7021/api/";
 
         /// <summary>
         /// كائن الاتصال المركزي بجميع شاشات النظام.
