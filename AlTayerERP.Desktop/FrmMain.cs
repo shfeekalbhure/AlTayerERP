@@ -59,9 +59,16 @@ namespace AlTayerERP.Desktop
             var navyDark = Color.FromArgb(5, 36, 69);
             var blue = Color.FromArgb(20, 102, 190);
 
+            // اتجاه التطبيق عربي: شجرة النظام في اليمين ومساحة العمل في اليسار.
+            RightToLeft = RightToLeft.Yes;
+            pnlSideMenu.Dock = DockStyle.Right;
+            pnlSideMenu.Width = 235;
+            pnlWorkspace.Dock = DockStyle.Fill;
+
+            // ألوان أخف لتقليل كثافة الواجهة مع المحافظة على هوية الطائر.
             pnlTopBar.BackColor = navy;
             pnlSideMenu.BackColor = navyDark;
-            pnlWorkspace.BackColor = Color.FromArgb(246, 249, 252);
+            pnlWorkspace.BackColor = Color.FromArgb(249, 250, 252);
             pnlStatusBar.BackColor = Color.White;
             pnlStatusBar.BorderStyle = BorderStyle.FixedSingle;
 
@@ -90,11 +97,15 @@ namespace AlTayerERP.Desktop
             tvMainMenu.ForeColor = Color.White;
             tvMainMenu.BorderStyle = BorderStyle.None;
             tvMainMenu.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
-            tvMainMenu.LineColor = Color.FromArgb(80, 125, 165);
-            tvMainMenu.ShowLines = false;
+            // إظهار التفرعات فعلياً حتى تبدو القائمة كشجرة نظام واضحة.
+            tvMainMenu.LineColor = Color.FromArgb(96, 144, 186);
+            tvMainMenu.ShowLines = true;
             tvMainMenu.ShowPlusMinus = true;
-            tvMainMenu.ShowRootLines = false;
-            tvMainMenu.ItemHeight = 34;
+            tvMainMenu.ShowRootLines = true;
+            tvMainMenu.Indent = 24;
+            tvMainMenu.ItemHeight = 32;
+            tvMainMenu.HotTracking = true;
+            tvMainMenu.RightToLeft = RightToLeft.Yes;
 
             lblStatusApi.ForeColor = Color.FromArgb(0, 132, 78);
             lblStatusDatabase.ForeColor = Color.FromArgb(0, 132, 78);
@@ -114,10 +125,10 @@ namespace AlTayerERP.Desktop
             var shell = new TableLayoutPanel
             {
                 Dock = DockStyle.Fill,
-                Padding = new Padding(24),
+                Padding = new Padding(18),
                 ColumnCount = 1,
                 RowCount = 4,
-                BackColor = Color.FromArgb(246, 249, 252)
+                BackColor = Color.FromArgb(249, 250, 252)
             };
             shell.RowStyles.Add(new RowStyle(SizeType.Absolute, 62));
             shell.RowStyles.Add(new RowStyle(SizeType.Absolute, 150));
@@ -152,8 +163,8 @@ namespace AlTayerERP.Desktop
             {
                 Dock = DockStyle.Fill,
                 BackColor = Color.White,
-                BorderStyle = BorderStyle.FixedSingle,
-                Padding = new Padding(22)
+                BorderStyle = BorderStyle.None,
+                Padding = new Padding(18)
             };
             quick.Controls.Add(new Label
             {
@@ -198,9 +209,9 @@ namespace AlTayerERP.Desktop
                 Dock = DockStyle.Fill,
                 Margin = new Padding(7),
                 BackColor = Color.White,
-                BorderStyle = BorderStyle.FixedSingle,
+                BorderStyle = BorderStyle.None,
                 Cursor = Cursors.Hand,
-                Padding = new Padding(18)
+                Padding = new Padding(16)
             };
 
             card.Controls.Add(new Label
@@ -396,11 +407,23 @@ namespace AlTayerERP.Desktop
             if (accountingNode.Nodes.Count > 0)
                 tvMainMenu.Nodes.Add(accountingNode);
 
-            tvMainMenu.ExpandAll();
+            // نفتح مستوى الأقسام فقط؛ تبقى الفروع الداخلية قابلة للفتح والإغلاق.
+            tvMainMenu.CollapseAll();
+            foreach (TreeNode root in tvMainMenu.Nodes)
+                root.Expand();
         }
 
-        private void tvMainMenu_NodeMouseDoubleClick(object? sender, TreeNodeMouseClickEventArgs e) =>
+        private void tvMainMenu_NodeMouseDoubleClick(object? sender, TreeNodeMouseClickEventArgs e)
+        {
+            // الضغط على قسم يفتح/يغلق فروعه، أما الورقة فتفتح الشاشة.
+            if (e.Node.Nodes.Count > 0)
+            {
+                e.Node.Toggle();
+                return;
+            }
+
             OpenScreen(e.Node.Name);
+        }
 
         /// <summary>يفتح الشاشة بعد تطبيق صلاحية العرض الحالية.</summary>
         private void OpenScreen(string screenCode)
