@@ -189,11 +189,23 @@ namespace AlTayerERP.Desktop
             int rowIndex = dgvVoucherDetails.CurrentCell.RowIndex;
             string columnName = dgvVoucherDetails.CurrentCell.OwningColumn.Name;
 
-            // إذا ضغط المستخدم F9 وهو واقفاHistorical على عمود رقم الحساب
-            if (e.KeyCode == Keys.F9 && columnName == "colAccountCode" && rowIndex >= 0)
+            // F9 يفتح شاشة الاستعلام المناسبة للخلية الحالية.
+            if (e.KeyCode != Keys.F9 || rowIndex < 0)
+            {
+                return;
+            }
+
+            if (columnName == "colAccountCode")
             {
                 e.Handled = true;
+                e.SuppressKeyPress = true;
                 OpenAccountLookupForm(rowIndex);
+            }
+            else if (columnName == "colCostCenter")
+            {
+                e.Handled = true;
+                e.SuppressKeyPress = true;
+                OpenCostCenterLookupForm(rowIndex);
             }
         }
 
@@ -515,19 +527,37 @@ namespace AlTayerERP.Desktop
         private void dgvVoucherDetails_EditingControlShowing(object? sender, DataGridViewEditingControlShowingEventArgs e)
         {
             // ✅ تعديل اسم العمود هنا إلى colAccountCode ليطابق التصميم تماماً
-            if (dgvVoucherDetails.CurrentCell.OwningColumn.Name == "colAccountCode" && e.Control is ComboBox combo)
+            if (dgvVoucherDetails.CurrentCell == null || e.Control is not ComboBox combo)
+            {
+                return;
+            }
+
+            string columnName = dgvVoucherDetails.CurrentCell.OwningColumn.Name;
+            if (columnName == "colAccountCode")
             {
                 combo.DropDownStyle = ComboBoxStyle.DropDown;
                 combo.AutoCompleteMode = AutoCompleteMode.SuggestAppend;
                 combo.AutoCompleteSource = AutoCompleteSource.ListItems;
-
                 combo.KeyDown -= ComboAccount_KeyDown;
                 combo.KeyDown += ComboAccount_KeyDown;
+            }
+            else if (columnName == "colCostCenter")
+            {
+                combo.KeyDown -= ComboCostCenter_KeyDown;
+                combo.KeyDown += ComboCostCenter_KeyDown;
             }
         }
 
         private void ComboAccount_KeyDown(object? sender, KeyEventArgs e)
         {
+            if (e.KeyCode == Keys.F9 && dgvVoucherDetails.CurrentCell != null)
+            {
+                e.Handled = true;
+                e.SuppressKeyPress = true;
+                OpenAccountLookupForm(dgvVoucherDetails.CurrentCell.RowIndex);
+                return;
+            }
+
             if (sender is ComboBox combo && (e.KeyCode == Keys.Delete || e.KeyCode == Keys.Back))
             {
                 e.Handled = true;
