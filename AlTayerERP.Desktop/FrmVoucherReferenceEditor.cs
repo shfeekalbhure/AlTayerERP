@@ -240,8 +240,8 @@ namespace AlTayerERP.Desktop
                     ReferenceEditorFieldKind.Number => new NumericUpDown
                     {
                         Dock = DockStyle.Fill,
-                        Maximum = 999999,
-                        DecimalPlaces = 0,
+                        Maximum = 999999999,
+                        DecimalPlaces = field.DecimalPlaces,
                         ThousandsSeparator = true
                     },
                     ReferenceEditorFieldKind.Date => new DateTimePicker
@@ -625,5 +625,6 @@ namespace AlTayerERP.Desktop
         ReferenceEditorFieldKind Kind = ReferenceEditorFieldKind.Text,
         int MaxLength = 150,
         bool DefaultBoolean = false,
-        IReadOnlyList<string>? Options = null);
+        IReadOnlyList<string>? Options = null,
+        int DecimalPlaces = 0);
 }
