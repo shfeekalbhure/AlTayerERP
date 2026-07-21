@@ -31,6 +31,8 @@ namespace AlTayerERP.Desktop
             lblFiscalYear.Text = "جاري التحميل...";
             lblCurrentUser.Text = "المستخدم\n" + CurrentSession.Username;
             _ = LoadSessionDetails();
+            _ = RefreshConnectionStatusAsync();
+            lblStatusTime.Text = DateTime.Now.ToString("yyyy/MM/dd HH:mm");
             BuildMainMenu();
             tvMainMenu.NodeMouseDoubleClick -= tvMainMenu_NodeMouseDoubleClick;
             tvMainMenu.NodeMouseDoubleClick += tvMainMenu_NodeMouseDoubleClick;
@@ -52,6 +54,25 @@ namespace AlTayerERP.Desktop
             {
                 lblCompanyName.Text = "شركة\n" + CurrentSession.Company_ID;
                 lblFiscalYear.Text = "السنة المالية\n" + CurrentSession.Year_ID;
+            }
+        }
+
+        // فحص عملي للخادم وقاعدة البيانات وتحديث شريط الحالة دون تعطيل المستخدم.
+        private async Task RefreshConnectionStatusAsync()
+        {
+            try
+            {
+                var response = await _client.GetAsync($"{_baseUrl}health");
+                if (!response.IsSuccessStatusCode)
+                    throw new HttpRequestException();
+
+                lblStatusApi.Text = "API: متصل";
+                lblStatusDatabase.Text = "قاعدة البيانات: متصلة";
+            }
+            catch
+            {
+                lblStatusApi.Text = "API: غير متصل";
+                lblStatusDatabase.Text = "قاعدة البيانات: غير متصلة";
             }
         }
 
