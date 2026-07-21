@@ -91,6 +91,27 @@ namespace AlTayerERP.Desktop.Services
                     out bool effect) && effect);
         }
 
+        /// <summary>
+        /// يعيد القرار الصريح إن كان المورد مهيأً بدور أو باستثناء مستخدم.
+        /// </summary>
+        public static bool TryGetResourcePermission(
+            string screenCode,
+            string resourceKind,
+            string resourceCode,
+            string permissionCode,
+            out bool effect)
+        {
+            if (Is_System_Admin)
+            {
+                effect = true;
+                return true;
+            }
+
+            return _resourcePermissions.TryGetValue(
+                ResourceKey(screenCode, resourceKind, resourceCode, permissionCode),
+                out effect);
+        }
+
         private static string ResourceKey(
             string screenCode,
             string resourceKind,
