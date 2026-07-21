@@ -90,6 +90,7 @@ namespace AlTayerERP.Desktop
                 AddMenuItem(adminNode, "Users", "المستخدمون والصلاحيات");
                 AddMenuItem(adminNode, "Roles", "الأدوار");
                 AddMenuItem(adminNode, "NumberingSettings", "إعدادات الترقيم");
+                AddMenuItem(adminNode, "SystemCatalog", "كتالوج النظام");
 
                 TreeNode accountingNode = new("الحسابات");
                 AddMenuItem(accountingNode, "ChartOfAccounts", "الدليل المحاسبي");
@@ -162,6 +163,9 @@ namespace AlTayerERP.Desktop
                     break;
                 case "NumberingSettings":
                     new FrmNumberingSettings().ShowDialog(this);
+                    break;
+                case "SystemCatalog":
+                    new FrmSystemCatalog().ShowDialog(this);
                     break;
                 case "ChartOfAccounts":
                     new FrmChartOfAccounts().ShowDialog(this);
