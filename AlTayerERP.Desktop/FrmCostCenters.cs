@@ -31,9 +31,7 @@ namespace AlTayerERP.Desktop
             InitializeComponent();
 
             // تطبيق الثيم العربي الموحد والاختصارات على الشاشة القديمة.
-            ArabicErpFormStyle.Apply(this);
-
-            // ربط الأحداث مرة واحدة فقط وبشكل صحيح
+// ربط الأحداث مرة واحدة فقط وبشكل صحيح
             this.Load += FrmCostCenters_Load;
 
             btnSave.Click += btnSave_Click;
