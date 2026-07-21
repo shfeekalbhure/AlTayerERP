@@ -28,7 +28,7 @@ namespace AlTayerERP.Desktop.Common
 
         public LookupDialogItem? SelectedItem { get; private set; }
 
-        protected FrmReferenceLookup(string title, IEnumerable<LookupDialogItem> items, string? initialSearch = null)
+        public FrmReferenceLookup(string title, IEnumerable<LookupDialogItem> items, string? initialSearch = null)
         {
             _allItems = (items ?? Enumerable.Empty<LookupDialogItem>())
                 .OrderBy(x => x.Code)
