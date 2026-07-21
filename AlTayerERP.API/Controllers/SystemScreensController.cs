@@ -110,9 +110,12 @@ namespace AlTayerERP.API.Controllers
             SystemScreen screen;
             if (request.Screen_ID > 0)
             {
-                screen = await _context.SystemScreens
-                    .FirstOrDefaultAsync(x => x.Screen_ID == request.Screen_ID)
-                    ?? throw new KeyNotFoundException("الشاشة المطلوب تعديلها غير موجودة.");
+                var existingScreen = await _context.SystemScreens
+                    .FirstOrDefaultAsync(x => x.Screen_ID == request.Screen_ID);
+                if (existingScreen == null)
+                    return NotFound(new { message = "الشاشة المطلوب تعديلها غير موجودة." });
+
+                screen = existingScreen;
             }
             else
             {
