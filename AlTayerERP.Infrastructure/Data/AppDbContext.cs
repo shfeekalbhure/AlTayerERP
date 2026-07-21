@@ -1,5 +1,6 @@
 ﻿using AlTayerERP.Core.Entities;
 using AlTayerERP.Core.Entities.Accounting;
+using AlTayerERP.Core.Entities.Configuration;
 using Microsoft.EntityFrameworkCore;
 
 namespace AlTayerERP.Infrastructure.Data
@@ -51,6 +52,14 @@ namespace AlTayerERP.Infrastructure.Data
 
         // جدول شاشات النظام البرمجية المتوفرة لضبط الوصول
         public DbSet<SystemScreen> SystemScreens { get; set; } = null!;
+
+        // محرك الإعدادات الهرمية والموارد الدقيقة للحقول والأزرار.
+        public DbSet<SystemSetting> System_Settings { get; set; } = null!;
+        public DbSet<SettingScopeValue> Setting_Scope_Values { get; set; } = null!;
+        public DbSet<SystemScreenField> System_Screen_Fields { get; set; } = null!;
+        public DbSet<SystemScreenAction> System_Screen_Actions { get; set; } = null!;
+        public DbSet<RoleResourcePermission> Role_Resource_Permissions { get; set; } = null!;
+        public DbSet<UserResourcePermission> User_Resource_Permissions { get; set; } = null!;
 
         #endregion
 
@@ -209,6 +218,51 @@ namespace AlTayerERP.Infrastructure.Data
             {
                 entity.ToTable("system_screens");
                 entity.HasKey(e => e.Screen_ID);
+            });
+
+            modelBuilder.Entity<SystemSetting>(entity =>
+            {
+                entity.ToTable("system_settings");
+                entity.HasKey(e => e.Setting_ID);
+                entity.HasIndex(e => e.Setting_Code).IsUnique();
+            });
+
+            modelBuilder.Entity<SettingScopeValue>(entity =>
+            {
+                entity.ToTable("setting_scope_values");
+                entity.HasKey(e => e.Setting_Scope_Value_ID);
+                entity.HasIndex(e => new { e.Setting_ID, e.Scope_Type, e.Scope_ID })
+                    .HasDatabaseName("UQ_Setting_Scope_Value");
+            });
+
+            modelBuilder.Entity<SystemScreenField>(entity =>
+            {
+                entity.ToTable("system_screen_fields");
+                entity.HasKey(e => e.Screen_Field_ID);
+                entity.HasIndex(e => new { e.Screen_ID, e.Field_Code }).IsUnique();
+            });
+
+            modelBuilder.Entity<SystemScreenAction>(entity =>
+            {
+                entity.ToTable("system_screen_actions");
+                entity.HasKey(e => e.Screen_Action_ID);
+                entity.HasIndex(e => new { e.Screen_ID, e.Action_Code }).IsUnique();
+            });
+
+            modelBuilder.Entity<RoleResourcePermission>(entity =>
+            {
+                entity.ToTable("role_resource_permissions");
+                entity.HasKey(e => e.Role_Resource_Permission_ID);
+                entity.HasIndex(e => new { e.Role_ID, e.Resource_Type, e.Resource_Code, e.Permission_Code })
+                    .IsUnique();
+            });
+
+            modelBuilder.Entity<UserResourcePermission>(entity =>
+            {
+                entity.ToTable("user_resource_permissions");
+                entity.HasKey(e => e.User_Resource_Permission_ID);
+                entity.HasIndex(e => new { e.User_ID, e.Resource_Type, e.Resource_Code, e.Permission_Code })
+                    .IsUnique();
             });
 
             #endregion
