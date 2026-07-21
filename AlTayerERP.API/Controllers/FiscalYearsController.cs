@@ -16,7 +16,38 @@ namespace AlTayerERP.API.Controllers
         private readonly AppDbContext _context;
         public FiscalYearsController(AppDbContext context) => _context = context;
 
-        // تستخدم شاشة الدخول companyId لعزل سنوات كل شركة عن الأخرى. لتجنب عرض سنوات الشركات الأخرى.
+        // قائمة دخول محدودة: الشركة مطلوبة وتُرجع السنوات النشطة غير المقفلة فقط.
+        [HttpGet("Lookup")]
+        public async Task<IActionResult> GetLoginLookup([FromQuery] string companyId)
+        {
+            if (string.IsNullOrWhiteSpace(companyId))
+                return BadRequest("معرف الشركة مطلوب.");
+
+            var normalizedCompanyId = companyId.Trim();
+            var companyIsActive = await _context.Companies
+                .AsNoTracking()
+                .AnyAsync(x => x.Company_ID == normalizedCompanyId && x.Is_Active);
+
+            if (!companyIsActive)
+                return NotFound("الشركة غير موجودة أو غير فعالة.");
+
+            var years = await _context.Fiscal_Years
+                .AsNoTracking()
+                .Where(x => x.Company_ID == normalizedCompanyId && x.Is_Active && !x.Is_Closed)
+                .OrderByDescending(x => x.Is_Default)
+                .ThenByDescending(x => x.Start_Date)
+                .Select(x => new
+                {
+                    x.Fiscal_Year_ID,
+                    x.Year_Name,
+                    x.Is_Default
+                })
+                .ToListAsync();
+
+            return Ok(years);
+        }
+
+        // تستخدم شاشة الإدارة هذا المسار بعد المصادقة؛ يعرض السنوات بحسب نطاق الشركة.
         [HttpGet]
         public async Task<IActionResult> GetFiscalYears([FromQuery] string? companyId, [FromQuery] bool includeClosed = false)
         {
