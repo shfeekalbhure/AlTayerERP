@@ -19,6 +19,9 @@ namespace AlTayerERP.Desktop
         private readonly string _baseUrl = ApiService.BaseUrl;
         private readonly ComboBox cmbRoles = new();
         private readonly DataGridView dgvPermissions = CreatePermissionsGrid();
+        private readonly DataGridView dgvFieldPermissions = CreateResourceGrid(true);
+        private readonly DataGridView dgvActionPermissions = CreateResourceGrid(false);
+        private int _selectedScreenId;
         private readonly ToolStripButton btnRefresh = new("تحديث");
         private readonly ToolStripButton btnSave = new("حفظ الصلاحيات");
         private readonly Label lblStatus = CreateAuditValue();
@@ -114,13 +117,30 @@ namespace AlTayerERP.Desktop
             screenTab.Controls.Add(screenGroup);
 
             var noteTab = new TabPage("الحقول والأزرار الدقيقة") { BackColor = BackColor };
-            noteTab.Controls.Add(new Label
+            var resourceHint = new Label
             {
-                Text = "تظهر هنا صلاحيات الحقول والأزرار الدقيقة بعد اختيار الشاشة من كتالوج النظام.",
+                Text = "اختر شاشة من تبويب صلاحيات الشاشات، ثم اضبط رؤية الحقول وتعديلها وتنفيذ الأزرار.",
                 Dock = DockStyle.Top,
-                Padding = new Padding(14),
-                TextAlign = ContentAlignment.MiddleRight
-            });
+                Height = 36,
+                Padding = new Padding(10),
+                TextAlign = ContentAlignment.MiddleRight,
+                BackColor = Color.FromArgb(238, 238, 226)
+            };
+            var resources = new SplitContainer
+            {
+                Dock = DockStyle.Fill,
+                Orientation = Orientation.Horizontal,
+                SplitterDistance = 220,
+                RightToLeft = RightToLeft.Yes
+            };
+            var fieldsGroup = new GroupBox { Text = "صلاحيات الحقول", Dock = DockStyle.Fill, Padding = new Padding(8) };
+            var actionsGroup = new GroupBox { Text = "صلاحيات الأزرار والعمليات", Dock = DockStyle.Fill, Padding = new Padding(8) };
+            fieldsGroup.Controls.Add(dgvFieldPermissions);
+            actionsGroup.Controls.Add(dgvActionPermissions);
+            resources.Panel1.Controls.Add(fieldsGroup);
+            resources.Panel2.Controls.Add(actionsGroup);
+            noteTab.Controls.Add(resources);
+            noteTab.Controls.Add(resourceHint);
             tabs.TabPages.Add(screenTab);
             tabs.TabPages.Add(noteTab);
 
@@ -255,6 +275,51 @@ namespace AlTayerERP.Desktop
             }
         }
 
+        private static DataGridView CreateResourceGrid(bool isFieldGrid)
+        {
+            var grid = new DataGridView
+            {
+                Dock = DockStyle.Fill,
+                AllowUserToAddRows = false,
+                AllowUserToDeleteRows = false,
+                AllowUserToOrderColumns = false,
+                AutoGenerateColumns = false,
+                MultiSelect = false,
+                SelectionMode = DataGridViewSelectionMode.FullRowSelect,
+                RowHeadersVisible = false,
+                BackgroundColor = Color.White,
+                BorderStyle = BorderStyle.Fixed3D,
+                EnableHeadersVisualStyles = false,
+                GridColor = Color.Gray
+            };
+            grid.RowsDefaultCellStyle.SelectionBackColor = Color.FromArgb(206, 244, 246);
+            grid.RowsDefaultCellStyle.SelectionForeColor = Color.Black;
+            grid.ColumnHeadersDefaultCellStyle = new DataGridViewCellStyle
+            {
+                BackColor = Color.FromArgb(225, 242, 246),
+                ForeColor = Color.Black,
+                Alignment = DataGridViewContentAlignment.MiddleCenter,
+                Font = new Font("Tahoma", 8F, FontStyle.Bold)
+            };
+            grid.Columns.Add(new DataGridViewTextBoxColumn
+            {
+                HeaderText = isFieldGrid ? "الحقل" : "الزر أو العملية",
+                DataPropertyName = "Resource_Name",
+                ReadOnly = true,
+                AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill
+            });
+            if (isFieldGrid)
+            {
+                grid.Columns.Add(new DataGridViewCheckBoxColumn { HeaderText = "عرض", DataPropertyName = "Permission_View", Width = 60 });
+                grid.Columns.Add(new DataGridViewCheckBoxColumn { HeaderText = "تعديل", DataPropertyName = "Permission_Edit", Width = 60 });
+            }
+            else
+            {
+                grid.Columns.Add(new DataGridViewCheckBoxColumn { HeaderText = "تنفيذ", DataPropertyName = "Permission_Execute", Width = 70 });
+            }
+            return grid;
+        }
+
         private async Task LoadPermissionsAsync()
         {
             if (cmbRoles.SelectedValue is not int roleId || roleId <= 0)
@@ -265,6 +330,11 @@ namespace AlTayerERP.Desktop
                 var permissions = await _client.GetFromJsonAsync<List<RoleScreenPermissionItem>>(
                     _baseUrl + "Roles/" + roleId + "/permissions");
                 dgvPermissions.DataSource = permissions ?? new List<RoleScreenPermissionItem>();
+                _selectedScreenId = 0;
+                dgvFieldPermissions.DataSource = null;
+                dgvActionPermissions.DataSource = null;
+                dgvPermissions.SelectionChanged -= dgvPermissions_SelectionChanged;
+                dgvPermissions.SelectionChanged += dgvPermissions_SelectionChanged;
                 lblStatus.Text = "تم تحميل الصلاحيات";
             }
             catch (Exception ex)
@@ -276,12 +346,62 @@ namespace AlTayerERP.Desktop
             }
         }
 
+        private async void dgvPermissions_SelectionChanged(object? sender, EventArgs e)
+        {
+            if (dgvPermissions.CurrentRow?.DataBoundItem is not RoleScreenPermissionItem selected)
+                return;
+
+            _selectedScreenId = selected.Screen_ID;
+            if (cmbRoles.SelectedValue is int roleId && roleId > 0)
+                await LoadResourcePermissionsAsync(roleId, _selectedScreenId);
+        }
+
+        private async Task LoadResourcePermissionsAsync(int roleId, int screenId)
+        {
+            try
+            {
+                ResourcePermissionResponse? resources =
+                    await _client.GetFromJsonAsync<ResourcePermissionResponse>(
+                        _baseUrl + "Roles/" + roleId + "/resource-permissions/" + screenId);
+
+                dgvFieldPermissions.DataSource = resources?.Fields ?? new List<ResourcePermissionItem>();
+                dgvActionPermissions.DataSource = resources?.Actions ?? new List<ResourcePermissionItem>();
+            }
+            catch
+            {
+                dgvFieldPermissions.DataSource = null;
+                dgvActionPermissions.DataSource = null;
+            }
+        }
+
+        private async Task SaveCurrentResourcePermissionsAsync(int roleId)
+        {
+            if (_selectedScreenId <= 0)
+                return;
+
+            var request = new ResourcePermissionResponse
+            {
+                Screen_ID = _selectedScreenId,
+                Fields = dgvFieldPermissions.DataSource as List<ResourcePermissionItem> ?? new List<ResourcePermissionItem>(),
+                Actions = dgvActionPermissions.DataSource as List<ResourcePermissionItem> ?? new List<ResourcePermissionItem>()
+            };
+
+            using HttpResponseMessage response = await _client.PutAsJsonAsync(
+                _baseUrl + "Roles/" + roleId + "/resource-permissions/" + _selectedScreenId,
+                request);
+
+            if (!response.IsSuccessStatusCode)
+                throw new InvalidOperationException(await response.Content.ReadAsStringAsync());
+        }
+
         private async Task SaveAsync()
         {
             if (!CurrentSession.Is_System_Admin || cmbRoles.SelectedValue is not int roleId || roleId <= 0)
                 return;
 
             dgvPermissions.EndEdit();
+            dgvFieldPermissions.EndEdit();
+            dgvActionPermissions.EndEdit();
             var items = dgvPermissions.DataSource as List<RoleScreenPermissionItem>;
             if (items == null)
                 return;
@@ -299,6 +419,7 @@ namespace AlTayerERP.Desktop
                     return;
                 }
 
+                await SaveCurrentResourcePermissionsAsync(roleId);
                 lblStatus.Text = "تم حفظ الصلاحيات";
                 MessageBox.Show("تم حفظ صلاحيات الدور بنجاح.", "الصلاحيات",
                     MessageBoxButtons.OK, MessageBoxIcon.Information);
@@ -313,6 +434,23 @@ namespace AlTayerERP.Desktop
             {
                 btnSave.Enabled = CurrentSession.Is_System_Admin;
             }
+        }
+
+        private sealed class ResourcePermissionResponse
+        {
+            public int Screen_ID { get; set; }
+            public List<ResourcePermissionItem> Fields { get; set; } = new();
+            public List<ResourcePermissionItem> Actions { get; set; } = new();
+        }
+
+        private sealed class ResourcePermissionItem
+        {
+            public string Resource_Type { get; set; } = string.Empty;
+            public string Resource_Code { get; set; } = string.Empty;
+            public string Resource_Name { get; set; } = string.Empty;
+            public bool Permission_View { get; set; }
+            public bool Permission_Edit { get; set; }
+            public bool Permission_Execute { get; set; }
         }
 
         private sealed class RoleItem
