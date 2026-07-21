@@ -134,6 +134,36 @@ namespace AlTayerERP.API.Controllers
                             Can_UnApprove = permission.Can_UnApprove
                         }).ToListAsync();
 
+                List<LoginResourcePermissionDto> resourcePermissions = new();
+                if (!isSystemAdmin)
+                {
+                    var screensById = await _context.SystemScreens.AsNoTracking()
+                        .Where(x => x.Is_Active)
+                        .ToDictionaryAsync(x => x.Screen_ID, x => x.Screen_Code);
+
+                    var rawPermissions = await _context.Role_Resource_Permissions.AsNoTracking()
+                        .Where(x => x.Role_ID == user.Role_ID && x.Is_Active && x.Effect)
+                        .ToListAsync();
+
+                    foreach (var item in rawPermissions)
+                    {
+                        string[] parts = item.Resource_Type.Split(':', 2);
+                        if (parts.Length != 2 || !int.TryParse(parts[1], out int screenId) ||
+                            !screensById.TryGetValue(screenId, out string? screenCode))
+                        {
+                            continue;
+                        }
+
+                        resourcePermissions.Add(new LoginResourcePermissionDto
+                        {
+                            Screen_Code = screenCode,
+                            Resource_Kind = parts[0],
+                            Resource_Code = item.Resource_Code,
+                            Permission_Code = item.Permission_Code
+                        });
+                    }
+                }
+
                 return Ok(new LoginResultDto
                 {
                     User_ID = user.User_ID,
@@ -145,7 +175,8 @@ namespace AlTayerERP.API.Controllers
                     Year_ID = request.Year_ID,
                     Is_System_Admin = isSystemAdmin,
                     Access_Token = CreateAccessToken(user, role, request, companyId),
-                    Screen_Permissions = screenPermissions
+                    Screen_Permissions = screenPermissions,
+                    Resource_Permissions = resourcePermissions
                 });
             }
             catch (Exception)
@@ -258,6 +289,15 @@ namespace AlTayerERP.API.Controllers
         public bool Is_System_Admin { get; set; }
         public string Access_Token { get; set; } = string.Empty;
         public List<ScreenPermissionDto> Screen_Permissions { get; set; } = new();
+        public List<LoginResourcePermissionDto> Resource_Permissions { get; set; } = new();
+    }
+
+    public sealed class LoginResourcePermissionDto
+    {
+        public string Screen_Code { get; set; } = string.Empty;
+        public string Resource_Kind { get; set; } = string.Empty;
+        public string Resource_Code { get; set; } = string.Empty;
+        public string Permission_Code { get; set; } = string.Empty;
     }
 
     public sealed class ScreenPermissionDto
