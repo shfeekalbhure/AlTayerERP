@@ -366,8 +366,9 @@ namespace AlTayerERP.Desktop
             var cashMethod = paymentMethods.FirstOrDefault(m =>
                 m.Payment_Method_Code.Equals("CASH", StringComparison.OrdinalIgnoreCase) ||
                 m.Payment_Method_Name_AR.Contains("نقد"));
-            if (cashMethod != null) cmbPaymentMethod.SelectedValue = paymentMethods.FirstOrDefault()?.Payment_Method_ID ?? 0; // تم الحفاظ عليها برمجياً كما وردت بالملف الأصلي دون تدخل لتغيير المنطق
-            if (cashMethod != null) cmbPaymentMethod.SelectedValue = cashMethod.Payment_Method_ID;
+            // اختيار طريقة النقد تلقائياً عند وجودها، دون تمرير اختيار مؤقت خاطئ.
+            if (cashMethod != null)
+                cmbPaymentMethod.SelectedValue = cashMethod.Payment_Method_ID;
         }
 
         private void BindParties(List<PartyLookupModel> parties)
