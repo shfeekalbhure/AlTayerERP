@@ -28,8 +28,8 @@ CREATE TABLE IF NOT EXISTS setting_scope_values (
     Created_At DATETIME(6) NOT NULL,
     Change_Reason VARCHAR(500) NULL,
     PRIMARY KEY (Setting_Scope_Value_ID),
-    UNIQUE KEY UQ_Setting_Scope_Value (Setting_ID, Scope_Type, Scope_ID),
     KEY IX_Setting_Scope_Value_Active (Setting_ID, Is_Active),
+    KEY IX_Setting_Scope_Value_Resolution (Setting_ID, Scope_Type, Scope_ID, Is_Active),
     CONSTRAINT FK_Setting_Scope_Values_Settings
         FOREIGN KEY (Setting_ID) REFERENCES system_settings (Setting_ID)
         ON DELETE RESTRICT
