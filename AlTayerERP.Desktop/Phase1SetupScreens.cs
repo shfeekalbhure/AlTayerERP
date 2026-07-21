@@ -45,7 +45,7 @@ namespace AlTayerERP.Desktop
             shell.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
             shell.RowStyles.Add(new RowStyle(SizeType.Absolute, 74));
             shell.RowStyles.Add(new RowStyle(SizeType.Absolute, 52));
-            shell.RowStyles.Add(new RowStyle(SizeType.Absolute, 46));
+            shell.RowStyles.Add(new RowStyle(SizeType.Absolute, 58));
             shell.RowStyles.Add(new RowStyle(SizeType.AutoSize));
             shell.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
 
@@ -274,16 +274,16 @@ namespace AlTayerERP.Desktop
             var isNotes = field.Kind == SetupFieldKind.Notes;
             var panel = new Panel
             {
-                Width = isNotes ? 470 : 230,
-                Height = isNotes ? 98 : 66,
-                Margin = new Padding(5)
+                Width = isNotes ? 520 : 250,
+                Height = isNotes ? 126 : 94,
+                Margin = new Padding(6)
             };
 
             panel.Controls.Add(new Label
             {
                 Text = field.Caption,
                 Dock = DockStyle.Top,
-                Height = 24,
+                Height = 28,
                 ForeColor = Color.FromArgb(55, 65, 81),
                 TextAlign = ContentAlignment.MiddleRight
             });
@@ -325,10 +325,41 @@ namespace AlTayerERP.Desktop
                 }
             };
 
+            ConfigureSetupInput(input, isNotes);
+
             input.Tag = field;
             _inputs[field.Code] = input;
             panel.Controls.Add(input);
             return panel;
+        }
+
+        /// <summary>
+        /// يرفع وضوح حقول التهيئة والمنسدلات والتواريخ في جميع شاشات الإعداد.
+        /// </summary>
+        private static void ConfigureSetupInput(Control input, bool isNotes)
+        {
+            input.Dock = DockStyle.Bottom;
+            input.Height = isNotes ? 82 : 36;
+            input.Margin = new Padding(0, 4, 0, 0);
+            input.Font = new Font("Segoe UI", 10F);
+
+            switch (input)
+            {
+                case DateTimePicker date:
+                    date.Height = 36;
+                    break;
+                case NumericUpDown number:
+                    number.Height = 36;
+                    number.TextAlign = HorizontalAlignment.Right;
+                    break;
+                case TextBox text when !isNotes:
+                    text.MinimumSize = new Size(0, 30);
+                    text.TextAlign = HorizontalAlignment.Right;
+                    break;
+                case CheckBox check:
+                    check.Height = 36;
+                    break;
+            }
         }
 
         private static Button CreateButton(string text, Color color, EventHandler? click)
