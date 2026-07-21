@@ -450,7 +450,9 @@ namespace AlTayerERP.Desktop
 
             var required = _fields
                 .Where(field => field.Kind == ReferenceEditorFieldKind.Text &&
-                    (field.Code.EndsWith("_Code", StringComparison.Ordinal) || field.Code.EndsWith("_Name_AR", StringComparison.Ordinal)))
+                    (field.Code.EndsWith("_Code", StringComparison.Ordinal) ||
+                     field.Code.EndsWith("_Name_AR", StringComparison.Ordinal) ||
+                     field.Code.EndsWith("_Name", StringComparison.Ordinal)))
                 .FirstOrDefault(field => _inputs[field.Code] is TextBox textBox && string.IsNullOrWhiteSpace(textBox.Text));
 
             if (required != null)
