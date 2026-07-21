@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Drawing;
 using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Json;
@@ -30,6 +31,9 @@ namespace AlTayerERP.Desktop
                 return;
             }
 
+            ApplyMainShellVisuals();
+            BuildDashboard();
+
             btnLogout.Click += btnLogout_Click;
             btnSettings.Click += btnSettings_Click;
             lblCompanyName.Text = "جاري التحميل...";
@@ -43,6 +47,211 @@ namespace AlTayerERP.Desktop
             _ = LoadAllowedScreensAsync();
             tvMainMenu.NodeMouseDoubleClick -= tvMainMenu_NodeMouseDoubleClick;
             tvMainMenu.NodeMouseDoubleClick += tvMainMenu_NodeMouseDoubleClick;
+        }
+
+        /// <summary>
+        /// تصميم الواجهة الرئيسية وفق هوية الطائر: شريط علوي كحلي،
+        /// قائمة جانبية ثابتة، ومساحة عمل هادئة مناسبة للشاشات المحاسبية.
+        /// </summary>
+        private void ApplyMainShellVisuals()
+        {
+            var navy = Color.FromArgb(8, 49, 92);
+            var navyDark = Color.FromArgb(5, 36, 69);
+            var blue = Color.FromArgb(20, 102, 190);
+
+            pnlTopBar.BackColor = navy;
+            pnlSideMenu.BackColor = navyDark;
+            pnlWorkspace.BackColor = Color.FromArgb(246, 249, 252);
+            pnlStatusBar.BackColor = Color.White;
+            pnlStatusBar.BorderStyle = BorderStyle.FixedSingle;
+
+            foreach (var label in new[] { lblCompanyName, lblCurrentBranch, lblFiscalYear, lblCurrentUser })
+            {
+                label.ForeColor = Color.White;
+                label.Font = new Font("Segoe UI", 9.5F, FontStyle.Bold);
+            }
+
+            foreach (var button in new[] { btnSettings, btnNotifications, btnAboutSystem })
+            {
+                button.FlatStyle = FlatStyle.Flat;
+                button.FlatAppearance.BorderSize = 0;
+                button.BackColor = navy;
+                button.ForeColor = Color.White;
+                button.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+            }
+
+            btnLogout.FlatStyle = FlatStyle.Flat;
+            btnLogout.FlatAppearance.BorderSize = 0;
+            btnLogout.BackColor = Color.FromArgb(202, 48, 45);
+            btnLogout.ForeColor = Color.White;
+            btnLogout.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+
+            tvMainMenu.BackColor = navyDark;
+            tvMainMenu.ForeColor = Color.White;
+            tvMainMenu.BorderStyle = BorderStyle.None;
+            tvMainMenu.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
+            tvMainMenu.LineColor = Color.FromArgb(80, 125, 165);
+            tvMainMenu.ShowLines = false;
+            tvMainMenu.ShowPlusMinus = true;
+            tvMainMenu.ShowRootLines = false;
+            tvMainMenu.ItemHeight = 34;
+
+            lblStatusApi.ForeColor = Color.FromArgb(0, 132, 78);
+            lblStatusDatabase.ForeColor = Color.FromArgb(0, 132, 78);
+            lblStatusLicense.ForeColor = navy;
+            lblVersion.ForeColor = navy;
+            lblStatusTime.ForeColor = Color.FromArgb(70, 80, 90);
+        }
+
+        /// <summary>
+        /// لوحة مختصرة كبداية للشاشة الرئيسية. الأرقام لا تكون وهمية:
+        /// لذلك تعرض بطاقات الوصول السريع إلى أن يكتمل مؤشر العمليات.
+        /// </summary>
+        private void BuildDashboard()
+        {
+            pnlWorkspace.Controls.Clear();
+
+            var shell = new TableLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                Padding = new Padding(24),
+                ColumnCount = 1,
+                RowCount = 4,
+                BackColor = Color.FromArgb(246, 249, 252)
+            };
+            shell.RowStyles.Add(new RowStyle(SizeType.Absolute, 62));
+            shell.RowStyles.Add(new RowStyle(SizeType.Absolute, 150));
+            shell.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+            shell.RowStyles.Add(new RowStyle(SizeType.Absolute, 42));
+
+            shell.Controls.Add(new Label
+            {
+                Text = "لوحة الملخص",
+                Dock = DockStyle.Fill,
+                Font = new Font("Segoe UI", 16F, FontStyle.Bold),
+                ForeColor = Color.FromArgb(8, 49, 92),
+                TextAlign = ContentAlignment.MiddleRight
+            }, 0, 0);
+
+            var cards = new TableLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                ColumnCount = 3,
+                RowCount = 1,
+                Padding = new Padding(0, 8, 0, 8)
+            };
+            cards.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 33.333F));
+            cards.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 33.333F));
+            cards.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 33.333F));
+            cards.Controls.Add(CreateDashboardCard("سندات القبض", "إنشاء وحفظ ومراجعة السندات", "▣", Color.FromArgb(38, 107, 201), () => OpenScreen("ReceiptVoucher")), 0, 0);
+            cards.Controls.Add(CreateDashboardCard("التهيئة والإعدادات", "الشركة والفرع والسنة والصلاحيات", "⚙", Color.FromArgb(33, 141, 103), () => OpenScreen("GeneralSettings")), 1, 0);
+            cards.Controls.Add(CreateDashboardCard("الدليل المحاسبي", "الحسابات ومراكز التكلفة والعملات", "▤", Color.FromArgb(140, 84, 184), () => OpenScreen("ChartOfAccounts")), 2, 0);
+            shell.Controls.Add(cards, 0, 1);
+
+            var quick = new Panel
+            {
+                Dock = DockStyle.Fill,
+                BackColor = Color.White,
+                BorderStyle = BorderStyle.FixedSingle,
+                Padding = new Padding(22)
+            };
+            quick.Controls.Add(new Label
+            {
+                Text = "العمليات السريعة",
+                Dock = DockStyle.Top,
+                Height = 34,
+                Font = new Font("Segoe UI", 11F, FontStyle.Bold),
+                ForeColor = Color.FromArgb(8, 49, 92),
+                TextAlign = ContentAlignment.MiddleRight
+            });
+
+            var buttons = new FlowLayoutPanel
+            {
+                Dock = DockStyle.Top,
+                Height = 70,
+                FlowDirection = FlowDirection.RightToLeft,
+                WrapContents = true,
+                Padding = new Padding(0, 12, 0, 0)
+            };
+            buttons.Controls.Add(CreateQuickAction("سند قبض جديد", Color.FromArgb(22, 125, 84), () => OpenScreen("ReceiptVoucher")));
+            buttons.Controls.Add(CreateQuickAction("دليل الحسابات", Color.FromArgb(20, 102, 190), () => OpenScreen("ChartOfAccounts")));
+            buttons.Controls.Add(CreateQuickAction("المستخدمون والصلاحيات", Color.FromArgb(107, 70, 160), () => OpenScreen("Users")));
+            buttons.Controls.Add(CreateQuickAction("الإعدادات", Color.FromArgb(78, 89, 101), () => OpenScreen("GeneralSettings")));
+            quick.Controls.Add(buttons);
+            shell.Controls.Add(quick, 0, 2);
+
+            shell.Controls.Add(new Label
+            {
+                Text = "يتم عرض مؤشرات التشغيل الفعلية هنا بعد اكتمال وحدة التقارير، دون أرقام تجريبية.",
+                Dock = DockStyle.Fill,
+                ForeColor = Color.FromArgb(95, 105, 115),
+                TextAlign = ContentAlignment.MiddleRight
+            }, 0, 3);
+
+            pnlWorkspace.Controls.Add(shell);
+        }
+
+        private static Control CreateDashboardCard(string title, string description, string icon, Color accent, Action click)
+        {
+            var card = new Panel
+            {
+                Dock = DockStyle.Fill,
+                Margin = new Padding(7),
+                BackColor = Color.White,
+                BorderStyle = BorderStyle.FixedSingle,
+                Cursor = Cursors.Hand,
+                Padding = new Padding(18)
+            };
+
+            card.Controls.Add(new Label
+            {
+                Text = icon,
+                Dock = DockStyle.Left,
+                Width = 58,
+                Font = new Font("Segoe UI Symbol", 26F),
+                ForeColor = accent,
+                TextAlign = ContentAlignment.MiddleCenter
+            });
+            card.Controls.Add(new Label
+            {
+                Text = description,
+                Dock = DockStyle.Bottom,
+                Height = 34,
+                ForeColor = Color.FromArgb(95, 105, 115),
+                TextAlign = ContentAlignment.MiddleRight
+            });
+            card.Controls.Add(new Label
+            {
+                Text = title,
+                Dock = DockStyle.Fill,
+                Font = new Font("Segoe UI", 11F, FontStyle.Bold),
+                ForeColor = Color.FromArgb(25, 40, 55),
+                TextAlign = ContentAlignment.MiddleRight
+            });
+
+            card.Click += (_, _) => click();
+            foreach (Control child in card.Controls)
+                child.Click += (_, _) => click();
+            return card;
+        }
+
+        private static Button CreateQuickAction(string text, Color color, Action click)
+        {
+            var button = new Button
+            {
+                Text = text,
+                Width = 185,
+                Height = 40,
+                Margin = new Padding(5),
+                FlatStyle = FlatStyle.Flat,
+                FlatAppearance = { BorderSize = 0 },
+                BackColor = color,
+                ForeColor = Color.White,
+                Font = new Font("Segoe UI", 9F, FontStyle.Bold),
+                Cursor = Cursors.Hand
+            };
+            button.Click += (_, _) => click();
+            return button;
         }
 
         private async Task LoadSessionDetails()
@@ -190,15 +399,19 @@ namespace AlTayerERP.Desktop
             tvMainMenu.ExpandAll();
         }
 
-        private void tvMainMenu_NodeMouseDoubleClick(object? sender, TreeNodeMouseClickEventArgs e)
+        private void tvMainMenu_NodeMouseDoubleClick(object? sender, TreeNodeMouseClickEventArgs e) =>
+            OpenScreen(e.Node.Name);
+
+        /// <summary>يفتح الشاشة بعد تطبيق صلاحية العرض الحالية.</summary>
+        private void OpenScreen(string screenCode)
         {
-            if (!string.IsNullOrWhiteSpace(e.Node.Name) && !CanOpenScreen(e.Node.Name))
+            if (string.IsNullOrWhiteSpace(screenCode) || !CanOpenScreen(screenCode))
             {
                 MessageBox.Show("ليس لديك صلاحية لفتح هذه الشاشة.", "الصلاحيات", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
 
-            Form? form = e.Node.Name switch
+            Form? form = screenCode switch
             {
                 "Companies" => new CompanyForm(),
                 "Branches" => new BranchForm(),
