@@ -170,6 +170,147 @@ namespace AlTayerERP.API.Controllers
             return Ok(new { message = "تم حفظ صلاحيات الدور بنجاح." });
         }
 
+        [HttpGet("{id:int}/resource-permissions/{screenId:int}")]
+        [Authorize(Roles = "SystemAdmin")]
+        public async Task<IActionResult> GetResourcePermissions(int id, int screenId)
+        {
+            bool roleExists = await _context.Roles.AsNoTracking()
+                .AnyAsync(x => x.Role_ID == id);
+            if (!roleExists)
+                return NotFound("الدور غير موجود.");
+
+            var screen = await _context.SystemScreens.AsNoTracking()
+                .FirstOrDefaultAsync(x => x.Screen_ID == screenId && x.Is_Active);
+            if (screen == null)
+                return NotFound("الشاشة غير موجودة أو غير نشطة.");
+
+            string fieldType = "FIELD:" + screenId;
+            string actionType = "ACTION:" + screenId;
+            var assigned = await _context.Role_Resource_Permissions.AsNoTracking()
+                .Where(x => x.Role_ID == id &&
+                            (x.Resource_Type == fieldType || x.Resource_Type == actionType) &&
+                            x.Is_Active && x.Effect)
+                .ToListAsync();
+
+            var grants = assigned
+                .Select(x => x.Resource_Type + "|" + x.Resource_Code + "|" + x.Permission_Code)
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+            var fields = await _context.System_Screen_Fields.AsNoTracking()
+                .Where(x => x.Screen_ID == screenId && x.Is_Active)
+                .OrderBy(x => x.Sort_Order)
+                .Select(x => new ResourcePermissionDto
+                {
+                    Resource_Type = fieldType,
+                    Resource_Code = x.Field_Code,
+                    Resource_Name = x.Field_Name,
+                    Permission_View = false,
+                    Permission_Edit = false
+                })
+                .ToListAsync();
+
+            foreach (ResourcePermissionDto item in fields)
+            {
+                item.Permission_View = grants.Contains(fieldType + "|" + item.Resource_Code + "|VIEW");
+                item.Permission_Edit = grants.Contains(fieldType + "|" + item.Resource_Code + "|EDIT");
+            }
+
+            var actions = await _context.System_Screen_Actions.AsNoTracking()
+                .Where(x => x.Screen_ID == screenId && x.Is_Active)
+                .OrderBy(x => x.Sort_Order)
+                .Select(x => new ResourcePermissionDto
+                {
+                    Resource_Type = actionType,
+                    Resource_Code = x.Action_Code,
+                    Resource_Name = x.Action_Name,
+                    Permission_Execute = false
+                })
+                .ToListAsync();
+
+            foreach (ResourcePermissionDto item in actions)
+                item.Permission_Execute = grants.Contains(actionType + "|" + item.Resource_Code + "|EXECUTE");
+
+            return Ok(new ResourcePermissionResponseDto
+            {
+                Screen_ID = screenId,
+                Screen_Code = screen.Screen_Code,
+                Fields = fields,
+                Actions = actions
+            });
+        }
+
+        [HttpPut("{id:int}/resource-permissions/{screenId:int}")]
+        [Authorize(Roles = "SystemAdmin")]
+        public async Task<IActionResult> SaveResourcePermissions(
+            int id,
+            int screenId,
+            [FromBody] ResourcePermissionResponseDto request)
+        {
+            if (request == null)
+                return BadRequest("بيانات الصلاحيات الدقيقة مطلوبة.");
+
+            bool roleExists = await _context.Roles.AsNoTracking()
+                .AnyAsync(x => x.Role_ID == id);
+            if (!roleExists)
+                return NotFound("الدور غير موجود.");
+
+            bool screenExists = await _context.SystemScreens.AsNoTracking()
+                .AnyAsync(x => x.Screen_ID == screenId && x.Is_Active);
+            if (!screenExists)
+                return NotFound("الشاشة غير موجودة أو غير نشطة.");
+
+            string fieldType = "FIELD:" + screenId;
+            string actionType = "ACTION:" + screenId;
+            var validFields = await _context.System_Screen_Fields.AsNoTracking()
+                .Where(x => x.Screen_ID == screenId && x.Is_Active)
+                .Select(x => x.Field_Code)
+                .ToListAsync();
+            var validActions = await _context.System_Screen_Actions.AsNoTracking()
+                .Where(x => x.Screen_ID == screenId && x.Is_Active)
+                .Select(x => x.Action_Code)
+                .ToListAsync();
+
+            if (request.Fields.Any(x => !validFields.Contains(x.Resource_Code)) ||
+                request.Actions.Any(x => !validActions.Contains(x.Resource_Code)))
+            {
+                return BadRequest("توجد موارد لا تنتمي إلى الشاشة المختارة.");
+            }
+
+            var old = await _context.Role_Resource_Permissions
+                .Where(x => x.Role_ID == id &&
+                            (x.Resource_Type == fieldType || x.Resource_Type == actionType))
+                .ToListAsync();
+            _context.Role_Resource_Permissions.RemoveRange(old);
+
+            foreach (ResourcePermissionDto field in request.Fields)
+            {
+                AddGrant(id, fieldType, field.Resource_Code, "VIEW", field.Permission_View);
+                AddGrant(id, fieldType, field.Resource_Code, "EDIT", field.Permission_Edit);
+            }
+
+            foreach (ResourcePermissionDto action in request.Actions)
+                AddGrant(id, actionType, action.Resource_Code, "EXECUTE", action.Permission_Execute);
+
+            await _context.SaveChangesAsync();
+            return Ok(new { message = "تم حفظ صلاحيات الحقول والأزرار بنجاح." });
+        }
+
+        private void AddGrant(int roleId, string resourceType, string resourceCode, string permissionCode, bool granted)
+        {
+            if (!granted)
+                return;
+
+            _context.Role_Resource_Permissions.Add(new AlTayerERP.Core.Entities.Configuration.RoleResourcePermission
+            {
+                Role_ID = roleId,
+                Resource_Type = resourceType,
+                Resource_Code = resourceCode,
+                Permission_Code = permissionCode,
+                Effect = true,
+                Is_Active = true
+            });
+        }
+
         [HttpDelete("{id:int}")]
         [Authorize(Roles = "SystemAdmin")]
         public async Task<IActionResult> DeleteRole(int id)
@@ -185,6 +326,24 @@ namespace AlTayerERP.API.Controllers
             await _context.SaveChangesAsync();
             return Ok("تم حذف الدور بنجاح.");
         }
+    }
+
+    public class ResourcePermissionResponseDto
+    {
+        public int Screen_ID { get; set; }
+        public string Screen_Code { get; set; } = string.Empty;
+        public List<ResourcePermissionDto> Fields { get; set; } = new();
+        public List<ResourcePermissionDto> Actions { get; set; } = new();
+    }
+
+    public class ResourcePermissionDto
+    {
+        public string Resource_Type { get; set; } = string.Empty;
+        public string Resource_Code { get; set; } = string.Empty;
+        public string Resource_Name { get; set; } = string.Empty;
+        public bool Permission_View { get; set; }
+        public bool Permission_Edit { get; set; }
+        public bool Permission_Execute { get; set; }
     }
 
     public class RoleScreenPermissionDto
