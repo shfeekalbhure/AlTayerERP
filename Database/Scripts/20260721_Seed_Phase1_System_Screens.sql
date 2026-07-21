@@ -33,6 +33,11 @@ WHERE NOT EXISTS (SELECT 1 FROM system_screens WHERE Screen_Code = 'NumberingSet
 
 INSERT INTO system_screens
     (Screen_Code, Screen_Name, Module_Name, Is_Active, Sort_Order, Created_At)
+SELECT 'SystemCatalog', 'كتالوج النظام', 'ADMIN', 1, 70, UTC_TIMESTAMP()
+WHERE NOT EXISTS (SELECT 1 FROM system_screens WHERE Screen_Code = 'SystemCatalog');
+
+INSERT INTO system_screens
+    (Screen_Code, Screen_Name, Module_Name, Is_Active, Sort_Order, Created_At)
 SELECT 'ChartOfAccounts', 'الدليل المحاسبي', 'ACCOUNTING', 1, 110, UTC_TIMESTAMP()
 WHERE NOT EXISTS (SELECT 1 FROM system_screens WHERE Screen_Code = 'ChartOfAccounts');
 
