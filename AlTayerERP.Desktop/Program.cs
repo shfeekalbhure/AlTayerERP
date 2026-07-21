@@ -1,32 +1,46 @@
+using System;
+using System.Windows.Forms;
+
 namespace AlTayerERP.Desktop
 {
     internal static class Program
     {
         /// <summary>
-        ///  The main entry point for the application.
+        /// نقطة تشغيل تطبيق سطح المكتب.
+        /// شاشة الدخول هي النافذة الأساسية دائماً.
         /// </summary>
         [STAThread]
         static void Main()
         {
-            // To customize application configuration such as set high DPI settings or default font,
-            // see https://aka.ms/applicationconfiguration.
             ApplicationConfiguration.Initialize();
-       //     Application.Run(new FrmMain());
-            Application.Run(new FrmLogin());
-            //    Application.Run(new Form1());
-            //     Application.Run(new CompanyForm());
-            //          Application.Run(new FrmChartOfAccounts());
-            //    Application.Run(new FrmChartOfAccounts());
-         //   Application.Run(new BranchForm());
-            //    Application.Run(new FrmNumberingSettings());
-           // Application.Run(new FiscalYearForm());
 
-       //     Application.Run(new FrmUsers());
+            Application.ThreadException += (_, e) => ShowStartupError(e.Exception);
+            AppDomain.CurrentDomain.UnhandledException += (_, e) =>
+            {
+                if (e.ExceptionObject is Exception exception)
+                    ShowStartupError(exception);
+            };
 
-            //      FrmChartOfAccounts frm = new FrmChartOfAccounts();
-            //     frm.ShowDialog();
-
+            try
+            {
+                Application.Run(new FrmLogin());
+            }
+            catch (Exception ex)
+            {
+                // لا نسمح بأن يختفي البرنامج عند فشل إنشاء شاشة الدخول.
+                ShowStartupError(ex);
+            }
         }
 
+        private static void ShowStartupError(Exception ex)
+        {
+            MessageBox.Show(
+                "تعذر بدء شاشة الدخول.\n\n" +
+                "السبب الفني:\n" + ex.Message + "\n\n" +
+                "تأكد من نجاح Build ومن تشغيل مشروع AlTayerERP.Desktop.",
+                "خطأ بدء التشغيل",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Error);
+        }
     }
 }
