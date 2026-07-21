@@ -463,13 +463,20 @@ namespace AlTayerERP.Desktop
             new("Is_Active", "فعالة", ReferenceEditorFieldKind.Boolean, DefaultBoolean: true)) { }
     }
 
-    public sealed class FrmExchangeRates : FrmPhase1SetupBase
+    /// <summary>
+    /// سجل تاريخي فعلي لأسعار الصرف؛ يتحقق الخادم من حدود السعر والعملة المحلية.
+    /// </summary>
+    public sealed class FrmExchangeRates : FrmVoucherReferenceEditor
     {
-        public FrmExchangeRates() : base("إدارة أسعار الصرف",
-            new("Rate_Date", "تاريخ السعر", SetupFieldKind.Date), new("Currency", "العملة"),
-            new("Exchange_Rate", "سعر الصرف", SetupFieldKind.Number), new("Min_Rate", "الحد الأدنى", SetupFieldKind.Number),
-            new("Max_Rate", "الحد الأعلى", SetupFieldKind.Number), new("Is_Default", "افتراضي", SetupFieldKind.YesNo),
-            new("Notes", "ملاحظات", SetupFieldKind.Notes)) { }
+        public FrmExchangeRates() : base("إدارة أسعار الصرف", "ExchangeRates", "Exchange_Rate_ID",
+            new("Rate_Date", "تاريخ السريان", ReferenceEditorFieldKind.Date),
+            new("Currency_Code", "كود العملة"),
+            new("Exchange_Rate", "سعر الصرف", ReferenceEditorFieldKind.Number),
+            new("Min_Rate", "الحد الأدنى", ReferenceEditorFieldKind.Number),
+            new("Max_Rate", "الحد الأعلى", ReferenceEditorFieldKind.Number),
+            new("Is_Default", "السعر الافتراضي", ReferenceEditorFieldKind.Boolean),
+            new("Notes", "ملاحظات"),
+            new("Is_Active", "فعال", ReferenceEditorFieldKind.Boolean, DefaultBoolean: true)) { }
     }
 
     public sealed class FrmPaymentMethods : FrmVoucherReferenceEditor
