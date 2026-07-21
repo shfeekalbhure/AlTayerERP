@@ -136,6 +136,14 @@ namespace AlTayerERP.API.Controllers
                 return StatusCode(500, "تعذر إتمام عملية تسجيل الدخول حالياً.");
             }
         }
+
+        // إبطال الرمز على الخادم عند الخروج؛ لا نكتفي بمسح الواجهة المحلية.
+        [HttpPost("Logout")]
+        public IActionResult Logout()
+        {
+            _sessions.Remove(Request.Headers["X-Session-Token"].ToString());
+            return Ok(new { message = "تم إنهاء الجلسة." });
+        }
     }
 
     public class LoginRequestDto
