@@ -33,6 +33,11 @@ WHERE NOT EXISTS (SELECT 1 FROM system_screens WHERE Screen_Code = 'RolePermissi
 
 INSERT INTO system_screens
     (Screen_Code, Screen_Name, Module_Name, Is_Active, Sort_Order, Created_At)
+SELECT 'UserResourcePermissions', 'استثناءات صلاحيات المستخدم', 'ADMIN', 1, 57, UTC_TIMESTAMP()
+WHERE NOT EXISTS (SELECT 1 FROM system_screens WHERE Screen_Code = 'UserResourcePermissions');
+
+INSERT INTO system_screens
+    (Screen_Code, Screen_Name, Module_Name, Is_Active, Sort_Order, Created_At)
 SELECT 'NumberingSettings', 'إعدادات الترقيم', 'ADMIN', 1, 60, UTC_TIMESTAMP()
 WHERE NOT EXISTS (SELECT 1 FROM system_screens WHERE Screen_Code = 'NumberingSettings');
 
