@@ -62,6 +62,9 @@ namespace AlTayerERP.Infrastructure.Data
         // الفترات المحاسبية داخل السنة المالية لكل فرع.
         public DbSet<FiscalPeriod> Fiscal_Periods { get; set; } = null!;
 
+        // سجل أسعار الصرف بتاريخ السريان للشركات.
+        public DbSet<ExchangeRate> Exchange_Rates { get; set; } = null!;
+
         // جدول إعدادات ترميز وترقيم المستندات (مثل السندات والفواتير) لكل فرع
         public DbSet<NumberingSetting> Numbering_Settings { get; set; } = null!;
 
