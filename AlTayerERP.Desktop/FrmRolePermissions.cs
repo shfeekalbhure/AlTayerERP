@@ -530,7 +530,7 @@ namespace AlTayerERP.Desktop
                     .Replace("☑ ", string.Empty));
             }
 
-            dgvPermissions.InvalidateColumn(-1);
+            dgvPermissions.Invalidate();
         }
 
         private static void SetActionValue(PermissionRow row, string property, bool value)
