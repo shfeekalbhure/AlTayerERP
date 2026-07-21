@@ -1,6 +1,8 @@
 ﻿using AlTayerERP.API.DTOs;
 using AlTayerERP.Core.Entities;
 using AlTayerERP.Infrastructure.Data;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System;
@@ -11,8 +13,10 @@ namespace AlTayerERP.API.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize(Roles = "SystemAdmin")]
     public class UsersController : ControllerBase
     {
+        private static readonly PasswordHasher<User> PasswordHasher = new();
         private readonly AppDbContext _context;
 
         public UsersController(AppDbContext context)
@@ -75,7 +79,7 @@ namespace AlTayerERP.API.Controllers
                 User_Code = dto.User_Code,
                 Full_Name = dto.Full_Name.Trim(),
                 Login_Name = dto.Login_Name.Trim(),
-                Password_Hash = dto.Password,
+                Password_Hash = PasswordHasher.HashPassword(user: new User(), password: dto.Password),
                 Phone = dto.Phone,
                 Email = dto.Email,
                 Notes = dto.Notes,
@@ -125,7 +129,7 @@ namespace AlTayerERP.API.Controllers
             // إذا قام المدير بكتابة كلمة مرور جديدة يتم تعديلها، عدا ذلك يحتفظ بالقديمة
             if (!string.IsNullOrWhiteSpace(dto.Password))
             {
-                user.Password_Hash = dto.Password;
+                user.Password_Hash = PasswordHasher.HashPassword(user, dto.Password);
             }
 
             _context.Users.Update(user);
@@ -206,6 +210,7 @@ namespace AlTayerERP.API.Controllers
         // GET: api/Users/GetUsersLookup
         // ======================================================
         [HttpGet("GetUsersLookup")]
+        [AllowAnonymous]
         public async Task<IActionResult> GetUsersLookup()
         {
             try
