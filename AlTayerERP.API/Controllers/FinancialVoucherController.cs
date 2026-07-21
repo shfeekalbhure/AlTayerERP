@@ -48,6 +48,29 @@ namespace AlTayerERP.API.Controllers
             HttpContext.Items["ServerSession"] as ServerSession
             ?? throw new InvalidOperationException("جلسة الخادم غير متاحة.");
 
+        /// <summary>
+        /// يمنع الوصول المباشر إلى سند يخص فرعاً أو سنة مالية مختلفة عن سياق الجلسة.
+        /// نعيد "غير موجود" كي لا نكشف وجود بيانات خارج صلاحية المستخدم.
+        /// </summary>
+        private async Task<IActionResult?> EnsureVoucherInCurrentSessionScopeAsync(long voucherId)
+        {
+            var session = GetServerSession();
+            var voucher = await _service.GetByIdAsync(voucherId);
+
+            if (voucher == null ||
+                !string.Equals(voucher.Branch_ID, session.Branch_ID.ToString(), StringComparison.Ordinal) ||
+                voucher.Fiscal_Year_ID != session.Year_ID)
+            {
+                return NotFound(new
+                {
+                    success = false,
+                    message = "السند المالي غير موجود ضمن الشركة والفرع والسنة المالية الحالية."
+                });
+            }
+
+            return null;
+        }
+
         #region نماذج طلبات الاعتماد والترحيل
 
         /// <summary>
@@ -205,13 +228,16 @@ namespace AlTayerERP.API.Controllers
             }
 
             var voucher = await _service.GetByIdAsync(voucherId);
+            var session = GetServerSession();
 
-            if (voucher == null)
+            if (voucher == null ||
+                !string.Equals(voucher.Branch_ID, session.Branch_ID.ToString(), StringComparison.Ordinal) ||
+                voucher.Fiscal_Year_ID != session.Year_ID)
             {
                 return NotFound(new
                 {
                     success = false,
-                    message = "السند المالي غير موجود."
+                    message = "السند المالي غير موجود ضمن الشركة والفرع والسنة المالية الحالية."
                 });
             }
 
@@ -246,6 +272,12 @@ namespace AlTayerERP.API.Controllers
                     success = false,
                     message = "معرف السند في الرابط لا يطابق معرف السند المرسل."
                 });
+            }
+
+            var scopeFailure = await EnsureVoucherInCurrentSessionScopeAsync(voucherId);
+            if (scopeFailure != null)
+            {
+                return scopeFailure;
             }
 
             var session = GetServerSession();
@@ -291,6 +323,12 @@ namespace AlTayerERP.API.Controllers
                     success = false,
                     message = "معرف السند غير صحيح."
                 });
+            }
+
+            var scopeFailure = await EnsureVoucherInCurrentSessionScopeAsync(voucherId);
+            if (scopeFailure != null)
+            {
+                return scopeFailure;
             }
 
             var result = await _service.DeleteAsync(voucherId, GetServerSession().User_ID.ToString());
@@ -375,6 +413,12 @@ namespace AlTayerERP.API.Controllers
                 return BadRequest(new { success = false, message = "معرف المستخدم مطلوب للمراجعة." });
             }
 
+            var scopeFailure = await EnsureVoucherInCurrentSessionScopeAsync(voucherId);
+            if (scopeFailure != null)
+            {
+                return scopeFailure;
+            }
+
             var result = await _service.MarkReviewedAsync(
                 voucherId,
                 GetServerSession().User_ID.ToString(),
@@ -396,6 +440,12 @@ namespace AlTayerERP.API.Controllers
                 return BadRequest(new { success = false, message = "معرف المستخدم وسبب الإعادة مطلوبان." });
             }
 
+            var scopeFailure = await EnsureVoucherInCurrentSessionScopeAsync(voucherId);
+            if (scopeFailure != null)
+            {
+                return scopeFailure;
+            }
+
             var result = await _service.ReturnForCorrectionAsync(
                 voucherId,
                 GetServerSession().User_ID.ToString(),
@@ -414,6 +464,12 @@ namespace AlTayerERP.API.Controllers
             if (request == null)
             {
                 return BadRequest(new { success = false, message = "معرف المستخدم مطلوب لتسجيل الطباعة." });
+            }
+
+            var scopeFailure = await EnsureVoucherInCurrentSessionScopeAsync(voucherId);
+            if (scopeFailure != null)
+            {
+                return scopeFailure;
             }
 
             var result = await _service.RecordPrintAsync(voucherId, GetServerSession().User_ID.ToString());
@@ -449,6 +505,12 @@ namespace AlTayerERP.API.Controllers
                     success = false,
                     message = "معرف المستخدم مطلوب لاعتماد السند."
                 });
+            }
+
+            var scopeFailure = await EnsureVoucherInCurrentSessionScopeAsync(voucherId);
+            if (scopeFailure != null)
+            {
+                return scopeFailure;
             }
 
             var reviewValidation = await _service.ValidateReviewedAsync(voucherId);
@@ -529,6 +591,12 @@ namespace AlTayerERP.API.Controllers
                 });
             }
 
+            var scopeFailure = await EnsureVoucherInCurrentSessionScopeAsync(voucherId);
+            if (scopeFailure != null)
+            {
+                return scopeFailure;
+            }
+
             string? ipAddress =
                 HttpContext.Connection.RemoteIpAddress?.ToString();
 
@@ -585,6 +653,12 @@ namespace AlTayerERP.API.Controllers
                     success = false,
                     message = "معرف المستخدم مطلوب لترحيل السند."
                 });
+            }
+
+            var scopeFailure = await EnsureVoucherInCurrentSessionScopeAsync(voucherId);
+            if (scopeFailure != null)
+            {
+                return scopeFailure;
             }
 
             var reviewValidation = await _service.ValidateReviewedAsync(voucherId);
@@ -673,6 +747,12 @@ namespace AlTayerERP.API.Controllers
                 });
             }
 
+            var scopeFailure = await EnsureVoucherInCurrentSessionScopeAsync(voucherId);
+            if (scopeFailure != null)
+            {
+                return scopeFailure;
+            }
+
             string? ipAddress =
                 HttpContext.Connection.RemoteIpAddress?.ToString();
 
@@ -719,6 +799,12 @@ namespace AlTayerERP.API.Controllers
                     success = false,
                     message = "معرف السند غير صحيح."
                 });
+            }
+
+            var scopeFailure = await EnsureVoucherInCurrentSessionScopeAsync(voucherId);
+            if (scopeFailure != null)
+            {
+                return scopeFailure;
             }
 
             var approvalStatus =
