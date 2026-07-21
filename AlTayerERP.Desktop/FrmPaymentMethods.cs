@@ -365,9 +365,9 @@ namespace AlTayerERP.Desktop
             chkBank.Checked = item.Is_Bank;
             chkActive.Checked = item.Is_Active;
 
-            lblRecordUser.Text = "النظام";
-            lblRecordDate.Text = DateTime.Now.ToString("yyyy-MM-dd HH:mm");
-            lblLastUpdate.Text = DateTime.Now.ToString("yyyy-MM-dd HH:mm");
+            lblRecordUser.Text = "غير متاح";
+            lblRecordDate.Text = "غير متاح";
+            lblLastUpdate.Text = "غير متاح";
             lblStatus.Text = item.Is_Active ? "نشط" : "موقوف";
         }
 
