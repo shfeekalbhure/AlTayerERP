@@ -514,7 +514,6 @@ namespace AlTayerERP.Desktop
         private void dgvVoucherDetails_CellContentClick(object? sender, DataGridViewCellEventArgs e) { }
 
         private void groupBox1_Enter(object sender, EventArgs e) { }
-        private void numAmount_ValueChanged_1(object sender, EventArgs e) { }
 
         #endregion
 
