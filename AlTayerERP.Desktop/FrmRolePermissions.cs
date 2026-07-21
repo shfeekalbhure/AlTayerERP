@@ -336,6 +336,7 @@ namespace AlTayerERP.Desktop
                 dgvPermissions.SelectionChanged -= dgvPermissions_SelectionChanged;
                 dgvPermissions.SelectionChanged += dgvPermissions_SelectionChanged;
                 lblStatus.Text = "تم تحميل الصلاحيات";
+                dgvPermissions_SelectionChanged(dgvPermissions, EventArgs.Empty);
             }
             catch (Exception ex)
             {
