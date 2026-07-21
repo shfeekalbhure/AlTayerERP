@@ -1,4 +1,5 @@
 using AlTayerERP.API.Security;
+using AlTayerERP.API.Services;
 using AlTayerERP.Infrastructure.Data;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -12,8 +13,13 @@ namespace AlTayerERP.API.Controllers
     public class AuthController : ControllerBase
     {
         private readonly AppDbContext _context;
+        private readonly ServerSessionService _sessions;
 
-        public AuthController(AppDbContext context) => _context = context;
+        public AuthController(AppDbContext context, ServerSessionService sessions)
+        {
+            _context = context;
+            _sessions = sessions;
+        }
 
         // نقطة الدخول الوحيدة: تتحقق من الشركة والفرع والسنة والمستخدم قبل إنشاء الجلسة المحلية.
         [HttpPost("Login")]
@@ -100,6 +106,15 @@ namespace AlTayerERP.API.Controllers
                     await _context.SaveChangesAsync();
                 }
 
+                // يصدر الخادم رمز جلسة عشوائياً؛ لا يكفي أن يرسل العميل رقم مستخدم أو دوراً.
+                var session = _sessions.Create(
+                    user.User_ID,
+                    user.Role_ID,
+                    isSystemAdmin,
+                    companyId,
+                    branch.Branch_ID,
+                    fiscalYear.Fiscal_Year_ID);
+
                 return Ok(new
                 {
                     user.User_ID,
@@ -110,7 +125,9 @@ namespace AlTayerERP.API.Controllers
                     Company_ID = companyId,
                     Year_ID = fiscalYear.Fiscal_Year_ID,
                     Is_System_Admin = isSystemAdmin,
-                    Must_Change_Password = user.Must_Change_Password
+                    Must_Change_Password = user.Must_Change_Password,
+                    Access_Token = session.Access_Token,
+                    Session_Expires_At = session.Expires_At
                 });
             }
             catch
