@@ -684,7 +684,7 @@ namespace AlTayerERP.API.Controllers
             var result =
                 await _postingService.PostAsync(
                     voucherId: voucherId,
-                    userId: request.User_ID,
+                    userId: currentUserId,
                     actionChannel: request.Action_Channel,
                     deviceName: request.Device_Name,
                     ipAddress: ipAddress,
@@ -778,7 +778,7 @@ namespace AlTayerERP.API.Controllers
             var result =
                 await _postingService.UnpostAsync(
                     voucherId: voucherId,
-                    userId: request.User_ID,
+                    userId: currentUserId,
                     reason: request.Reason,
                     actionChannel: request.Action_Channel,
                     deviceName: request.Device_Name,
