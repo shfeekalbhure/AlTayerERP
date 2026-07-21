@@ -828,7 +828,6 @@
             numAmount.Size = new Size(150, 27);
             numAmount.TabIndex = 81;
             numAmount.TextAlign = HorizontalAlignment.Center;
-            numAmount.ValueChanged += numAmount_ValueChanged_1;
             // 
             // label15
             // 
