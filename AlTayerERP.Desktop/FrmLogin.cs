@@ -63,8 +63,7 @@ namespace AlTayerERP.Desktop
                 lblDatabaseStatus.Text = "قاعدة البيانات: غير متصلة";
                 btnLogin.Enabled = false;
                 MessageBox.Show(
-                    "فشل تحميل بيانات الدخول:
-" + ex.Message,
+                    "فشل تحميل بيانات الدخول:\n" + ex.Message,
                     "خطأ تهيئة",
                     MessageBoxButtons.OK,
                     MessageBoxIcon.Error);
@@ -222,8 +221,7 @@ namespace AlTayerERP.Desktop
             catch (Exception ex)
             {
                 MessageBox.Show(
-                    "خطأ أثناء تسجيل الدخول:
-" + ex.Message,
+                    "خطأ أثناء تسجيل الدخول:\n" + ex.Message,
                     "خطأ غير متوقع",
                     MessageBoxButtons.OK,
                     MessageBoxIcon.Error);
@@ -272,8 +270,7 @@ namespace AlTayerERP.Desktop
         private void btnAboutSystem_Click(object? sender, EventArgs e)
         {
             MessageBox.Show(
-                "نظام الطائر لإدارة النقل والشحن
-الإصدار 1.0.0",
+                "نظام الطائر لإدارة النقل والشحن\nالإصدار 1.0.0",
                 "حول النظام",
                 MessageBoxButtons.OK,
                 MessageBoxIcon.Information);
@@ -295,8 +292,7 @@ namespace AlTayerERP.Desktop
             catch (Exception ex)
             {
                 MessageBox.Show(
-                    "تعذر تحميل بيانات الشركة المختارة:
-" + ex.Message,
+                    "تعذر تحميل بيانات الشركة المختارة:\n" + ex.Message,
                     "خطأ",
                     MessageBoxButtons.OK,
                     MessageBoxIcon.Warning);
