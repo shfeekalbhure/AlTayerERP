@@ -210,16 +210,33 @@ namespace AlTayerERP.Desktop
         }
 
         /// <summary>
-        /// الدالة المركزية لفتح شاشة البحث واستقبال الحساب المختار
-        /// </summary>
-        /// <summary>
-        /// فتح شاشة البحث عن الحسابات واستقبال الحساب المختار.
+        /// فتح استعلام الحسابات لسطر التفاصيل.
+        /// يعتمد على الحسابات المحملة مع السند، لذلك لا يفتح شاشة فارغة عند تعذر طلب إضافي للـ API.
         /// </summary>
         private void OpenAccountLookupForm(int rowIndex)
         {
-            if (rowIndex < 0 ||
-                rowIndex >= dgvVoucherDetails.Rows.Count)
+            if (rowIndex < 0 || rowIndex >= dgvVoucherDetails.Rows.Count)
             {
+                return;
+            }
+
+            var items = _accountLookups
+                .Select(account => new LookupDialogItem
+                {
+                    Id = account.Account_ID,
+                    Code = account.Account_Code,
+                    Name = account.Account_Name_AR
+                })
+                .Where(item => !string.IsNullOrWhiteSpace(item.Id))
+                .ToList();
+
+            if (items.Count == 0)
+            {
+                MessageBox.Show(
+                    "لا توجد حسابات فعالة متاحة للشركة الحالية. راجع دليل الحسابات.",
+                    "استعلام الحسابات",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Information);
                 return;
             }
 
@@ -229,37 +246,26 @@ namespace AlTayerERP.Desktop
                         .Cells["colAccountCode"].Value)
                 ?? string.Empty;
 
-            using FrmAccountLookup lookupForm =
-                new FrmAccountLookup(currentSearchText);
+            dgvVoucherDetails.EndEdit();
 
-            lookupForm.StartPosition =
-                FormStartPosition.CenterParent;
+            using var lookupForm =
+                new FrmReferenceLookup("استعلام دليل الحسابات", items, currentSearchText);
 
-            lookupForm.ShowInTaskbar =
-                false;
-
-            if (lookupForm.ShowDialog(this) != DialogResult.OK)
+            if (lookupForm.ShowDialog(this) != DialogResult.OK ||
+                lookupForm.SelectedItem == null)
             {
                 return;
             }
 
-            DataGridViewRow row =
-                dgvVoucherDetails.Rows[rowIndex];
-
-            row.Cells["colAccountCode"].Value =
-                lookupForm.SelectedAccountId;
+            DataGridViewRow row = dgvVoucherDetails.Rows[rowIndex];
+            row.Cells["colAccountCode"].Value = lookupForm.SelectedItem.Id;
 
             if (dgvVoucherDetails.Columns.Contains("colAccountName"))
             {
-                row.Cells["colAccountName"].Value =
-                    lookupForm.SelectedAccountId;
+                row.Cells["colAccountName"].Value = lookupForm.SelectedItem.Id;
             }
 
-            dgvVoucherDetails.EndEdit();
-
-            dgvVoucherDetails.CurrentCell =
-                row.Cells["colAccountCode"];
-
+            dgvVoucherDetails.CurrentCell = row.Cells["colAccountCode"];
             dgvVoucherDetails.Refresh();
         }
 
