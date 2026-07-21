@@ -278,13 +278,14 @@ namespace AlTayerERP.Desktop
             SetInitialSelections(lookups);
         }
 
+        // لا تُحمَّل قوائم السند قبل اكتمال سياق المستخدم والشركة والفرع والسنة.
         private void ValidateSession()
         {
-            if (string.IsNullOrWhiteSpace(CurrentSession.Company_ID))
-                throw new InvalidOperationException("معرف الشركة غير موجود في جلسة المستخدم.");
-
-            if (CurrentSession.Branch_ID <= 0)
-                throw new InvalidOperationException("معرف الفرع غير موجود في جلسة المستخدم.");
+            if (!CurrentSession.IsLoggedIn)
+            {
+                throw new InvalidOperationException(
+                    "جلسة المستخدم غير مكتملة. سجل الدخول وحدد الشركة والفرع والسنة المالية من جديد.");
+            }
         }
 
         private string BuildLookupUrl()
