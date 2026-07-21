@@ -112,7 +112,7 @@ namespace AlTayerERP.API.DTOs.Accounting
 
         #region بيانات المستخدم المعدل
 
-        [Required(ErrorMessage = "معرف المستخدم المعدل مطلوب.")]
+        // يفرض الخادم المستخدم المعدل من رمز الجلسة؛ لا يقبل هوية مرسلة من العميل.
         [MaxLength(50)]
         public string Updated_By { get; set; } = string.Empty;
 
