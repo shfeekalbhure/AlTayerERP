@@ -957,11 +957,12 @@ namespace AlTayerERP.API.Controllers
                 return false;
 
             string resourceType = "ACTION:" + screenId.Value;
+            string resourceCode = GetResourceActionCode(actionCode);
             var userPermission = await _context.User_Resource_Permissions.AsNoTracking()
                 .FirstOrDefaultAsync(x =>
                     x.User_ID == userId &&
                     x.Resource_Type == resourceType &&
-                    x.Resource_Code == actionCode &&
+                    x.Resource_Code == resourceCode &&
                     x.Permission_Code == "EXECUTE" &&
                     x.Is_Active &&
                     (x.Effective_To == null || x.Effective_To >= DateTime.UtcNow));
@@ -993,11 +994,22 @@ namespace AlTayerERP.API.Controllers
             return await _context.Role_Resource_Permissions.AsNoTracking().AnyAsync(x =>
                 x.Role_ID == roleId &&
                 x.Resource_Type == resourceType &&
-                x.Resource_Code == actionCode &&
+                x.Resource_Code == resourceCode &&
                 x.Permission_Code == "EXECUTE" &&
                 x.Effect &&
                 x.Is_Active);
         }
+
+        /// <summary>
+        /// يوحد رموز أزرار الواجهة مع رموز العمليات الداخلية في محرك السند.
+        /// </summary>
+        private static string GetResourceActionCode(string actionCode) =>
+            actionCode switch
+            {
+                "ADD" => "SAVE",
+                "UNAPPROVE" => "CANCEL_APPROVAL",
+                _ => actionCode
+            };
 
         /// <summary>
         /// يتحقق من أن السند يتبع الفرع والسنة المختارين عند تسجيل الدخول.
