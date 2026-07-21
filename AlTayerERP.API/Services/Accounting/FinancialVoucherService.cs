@@ -302,6 +302,10 @@ namespace AlTayerERP.API.Services.Accounting
         public async Task<(bool Success, string Message)> UpdateAsync(
             UpdateFinancialVoucherDto dto)
         {
+            var receiptValidation = await _validator.ValidateReceiptUpdateAsync(dto);
+            if (!receiptValidation.IsValid)
+                return (false, receiptValidation.ErrorMessage);
+
             if (dto.Details == null || dto.Details.Count < 2)
             {
                 return (false, "يجب أن يحتوي السند على سطرين محاسبيين على الأقل.");
