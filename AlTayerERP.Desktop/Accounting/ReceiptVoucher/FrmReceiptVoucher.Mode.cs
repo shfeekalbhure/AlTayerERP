@@ -110,8 +110,7 @@ namespace AlTayerERP.Desktop
             if (chkPosted.Checked)
             {
                 MessageBox.Show(
-                    "لا يمكن تعديل سند مرحل.
-يجب إلغاء الترحيل أولًا.",
+                    "لا يمكن تعديل سند مرحل.\nيجب إلغاء الترحيل أولًا.",
                     "السند مرحل",
                     MessageBoxButtons.OK,
                     MessageBoxIcon.Warning);
@@ -121,8 +120,7 @@ namespace AlTayerERP.Desktop
             if (_currentApprovalStatus == 2)
             {
                 MessageBox.Show(
-                    "لا يمكن تعديل سند معتمد.
-يجب إلغاء الاعتماد أولًا.",
+                    "لا يمكن تعديل سند معتمد.\nيجب إلغاء الاعتماد أولًا.",
                     "السند معتمد",
                     MessageBoxButtons.OK,
                     MessageBoxIcon.Warning);
