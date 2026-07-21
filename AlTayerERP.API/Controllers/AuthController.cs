@@ -15,6 +15,7 @@ namespace AlTayerERP.API.Controllers
 
         public AuthController(AppDbContext context) => _context = context;
 
+        // نقطة الدخول الوحيدة: تتحقق من الشركة والفرع والسنة والمستخدم قبل إنشاء الجلسة المحلية.
         [HttpPost("Login")]
         public async Task<IActionResult> Login([FromBody] LoginRequestDto request)
         {
@@ -30,8 +31,10 @@ namespace AlTayerERP.API.Controllers
 
             try
             {
+                // توحيد قيمة الشركة يمنع اختلاف المسافات من تغيير نطاق الوصول.
                 var companyId = request.Company_ID.Trim();
 
+                // البحث باسم الدخول أو بالمعرف لدعم الشاشة الحالية دون كشف قائمة المستخدمين.
                 var user = await _context.Users.FirstOrDefaultAsync(x =>
                     x.Is_Active &&
                     (request.User_ID > 0
@@ -78,6 +81,7 @@ namespace AlTayerERP.API.Controllers
                 if (fiscalYear == null)
                     return BadRequest("السنة المالية المختارة لا تتبع الشركة أو أنها مقفلة/غير فعالة.");
 
+                // المستخدم العادي لا يستطيع تبديل شركته أو فرعه من شاشة الدخول.
                 if (!isSystemAdmin &&
                     (!string.Equals(user.Company_ID?.Trim(), companyId, StringComparison.Ordinal) ||
                      user.Branch_ID != request.Branch_ID))
@@ -88,6 +92,7 @@ namespace AlTayerERP.API.Controllers
                 if (!PasswordProtector.Verify(user.Password_Hash, request.Password, out var needsUpgrade))
                     return Unauthorized("بيانات الدخول غير صحيحة.");
 
+                // تُحوّل كلمة المرور القديمة إلى صيغة مشفرة بعد نجاح الدخول فقط.
                 if (needsUpgrade)
                 {
                     user.Password_Hash = PasswordProtector.Hash(request.Password);
@@ -122,6 +127,7 @@ namespace AlTayerERP.API.Controllers
         public int Branch_ID { get; set; }
         public int Year_ID { get; set; }
         public int User_ID { get; set; }
+        // يستخدم عند الدخول اليدوي؛ لا تُعرض قائمة المستخدمين علناً.
         public string Login_Name { get; set; } = string.Empty;
         public string Password { get; set; } = string.Empty;
     }
