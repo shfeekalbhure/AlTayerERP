@@ -513,14 +513,23 @@ namespace AlTayerERP.Desktop
             new("Is_Active", "فعال", ReferenceEditorFieldKind.Boolean, DefaultBoolean: true)) { }
     }
 
-    public sealed class FrmApprovalPolicies : FrmPhase1SetupBase
+    /// <summary>
+    /// سياسات وسقوف مالية فعلية للشركة الحالية؛ النطاق يفرضه الخادم من الجلسة.
+    /// </summary>
+    public sealed class FrmApprovalPolicies : FrmVoucherReferenceEditor
     {
-        public FrmApprovalPolicies() : base("سياسات الاعتماد والسقوف المالية",
-            new("Policy_Code", "كود السياسة"), new("Policy_Name", "اسم السياسة"),
-            new("Document_Type", "نوع المستند"), new("Minimum_Amount", "من مبلغ", SetupFieldKind.Number),
-            new("Maximum_Amount", "إلى مبلغ", SetupFieldKind.Number), new("Approver_Role", "دور المعتمد"),
-            new("Allow_Creator_Approval", "يسمح باعتماد المنشئ", SetupFieldKind.YesNo),
-            new("Is_Active", "فعال", SetupFieldKind.YesNo, DefaultTrue: true), new("Notes", "ملاحظات", SetupFieldKind.Notes)) { }
+        public FrmApprovalPolicies() : base("سياسات الاعتماد والسقوف المالية", "FinancialPolicies", "Limit_ID",
+            new("Entity_Type", "نوع الجهة", ReferenceEditorFieldKind.Choice,
+                Options: new[] { "حساب", "صندوق", "بنك", "عميل", "مورد", "فرع" }),
+            new("Entity_ID", "رقم الجهة"),
+            new("Limit_Type", "نوع السقف", ReferenceEditorFieldKind.Choice,
+                Options: new[] { "قبض", "صرف", "مديونية", "خصم" }),
+            new("Currency_Code", "كود العملة"),
+            new("Limit_Amount", "قيمة السقف", ReferenceEditorFieldKind.Number),
+            new("Period_Type", "فترة السقف", ReferenceEditorFieldKind.Choice,
+                Options: new[] { "Daily", "Monthly", "Yearly" }),
+            new("Requires_Approval", "يتطلب اعتماد", ReferenceEditorFieldKind.Boolean, DefaultBoolean: true),
+            new("Is_Active", "فعال", ReferenceEditorFieldKind.Boolean, DefaultBoolean: true)) { }
     }
 
     /// <summary>
