@@ -1,3 +1,4 @@
+using AlTayerERP.Core.Entities.Accounting;
 using AlTayerERP.Core.Entities.Configuration;
 using AlTayerERP.Infrastructure.Data;
 using Microsoft.AspNetCore.Authorization;
@@ -6,6 +7,8 @@ using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Claims;
+using System.Text.Json;
 using System.Threading.Tasks;
 
 namespace AlTayerERP.API.Controllers
@@ -169,6 +172,28 @@ namespace AlTayerERP.API.Controllers
 
             foreach (var action in actions)
                 AddPermission(userId, actionType, action.Resource_Code, "EXECUTE", action.Execute_Mode);
+
+            // يوثق التغيير دون حفظ تفاصيل حساسة غير لازمة في سجل التدقيق.
+            _context.Audit_Logs.Add(new AuditLog
+            {
+                Table_Name = "user_resource_permissions",
+                Record_ID = userId + ":" + screenId,
+                Action_Type = "UPDATE",
+                User_ID = User.FindFirstValue(ClaimTypes.NameIdentifier),
+                Branch_ID = User.FindFirstValue("branch_id"),
+                Action_At = DateTime.UtcNow,
+                Old_Values = JsonSerializer.Serialize(new { Count = old.Count }),
+                New_Values = JsonSerializer.Serialize(new
+                {
+                    Field_Overrides = fields.Count(x => !string.Equals(x.View_Mode, Inherit, StringComparison.OrdinalIgnoreCase) ||
+                                                        !string.Equals(x.Edit_Mode, Inherit, StringComparison.OrdinalIgnoreCase)),
+                    Action_Overrides = actions.Count(x => !string.Equals(x.Execute_Mode, Inherit, StringComparison.OrdinalIgnoreCase))
+                }),
+                Action_Channel = "DESKTOP",
+                Device_Name = Request.Headers.UserAgent.ToString(),
+                IP_Address = HttpContext.Connection.RemoteIpAddress?.ToString(),
+                Notes = "تم تعديل استثناءات صلاحيات المستخدم."
+            });
 
             await _context.SaveChangesAsync();
             return Ok(new { message = "تم حفظ استثناءات المستخدم بنجاح." });
