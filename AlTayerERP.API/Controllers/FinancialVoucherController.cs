@@ -887,6 +887,15 @@ namespace AlTayerERP.API.Controllers
                 });
             }
 
+            if (!await IsVoucherInCurrentSessionContextAsync(voucherId))
+            {
+                return NotFound(new
+                {
+                    success = false,
+                    message = "السند غير موجود في نطاق جلسة المستخدم."
+                });
+            }
+
             var approvalStatus =
                 await _approvalService
                     .GetApprovalStatusAsync(voucherId);
@@ -944,6 +953,24 @@ namespace AlTayerERP.API.Controllers
             if (!screenId.HasValue)
                 return false;
 
+            if (!int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out int userId))
+                return false;
+
+            string resourceType = "ACTION:" + screenId.Value;
+            var userPermission = await _context.User_Resource_Permissions.AsNoTracking()
+                .FirstOrDefaultAsync(x =>
+                    x.User_ID == userId &&
+                    x.Resource_Type == resourceType &&
+                    x.Resource_Code == actionCode &&
+                    x.Permission_Code == "EXECUTE" &&
+                    x.Is_Active &&
+                    (x.Effective_To == null || x.Effective_To >= DateTime.UtcNow));
+
+            // الاستثناء الفردي يحسم كل الأزرار، بما فيها إضافة وتعديل وطباعة،
+            // لذلك لا يمكن للدور الالتفاف على قرار منع خاص بالمستخدم.
+            if (userPermission != null)
+                return userPermission.Effect;
+
             var screenPermission = await _context.RolePermissions.AsNoTracking()
                 .FirstOrDefaultAsync(x => x.Role_ID == roleId && x.Screen_ID == screenId.Value);
 
@@ -962,23 +989,6 @@ namespace AlTayerERP.API.Controllers
                 case "PRINT":
                     return screenPermission?.Can_Print == true;
             }
-
-            if (!int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out int userId))
-                return false;
-
-            string resourceType = "ACTION:" + screenId.Value;
-            var userPermission = await _context.User_Resource_Permissions.AsNoTracking()
-                .FirstOrDefaultAsync(x =>
-                    x.User_ID == userId &&
-                    x.Resource_Type == resourceType &&
-                    x.Resource_Code == actionCode &&
-                    x.Permission_Code == "EXECUTE" &&
-                    x.Is_Active &&
-                    (x.Effective_To == null || x.Effective_To >= DateTime.UtcNow));
-
-            // الاستثناء الفردي للمستخدم يعلو على صلاحية الدور، سواء بالمنح أو المنع.
-            if (userPermission != null)
-                return userPermission.Effect;
 
             return await _context.Role_Resource_Permissions.AsNoTracking().AnyAsync(x =>
                 x.Role_ID == roleId &&
