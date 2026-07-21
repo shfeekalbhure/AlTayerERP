@@ -121,6 +121,9 @@ namespace AlTayerERP.API.Controllers
                 return BadRequest(ModelState);
             }
 
+            if (!await CanExecuteReceiptActionAsync("ADD"))
+                return StatusCode(403, new { success = false, message = "ليس لديك صلاحية إنشاء سند قبض." });
+
             string? currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             string? currentBranchId = User.FindFirstValue("branch_id");
             string? currentYearId = User.FindFirstValue("year_id");
@@ -274,6 +277,35 @@ namespace AlTayerERP.API.Controllers
                 return BadRequest(ModelState);
             }
 
+            if (!await CanExecuteReceiptActionAsync("EDIT"))
+                return StatusCode(403, new { success = false, message = "ليس لديك صلاحية تعديل سند القبض." });
+
+            string? currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            string? currentBranchId = User.FindFirstValue("branch_id");
+            string? currentYearId = User.FindFirstValue("year_id");
+
+            if (string.IsNullOrWhiteSpace(currentUserId) ||
+                string.IsNullOrWhiteSpace(currentBranchId) ||
+                !int.TryParse(currentYearId, out int currentFiscalYearId))
+            {
+                return Unauthorized(new { success = false, message = "رمز الدخول لا يحتوي بيانات الجلسة المالية كاملة." });
+            }
+
+            dto.Updated_By = currentUserId;
+            dto.Branch_ID = currentBranchId;
+            dto.Fiscal_Year_ID = currentFiscalYearId;
+
+            if (dto.Voucher_Type_ID == 1)
+            {
+                bool? requiresApproval = await ResolveBooleanSettingAsync(
+                    "ReceiptVoucher.RequiresApproval",
+                    "ReceiptVoucher",
+                    "ACCOUNTING");
+
+                if (requiresApproval.HasValue)
+                    dto.Requires_Approval = requiresApproval.Value;
+            }
+
             var result = await _service.UpdateAsync(dto);
 
             if (!result.Success)
@@ -296,9 +328,7 @@ namespace AlTayerERP.API.Controllers
         /// حذف سند مالي غير مرحل.
         /// </summary>
         [HttpDelete("{voucherId:long}")]
-        public async Task<IActionResult> Delete(
-            long voucherId,
-            [FromQuery] string deletedBy)
+        public async Task<IActionResult> Delete(long voucherId)
         {
             if (voucherId <= 0)
             {
@@ -309,16 +339,14 @@ namespace AlTayerERP.API.Controllers
                 });
             }
 
-            if (string.IsNullOrWhiteSpace(deletedBy))
-            {
-                return BadRequest(new
-                {
-                    success = false,
-                    message = "معرف المستخدم الذي نفذ الحذف مطلوب."
-                });
-            }
+            if (!await CanExecuteReceiptActionAsync("DELETE"))
+                return StatusCode(403, new { success = false, message = "ليس لديك صلاحية حذف سند القبض." });
 
-            var result = await _service.DeleteAsync(voucherId, deletedBy);
+            string? currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrWhiteSpace(currentUserId))
+                return Unauthorized(new { success = false, message = "رمز الدخول لا يحتوي معرف المستخدم." });
+
+            var result = await _service.DeleteAsync(voucherId, currentUserId);
 
             if (!result.Success)
             {
@@ -895,6 +923,9 @@ namespace AlTayerERP.API.Controllers
 
             return actionCode switch
             {
+                "ADD" => screenPermission?.Can_Add == true,
+                "EDIT" => screenPermission?.Can_Edit == true,
+                "DELETE" => screenPermission?.Can_Delete == true,
                 "APPROVE" => screenPermission?.Can_Approve == true,
                 "UNAPPROVE" => screenPermission?.Can_UnApprove == true,
                 "PRINT" => screenPermission?.Can_Print == true,
