@@ -1,8 +1,13 @@
-﻿using AlTayerERP.Infrastructure.Data;
-using AlTayerERP.Core.Entities; // جلب موديل الـ User الفعلي
+using AlTayerERP.Core.Entities;
+using AlTayerERP.Infrastructure.Data;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Security.Cryptography;
+using System.Text;
 using System.Threading.Tasks;
 
 namespace AlTayerERP.API.Controllers
@@ -12,6 +17,7 @@ namespace AlTayerERP.API.Controllers
     public class AuthController : ControllerBase
     {
         private readonly AppDbContext _context;
+        private static readonly PasswordHasher<User> PasswordHasher = new();
 
         public AuthController(AppDbContext context)
         {
@@ -21,61 +27,204 @@ namespace AlTayerERP.API.Controllers
         [HttpPost("Login")]
         public async Task<IActionResult> Login([FromBody] LoginRequestDto request)
         {
-            if (request == null)
-                return BadRequest("بيانات الطلب غير مكتملة.");
+            if (request == null ||
+                string.IsNullOrWhiteSpace(request.Company_ID) ||
+                request.Branch_ID <= 0 ||
+                request.Year_ID <= 0 ||
+                request.User_ID <= 0 ||
+                string.IsNullOrWhiteSpace(request.Password))
+            {
+                return BadRequest(new { success = false, message = "بيانات الدخول غير مكتملة." });
+            }
+
+            string companyId = request.Company_ID.Trim();
 
             try
             {
-                // 1. التحقق من معرّف المستخدم ونشاطه أولاً
-                var user = await _context.Users
+                User? user = await _context.Users
                     .FirstOrDefaultAsync(x => x.User_ID == request.User_ID && x.Is_Active);
 
                 if (user == null)
-                    return Unauthorized("المستخدم غير موجود.");
+                    return Unauthorized(new { success = false, message = "بيانات الدخول غير صحيحة." });
 
-                // جلب بيانات الدور لمعرفة هل هو مدير نظام أم لا
-                var role = await _context.Roles
+                Role? role = await _context.Roles
                     .AsNoTracking()
-                    .FirstOrDefaultAsync(x => x.Role_ID == user.Role_ID);
+                    .FirstOrDefaultAsync(x => x.Role_ID == user.Role_ID && x.Is_Active);
 
-                bool isSystemAdmin = role?.Is_System_Admin ?? false;
+                if (role == null)
+                    return Unauthorized(new { success = false, message = "دور المستخدم غير نشط أو غير موجود." });
 
-                // استخدام .Trim() لمنع فشل الدخول بسبب المسافات الفارغة المخفية في قاعدة البيانات
-                if (!isSystemAdmin && user.Company_ID.Trim() != request.Company_ID.Trim())
-                    return Unauthorized("المستخدم ليس لديه صلاحية على هذه الشركة.");
+                bool isSystemAdmin = role.Is_System_Admin;
 
-                // 2. التحقق من كلمة المرور باستخدام الحقل الفعلي Password_Hash
-                if (user.Password_Hash != request.Password)
-                    return Unauthorized("كلمة المرور غير صحيحة.");
+                bool companyExists = await _context.Companies
+                    .AsNoTracking()
+                    .AnyAsync(x => x.Company_ID == companyId && x.Is_Active);
 
-                // 3. إرجاع البيانات بنجاح متطابقة مع نموذج الـ Desktop مع إسناد الشركة والفرع من الـ request لمرونة مدير النظام
-                return Ok(new
+                if (!companyExists)
+                    return Unauthorized(new { success = false, message = "الشركة المختارة غير نشطة أو غير موجودة." });
+
+                if (!isSystemAdmin &&
+                    !string.Equals(user.Company_ID?.Trim(), companyId, StringComparison.OrdinalIgnoreCase))
                 {
-                    user.User_ID,
-                    user.Full_Name,
-                    user.Login_Name,
-                    user.Role_ID,
+                    return Unauthorized(new { success = false, message = "المستخدم ليس مصرحاً له بهذه الشركة." });
+                }
 
+                bool branchExists = await _context.Tenant_Branches
+                    .AsNoTracking()
+                    .AnyAsync(x => x.Branch_ID == request.Branch_ID &&
+                                   x.Company_ID == companyId &&
+                                   x.Is_Active);
+
+                if (!branchExists)
+                    return Unauthorized(new { success = false, message = "الفرع المختار لا يتبع الشركة أو غير نشط." });
+
+                if (!isSystemAdmin && user.Branch_ID > 0 && user.Branch_ID != request.Branch_ID)
+                {
+                    return Unauthorized(new { success = false, message = "المستخدم ليس مصرحاً له بالفرع المختار." });
+                }
+
+                bool fiscalYearExists = await _context.Fiscal_Years
+                    .AsNoTracking()
+                    .AnyAsync(x => x.Fiscal_Year_ID == request.Year_ID &&
+                                   x.Company_ID == companyId &&
+                                   x.Is_Active &&
+                                   !x.Is_Closed);
+
+                if (!fiscalYearExists)
+                {
+                    return Unauthorized(new
+                    {
+                        success = false,
+                        message = "السنة المالية المختارة غير صالحة أو مغلقة."
+                    });
+                }
+
+                if (!VerifyPassword(user, request.Password, out bool upgradedLegacyPassword))
+                    return Unauthorized(new { success = false, message = "بيانات الدخول غير صحيحة." });
+
+                if (upgradedLegacyPassword)
+                    await _context.SaveChangesAsync();
+
+                List<ScreenPermissionDto> screenPermissions = isSystemAdmin
+                    ? new List<ScreenPermissionDto>()
+                    : await (
+                        from permission in _context.RolePermissions.AsNoTracking()
+                        join screen in _context.SystemScreens.AsNoTracking()
+                            on permission.Screen_ID equals screen.Screen_ID
+                        where permission.Role_ID == user.Role_ID &&
+                              screen.Is_Active &&
+                              permission.Can_View
+                        orderby screen.Sort_Order
+                        select new ScreenPermissionDto
+                        {
+                            Screen_Code = screen.Screen_Code,
+                            Can_View = permission.Can_View,
+                            Can_Add = permission.Can_Add,
+                            Can_Edit = permission.Can_Edit,
+                            Can_Delete = permission.Can_Delete,
+                            Can_Print = permission.Can_Print,
+                            Can_Export = permission.Can_Export,
+                            Can_Import = permission.Can_Import,
+                            Can_Approve = permission.Can_Approve,
+                            Can_UnApprove = permission.Can_UnApprove
+                        }).ToListAsync();
+
+                return Ok(new LoginResultDto
+                {
+                    User_ID = user.User_ID,
+                    Full_Name = user.Full_Name,
+                    Login_Name = user.Login_Name,
+                    Role_ID = user.Role_ID,
                     Branch_ID = request.Branch_ID,
-                    Company_ID = request.Company_ID.Trim(),
-
-                    Year_ID = request.Year_ID, // تمرير السنة المالية المختارة للجلسة
-                    Is_System_Admin = isSystemAdmin
+                    Company_ID = companyId,
+                    Year_ID = request.Year_ID,
+                    Is_System_Admin = isSystemAdmin,
+                    Screen_Permissions = screenPermissions
                 });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return StatusCode(500, $"خطأ داخلي في السيرفر: {ex.Message}");
+                return StatusCode(500, new
+                {
+                    success = false,
+                    message = "تعذر إتمام تسجيل الدخول حالياً."
+                });
             }
+        }
+
+        private static bool VerifyPassword(User user, string suppliedPassword, out bool upgradedLegacyPassword)
+        {
+            upgradedLegacyPassword = false;
+
+            PasswordVerificationResult result = PasswordHasher.VerifyHashedPassword(
+                user,
+                user.Password_Hash ?? string.Empty,
+                suppliedPassword);
+
+            if (result == PasswordVerificationResult.Success ||
+                result == PasswordVerificationResult.SuccessRehashNeeded)
+            {
+                if (result == PasswordVerificationResult.SuccessRehashNeeded)
+                {
+                    user.Password_Hash = PasswordHasher.HashPassword(user, suppliedPassword);
+                    upgradedLegacyPassword = true;
+                }
+
+                return true;
+            }
+
+            // توافق انتقالي: الحسابات القديمة التي خزنت كلمة المرور كنص يتم ترحيلها
+            // إلى Hash فور أول دخول ناجح، دون إبقاء مقارنة النص كسياسة دائمة.
+            byte[] stored = Encoding.UTF8.GetBytes(user.Password_Hash ?? string.Empty);
+            byte[] supplied = Encoding.UTF8.GetBytes(suppliedPassword);
+
+            if (stored.Length == 0 ||
+                stored.Length != supplied.Length ||
+                !CryptographicOperations.FixedTimeEquals(stored, supplied))
+            {
+                return false;
+            }
+
+            user.Password_Hash = PasswordHasher.HashPassword(user, suppliedPassword);
+            user.Updated_At = DateTime.UtcNow;
+            upgradedLegacyPassword = true;
+            return true;
         }
     }
 
-    public class LoginRequestDto
+    public sealed class LoginRequestDto
     {
         public string Company_ID { get; set; } = string.Empty;
         public int Branch_ID { get; set; }
         public int Year_ID { get; set; }
         public int User_ID { get; set; }
         public string Password { get; set; } = string.Empty;
+    }
+
+    public sealed class LoginResultDto
+    {
+        public int User_ID { get; set; }
+        public string Full_Name { get; set; } = string.Empty;
+        public string Login_Name { get; set; } = string.Empty;
+        public int Role_ID { get; set; }
+        public int Branch_ID { get; set; }
+        public string Company_ID { get; set; } = string.Empty;
+        public int Year_ID { get; set; }
+        public bool Is_System_Admin { get; set; }
+        public List<ScreenPermissionDto> Screen_Permissions { get; set; } = new();
+    }
+
+    public sealed class ScreenPermissionDto
+    {
+        public string Screen_Code { get; set; } = string.Empty;
+        public bool Can_View { get; set; }
+        public bool Can_Add { get; set; }
+        public bool Can_Edit { get; set; }
+        public bool Can_Delete { get; set; }
+        public bool Can_Print { get; set; }
+        public bool Can_Export { get; set; }
+        public bool Can_Import { get; set; }
+        public bool Can_Approve { get; set; }
+        public bool Can_UnApprove { get; set; }
     }
 }
