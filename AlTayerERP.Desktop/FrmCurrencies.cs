@@ -34,9 +34,7 @@ namespace AlTayerERP.Desktop
             InitializeComponent();
 
             // تطبيق الثيم العربي الموحد والاختصارات على الشاشة القديمة.
-            ArabicErpFormStyle.Apply(this);
-
-            RegisterEvents();
+RegisterEvents();
         }
 
         #endregion
