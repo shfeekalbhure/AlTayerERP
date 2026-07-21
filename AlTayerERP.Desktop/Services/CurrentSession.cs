@@ -25,12 +25,14 @@ namespace AlTayerERP.Desktop.Services
         public static DateTime Login_Time { get; set; } = DateTime.Now;
         public static string Device_Name { get; } = Environment.MachineName;
 
+        // لا تعتبر الجلسة صالحة إلا إذا اكتمل المستخدم والشركة والفرع والسنة.
         public static bool IsLoggedIn =>
             User_ID > 0 &&
             !string.IsNullOrWhiteSpace(Company_ID) &&
             Branch_ID > 0 &&
             Year_ID > 0;
 
+        // مسح جميع القيم عند تسجيل الخروج لمنع انتقال نطاق المستخدم للجلسة التالية.
         public static void Clear()
         {
             Company_ID = "";
