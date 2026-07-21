@@ -31,9 +31,7 @@ namespace AlTayerERP.Desktop
             InitializeComponent();
 
             // توحيد شكل الشاشة القديمة والاختصارات العربية دون تغيير منطقها.
-            ArabicErpFormStyle.Apply(this);
-
-            // إعداد أعمدة الجدول لمرة واحدة فقط عند الإقلاع لمنع تضاعف الأعمدة
+// إعداد أعمدة الجدول لمرة واحدة فقط عند الإقلاع لمنع تضاعف الأعمدة
             SetupCompaniesGrid();
         }
 
