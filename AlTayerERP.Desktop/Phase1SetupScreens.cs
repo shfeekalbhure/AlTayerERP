@@ -420,7 +420,7 @@ namespace AlTayerERP.Desktop
     /// </summary>
     public sealed class FrmParties : FrmVoucherReferenceEditor
     {
-        public FrmParties() : base("إدارة الأطراف المالية", "Parties", "Party_ID", string.Empty,
+        public FrmParties() : base("إدارة الأطراف المالية", "Parties", "Party_ID",
             new("Party_Code", "كود الطرف"),
             new("Party_Name_AR", "الاسم العربي"),
             new("Party_Name_EN", "الاسم الإنجليزي"),
