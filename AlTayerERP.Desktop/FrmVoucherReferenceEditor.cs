@@ -460,8 +460,12 @@ namespace AlTayerERP.Desktop
                         break;
                     case ComboBox comboBox:
                         var selected = ReadJsonValue(json);
-                        if (comboBox.Items.Contains(selected))
-                            comboBox.SelectedItem = selected;
+                        var matchingOption = comboBox.Items.Cast<object>()
+                            .FirstOrDefault(item =>
+                                string.Equals(item?.ToString(), selected, StringComparison.OrdinalIgnoreCase) ||
+                                item?.ToString()?.StartsWith(selected + " |", StringComparison.OrdinalIgnoreCase) == true);
+                        if (matchingOption != null)
+                            comboBox.SelectedItem = matchingOption;
                         break;
                     case TextBox textBox:
                         textBox.Text = ReadJsonValue(json);
