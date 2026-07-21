@@ -32,7 +32,11 @@ namespace AlTayerERP.Desktop
                 "PRINT" => CurrentSession.CanExecute("ReceiptVoucher", "PRINT"),
                 "APPROVE" => CurrentSession.CanExecute("ReceiptVoucher", "APPROVE"),
                 "UNAPPROVE" => CurrentSession.CanExecute("ReceiptVoucher", "UNAPPROVE"),
-                _ => CurrentSession.Is_System_Admin
+                "REVIEW" => CurrentSession.CanResourceExecute("ReceiptVoucher", "ACTION", "REVIEW", "EXECUTE"),
+                "RETURN_CORRECTION" => CurrentSession.CanResourceExecute("ReceiptVoucher", "ACTION", "RETURN_CORRECTION", "EXECUTE"),
+                "POST" => CurrentSession.CanResourceExecute("ReceiptVoucher", "ACTION", "POST", "EXECUTE"),
+                "UNPOST" => CurrentSession.CanResourceExecute("ReceiptVoucher", "ACTION", "UNPOST", "EXECUTE"),
+                _ => false
             };
         }
 
