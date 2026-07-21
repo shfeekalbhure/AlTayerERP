@@ -499,12 +499,17 @@ namespace AlTayerERP.Desktop
             new("Is_Active", "فعال", SetupFieldKind.YesNo, DefaultTrue: true), new("Notes", "ملاحظات", SetupFieldKind.Notes)) { }
     }
 
-    public sealed class FrmSystemScreens : FrmPhase1SetupBase
+    /// <summary>
+    /// كتالوج فعلي للشاشات: يحفظ عبر API ويغذي صلاحيات الأدوار وشجرة النظام.
+    /// </summary>
+    public sealed class FrmSystemScreens : FrmVoucherReferenceEditor
     {
-        public FrmSystemScreens() : base("كتالوج شاشات النظام",
-            new("Screen_Code", "كود الشاشة"), new("Screen_Name", "اسم الشاشة"),
-            new("Module_Name", "النظام/الوحدة"), new("Sort_Order", "ترتيب الظهور", SetupFieldKind.Number),
-            new("Is_Active", "فعالة", SetupFieldKind.YesNo, DefaultTrue: true)) { }
+        public FrmSystemScreens() : base("كتالوج شاشات النظام", "SystemScreens", "Screen_ID",
+            new("Screen_Code", "كود الشاشة"),
+            new("Screen_Name", "اسم الشاشة"),
+            new("Module_Name", "النظام/الوحدة"),
+            new("Sort_Order", "ترتيب الظهور", ReferenceEditorFieldKind.Number),
+            new("Is_Active", "فعالة", ReferenceEditorFieldKind.Boolean, DefaultBoolean: true)) { }
     }
 
     public sealed class FrmGeneralSettings : FrmPhase1SetupBase
