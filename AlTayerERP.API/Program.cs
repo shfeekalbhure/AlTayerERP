@@ -48,6 +48,7 @@ builder.Services.AddScoped<ApprovalService>();
 builder.Services.AddScoped<FinancialPolicyService>();
 builder.Services.AddScoped<AccountNumberService>();
 builder.Services.AddScoped<SystemScreenCatalogSeeder>();
+builder.Services.AddScoped<VoucherReferenceDataSeeder>();
 // جلسات الخادم تحفظ هوية الدخول بعد التحقق ولا تعتمد على بيانات مرسلة من الواجهة.
 builder.Services.AddSingleton<ServerSessionService>();
 
@@ -79,6 +80,8 @@ using (var scope = app.Services.CreateScope())
 {
     var screenCatalogSeeder = scope.ServiceProvider.GetRequiredService<SystemScreenCatalogSeeder>();
     await screenCatalogSeeder.EnsureSeededAsync();
+    var voucherReferenceSeeder = scope.ServiceProvider.GetRequiredService<VoucherReferenceDataSeeder>();
+    await voucherReferenceSeeder.EnsureSeededAsync();
 }
 
 // ====================================================================
