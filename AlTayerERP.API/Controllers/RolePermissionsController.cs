@@ -31,8 +31,12 @@ namespace AlTayerERP.API.Controllers
         [HttpGet("GetScreens")]
         public async Task<IActionResult> GetScreens()
         {
-            if (!TryGetSession(out _))
+            if (!TryGetSession(out var session))
                 return Unauthorized("انتهت الجلسة أو أنها غير صالحة. سجل الدخول من جديد.");
+
+            // كتالوج إدارة الصلاحيات لا يفتح إلا لمدير النظام.
+            if (!session.Is_System_Admin)
+                return Forbid();
 
             var screens = await _context.SystemScreens
                 .AsNoTracking()
