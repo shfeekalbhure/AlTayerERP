@@ -58,6 +58,11 @@ WHERE NOT EXISTS (SELECT 1 FROM system_screens WHERE Screen_Code = 'CashBoxes');
 
 INSERT INTO system_screens
     (Screen_Code, Screen_Name, Module_Name, Is_Active, Sort_Order, Created_At)
+SELECT 'PaymentMethods', 'طرق السداد', 'ACCOUNTING', 1, 145, UTC_TIMESTAMP()
+WHERE NOT EXISTS (SELECT 1 FROM system_screens WHERE Screen_Code = 'PaymentMethods');
+
+INSERT INTO system_screens
+    (Screen_Code, Screen_Name, Module_Name, Is_Active, Sort_Order, Created_At)
 SELECT 'ReceiptVoucher', 'سند القبض', 'ACCOUNTING', 1, 150, UTC_TIMESTAMP()
 WHERE NOT EXISTS (SELECT 1 FROM system_screens WHERE Screen_Code = 'ReceiptVoucher');
 
