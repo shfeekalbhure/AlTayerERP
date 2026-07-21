@@ -1,15 +1,14 @@
-﻿using System.Windows.Forms;
+using AlTayerERP.Desktop.Services;
+using System.Windows.Forms;
 
 namespace AlTayerERP.Desktop
 {
     /// <summary>
-    /// التحكم في حالات شاشة سند القبض:
-    /// عرض، جديد، تعديل.
+    /// التحكم في حالات شاشة سند القبض: عرض، جديد، تعديل،
+    /// مع احترام صلاحيات الجلسة في كل حالة.
     /// </summary>
     public partial class FrmReceiptVoucher
     {
-        #region === حالات الشاشة ===
-
         private enum VoucherScreenMode
         {
             View,
@@ -17,28 +16,36 @@ namespace AlTayerERP.Desktop
             Edit
         }
 
-        private VoucherScreenMode _screenMode =
-            VoucherScreenMode.View;
+        private VoucherScreenMode _screenMode = VoucherScreenMode.View;
 
-        #endregion
+        private static bool CanReceiptAction(string actionCode)
+        {
+            // لا يمنح أي فعل مالي حساس من التخمين. الأفعال التي لا يملك
+            // جدول role_permissions حقاً مستقلاً لها تبقى مقفلة لغير مدير النظام
+            // إلى أن ينفذ كتالوج الأزرار والإجراءات المعتمد.
+            return actionCode switch
+            {
+                "VIEW" => CurrentSession.CanViewScreen("ReceiptVoucher"),
+                "ADD" => CurrentSession.CanExecute("ReceiptVoucher", "ADD"),
+                "EDIT" => CurrentSession.CanExecute("ReceiptVoucher", "EDIT"),
+                "DELETE" => CurrentSession.CanExecute("ReceiptVoucher", "DELETE"),
+                "PRINT" => CurrentSession.CanExecute("ReceiptVoucher", "PRINT"),
+                "APPROVE" => CurrentSession.CanExecute("ReceiptVoucher", "APPROVE"),
+                "UNAPPROVE" => CurrentSession.CanExecute("ReceiptVoucher", "UNAPPROVE"),
+                _ => CurrentSession.Is_System_Admin
+            };
+        }
 
-        #region === تغيير حالة الشاشة ===
-
-        /// <summary>
-        /// وضع العرض:
-        /// يقفل حقول السند ويمنع التعديل المباشر.
-        /// </summary>
         private void SetViewMode()
         {
             _screenMode = VoucherScreenMode.View;
-
             SetVoucherFieldsEditable(false);
 
-            btnNew.Enabled = true;
-            btnSearch.Enabled = true;
-            btnRefresh.Enabled = _selectedVoucherId > 0;
-            btnPrint.Enabled = _selectedVoucherId > 0;
-            btnViewJournalEntry.Enabled = _selectedVoucherId > 0;
+            btnNew.Enabled = CanReceiptAction("ADD");
+            btnSearch.Enabled = CanReceiptAction("VIEW");
+            btnRefresh.Enabled = CanReceiptAction("VIEW") && _selectedVoucherId > 0;
+            btnPrint.Enabled = CanReceiptAction("PRINT") && _selectedVoucherId > 0;
+            btnViewJournalEntry.Enabled = CanReceiptAction("VIEW") && _selectedVoucherId > 0;
 
             btnSave.Enabled = false;
             btnUndo.Enabled = false;
@@ -46,13 +53,15 @@ namespace AlTayerERP.Desktop
             UpdateWorkflowButtonsState();
         }
 
-        /// <summary>
-        /// وضع إنشاء سند جديد.
-        /// </summary>
         private void SetNewMode()
         {
-            _screenMode = VoucherScreenMode.New;
+            if (!CanReceiptAction("ADD"))
+            {
+                SetViewMode();
+                return;
+            }
 
+            _screenMode = VoucherScreenMode.New;
             SetVoucherFieldsEditable(true);
 
             btnNew.Enabled = false;
@@ -76,11 +85,18 @@ namespace AlTayerERP.Desktop
             cmbParty.Focus();
         }
 
-        /// <summary>
-        /// وضع تعديل سند محفوظ.
-        /// </summary>
         private void SetEditMode()
         {
+            if (!CanReceiptAction("EDIT"))
+            {
+                MessageBox.Show(
+                    "ليس لديك صلاحية تعديل سند القبض.",
+                    "رفض الوصول",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Warning);
+                return;
+            }
+
             if (_selectedVoucherId <= 0)
             {
                 MessageBox.Show(
@@ -88,26 +104,25 @@ namespace AlTayerERP.Desktop
                     "تنبيه",
                     MessageBoxButtons.OK,
                     MessageBoxIcon.Warning);
-
                 return;
             }
 
             if (chkPosted.Checked)
             {
                 MessageBox.Show(
-                    "لا يمكن تعديل سند مرحل.\n" +
-                    "يجب إلغاء الترحيل أولًا.",
+                    "لا يمكن تعديل سند مرحل.
+يجب إلغاء الترحيل أولًا.",
                     "السند مرحل",
                     MessageBoxButtons.OK,
                     MessageBoxIcon.Warning);
-
                 return;
             }
 
             if (_currentApprovalStatus == 2)
             {
                 MessageBox.Show(
-                    "لا يمكن تعديل سند معتمد.\nيجب إلغاء الاعتماد أولًا.",
+                    "لا يمكن تعديل سند معتمد.
+يجب إلغاء الاعتماد أولًا.",
                     "السند معتمد",
                     MessageBoxButtons.OK,
                     MessageBoxIcon.Warning);
@@ -115,7 +130,6 @@ namespace AlTayerERP.Desktop
             }
 
             _screenMode = VoucherScreenMode.Edit;
-
             SetVoucherFieldsEditable(true);
 
             btnNew.Enabled = false;
@@ -139,11 +153,6 @@ namespace AlTayerERP.Desktop
             cmbParty.Focus();
         }
 
-        #endregion
-
-        /// <summary>
-        /// توحيد حالة أزرار دورة السند حتى لا تنفذ عملية بترتيب خاطئ.
-        /// </summary>
         private void UpdateWorkflowButtonsState()
         {
             bool hasVoucher = _selectedVoucherId > 0;
@@ -153,82 +162,76 @@ namespace AlTayerERP.Desktop
             bool requiresApproval = checkBox2.Checked;
             bool allowedContext = !_isCrossContextVoucher;
 
-            btnEdit.Enabled = allowedContext && hasVoucher && !isPosted && !isApproved;
-            btnDelete.Enabled = allowedContext && hasVoucher && !isPosted && !isApproved;
-            btnImport.Enabled = allowedContext && hasVoucher && !isPosted && !isApproved && !isReviewed;
-            btnExport.Enabled = allowedContext && hasVoucher && !isPosted && !isApproved && _currentReviewStatus != 3;
-            btnApprove.Enabled = allowedContext && hasVoucher && !isPosted && requiresApproval && isReviewed && !isApproved;
-            btnCancelApprove.Enabled = allowedContext && hasVoucher && !isPosted && requiresApproval && isApproved;
-            btnPost.Enabled = allowedContext && hasVoucher && !isPosted && isReviewed && (!requiresApproval || isApproved);
-            btnUnPost.Enabled = allowedContext && hasVoucher && isPosted;
+            btnEdit.Enabled = CanReceiptAction("EDIT") &&
+                              allowedContext && hasVoucher && !isPosted && !isApproved;
+            btnDelete.Enabled = CanReceiptAction("DELETE") &&
+                                allowedContext && hasVoucher && !isPosted && !isApproved;
+            btnImport.Enabled = CanReceiptAction("REVIEW") &&
+                                allowedContext && hasVoucher && !isPosted && !isApproved && !isReviewed;
+            btnExport.Enabled = CanReceiptAction("RETURN_CORRECTION") &&
+                                allowedContext && hasVoucher && !isPosted && !isApproved && _currentReviewStatus != 3;
+            btnApprove.Enabled = CanReceiptAction("APPROVE") &&
+                                 allowedContext && hasVoucher && !isPosted && requiresApproval && isReviewed && !isApproved;
+            btnCancelApprove.Enabled = CanReceiptAction("UNAPPROVE") &&
+                                       allowedContext && hasVoucher && !isPosted && requiresApproval && isApproved;
+            btnPost.Enabled = CanReceiptAction("POST") &&
+                              allowedContext && hasVoucher && !isPosted && isReviewed && (!requiresApproval || isApproved);
+            btnUnPost.Enabled = CanReceiptAction("UNPOST") &&
+                                allowedContext && hasVoucher && isPosted;
         }
 
-        #region === فتح وقفل الحقول ===
-
-        /// <summary>
-        /// فتح أو قفل حقول الإدخال.
-        /// الحقول التعريفية وحقول النظام تبقى مقفلة دائمًا.
-        /// </summary>
         private void SetVoucherFieldsEditable(bool editable)
         {
-            dtVoucherDate.Enabled = editable;
-            // هذه شاشة سند قبض؛ نوع السند وحالته الأساسية يحددان من النظام.
+            bool canEdit = editable && (_screenMode == VoucherScreenMode.New
+                ? CanReceiptAction("ADD")
+                : CanReceiptAction("EDIT"));
+
+            dtVoucherDate.Enabled = canEdit;
             cmbVoucherType.Enabled = false;
             cmbStatus.Enabled = false;
-            // الفرع يأتي من جلسة المستخدم ويُحفظ منها، لذلك لا يسمح بتغييره هنا.
             cmbBranch.Enabled = false;
 
-            cmbParty.Enabled = editable;
-            cmbCashAccount.Enabled = editable;
-            cmbCurrency.Enabled = editable;
-            cmbPaymentMethod.Enabled = editable;
+            cmbParty.Enabled = canEdit;
+            cmbCashAccount.Enabled = canEdit;
+            cmbCurrency.Enabled = canEdit;
+            cmbPaymentMethod.Enabled = canEdit;
 
-            numAmount.ReadOnly = !editable;
-            txtHeaderNotes.ReadOnly = !editable;
+            numAmount.ReadOnly = !canEdit;
+            txtHeaderNotes.ReadOnly = !canEdit;
 
-            dgvVoucherDetails.ReadOnly = !editable;
-            dgvVoucherDetails.AllowUserToAddRows = editable;
-            dgvVoucherDetails.AllowUserToDeleteRows = editable;
+            dgvVoucherDetails.ReadOnly = !canEdit;
+            dgvVoucherDetails.AllowUserToAddRows = canEdit;
+            dgvVoucherDetails.AllowUserToDeleteRows = canEdit;
 
-            // حقول محمية دائمًا
             txtVoucherNo.ReadOnly = true;
             txtJournalNo.ReadOnly = true;
-
             txtCreatedBy.ReadOnly = true;
             txtCreatedDate.ReadOnly = true;
             txtUpdatedBy.ReadOnly = true;
             txtUpdatedDate.ReadOnly = true;
-
             txtTotalAmount.ReadOnly = true;
             txtTotalForeignAmount.ReadOnly = true;
             txtDifference.ReadOnly = true;
-            cmbCostCenter.Enabled = editable;
-            dtReferenceDate.Enabled = editable;
+            cmbCostCenter.Enabled = canEdit;
+            dtReferenceDate.Enabled = canEdit;
 
             numLocalAmount.ReadOnly = true;
             numForeignAmount.ReadOnly = true;
             chkPosted.Enabled = false;
-            checkBox2.Enabled = editable;
-            txtReference.ReadOnly = !editable;
-            txtReferenceNo.ReadOnly = !editable;
-            txtAgainst.ReadOnly = !editable;
+            checkBox2.Enabled = canEdit;
+            txtReference.ReadOnly = !canEdit;
+            txtReferenceNo.ReadOnly = !canEdit;
+            txtAgainst.ReadOnly = !canEdit;
 
-            // سعر الصرف يفتح فقط للعملة الأجنبية
-            CurrencyLookupModel? currency =
-                GetSelectedCurrency();
+            CurrencyLookupModel? currency = GetSelectedCurrency();
+            bool foreignCurrency = currency != null &&
+                                   !currency.Is_Local_Currency &&
+                                   !string.Equals(
+                                       currency.Currency_Code,
+                                       "YER",
+                                       System.StringComparison.OrdinalIgnoreCase);
 
-            bool foreignCurrency =
-                currency != null &&
-                !currency.Is_Local_Currency &&
-                !string.Equals(
-                    currency.Currency_Code,
-                    "YER",
-                    System.StringComparison.OrdinalIgnoreCase);
-
-            numExchangeRate.ReadOnly =
-                !editable || !foreignCurrency;
+            numExchangeRate.ReadOnly = !canEdit || !foreignCurrency;
         }
-
-        #endregion
     }
 }
