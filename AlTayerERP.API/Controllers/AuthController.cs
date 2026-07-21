@@ -22,7 +22,7 @@ namespace AlTayerERP.API.Controllers
                 string.IsNullOrWhiteSpace(request.Company_ID) ||
                 request.Branch_ID <= 0 ||
                 request.Year_ID <= 0 ||
-                request.User_ID <= 0 ||
+                (request.User_ID <= 0 && string.IsNullOrWhiteSpace(request.Login_Name)) ||
                 string.IsNullOrWhiteSpace(request.Password))
             {
                 return BadRequest("يجب تحديد الشركة والفرع والسنة المالية والمستخدم وكلمة المرور.");
@@ -32,8 +32,11 @@ namespace AlTayerERP.API.Controllers
             {
                 var companyId = request.Company_ID.Trim();
 
-                var user = await _context.Users
-                    .FirstOrDefaultAsync(x => x.User_ID == request.User_ID && x.Is_Active);
+                var user = await _context.Users.FirstOrDefaultAsync(x =>
+                    x.Is_Active &&
+                    (request.User_ID > 0
+                        ? x.User_ID == request.User_ID
+                        : x.Login_Name == request.Login_Name.Trim()));
 
                 if (user == null)
                     return Unauthorized("بيانات الدخول غير صحيحة.");
@@ -119,6 +122,7 @@ namespace AlTayerERP.API.Controllers
         public int Branch_ID { get; set; }
         public int Year_ID { get; set; }
         public int User_ID { get; set; }
+        public string Login_Name { get; set; } = string.Empty;
         public string Password { get; set; } = string.Empty;
     }
 }
