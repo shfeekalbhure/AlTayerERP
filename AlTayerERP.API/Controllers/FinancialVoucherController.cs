@@ -2,6 +2,7 @@
 using AlTayerERP.API.DTOs.Accounting;
 using AlTayerERP.API.Services.Accounting;
 using AlTayerERP.API.Services.Accounting.VoucherWorkflow;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 
@@ -14,6 +15,7 @@ namespace AlTayerERP.API.Controllers
     /// سند القبض، سند الصرف، والأنواع المالية الأخرى.
     /// </summary>
     [ApiController]
+    [Authorize]
     [Route("api/[controller]")]
     public class FinancialVoucherController : ControllerBase
     {
