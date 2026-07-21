@@ -97,6 +97,37 @@ app.UseHttpsRedirection();
 
 app.UseCors("AllowAll");
 
+
+// حماية عامة: بعد الدخول لا يمكن استدعاء واجهات العمل دون رمز جلسة صادر من الخادم.
+// تستثنى فقط نقاط الدخول وحالة الخدمة وقوائم شاشة الدخول المحدودة.
+app.Use(async (context, next) =>
+{
+    var path = context.Request.Path;
+    var isPublic = path.StartsWithSegments("/api/Auth/Login") ||
+                   path.StartsWithSegments("/api/health") ||
+                   (HttpMethods.IsGet(context.Request.Method) &&
+                    (path.StartsWithSegments("/api/Branches/GetCompaniesLookup") ||
+                     path.StartsWithSegments("/api/Branches/GetActiveBranchesLookup") ||
+                     path.StartsWithSegments("/api/FiscalYears/Lookup")));
+
+    if (isPublic)
+    {
+        await next();
+        return;
+    }
+
+    var sessions = context.RequestServices.GetRequiredService<ServerSessionService>();
+    if (!sessions.TryGet(context.Request.Headers["X-Session-Token"].ToString(), out var session))
+    {
+        context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+        await context.Response.WriteAsJsonAsync(new { message = "انتهت الجلسة أو أنها غير صالحة. سجل الدخول من جديد." });
+        return;
+    }
+
+    context.Items["ServerSession"] = session;
+    await next();
+});
+
 app.UseAuthorization();
 
 app.MapControllers();
