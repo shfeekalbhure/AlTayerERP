@@ -202,6 +202,14 @@ namespace AlTayerERP.Desktop
                 CurrentSession.Full_Name = result.Full_Name;
                 CurrentSession.Is_System_Admin = result.Is_System_Admin;
                 CurrentSession.Login_Time = DateTime.Now;
+                CurrentSession.SetResourcePermissions(
+                    result.Resource_Permissions.Select(x => new CurrentSession.ResourcePermissionState
+                    {
+                        Screen_Code = x.Screen_Code,
+                        Resource_Kind = x.Resource_Kind,
+                        Resource_Code = x.Resource_Code,
+                        Permission_Code = x.Permission_Code
+                    }));
                 CurrentSession.SetScreenPermissions(
                     result.Screen_Permissions.Select(x => new CurrentSession.ScreenPermissionState
                     {
@@ -331,6 +339,15 @@ namespace AlTayerERP.Desktop
         public bool Is_System_Admin { get; set; }
         public string Access_Token { get; set; } = string.Empty;
         public List<ScreenPermissionModel> Screen_Permissions { get; set; } = new();
+        public List<ResourcePermissionModel> Resource_Permissions { get; set; } = new();
+    }
+
+    public sealed class ResourcePermissionModel
+    {
+        public string Screen_Code { get; set; } = string.Empty;
+        public string Resource_Kind { get; set; } = string.Empty;
+        public string Resource_Code { get; set; } = string.Empty;
+        public string Permission_Code { get; set; } = string.Empty;
     }
 
     public sealed class ScreenPermissionModel
