@@ -60,7 +60,7 @@ namespace AlTayerERP.Desktop
             var blue = Color.FromArgb(20, 102, 190);
 
             // اتجاه التطبيق عربي: شجرة النظام في اليمين ومساحة العمل في اليسار.
-            RightToLeft = RightToLeft.Yes;
+            RightToLeft = System.Windows.Forms.RightToLeft.Yes;
             pnlSideMenu.Dock = DockStyle.Right;
             pnlSideMenu.Width = 235;
             pnlWorkspace.Dock = DockStyle.Fill;
@@ -105,7 +105,7 @@ namespace AlTayerERP.Desktop
             tvMainMenu.Indent = 24;
             tvMainMenu.ItemHeight = 32;
             tvMainMenu.HotTracking = true;
-            tvMainMenu.RightToLeft = RightToLeft.Yes;
+            tvMainMenu.RightToLeft = System.Windows.Forms.RightToLeft.Yes;
 
             lblStatusApi.ForeColor = Color.FromArgb(0, 132, 78);
             lblStatusDatabase.ForeColor = Color.FromArgb(0, 132, 78);
