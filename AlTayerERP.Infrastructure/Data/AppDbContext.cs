@@ -99,6 +99,9 @@ namespace AlTayerERP.Infrastructure.Data
         // جدول العملات الأجنبية والمحلية المستخدمة في النظام
         public DbSet<Currency> Currencies { get; set; } = null!;
 
+        // الحسابات البنكية التشغيلية للشركات.
+        public DbSet<BankAccount> Bank_Accounts { get; set; } = null!;
+
         #endregion
 
         #region 5. المحرك المالي
@@ -300,6 +303,14 @@ namespace AlTayerERP.Infrastructure.Data
                 // تحديد دقة الرقم العشري لسعر الصرف (18 خانة إجمالية، 6 بعد الفاصلة) لضمان الدقة
                 entity.Property(e => e.Exchange_Rate)
                     .HasPrecision(18, 6);
+            });
+
+            // الحسابات البنكية التشغيلية للشركة.
+            modelBuilder.Entity<BankAccount>(entity =>
+            {
+                entity.ToTable("bank_accounts");
+                entity.HasKey(e => e.Bank_Account_ID);
+                entity.HasIndex(e => new { e.Company_ID, e.Account_No }).IsUnique();
             });
 
             #endregion
