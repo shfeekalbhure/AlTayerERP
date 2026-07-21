@@ -25,6 +25,28 @@ namespace AlTayerERP.API.Controllers
             _context = context;
         }
 
+        [HttpGet]
+        public async Task<IActionResult> GetSettings()
+        {
+            var settings = await _context.System_Settings.AsNoTracking()
+                .OrderBy(x => x.Module_Name)
+                .ThenBy(x => x.Setting_Code)
+                .Select(x => new
+                {
+                    x.Setting_ID,
+                    x.Setting_Code,
+                    x.Setting_Name,
+                    x.Module_Name,
+                    x.Data_Type,
+                    x.Default_Value,
+                    x.Is_Sensitive,
+                    x.Is_Active
+                })
+                .ToListAsync();
+
+            return Ok(settings);
+        }
+
         [HttpPost("resolve")]
         public async Task<IActionResult> Resolve([FromBody] SettingResolveRequest request)
         {
