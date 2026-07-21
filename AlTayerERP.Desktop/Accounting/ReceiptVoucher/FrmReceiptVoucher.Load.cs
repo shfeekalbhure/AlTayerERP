@@ -334,7 +334,8 @@ namespace AlTayerERP.Desktop
 
         private void BindCashBoxes(List<CashBoxLookupModel> cashBoxes)
         {
-            BindCombo(cmbCashAccount, cashBoxes, nameof(CashBoxLookupModel.Display_Name), nameof(CashBoxLookupModel.Account_ID));
+            _cashBoxLookups = cashBoxes.ToList();
+            BindCombo(cmbCashAccount, _cashBoxLookups, nameof(CashBoxLookupModel.Display_Name), nameof(CashBoxLookupModel.Account_ID));
         }
 
         private void BindCurrencies(List<CurrencyLookupModel> currencies)
@@ -351,7 +352,8 @@ namespace AlTayerERP.Desktop
 
         private void BindCostCenters(List<CostCenterLookupModel> costCenters)
         {
-            var list = AddEmptyOption(costCenters, new CostCenterLookupModel
+            _costCenterLookups = costCenters.ToList();
+            var list = AddEmptyOption(_costCenterLookups, new CostCenterLookupModel
             {
                 Cost_Center_ID = string.Empty,
                 Cost_Center_Code = string.Empty,
