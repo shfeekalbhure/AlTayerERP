@@ -226,10 +226,20 @@ namespace AlTayerERP.Desktop
         }
 
         // إنهاء الجلسة المحلية وإرجاع المستخدم إلى شاشة الدخول.
-        private void btnLogout_Click(object? sender, EventArgs e)
+        private async void btnLogout_Click(object? sender, EventArgs e)
         {
             if (MessageBox.Show("هل تريد تسجيل الخروج من الجلسة الحالية؟", "تسجيل الخروج", MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes)
                 return;
+
+            try
+            {
+                // حتى عند فشل الشبكة نمسح الجلسة محلياً، والخادم ينهيها تلقائياً بانتهاء مدتها.
+                await _client.PostAsync("Auth/Logout", content: null);
+            }
+            catch
+            {
+                // لا تمنع المستخدم من الخروج المحلي بسبب تعذر الاتصال.
+            }
 
             CurrentSession.Clear();
             Close();
