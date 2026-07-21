@@ -81,7 +81,9 @@ namespace AlTayerERP.API.Controllers
                 return BadRequest(new { message = "مفتاح الإعداد واسمه مطلوبان." });
             }
 
-            var scope = (request.Scope ?? string.Empty).Trim().ToUpperInvariant();
+            // تقبل الواجهة قيمة عرض عربية مثل "SYSTEM | عام للنظام"،
+            // لكن التخزين يتم دائماً بالكود الثابت الإنجليزي.
+            var scope = NormalizeScope(request.Scope);
             if (!ValidScopes.Contains(scope))
             {
                 return BadRequest(new
@@ -146,6 +148,13 @@ namespace AlTayerERP.API.Controllers
                 message = request.Setting_ID > 0 ? "تم تعديل الإعداد." : "تمت إضافة الإعداد.",
                 setting.Setting_ID
             });
+        }
+
+        private static string NormalizeScope(string? scope)
+        {
+            var value = (scope ?? string.Empty).Trim().ToUpperInvariant();
+            var separator = value.IndexOf('|');
+            return separator >= 0 ? value[..separator].Trim() : value;
         }
 
         private static (string CompanyId, int BranchId, int YearId) ResolveScope(ServerSession session, string scope) =>
