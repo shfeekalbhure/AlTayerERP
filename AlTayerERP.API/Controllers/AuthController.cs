@@ -6,8 +6,11 @@ using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
+using Microsoft.IdentityModel.Tokens;
 using System.Threading.Tasks;
 
 namespace AlTayerERP.API.Controllers
@@ -17,11 +20,13 @@ namespace AlTayerERP.API.Controllers
     public class AuthController : ControllerBase
     {
         private readonly AppDbContext _context;
+        private readonly IConfiguration _configuration;
         private static readonly PasswordHasher<User> PasswordHasher = new();
 
-        public AuthController(AppDbContext context)
+        public AuthController(AppDbContext context, IConfiguration configuration)
         {
             _context = context;
+            _configuration = configuration;
         }
 
         [HttpPost("Login")]
@@ -139,6 +144,7 @@ namespace AlTayerERP.API.Controllers
                     Company_ID = companyId,
                     Year_ID = request.Year_ID,
                     Is_System_Admin = isSystemAdmin,
+                    Access_Token = CreateAccessToken(user, role, request, companyId),
                     Screen_Permissions = screenPermissions
                 });
             }
@@ -150,6 +156,45 @@ namespace AlTayerERP.API.Controllers
                     message = "تعذر إتمام تسجيل الدخول حالياً."
                 });
             }
+        }
+
+        private string CreateAccessToken(User user, Role role, LoginRequestDto request, string companyId)
+        {
+            string issuer = _configuration["Jwt:Issuer"] ?? "AlTayerERP.API";
+            string audience = _configuration["Jwt:Audience"] ?? "AlTayerERP.Desktop";
+            string signingKey = _configuration["Jwt:SigningKey"]
+                ?? throw new InvalidOperationException("مفتاح JWT غير مضبوط.");
+            int lifetimeMinutes = int.TryParse(_configuration["Jwt:LifetimeMinutes"], out int value)
+                ? Math.Clamp(value, 5, 480)
+                : 60;
+
+            var claims = new List<Claim>
+            {
+                new(JwtRegisteredClaimNames.Sub, user.User_ID.ToString()),
+                new(ClaimTypes.NameIdentifier, user.User_ID.ToString()),
+                new(ClaimTypes.Name, user.Login_Name),
+                new("company_id", companyId),
+                new("branch_id", request.Branch_ID.ToString()),
+                new("year_id", request.Year_ID.ToString()),
+                new("role_id", role.Role_ID.ToString())
+            };
+
+            if (role.Is_System_Admin)
+                claims.Add(new Claim(ClaimTypes.Role, "SystemAdmin"));
+
+            var descriptor = new SecurityTokenDescriptor
+            {
+                Subject = new ClaimsIdentity(claims),
+                Issuer = issuer,
+                Audience = audience,
+                Expires = DateTime.UtcNow.AddMinutes(lifetimeMinutes),
+                SigningCredentials = new SigningCredentials(
+                    new SymmetricSecurityKey(Encoding.UTF8.GetBytes(signingKey)),
+                    SecurityAlgorithms.HmacSha256)
+            };
+
+            var handler = new JwtSecurityTokenHandler();
+            return handler.WriteToken(handler.CreateToken(descriptor));
         }
 
         private static bool VerifyPassword(User user, string suppliedPassword, out bool upgradedLegacyPassword)
@@ -211,6 +256,7 @@ namespace AlTayerERP.API.Controllers
         public string Company_ID { get; set; } = string.Empty;
         public int Year_ID { get; set; }
         public bool Is_System_Admin { get; set; }
+        public string Access_Token { get; set; } = string.Empty;
         public List<ScreenPermissionDto> Screen_Permissions { get; set; } = new();
     }
 
