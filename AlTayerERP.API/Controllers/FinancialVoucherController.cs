@@ -725,22 +725,35 @@ namespace AlTayerERP.API.Controllers
                 });
             }
 
-            if (request == null ||
-                string.IsNullOrWhiteSpace(request.User_ID))
+            if (request == null)
             {
                 return BadRequest(new
                 {
                     success = false,
-                    message = "معرف المستخدم مطلوب لإلغاء الترحيل."
+                    message = "بيانات تنفيذ فك الترحيل مطلوبة."
                 });
             }
 
-            if (string.IsNullOrWhiteSpace(request.Reason))
+            string? currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrWhiteSpace(currentUserId))
+            {
+                return Unauthorized(new { success = false, message = "رمز الدخول لا يحتوي معرف المستخدم." });
+            }
+
+            // يمنع انتحال منفذ فك الترحيل من خلال بيانات الطلب.
+            request.User_ID = currentUserId;
+
+            bool requiresUnpostReason = await ResolveBooleanSettingAsync(
+                "ReceiptVoucher.RequireUnpostReason",
+                "ReceiptVoucher",
+                "ACCOUNTING") ?? true;
+
+            if (requiresUnpostReason && string.IsNullOrWhiteSpace(request.Reason))
             {
                 return BadRequest(new
                 {
                     success = false,
-                    message = "سبب إلغاء الترحيل مطلوب."
+                    message = "سبب إلغاء الترحيل مطلوب حسب إعدادات الرقابة."
                 });
             }
 
