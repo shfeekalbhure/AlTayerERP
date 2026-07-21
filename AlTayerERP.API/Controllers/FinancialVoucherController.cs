@@ -113,17 +113,18 @@ namespace AlTayerERP.API.Controllers
         public async Task<IActionResult> Create(
             [FromBody] CreateFinancialVoucherDto dto)
         {
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState);
-            }
-
             var session = GetServerSession();
             // نطاق السند والمستخدم المنشئ يأتي من جلسة الخادم فقط.
+            // يتم ذلك قبل ModelState لأن الهوية لا ينبغي أن تأتي من العميل.
             dto.Branch_ID = session.Branch_ID.ToString();
             dto.Fiscal_Year_ID = session.Year_ID;
             dto.Created_By = session.User_ID.ToString();
             dto.Updated_By = session.User_ID.ToString();
+
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
 
             var result = await _service.CreateAsync(dto);
 
@@ -247,16 +248,17 @@ namespace AlTayerERP.API.Controllers
                 });
             }
 
+            var session = GetServerSession();
+            // لا يسمح للعميل بنقل السند إلى فرع أو سنة أخرى.
+            // يُفرض المستخدم المعدل قبل التحقق من النموذج.
+            dto.Branch_ID = session.Branch_ID.ToString();
+            dto.Fiscal_Year_ID = session.Year_ID;
+            dto.Updated_By = session.User_ID.ToString();
+
             if (!ModelState.IsValid)
             {
                 return BadRequest(ModelState);
             }
-
-            var session = GetServerSession();
-            // لا يسمح للعميل بنقل السند إلى فرع أو سنة أخرى.
-            dto.Branch_ID = session.Branch_ID.ToString();
-            dto.Fiscal_Year_ID = session.Year_ID;
-            dto.Updated_By = session.User_ID.ToString();
 
             var result = await _service.UpdateAsync(dto);
 
@@ -329,19 +331,7 @@ namespace AlTayerERP.API.Controllers
                 });
             }
 
-            bool sequenceSearch = int.TryParse(voucherNumber.Trim(), out int sequence) && sequence > 0;
-            if (sequenceSearch &&
-                (string.IsNullOrWhiteSpace(branchId) ||
-                 !fiscalYearId.HasValue ||
-                 fiscalYearId.Value <= 0))
-            {
-                return BadRequest(new
-                {
-                    success = false,
-                    message = "عند البحث بالرقم فقط يجب تحديد فرع وسنة الشاشة."
-                });
-            }
-
+            // نطاق الفرع والسنة يأتي من جلسة الخادم، لذلك يقبل الرقم المختصر دون قيم إضافية من العميل.
             #endregion
 
             var session = GetServerSession();
@@ -401,7 +391,6 @@ namespace AlTayerERP.API.Controllers
             [FromBody] VoucherReasonActionRequest request)
         {
             if (request == null ||
-                string.IsNullOrWhiteSpace(GetServerSession().User_ID.ToString()) ||
                 string.IsNullOrWhiteSpace(request.Reason))
             {
                 return BadRequest(new { success = false, message = "معرف المستخدم وسبب الإعادة مطلوبان." });
