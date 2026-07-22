@@ -8,6 +8,7 @@ using System.Net.Http;
 using System.Net.Http.Json;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using WinFormsTimer = System.Windows.Forms.Timer;
 
 namespace AlTayerERP.Desktop
 {
@@ -19,7 +20,7 @@ namespace AlTayerERP.Desktop
         private Button? _btnTogglePassword;
         private Label? _lblCapsLock;
         private Label? _lblWelcome;
-        private Timer? _clockTimer;
+        private WinFormsTimer? _clockTimer;
 
         public FrmLogin()
         {
@@ -180,7 +181,7 @@ namespace AlTayerERP.Desktop
             grpLogin.Controls.Add(_lblWelcome);
             _lblWelcome.BringToFront();
 
-            _clockTimer = new Timer { Interval = 1000 };
+            _clockTimer = new WinFormsTimer { Interval = 1000 };
             _clockTimer.Tick += (_, _) => lblDateTime.Text = DateTime.Now.ToString("yyyy/MM/dd  HH:mm:ss");
             _clockTimer.Start();
         }
