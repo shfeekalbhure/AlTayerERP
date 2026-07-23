@@ -14,6 +14,7 @@ public abstract class BaseForm : Form
     private readonly Label _lblAuditSummary = new();
     private readonly Panel _pnlAuditBody = new();
     private readonly Button _btnToggleAudit = new();
+    private bool _showPrintAudit;
 
     /// <summary>ينشئ الإعدادات البصرية المشتركة: RTL والخط والخلفية والاختصارات.</summary>
     protected void ApplyBaseFormStyle()
@@ -127,13 +128,26 @@ public abstract class BaseForm : Form
     {
         var values = audit ?? AuditInfoView.Empty;
         _lblAuditSummary.Text = values.IsAvailable
-            ? $"الحالة: {values.RecordStatus} | عدد التعديلات: {values.EditCount} | الطباعة: {values.PrintCount}"
+            ? BuildAuditSummary(values)
             : "تظهر بيانات التدقيق بعد تحميل سجل محفوظ من الخادم.";
 
         SetAuditLabel("auditCreatedBy", values.CreatedBy);
         SetAuditLabel("auditCreatedAt", FormatDate(values.CreatedAt));
         SetAuditLabel("auditUpdatedBy", values.UpdatedBy);
         SetAuditLabel("auditUpdatedAt", FormatDate(values.UpdatedAt));
+    }
+
+    /// <summary>
+    /// تفعل ملخص الطباعة في المستندات والتقارير ذات نموذج طباعة معتمد فقط.
+    /// لا تستدعى من شاشات التهيئة غير القابلة للطباعة.
+    /// </summary>
+    protected void EnablePrintAudit() => _showPrintAudit = true;
+
+    /// <summary>ينشئ ملخص التدقيق بدون حقل طباعة في الشاشات غير القابلة للطباعة.</summary>
+    private string BuildAuditSummary(AuditInfoView values)
+    {
+        var summary = $"الحالة: {values.RecordStatus} | عدد التعديلات: {values.EditCount}";
+        return _showPrintAudit ? $"{summary} | الطباعة: {values.PrintCount}" : summary;
     }
 
     /// <summary>قلب حالة بطاقة التدقيق دون تغيير أي بيانات أو منطق أعمال.</summary>
