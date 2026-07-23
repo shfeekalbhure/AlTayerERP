@@ -954,6 +954,18 @@ namespace AlTayerERP.API.Services.Accounting
                                 .FirstOrDefault()
                             : null,
 
+                    Is_Reversed = voucher.Is_Reversed,
+                    Reversal_Journal_Entry_ID = voucher.Reversal_Journal_Entry_ID,
+                    Reversal_Journal_Entry_No = voucher.Reversal_Journal_Entry_ID.HasValue
+                        ? _context.Journal_Entry_Headers
+                            .Where(x => x.Journal_Entry_ID == voucher.Reversal_Journal_Entry_ID.Value)
+                            .Select(x => x.Entry_No)
+                            .FirstOrDefault()
+                        : null,
+                    Reversed_By = voucher.Reversed_By,
+                    Reversed_At = voucher.Reversed_At,
+                    Reversal_Reason = voucher.Reversal_Reason,
+
                     Edit_Count =
                         voucher.Edit_Count,
 
