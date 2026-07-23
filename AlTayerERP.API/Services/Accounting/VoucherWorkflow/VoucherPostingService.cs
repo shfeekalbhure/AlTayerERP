@@ -1296,6 +1296,11 @@ namespace AlTayerERP.API.Services.Accounting.VoucherWorkflow
                 original.Updated_At = now;
 
                 voucher.Is_Posted = false;
+                voucher.Is_Reversed = true;
+                voucher.Reversal_Journal_Entry_ID = reversal.Journal_Entry_ID;
+                voucher.Reversed_By = userId.Trim();
+                voucher.Reversed_At = now;
+                voucher.Reversal_Reason = reason.Trim();
                 voucher.Unposted_By = userId.Trim();
                 voucher.Unposted_At = now;
                 voucher.Unpost_Reason = $"عكس محاسبي: {reason.Trim()}";
