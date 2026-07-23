@@ -361,6 +361,8 @@ namespace AlTayerERP.Infrastructure.Data
             {
                 entity.ToTable("system_permissions");
                 entity.HasKey(e => e.Permission_ID);
+                // رمز الصلاحية ثابت وفريد مثل ReceiptVoucher.Approve.
+                entity.HasIndex(e => e.Permission_Code).IsUnique();
             });
 
             // إعدادات جدول شاشات النظام وتحديد المفتاح الرئيسي
@@ -368,6 +370,7 @@ namespace AlTayerERP.Infrastructure.Data
             {
                 entity.ToTable("system_screens");
                 entity.HasKey(e => e.Screen_ID);
+                entity.HasIndex(e => e.Screen_Code).IsUnique();
             });
 
             #endregion
