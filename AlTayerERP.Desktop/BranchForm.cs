@@ -52,6 +52,9 @@ this.Load -= BranchForm_Load;
             cmbStatus.Items.Clear();
             cmbStatus.Items.Add("نشط");
             cmbStatus.Items.Add("موقوف");
+            // الحالة للعرض فقط؛ تغييرها يمر حصراً عبر عمليتي الإيقاف وإعادة التفعيل المدققتين.
+            cmbStatus.Enabled = false;
+            cmbStatus.TabStop = false;
             // [تصحيح] التعيين عبر SelectedItem لضمان عدم رجوع الكومبو بوكس بـ Null
             cmbStatus.SelectedItem = "نشط";
         }
