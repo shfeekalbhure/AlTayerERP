@@ -19,8 +19,8 @@ public class GeographyController : ControllerBase
     [HttpPost("countries")]
     public async Task<IActionResult> CreateCountry([FromBody] Country country)
     {
-        country.Country_Code = country.Country_Code.Trim().ToUpperInvariant();
-        country.Country_Name_AR = country.Country_Name_AR.Trim();
+        country.Country_Code = country.Country_Code?.Trim().ToUpperInvariant() ?? string.Empty;
+        country.Country_Name_AR = country.Country_Name_AR?.Trim() ?? string.Empty;
         if (string.IsNullOrWhiteSpace(country.Country_Code) || string.IsNullOrWhiteSpace(country.Country_Name_AR))
             return BadRequest(new { message = "رمز الدولة واسمها العربي مطلوبان." });
         if (await _db.Countries.AnyAsync(x => x.Country_Code == country.Country_Code || x.Country_Name_AR == country.Country_Name_AR))
@@ -42,8 +42,8 @@ public class GeographyController : ControllerBase
     [HttpPost("governorates")]
     public async Task<IActionResult> CreateGovernorate([FromBody] Governorate governorate)
     {
-        governorate.Governorate_Code = governorate.Governorate_Code.Trim().ToUpperInvariant();
-        governorate.Governorate_Name_AR = governorate.Governorate_Name_AR.Trim();
+        governorate.Governorate_Code = governorate.Governorate_Code?.Trim().ToUpperInvariant() ?? string.Empty;
+        governorate.Governorate_Name_AR = governorate.Governorate_Name_AR?.Trim() ?? string.Empty;
         if (governorate.Country_ID <= 0 || string.IsNullOrWhiteSpace(governorate.Governorate_Code) || string.IsNullOrWhiteSpace(governorate.Governorate_Name_AR))
             return BadRequest(new { message = "الدولة ورمز المحافظة واسمها العربي مطلوبة." });
         if (!await _db.Countries.AnyAsync(x => x.Country_ID == governorate.Country_ID && x.Is_Active))
@@ -59,8 +59,8 @@ public class GeographyController : ControllerBase
     [HttpPost("cities")]
     public async Task<IActionResult> CreateCity([FromBody] City city)
     {
-        city.City_Code = city.City_Code.Trim().ToUpperInvariant();
-        city.City_Name_AR = city.City_Name_AR.Trim();
+        city.City_Code = city.City_Code?.Trim().ToUpperInvariant() ?? string.Empty;
+        city.City_Name_AR = city.City_Name_AR?.Trim() ?? string.Empty;
         if (city.Governorate_ID <= 0 || string.IsNullOrWhiteSpace(city.City_Code) || string.IsNullOrWhiteSpace(city.City_Name_AR))
             return BadRequest(new { message = "المحافظة ورمز المدينة واسمها العربي مطلوبة." });
         if (!await _db.Governorates.AnyAsync(x => x.Governorate_ID == city.Governorate_ID && x.Is_Active))
