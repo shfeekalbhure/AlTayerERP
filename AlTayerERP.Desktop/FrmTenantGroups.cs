@@ -294,6 +294,17 @@ public sealed class FrmTenantGroups : BaseForm
         rbActive.Checked = row.Is_Active;
         rbStopped.Checked = !row.Is_Active;
         lblCompaniesCount.Text = row.Companies_Count.ToString();
+
+        // تعرض بطاقة التدقيق بيانات عادت من API فقط، ولا تستخدم حقول الإدخال كمصدر.
+        SetAuditInfo(new AuditInfoView(
+            row.Created_By is null ? "—" : $"مستخدم #{row.Created_By}",
+            row.Created_At,
+            row.Updated_By is null ? "—" : $"مستخدم #{row.Updated_By}",
+            row.Updated_At,
+            row.Edit_Count,
+            0,
+            row.Is_Active ? "نشطة" : "موقوفة",
+            true));
     }
 
     private void ClearForm()
@@ -302,6 +313,8 @@ public sealed class FrmTenantGroups : BaseForm
         foreach (var text in new[] { txtCode, txtNameAr, txtNameEn, txtShortName, txtCountry, txtCity, txtAddress, txtPhone, txtEmail, txtManager, txtNotes }) text.Clear();
         cmbType.SelectedIndex = -1; cmbParent.SelectedIndex = -1; cmbMainCompany.SelectedIndex = -1; cmbCurrency.SelectedIndex = -1;
         rbActive.Checked = true; chkShowInLogin.Checked = true; numSort.Value = 0; lblCompaniesCount.Text = "0";
+        // السجل الجديد لا يملك بيانات تدقيق حتى يحفظه الخادم لأول مرة.
+        SetAuditInfo(null);
         dgvGroups.ClearSelection(); txtCode.Focus();
     }
 
@@ -377,6 +390,12 @@ public sealed class FrmTenantGroups : BaseForm
         public bool Show_In_Login { get; set; }
         public int Sort_Order { get; set; }
         public string Notes { get; set; } = "";
+        // حقول التدقيق القادمة من Backend API للعرض فقط داخل BaseForm.
+        public int? Created_By { get; set; }
+        public DateTime? Created_At { get; set; }
+        public int? Updated_By { get; set; }
+        public DateTime? Updated_At { get; set; }
+        public int Edit_Count { get; set; }
         public bool Is_Active { get; set; }
         public int Companies_Count { get; set; }
         public string Is_Active_Text => Is_Active ? "نشطة" : "موقوفة";
