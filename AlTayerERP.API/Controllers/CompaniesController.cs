@@ -108,6 +108,9 @@ namespace AlTayerERP.API.Controllers
                 return BadRequest("بيانات الشركة غير مكتملة أو لم يتم تحديد المجموعة الأم!");
             }
 
+            var locationError = await ValidateLocationAsync(dto.Country_ID, dto.Governorate_ID, dto.City_ID);
+            if (locationError is not null) return BadRequest(locationError);
+
             try
             {
                 // استدعاء خدمة الترقيم لتوليد المعرف الفريد القادم للشركات تلقائياً
@@ -163,6 +166,9 @@ namespace AlTayerERP.API.Controllers
                 return BadRequest("معرّفات الشركة غير متطابقة في الطلب!");
             }
 
+            var locationError = await ValidateLocationAsync(updatedCompany.Country_ID, updatedCompany.Governorate_ID, updatedCompany.City_ID);
+            if (locationError is not null) return BadRequest(locationError);
+
             try
             {
                 // جلب السجل الأصلي الحالي المخزن في قاعدة البيانات للتعديل عليه
@@ -183,6 +189,10 @@ namespace AlTayerERP.API.Controllers
                 existingCompany.Mobile = updatedCompany.Mobile;
                 existingCompany.Email = updatedCompany.Email;
                 existingCompany.Address = updatedCompany.Address;
+                existingCompany.Country_ID = updatedCompany.Country_ID;
+                existingCompany.Governorate_ID = updatedCompany.Governorate_ID;
+                existingCompany.City_ID = updatedCompany.City_ID;
+                existingCompany.Postal_Code = updatedCompany.Postal_Code?.Trim();
                 existingCompany.Is_Active = updatedCompany.Is_Active;
                 existingCompany.Updated_At = DateTime.UtcNow; // تسجيل توقيت التعديل الحالي لقواعد التدقيق
 
@@ -240,6 +250,33 @@ namespace AlTayerERP.API.Controllers
             {
                 return StatusCode(500, $"فشل إجراء الحذف من قاعدة البيانات: {ex.Message}");
             }
+        }
+
+        private async Task<string?> ValidateLocationAsync(long? countryId, long? governorateId, long? cityId)
+        {
+            if (!countryId.HasValue)
+                return governorateId.HasValue || cityId.HasValue ? "يجب اختيار الدولة قبل المحافظة أو المدينة." : null;
+
+            if (!await _context.Countries.AnyAsync(x => x.Country_ID == countryId && x.Is_Active))
+                return "الدولة المختارة غير موجودة أو غير نشطة.";
+
+            if (governorateId.HasValue)
+            {
+                var governorate = await _context.Governorates.AsNoTracking()
+                    .FirstOrDefaultAsync(x => x.Governorate_ID == governorateId && x.Is_Active);
+                if (governorate is null || governorate.Country_ID != countryId)
+                    return "المحافظة المختارة لا تتبع الدولة المحددة أو غير نشطة.";
+            }
+            else if (cityId.HasValue) return "يجب اختيار المحافظة قبل المدينة.";
+
+            if (cityId.HasValue)
+            {
+                var city = await _context.Cities.AsNoTracking()
+                    .FirstOrDefaultAsync(x => x.City_ID == cityId && x.Is_Active);
+                if (city is null || city.Governorate_ID != governorateId)
+                    return "المدينة المختارة لا تتبع المحافظة المحددة أو غير نشطة.";
+            }
+            return null;
         }
     }
 }
