@@ -1,4 +1,7 @@
 using AlTayerERP.API.Services;
+using AlTayerERP.API.DTOs;
+using AlTayerERP.Core.Entities.Accounting;
+using System.Text.Json;
 using AlTayerERP.Infrastructure.Data;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -69,13 +72,13 @@ public sealed class GeographicReferencesController : ControllerBase
 
         if (dto.Country_ID > 0)
         {
-            await ExecuteAsync("UPDATE countries SET Country_Code=@Code, Country_Name_AR=@NameAR, Country_Name_EN=@NameEN, ISO2=@ISO2, ISO3=@ISO3, Phone_Code=@Phone, Currency_Code=@Currency, Nationality_Name_AR=@Nationality, Sort_Order=@Sort, Is_Active=@Active, Notes=@Notes, Updated_At=UTC_TIMESTAMP() WHERE Country_ID=@ID",
-                ("@Code", dto.Country_Code.Trim().ToUpperInvariant()), ("@NameAR", dto.Country_Name_AR.Trim()), ("@NameEN", dto.Country_Name_EN), ("@ISO2", dto.ISO2), ("@ISO3", dto.ISO3), ("@Phone", dto.Phone_Code), ("@Currency", dto.Currency_Code), ("@Nationality", dto.Nationality_Name_AR), ("@Sort", dto.Sort_Order), ("@Active", dto.Is_Active), ("@Notes", dto.Notes), ("@ID", dto.Country_ID));
+            await ExecuteAsync("UPDATE countries SET Country_Code=@Code, Country_Name_AR=@NameAR, Country_Name_EN=@NameEN, ISO2=@ISO2, ISO3=@ISO3, Phone_Code=@Phone, Currency_Code=@Currency, Nationality_Name_AR=@Nationality, Sort_Order=@Sort, Notes=@Notes, Updated_At=UTC_TIMESTAMP() WHERE Country_ID=@ID",
+                ("@Code", dto.Country_Code.Trim().ToUpperInvariant()), ("@NameAR", dto.Country_Name_AR.Trim()), ("@NameEN", dto.Country_Name_EN), ("@ISO2", dto.ISO2), ("@ISO3", dto.ISO3), ("@Phone", dto.Phone_Code), ("@Currency", dto.Currency_Code), ("@Nationality", dto.Nationality_Name_AR), ("@Sort", dto.Sort_Order), ("@Notes", dto.Notes), ("@ID", dto.Country_ID));
             return Ok(new { message = "تم تعديل الدولة." });
         }
 
-        await ExecuteAsync("INSERT INTO countries (Country_Code, Country_Name_AR, Country_Name_EN, ISO2, ISO3, Phone_Code, Currency_Code, Nationality_Name_AR, Sort_Order, Is_Active, Notes) VALUES (@Code,@NameAR,@NameEN,@ISO2,@ISO3,@Phone,@Currency,@Nationality,@Sort,@Active,@Notes)",
-            ("@Code", dto.Country_Code.Trim().ToUpperInvariant()), ("@NameAR", dto.Country_Name_AR.Trim()), ("@NameEN", dto.Country_Name_EN), ("@ISO2", dto.ISO2), ("@ISO3", dto.ISO3), ("@Phone", dto.Phone_Code), ("@Currency", dto.Currency_Code), ("@Nationality", dto.Nationality_Name_AR), ("@Sort", dto.Sort_Order), ("@Active", dto.Is_Active), ("@Notes", dto.Notes));
+        await ExecuteAsync("INSERT INTO countries (Country_Code, Country_Name_AR, Country_Name_EN, ISO2, ISO3, Phone_Code, Currency_Code, Nationality_Name_AR, Sort_Order, Is_Active, Notes) VALUES (@Code,@NameAR,@NameEN,@ISO2,@ISO3,@Phone,@Currency,@Nationality,@Sort,1,@Notes)",
+            ("@Code", dto.Country_Code.Trim().ToUpperInvariant()), ("@NameAR", dto.Country_Name_AR.Trim()), ("@NameEN", dto.Country_Name_EN), ("@ISO2", dto.ISO2), ("@ISO3", dto.ISO3), ("@Phone", dto.Phone_Code), ("@Currency", dto.Currency_Code), ("@Nationality", dto.Nationality_Name_AR), ("@Sort", dto.Sort_Order), ("@Notes", dto.Notes));
         return Ok(new { message = "تم حفظ الدولة." });
     }
 
@@ -89,13 +92,13 @@ public sealed class GeographicReferencesController : ControllerBase
 
         if (dto.Governorate_ID > 0)
         {
-            await ExecuteAsync("UPDATE governorates SET Country_ID=@Country, Governorate_Code=@Code, Governorate_Name_AR=@NameAR, Governorate_Name_EN=@NameEN, Sort_Order=@Sort, Is_Active=@Active, Notes=@Notes, Updated_At=UTC_TIMESTAMP() WHERE Governorate_ID=@ID",
-                ("@Country", dto.Country_ID), ("@Code", dto.Governorate_Code.Trim().ToUpperInvariant()), ("@NameAR", dto.Governorate_Name_AR.Trim()), ("@NameEN", dto.Governorate_Name_EN), ("@Sort", dto.Sort_Order), ("@Active", dto.Is_Active), ("@Notes", dto.Notes), ("@ID", dto.Governorate_ID));
+            await ExecuteAsync("UPDATE governorates SET Country_ID=@Country, Governorate_Code=@Code, Governorate_Name_AR=@NameAR, Governorate_Name_EN=@NameEN, Sort_Order=@Sort, Notes=@Notes, Updated_At=UTC_TIMESTAMP() WHERE Governorate_ID=@ID",
+                ("@Country", dto.Country_ID), ("@Code", dto.Governorate_Code.Trim().ToUpperInvariant()), ("@NameAR", dto.Governorate_Name_AR.Trim()), ("@NameEN", dto.Governorate_Name_EN), ("@Sort", dto.Sort_Order), ("@Notes", dto.Notes), ("@ID", dto.Governorate_ID));
             return Ok(new { message = "تم تعديل المحافظة." });
         }
 
-        await ExecuteAsync("INSERT INTO governorates (Country_ID, Governorate_Code, Governorate_Name_AR, Governorate_Name_EN, Sort_Order, Is_Active, Notes) VALUES (@Country,@Code,@NameAR,@NameEN,@Sort,@Active,@Notes)",
-            ("@Country", dto.Country_ID), ("@Code", dto.Governorate_Code.Trim().ToUpperInvariant()), ("@NameAR", dto.Governorate_Name_AR.Trim()), ("@NameEN", dto.Governorate_Name_EN), ("@Sort", dto.Sort_Order), ("@Active", dto.Is_Active), ("@Notes", dto.Notes));
+        await ExecuteAsync("INSERT INTO governorates (Country_ID, Governorate_Code, Governorate_Name_AR, Governorate_Name_EN, Sort_Order, Is_Active, Notes) VALUES (@Country,@Code,@NameAR,@NameEN,@Sort,1,@Notes)",
+            ("@Country", dto.Country_ID), ("@Code", dto.Governorate_Code.Trim().ToUpperInvariant()), ("@NameAR", dto.Governorate_Name_AR.Trim()), ("@NameEN", dto.Governorate_Name_EN), ("@Sort", dto.Sort_Order), ("@Notes", dto.Notes));
         return Ok(new { message = "تم حفظ المحافظة." });
     }
 
@@ -109,42 +112,50 @@ public sealed class GeographicReferencesController : ControllerBase
 
         if (dto.City_ID > 0)
         {
-            await ExecuteAsync("UPDATE cities SET Country_ID=@Country, Governorate_ID=@Governorate, City_Code=@Code, City_Name_AR=@NameAR, City_Name_EN=@NameEN, Postal_Code=@Postal, Sort_Order=@Sort, Is_Active=@Active, Notes=@Notes, Updated_At=UTC_TIMESTAMP() WHERE City_ID=@ID",
-                ("@Country", dto.Country_ID), ("@Governorate", dto.Governorate_ID), ("@Code", dto.City_Code.Trim().ToUpperInvariant()), ("@NameAR", dto.City_Name_AR.Trim()), ("@NameEN", dto.City_Name_EN), ("@Postal", dto.Postal_Code), ("@Sort", dto.Sort_Order), ("@Active", dto.Is_Active), ("@Notes", dto.Notes), ("@ID", dto.City_ID));
+            await ExecuteAsync("UPDATE cities SET Country_ID=@Country, Governorate_ID=@Governorate, City_Code=@Code, City_Name_AR=@NameAR, City_Name_EN=@NameEN, Postal_Code=@Postal, Sort_Order=@Sort, Notes=@Notes, Updated_At=UTC_TIMESTAMP() WHERE City_ID=@ID",
+                ("@Country", dto.Country_ID), ("@Governorate", dto.Governorate_ID), ("@Code", dto.City_Code.Trim().ToUpperInvariant()), ("@NameAR", dto.City_Name_AR.Trim()), ("@NameEN", dto.City_Name_EN), ("@Postal", dto.Postal_Code), ("@Sort", dto.Sort_Order), ("@Notes", dto.Notes), ("@ID", dto.City_ID));
             return Ok(new { message = "تم تعديل المدينة." });
         }
 
-        await ExecuteAsync("INSERT INTO cities (Country_ID, Governorate_ID, City_Code, City_Name_AR, City_Name_EN, Postal_Code, Sort_Order, Is_Active, Notes) VALUES (@Country,@Governorate,@Code,@NameAR,@NameEN,@Postal,@Sort,@Active,@Notes)",
-            ("@Country", dto.Country_ID), ("@Governorate", dto.Governorate_ID), ("@Code", dto.City_Code.Trim().ToUpperInvariant()), ("@NameAR", dto.City_Name_AR.Trim()), ("@NameEN", dto.City_Name_EN), ("@Postal", dto.Postal_Code), ("@Sort", dto.Sort_Order), ("@Active", dto.Is_Active), ("@Notes", dto.Notes));
+        await ExecuteAsync("INSERT INTO cities (Country_ID, Governorate_ID, City_Code, City_Name_AR, City_Name_EN, Postal_Code, Sort_Order, Is_Active, Notes) VALUES (@Country,@Governorate,@Code,@NameAR,@NameEN,@Postal,@Sort,1,@Notes)",
+            ("@Country", dto.Country_ID), ("@Governorate", dto.Governorate_ID), ("@Code", dto.City_Code.Trim().ToUpperInvariant()), ("@NameAR", dto.City_Name_AR.Trim()), ("@NameEN", dto.City_Name_EN), ("@Postal", dto.Postal_Code), ("@Sort", dto.Sort_Order), ("@Notes", dto.Notes));
         return Ok(new { message = "تم حفظ المدينة." });
     }
 
+    /// <summary>إيقاف دولة دون حذف مادي وبسبب إلزامي؛ تسجل العملية في Audit_Logs.</summary>
     [HttpDelete("countries/{id:int}")]
-    public async Task<IActionResult> DeleteCountry(int id)
+    public async Task<IActionResult> DeactivateCountry(int id, [FromBody] RecordStatusChangeDto dto)
     {
         var access = RequireSystemAdmin(); if (access != null) return access;
-        if (await ScalarAsync<int>("SELECT COUNT(*) FROM governorates WHERE Country_ID=@ID", ("@ID", id)) > 0)
-            return BadRequest("لا يمكن حذف دولة مرتبطة بمحافظات. أوقفها بدلاً من الحذف.");
-        await ExecuteAsync("DELETE FROM countries WHERE Country_ID=@ID", ("@ID", id));
-        return Ok();
+        if (dto is null || string.IsNullOrWhiteSpace(dto.Reason)) return BadRequest("سبب إيقاف الدولة مطلوب.");
+        if (await ScalarAsync<int>("SELECT COUNT(*) FROM governorates WHERE Country_ID=@ID AND Is_Active=1", ("@ID", id)) > 0) return Conflict("أوقف المحافظات النشطة أولاً.");
+        var changed = await ExecuteAsync("UPDATE countries SET Is_Active=0, Updated_At=UTC_TIMESTAMP() WHERE Country_ID=@ID", ("@ID", id));
+        if(changed==0) return NotFound("الدولة غير موجودة."); AddAudit("countries",id,"DEACTIVATE",dto.Reason); await _context.SaveChangesAsync(); return Ok();
     }
-
+    /// <summary>إيقاف محافظة دون حذف مادي وبسبب إلزامي.</summary>
     [HttpDelete("governorates/{id:int}")]
-    public async Task<IActionResult> DeleteGovernorate(int id)
+    public async Task<IActionResult> DeactivateGovernorate(int id, [FromBody] RecordStatusChangeDto dto)
     {
         var access = RequireSystemAdmin(); if (access != null) return access;
-        if (await ScalarAsync<int>("SELECT COUNT(*) FROM cities WHERE Governorate_ID=@ID", ("@ID", id)) > 0)
-            return BadRequest("لا يمكن حذف محافظة مرتبطة بمدن. أوقفها بدلاً من الحذف.");
-        await ExecuteAsync("DELETE FROM governorates WHERE Governorate_ID=@ID", ("@ID", id));
-        return Ok();
+        if (dto is null || string.IsNullOrWhiteSpace(dto.Reason)) return BadRequest("سبب إيقاف المحافظة مطلوب.");
+        if (await ScalarAsync<int>("SELECT COUNT(*) FROM cities WHERE Governorate_ID=@ID AND Is_Active=1", ("@ID", id)) > 0) return Conflict("أوقف المدن النشطة أولاً.");
+        var changed = await ExecuteAsync("UPDATE governorates SET Is_Active=0, Updated_At=UTC_TIMESTAMP() WHERE Governorate_ID=@ID", ("@ID", id));
+        if(changed==0) return NotFound("المحافظة غير موجودة."); AddAudit("governorates",id,"DEACTIVATE",dto.Reason); await _context.SaveChangesAsync(); return Ok();
     }
-
+    /// <summary>إيقاف مدينة دون حذف مادي وبسبب إلزامي.</summary>
     [HttpDelete("cities/{id:int}")]
-    public async Task<IActionResult> DeleteCity(int id)
+    public async Task<IActionResult> DeactivateCity(int id, [FromBody] RecordStatusChangeDto dto)
     {
         var access = RequireSystemAdmin(); if (access != null) return access;
-        await ExecuteAsync("DELETE FROM cities WHERE City_ID=@ID", ("@ID", id));
-        return Ok();
+        if (dto is null || string.IsNullOrWhiteSpace(dto.Reason)) return BadRequest("سبب إيقاف المدينة مطلوب.");
+        var changed = await ExecuteAsync("UPDATE cities SET Is_Active=0, Updated_At=UTC_TIMESTAMP() WHERE City_ID=@ID", ("@ID", id));
+        if(changed==0) return NotFound("المدينة غير موجودة."); AddAudit("cities",id,"DEACTIVATE",dto.Reason); await _context.SaveChangesAsync(); return Ok();
+    }
+    /// <summary>يكتب تدقيق العملية من جلسة الخادم، ولا يقبل هوية من العميل.</summary>
+    private void AddAudit(string tableName,int recordId,string action,string reason)
+    {
+        var session=HttpContext.Items["ServerSession"] as ServerSession;
+        _context.Audit_Logs.Add(new AuditLog { Table_Name=tableName, Record_ID=recordId.ToString(), Action_Type=action, User_ID=session?.User_ID.ToString(), Branch_ID=session?.Branch_ID.ToString(), Action_At=DateTime.UtcNow, Action_Channel="DESKTOP", Device_Name=Request.Headers["X-Device-ID"].ToString(), IP_Address=HttpContext.Connection.RemoteIpAddress?.ToString(), Notes=reason, New_Values=JsonSerializer.Serialize(new { Is_Active=false, Reason=reason })});
     }
 
     private async Task<List<Dictionary<string, object?>>> QueryAsync(string sql, params (string Name, object? Value)[] parameters)
