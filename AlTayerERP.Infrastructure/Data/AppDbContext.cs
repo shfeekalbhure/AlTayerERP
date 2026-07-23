@@ -28,6 +28,10 @@ namespace AlTayerERP.Infrastructure.Data
         // جدول الفروع الخاصة بكل شركة
         public DbSet<TenantBranch> Tenant_Branches { get; set; } = null!;
 
+        // البيانات المرجعية لأنواع الفروع ومراكز العمل.
+        public DbSet<BranchType> Branch_Types { get; set; } = null!;
+        public DbSet<WorkCenter> Work_Centers { get; set; } = null!;
+
         // البيانات الجغرافية المرجعية المشتركة.
         public DbSet<Country> Countries { get; set; } = null!;
         public DbSet<Governorate> Governorates { get; set; } = null!;
@@ -186,6 +190,24 @@ namespace AlTayerERP.Infrastructure.Data
                 entity.HasOne<Country>().WithMany().HasForeignKey(e => e.Country_ID).OnDelete(DeleteBehavior.Restrict);
                 entity.HasOne<Governorate>().WithMany().HasForeignKey(e => e.Governorate_ID).OnDelete(DeleteBehavior.Restrict);
                 entity.HasOne<City>().WithMany().HasForeignKey(e => e.City_ID).OnDelete(DeleteBehavior.Restrict);
+            });
+
+            modelBuilder.Entity<BranchType>(entity =>
+            {
+                entity.ToTable("branch_types");
+                entity.HasKey(e => e.Branch_Type_ID);
+                entity.HasIndex(e => e.Branch_Type_Code).IsUnique();
+                entity.HasIndex(e => e.Branch_Type_Name_AR).IsUnique();
+            });
+
+            modelBuilder.Entity<WorkCenter>(entity =>
+            {
+                entity.ToTable("work_centers");
+                entity.HasKey(e => e.Work_Center_ID);
+                entity.HasIndex(e => new { e.Company_ID, e.Work_Center_Code }).IsUnique();
+                entity.HasOne<Company>().WithMany().HasForeignKey(e => e.Company_ID).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne<TenantBranch>().WithMany().HasForeignKey(e => e.Branch_ID).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne<WorkCenter>().WithMany().HasForeignKey(e => e.Parent_Work_Center_ID).OnDelete(DeleteBehavior.Restrict);
             });
 
             modelBuilder.Entity<Country>(entity =>
