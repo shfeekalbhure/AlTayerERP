@@ -1,5 +1,6 @@
 -- توافق المرحلة الأولى مع قاعدة بيانات AlTayerERP الحالية.
--- شغّل هذا الملف مرة واحدة على قاعدة البيانات نفسها التي تتصل بها خدمة API.
+-- هذا هو ملف التحديث الوحيد المطلوب لطلب الدمج رقم 9.
+-- شغّله مرة واحدة على قاعدة البيانات نفسها التي تتصل بها خدمة API.
 -- آمن لإعادة التشغيل: ينشئ الجداول المفقودة ويضيف فقط الأعمدة الناقصة.
 -- بعد التنفيذ أعد تشغيل API ثم حدّث شاشة سطح المكتب (F5).
 
@@ -69,6 +70,27 @@ CREATE TABLE IF NOT EXISTS exchange_rates
         (Company_ID, Currency_Code, Is_Active)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE IF NOT EXISTS bank_accounts
+(
+    Bank_Account_ID INT NOT NULL AUTO_INCREMENT,
+    Company_ID VARCHAR(50) NOT NULL,
+    Bank_Code VARCHAR(50) NOT NULL DEFAULT '',
+    Bank_Name_AR VARCHAR(200) NOT NULL,
+    Bank_Name_EN VARCHAR(200) NULL,
+    Account_No VARCHAR(100) NOT NULL,
+    IBAN VARCHAR(64) NULL,
+    Currency_Code VARCHAR(20) NOT NULL,
+    GL_Account VARCHAR(100) NULL,
+    Branch_Name VARCHAR(200) NULL,
+    Is_Active TINYINT(1) NOT NULL DEFAULT 1,
+    Notes TEXT NULL,
+    Created_At DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    Updated_At DATETIME NULL,
+    PRIMARY KEY (Bank_Account_ID),
+    CONSTRAINT UQ_bank_accounts_company_account UNIQUE (Company_ID, Account_No),
+    INDEX IX_bank_accounts_company_name (Company_ID, Bank_Name_AR)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- الجداول الثلاثة التالية موجودة في معظم النسخ القديمة، لكن عمود الترتيب
 -- كان مفقوداً فيها؛ غيابه يسبب خطأ API 500 عند فتح الشاشات المرجعية.
 ALTER TABLE payment_methods ADD COLUMN IF NOT EXISTS Sort_Order INT NOT NULL DEFAULT 0;
@@ -78,4 +100,5 @@ ALTER TABLE voucher_statuses ADD COLUMN IF NOT EXISTS Sort_Order INT NOT NULL DE
 -- تحقق مختصر بعد التنفيذ:
 -- SELECT TABLE_NAME FROM information_schema.TABLES
 -- WHERE TABLE_SCHEMA = DATABASE()
---   AND TABLE_NAME IN ('system_settings','fiscal_periods','exchange_rates');
+--   AND TABLE_NAME IN
+-- ('system_settings','fiscal_periods','exchange_rates','bank_accounts');
