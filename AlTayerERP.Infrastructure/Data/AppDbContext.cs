@@ -284,6 +284,11 @@ namespace AlTayerERP.Infrastructure.Data
             {
                 entity.ToTable("role_permissions");
                 entity.HasKey(e => e.Permission_ID);
+                // مفتاح فريد لصلاحية الدور الدقيقة؛ Screen_ID يبقى متاحاً للسجل القديم.
+                entity.HasIndex(e => new { e.Role_ID, e.System_Permission_ID, e.Effective_From }).IsUnique();
+                entity.HasIndex(e => new { e.Role_ID, e.Is_Active, e.Effective_From, e.Effective_To });
+                entity.HasOne<SystemPermission>().WithMany().HasForeignKey(e => e.System_Permission_ID)
+                    .OnDelete(DeleteBehavior.Restrict);
             });
 
             // إعدادات جدول صلاحيات المستخدمين المباشرة وتحديد المفتاح الرئيسي
