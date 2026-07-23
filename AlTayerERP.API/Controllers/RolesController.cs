@@ -32,10 +32,13 @@ public class RolesController : ControllerBase
 
     /// <summary>جلب الأدوار مرتبة، بما فيها الأدوار الموقوفة لإدارتها.</summary>
     [HttpGet]
-    public async Task<IActionResult> GetRoles() =>
-        Ok(await _context.Roles.AsNoTracking()
+    public async Task<IActionResult> GetRoles()
+    {
+        if (!IsSystemAdmin()) return Forbid();
+        return Ok(await _context.Roles.AsNoTracking()
             .OrderBy(x => x.Role_Name)
             .ToListAsync());
+    }
 
     /// <summary>إنشاء دور مع كود ثابت وفريد للاستخدام في الصلاحيات والتكامل.</summary>
     [HttpPost]
