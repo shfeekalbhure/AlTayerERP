@@ -2,11 +2,19 @@ using System;
 
 namespace AlTayerERP.Core.Entities
 {
+    /// <summary>
+    /// المجموعة التجارية (TenantGroup) وهي المستوى الأعلى قبل الشركات.
+    /// حقول التدقيق مصدرها Backend ولا تقبل من واجهة المستخدم.
+    /// </summary>
     public class TenantGroup
     {
+        /// <summary>المعرف الداخلي للمجموعة Group_ID.</summary>
         public string Group_ID { get; set; } = string.Empty;
+        /// <summary>الكود الفريد للمجموعة Group_Code.</summary>
         public string Group_Code { get; set; } = string.Empty;
+        /// <summary>اسم المجموعة بالعربية Group_Name_AR.</summary>
         public string Group_Name_AR { get; set; } = string.Empty;
+        /// <summary>اسم المجموعة بالإنجليزية Group_Name_EN.</summary>
         public string Group_Name_EN { get; set; } = string.Empty;
         public string Short_Name { get; set; } = string.Empty;
         public string Group_Type { get; set; } = string.Empty;
@@ -22,8 +30,18 @@ namespace AlTayerERP.Core.Entities
         public bool Show_In_Login { get; set; }
         public int Sort_Order { get; set; }
         public string? Notes { get; set; }
+
+        /// <summary>وقت الإنشاء Created_At من الخادم.</summary>
         public DateTime Created_At { get; set; }
+        /// <summary>آخر وقت تعديل Updated_At من الخادم.</summary>
         public DateTime? Updated_At { get; set; }
+        /// <summary>المستخدم المنشئ Created_By من الجلسة الموثوقة.</summary>
+        public int? Created_By { get; set; }
+        /// <summary>آخر مستخدم معدّل Updated_By من الجلسة الموثوقة.</summary>
+        public int? Updated_By { get; set; }
+        /// <summary>عداد التعديلات الناجحة Edit_Count ولا يعدل من العميل.</summary>
+        public int Edit_Count { get; set; }
+        /// <summary>حالة السجل Is_Active؛ يستخدم الإيقاف بدلاً من الحذف عند الارتباط.</summary>
         public bool Is_Active { get; set; }
     }
 }
