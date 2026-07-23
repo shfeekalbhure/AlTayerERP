@@ -96,3 +96,22 @@ CREATE TABLE IF NOT EXISTS approval_limits (
     CONSTRAINT FK_Approval_Limits_User FOREIGN KEY (User_ID) REFERENCES users(User_ID) ON DELETE RESTRICT,
     CONSTRAINT FK_Approval_Limits_Role FOREIGN KEY (Role_ID) REFERENCES roles(Role_ID) ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='حدود الاعتماد المالية';
+
+
+-- توسعة جدول role_permissions القائم لتطبيق كتالوج الصلاحيات الدقيق.
+-- Screen_ID والحقول القديمة تبقى متوافقة إلى أن تنقل واجهة الإدارة بياناتها.
+ALTER TABLE role_permissions
+    ADD COLUMN IF NOT EXISTS System_Permission_ID INT NULL COMMENT 'الصلاحية القياسية',
+    ADD COLUMN IF NOT EXISTS Effect VARCHAR(10) NOT NULL DEFAULT 'Allow' COMMENT 'Allow أو Deny',
+    ADD COLUMN IF NOT EXISTS Grant_Descendants TINYINT(1) NOT NULL DEFAULT 0 COMMENT 'توريث صريح',
+    ADD COLUMN IF NOT EXISTS Effective_From DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) COMMENT 'بداية السريان',
+    ADD COLUMN IF NOT EXISTS Effective_To DATETIME(6) NULL COMMENT 'نهاية السريان',
+    ADD COLUMN IF NOT EXISTS Is_Active TINYINT(1) NOT NULL DEFAULT 1 COMMENT 'حالة السجل';
+
+ALTER TABLE role_permissions
+    ADD CONSTRAINT FK_Role_Permissions_System_Permission
+    FOREIGN KEY (System_Permission_ID) REFERENCES system_permissions(Permission_ID)
+    ON DELETE RESTRICT;
+
+CREATE INDEX IX_Role_Permissions_Rbac_Active
+    ON role_permissions (Role_ID, Is_Active, Effective_From, Effective_To);
