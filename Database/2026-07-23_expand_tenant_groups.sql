@@ -19,9 +19,14 @@ ALTER TABLE tenant_groups
     ADD COLUMN IF NOT EXISTS Notes VARCHAR(500) NULL AFTER Sort_Order,
     ADD COLUMN IF NOT EXISTS Updated_At DATETIME NULL AFTER Created_At;
 
-UPDATE tenant_groups
-SET Group_Code = CONCAT('BG', LPAD(ROW_NUMBER() OVER (ORDER BY Created_At, Group_ID), 3, '0'))
-WHERE Group_Code IS NULL OR TRIM(Group_Code) = '';
+UPDATE tenant_groups tg
+JOIN (
+    SELECT Group_ID,
+           CONCAT('BG', LPAD(ROW_NUMBER() OVER (ORDER BY Created_At, Group_ID), 3, '0')) AS Generated_Code
+    FROM tenant_groups
+) numbered ON numbered.Group_ID = tg.Group_ID
+SET tg.Group_Code = numbered.Generated_Code
+WHERE tg.Group_Code IS NULL OR TRIM(tg.Group_Code) = '';
 
 UPDATE tenant_groups
 SET Short_Name = Group_Name_AR
