@@ -58,6 +58,10 @@ namespace AlTayerERP.API.Controllers
                     Branch_Name = dto.Branch_Name.Trim(),
                     Branch_Name_EN = dto.Branch_Name_EN?.Trim(),
                     Address = dto.Address?.Trim(),
+                    Country_ID = dto.Country_ID,
+                    Governorate_ID = dto.Governorate_ID,
+                    City_ID = dto.City_ID,
+                    Postal_Code = dto.Postal_Code?.Trim(),
 
                     // إذا لم يتم إرسال نوع الفرع، يتم اعتباره "فرعي" بشكل افتراضي
                     Branch_Type = dto.Branch_Type?.Trim() ?? "فرعي",
@@ -119,6 +123,10 @@ namespace AlTayerERP.API.Controllers
                         x.Branch_Name,
                         x.Branch_Name_EN,
                         x.Address,
+                        x.Country_ID,
+                        x.Governorate_ID,
+                        x.City_ID,
+                        x.Postal_Code,
                         x.Branch_Type,
                         x.Parent_Branch_ID,
                         x.Phone,
@@ -215,6 +223,10 @@ namespace AlTayerERP.API.Controllers
                 existingBranch.Branch_Name = dto.Branch_Name.Trim();
                 existingBranch.Branch_Name_EN = dto.Branch_Name_EN?.Trim();
                 existingBranch.Address = dto.Address?.Trim();
+                existingBranch.Country_ID = dto.Country_ID;
+                existingBranch.Governorate_ID = dto.Governorate_ID;
+                existingBranch.City_ID = dto.City_ID;
+                existingBranch.Postal_Code = dto.Postal_Code?.Trim();
                 existingBranch.Branch_Type = dto.Branch_Type?.Trim() ?? "فرعي";
                 existingBranch.Parent_Branch_ID = dto.Parent_Branch_ID; // تحديث معرف الفرع الأب شجرياً
 
