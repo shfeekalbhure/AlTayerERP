@@ -51,6 +51,10 @@ namespace AlTayerERP.API.Controllers
                         c.Mobile,
                         c.Email,
                         c.Address,
+                        c.Country_ID,
+                        c.Governorate_ID,
+                        c.City_ID,
+                        c.Postal_Code,
                         c.Is_Active
                     })
                     .ToListAsync();
@@ -123,6 +127,10 @@ namespace AlTayerERP.API.Controllers
                     Mobile = dto.Mobile,
                     Email = dto.Email,
                     Address = dto.Address,
+                    Country_ID = dto.Country_ID,
+                    Governorate_ID = dto.Governorate_ID,
+                    City_ID = dto.City_ID,
+                    Postal_Code = dto.Postal_Code?.Trim(),
                     Company_Logo = dto.Company_Logo, // استقبال الشعار كمصفوفة بايتات بنجاح
                     Is_Active = dto.Is_Active,
                     Created_At = DateTime.UtcNow,
