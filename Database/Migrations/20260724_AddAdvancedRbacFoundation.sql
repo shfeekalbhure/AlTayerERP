@@ -15,7 +15,7 @@ CREATE TABLE IF NOT EXISTS user_roles (
     Granted_By INT NULL COMMENT 'من منح الدور',
     Reason VARCHAR(500) NULL COMMENT 'سبب المنح أو الإيقاف',
     PRIMARY KEY (User_Role_ID),
-    CONSTRAINT UQ_User_Roles_User_Role UNIQUE (User_ID, Role_ID),
+    CONSTRAINT UQ_User_Roles_User_Role_Start UNIQUE (User_ID, Role_ID, Effective_From),
     INDEX IX_User_Roles_Active (User_ID, Is_Active, Effective_From, Effective_To),
     CONSTRAINT FK_User_Roles_User FOREIGN KEY (User_ID) REFERENCES users(User_ID) ON DELETE RESTRICT,
     CONSTRAINT FK_User_Roles_Role FOREIGN KEY (Role_ID) REFERENCES roles(Role_ID) ON DELETE RESTRICT
