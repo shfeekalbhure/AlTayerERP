@@ -56,6 +56,15 @@ namespace AlTayerERP.Infrastructure.Data
 
         #region 3. إعدادات الترقيم والرقابة والاعتمادات
 
+        // جدول إعدادات عامة قابلة للتخصيص على مستوى النظام/الشركة/الفرع/السنة.
+        public DbSet<SystemSetting> System_Settings { get; set; } = null!;
+
+        // الفترات المحاسبية داخل السنة المالية لكل فرع.
+        public DbSet<FiscalPeriod> Fiscal_Periods { get; set; } = null!;
+
+        // سجل أسعار الصرف بتاريخ السريان للشركات.
+        public DbSet<ExchangeRate> Exchange_Rates { get; set; } = null!;
+
         // جدول إعدادات ترميز وترقيم المستندات (مثل السندات والفواتير) لكل فرع
         public DbSet<NumberingSetting> Numbering_Settings { get; set; } = null!;
 
@@ -89,6 +98,9 @@ namespace AlTayerERP.Infrastructure.Data
 
         // جدول العملات الأجنبية والمحلية المستخدمة في النظام
         public DbSet<Currency> Currencies { get; set; } = null!;
+
+        // الحسابات البنكية التشغيلية للشركات.
+        public DbSet<BankAccount> Bank_Accounts { get; set; } = null!;
 
         #endregion
 
@@ -291,6 +303,14 @@ namespace AlTayerERP.Infrastructure.Data
                 // تحديد دقة الرقم العشري لسعر الصرف (18 خانة إجمالية، 6 بعد الفاصلة) لضمان الدقة
                 entity.Property(e => e.Exchange_Rate)
                     .HasPrecision(18, 6);
+            });
+
+            // الحسابات البنكية التشغيلية للشركة.
+            modelBuilder.Entity<BankAccount>(entity =>
+            {
+                entity.ToTable("bank_accounts");
+                entity.HasKey(e => e.Bank_Account_ID);
+                entity.HasIndex(e => new { e.Company_ID, e.Account_No }).IsUnique();
             });
 
             #endregion

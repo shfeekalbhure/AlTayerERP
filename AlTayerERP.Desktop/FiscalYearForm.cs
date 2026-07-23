@@ -36,7 +36,8 @@ private readonly HttpClient _client = ApiService.Client;
         {
             InitializeComponent();
 
-            // إعداد أعمدة وخصائص جدول عرض البيانات
+            // توحيد شكل الشاشة القديمة والاختصارات العربية دون تغيير منطقها.
+// إعداد أعمدة وخصائص جدول عرض البيانات
             SetupFiscalYearsGrid();
 
             // ربط أحداث الشاشة والأزرار برمجياً لضمان عملها وتوافقها مع الـ Designer

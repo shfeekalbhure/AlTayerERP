@@ -45,6 +45,9 @@ namespace AlTayerERP.Desktop
         // قوائم لتخزين بيانات العملات والحسابات المسترجعة من قاعدة البيانات
         private List<CurrencyLookupModel> _currencyLookups = new();
         private List<AccountLookupModel> _accountLookups = new();
+        // قوائم مرجعية تستخدمها شاشات الاستعلام باختصار F9.
+        private List<CashBoxLookupModel> _cashBoxLookups = new();
+        private List<CostCenterLookupModel> _costCenterLookups = new();
 
         #endregion
 
@@ -104,6 +107,9 @@ namespace AlTayerERP.Desktop
             txtReference.TextChanged += txtReference_TextChanged;
             txtReferenceNo.TextChanged -= txtReferenceNo_TextChanged;
             txtReferenceNo.TextChanged += txtReferenceNo_TextChanged;
+
+            // اختصار F9 يفتح شاشة استعلام للصندوق ومركز التكلفة بدلاً من البحث اليدوي فقط.
+            RegisterLookupShortcutEvents();
 
             // استدعاء دالة لتسجيل أحداث العمليات الإضافية على السند
             RegisterVoucherActionEvents();
@@ -514,7 +520,6 @@ namespace AlTayerERP.Desktop
         private void dgvVoucherDetails_CellContentClick(object? sender, DataGridViewCellEventArgs e) { }
 
         private void groupBox1_Enter(object sender, EventArgs e) { }
-        private void numAmount_ValueChanged_1(object sender, EventArgs e) { }
 
         #endregion
 

@@ -1,284 +1,494 @@
-﻿using AlTayerERP.Desktop.Services; // استيراد خدمات المشروع مثل ApiService و CurrentSession
+using AlTayerERP.Desktop.Services;
 using System;
 using System.Collections.Generic;
-using System.Net.Http; // استيراد مكتبة التعامل مع بروتوكول HTTP لارسال واستقبال البيانات
-using System.Net.Http.Json; // استيراد ميزة تحويل البيانات تلقائياً من وإلى صيغة JSON
-using System.Threading.Tasks; // استيراد مكتبة العمليات غير المتزامنة Asynchronous Tasks
-using System.Windows.Forms; // استيراد مكتبة واجهات ويندوز الفيجوال الأساسية
-using System.Linq; // مطلوب لاستخدام FirstOrDefault
+using System.Drawing;
+using System.Drawing.Drawing2D;
+using System.Linq;
+using System.Net.Http;
+using System.Net.Http.Json;
+using System.Threading.Tasks;
+using System.Windows.Forms;
+using WinFormsTimer = System.Windows.Forms.Timer;
 
 namespace AlTayerERP.Desktop
 {
-    // كلاس شاشة تسجيل الدخول الرئيسي والمصمم كـ partial ليتكامل مع ملف الـ Designer
     public partial class FrmLogin : Form
     {
-        // استدعاء الكائن المركزي لإرسال طلبات الويب من كلاس الخدمات الموحد للمشروع
         private readonly HttpClient _client = ApiService.Client;
-        // جلب الرابط الأساسي للـ API المتفق عليه في خدمات النظام
         private readonly string _baseUrl = ApiService.BaseUrl;
+        private bool _loadingCompany;
+        private Button? _btnTogglePassword;
+        private Label? _lblCapsLock;
+        private Label? _lblWelcome;
+        private WinFormsTimer? _clockTimer;
 
-        // مُشيّد الشاشة (Constructor) - يتم استدعاؤه فور إنشاء الفورم 
         public FrmLogin()
         {
-            InitializeComponent(); // بناء وتهيئة عناصر الواجهة الرسومية المصممة 
-                                   // الإلغاء ثم الاشتراك لحدث تحميل الشاشة لتفادي تكرار التنفيذ في الذاكرة 
-            this.Load -= FrmLogin_Load;
-            this.Load += FrmLogin_Load;
-            // ربط حدث النقر على زر تسجيل الدخول بالدالة البرمجية الخاصة به بأمان 
+            InitializeComponent();
+
+            Load -= FrmLogin_Load;
+            Load += FrmLogin_Load;
             btnLogin.Click -= btnLogin_Click;
             btnLogin.Click += btnLogin_Click;
-            // ربط حدث النقر على زر الخروج 
-            btnExit.Click -= btnExit_Click;
-            btnExit.Click += btnExit_Click;
-            // ربط حدث النقر على زر "حول النظام" 
-            btnAboutSystem.Click -= btnAboutSystem_Click;
-            btnAboutSystem.Click += btnAboutSystem_Click;
-            // ربط حدث النقر على زر إعدادات الاتصال بالسيرفر 
-            btnConnectionSettings.Click -= btnConnectionSettings_Click;
-            btnConnectionSettings.Click += btnConnectionSettings_Click;
-
-            // ربط حدث تغيير الشركة المختارة بأمان لمنع تكرار الاستدعاء
             cmbCompany.SelectedIndexChanged -= cmbCompany_SelectedIndexChanged;
             cmbCompany.SelectedIndexChanged += cmbCompany_SelectedIndexChanged;
 
-            // قناع حقل كلمة المرور لجعل النص يظهر بنجوم لحماية السرية بالكامل 
-            txtPassword.PasswordChar = '*';
-            this.AcceptButton = btnLogin;
-            this.CancelButton = btnExit;
+            btnExit.Click -= btnExit_Click;
+            btnExit.Click += btnExit_Click;
+            btnAboutSystem.Click -= btnAboutSystem_Click;
+            btnAboutSystem.Click += btnAboutSystem_Click;
+            btnConnectionSettings.Click -= btnConnectionSettings_Click;
+            btnConnectionSettings.Click += btnConnectionSettings_Click;
+
+            cmbUsername.DropDownStyle = ComboBoxStyle.DropDown;
+            cmbUsername.AutoCompleteMode = AutoCompleteMode.None;
+            txtPassword.UseSystemPasswordChar = true;
+            txtPassword.KeyDown += TxtPassword_KeyDown;
+            txtPassword.KeyUp += TxtPassword_KeyUp;
+
+            AcceptButton = btnLogin;
+            CancelButton = btnExit;
+            KeyPreview = true;
+            KeyDown += FrmLogin_KeyDown;
+
+            ApplyLoginVisuals();
+            CreateRuntimeControls();
+            ApplyDefaultBranding();
         }
 
-        // الحدث المسؤول عن تهيئة الشاشة بمجرد تشغيلها وجلب الشركات فقط
-        private async void FrmLogin_Load(object sender, EventArgs e)
+        private void ApplyLoginVisuals()
         {
+            var navy = Color.FromArgb(8, 49, 92);
+            var blue = Color.FromArgb(30, 104, 194);
+
+            Text = "تسجيل الدخول - نظام الطائر ERP";
+            RightToLeft = RightToLeft.Yes;
+            RightToLeftLayout = true;
+            StartPosition = FormStartPosition.CenterScreen;
+            BackColor = Color.FromArgb(245, 248, 252);
+            MinimumSize = new Size(920, 590);
+
+            pnlHeader.BackColor = Color.White;
+            pnlHeader.BorderStyle = BorderStyle.FixedSingle;
+            lblSystemTitle.Text = "نظام الطائر لإدارة موارد المؤسسات";
+            lblSystemTitle.Font = new Font("Segoe UI", 15F, FontStyle.Bold);
+            lblSystemTitle.ForeColor = navy;
+            lblSystemSubtitle.Text = "AlTayer ERP | Enterprise Resource Planning";
+            lblSystemSubtitle.Font = new Font("Segoe UI", 9.5F);
+            lblSystemSubtitle.ForeColor = blue;
+
+            pnlCompanyInfo.BackColor = Color.White;
+            pnlCompanyInfo.BorderStyle = BorderStyle.FixedSingle;
+            lblCompanyTitle.Text = "بيانات الشركة";
+            lblCompanyTitle.Font = new Font("Segoe UI", 12F, FontStyle.Bold);
+            lblCompanyTitle.ForeColor = navy;
+            lblCompanyName.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
+            foreach (var label in new[] { lblCompanyAddress, lblCompanyPhone, lblCompanyEmail })
+            {
+                label.Font = new Font("Segoe UI", 9.5F);
+                label.ForeColor = Color.FromArgb(55, 65, 81);
+            }
+
+            pnlLogin.BackColor = Color.White;
+            pnlLogin.BorderStyle = BorderStyle.FixedSingle;
+            grpLogin.BackColor = Color.White;
+            grpLogin.Font = new Font("Segoe UI", 11F, FontStyle.Bold);
+            grpLogin.ForeColor = navy;
+
+            foreach (var input in new Control[] { cmbCompany, cmbBranch, cmbFiscalYear, cmbUsername, txtPassword })
+            {
+                input.Font = new Font("Segoe UI", 10F);
+                input.BackColor = Color.White;
+            }
+
+            foreach (var combo in new[] { cmbCompany, cmbBranch, cmbFiscalYear })
+                combo.DropDownStyle = ComboBoxStyle.DropDownList;
+
+            chkRememberMe.Text = "تذكر بيانات الدخول";
+            chkRememberMe.Font = new Font("Segoe UI", 9F);
+
+            btnLogin.Text = "تسجيل الدخول  (Enter)";
+            btnLogin.FlatStyle = FlatStyle.Flat;
+            btnLogin.FlatAppearance.BorderSize = 0;
+            btnLogin.BackColor = blue;
+            btnLogin.ForeColor = Color.White;
+            btnLogin.Font = new Font("Segoe UI", 10.5F, FontStyle.Bold);
+
+            btnExit.Text = "خروج  (Esc)";
+            btnConnectionSettings.Text = "إعدادات الاتصال";
+            btnAboutSystem.Text = "حول النظام";
+            foreach (var button in new[] { btnAboutSystem, btnConnectionSettings, btnExit })
+            {
+                button.FlatStyle = FlatStyle.Flat;
+                button.FlatAppearance.BorderColor = Color.FromArgb(190, 205, 220);
+                button.BackColor = Color.White;
+                button.ForeColor = navy;
+                button.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+            }
+
+            pnlStatusBar.BackColor = Color.White;
+            pnlStatusBar.BorderStyle = BorderStyle.FixedSingle;
+        }
+
+        private void CreateRuntimeControls()
+        {
+            _btnTogglePassword = new Button
+            {
+                Name = "btnTogglePassword",
+                Text = "إظهار",
+                FlatStyle = FlatStyle.Flat,
+                Font = new Font("Segoe UI", 8.5F, FontStyle.Bold),
+                BackColor = Color.White,
+                ForeColor = Color.FromArgb(8, 49, 92),
+                TabStop = false,
+                Size = new Size(58, txtPassword.Height + 2),
+                Location = new Point(Math.Max(4, txtPassword.Left - 62), txtPassword.Top - 1),
+                Anchor = txtPassword.Anchor
+            };
+            _btnTogglePassword.FlatAppearance.BorderColor = Color.FromArgb(170, 185, 205);
+            _btnTogglePassword.Click += (_, _) =>
+            {
+                txtPassword.UseSystemPasswordChar = !txtPassword.UseSystemPasswordChar;
+                _btnTogglePassword.Text = txtPassword.UseSystemPasswordChar ? "إظهار" : "إخفاء";
+                txtPassword.Focus();
+                txtPassword.SelectionStart = txtPassword.TextLength;
+            };
+            grpLogin.Controls.Add(_btnTogglePassword);
+            _btnTogglePassword.BringToFront();
+
+            _lblCapsLock = new Label
+            {
+                Name = "lblCapsLock",
+                AutoSize = true,
+                Text = "تنبيه: مفتاح Caps Lock مفعّل",
+                ForeColor = Color.Firebrick,
+                Font = new Font("Segoe UI", 8.5F, FontStyle.Bold),
+                Visible = false,
+                Location = new Point(txtPassword.Left, txtPassword.Bottom + 4)
+            };
+            grpLogin.Controls.Add(_lblCapsLock);
+            _lblCapsLock.BringToFront();
+
+            _lblWelcome = new Label
+            {
+                Name = "lblWelcome",
+                AutoSize = true,
+                Text = "مرحباً بك في نظام الطائر ERP",
+                ForeColor = Color.FromArgb(8, 49, 92),
+                Font = new Font("Segoe UI", 10F, FontStyle.Bold),
+                Location = new Point(18, 28)
+            };
+            grpLogin.Controls.Add(_lblWelcome);
+            _lblWelcome.BringToFront();
+
+            _clockTimer = new WinFormsTimer { Interval = 1000 };
+            _clockTimer.Tick += (_, _) => lblDateTime.Text = DateTime.Now.ToString("yyyy/MM/dd  HH:mm:ss");
+            _clockTimer.Start();
+        }
+
+        private void ApplyDefaultBranding()
+        {
+            picSystemLogo.Image?.Dispose();
+            picCompanyLogo.Image?.Dispose();
+            picSystemLogo.Image = CreateLogoBitmap(128, "ERP");
+            picCompanyLogo.Image = CreateLogoBitmap(300, "الطائر");
+            picSystemLogo.SizeMode = PictureBoxSizeMode.Zoom;
+            picCompanyLogo.SizeMode = PictureBoxSizeMode.Zoom;
+        }
+
+        private static Bitmap CreateLogoBitmap(int size, string caption)
+        {
+            var bitmap = new Bitmap(size, size);
+            using var graphics = Graphics.FromImage(bitmap);
+            graphics.SmoothingMode = SmoothingMode.AntiAlias;
+            graphics.Clear(Color.White);
+
+            var rect = new RectangleF(size * 0.07F, size * 0.07F, size * 0.86F, size * 0.86F);
+            using var background = new LinearGradientBrush(rect, Color.FromArgb(8, 49, 92), Color.FromArgb(30, 104, 194), 45F);
+            graphics.FillEllipse(background, rect);
+
+            using var wingPen = new Pen(Color.White, Math.Max(2F, size * 0.035F))
+            {
+                StartCap = LineCap.Round,
+                EndCap = LineCap.Round
+            };
+            graphics.DrawArc(wingPen, size * 0.20F, size * 0.25F, size * 0.42F, size * 0.38F, 205F, 115F);
+            graphics.DrawArc(wingPen, size * 0.40F, size * 0.25F, size * 0.42F, size * 0.38F, 220F, 115F);
+
+            using var font = new Font("Segoe UI", Math.Max(9F, size * 0.105F), FontStyle.Bold);
+            using var textBrush = new SolidBrush(Color.White);
+            using var format = new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center };
+            graphics.DrawString(caption, font, textBrush, new RectangleF(0, size * 0.57F, size, size * 0.25F), format);
+            return bitmap;
+        }
+
+        private async void FrmLogin_Load(object? sender, EventArgs e)
+        {
+            btnLogin.Enabled = false;
+            lblApiStatus.Text = "API: جاري الفحص...";
+            lblDatabaseStatus.Text = "قاعدة البيانات: جاري الفحص...";
+            lblLicenseStatus.Text = "الترخيص: ساري";
+            lblVersion.Text = "الإصدار: 1.0.0";
+            lblDateTime.Text = DateTime.Now.ToString("yyyy/MM/dd  HH:mm:ss");
+
             try
             {
-                // تحديث النصوص في شريط الحالة السفلي لبدء عملية الفحص والتحضير 
-                lblApiStatus.Text = "API: جاري الفحص...";
-                lblDatabaseStatus.Text = "قاعدة البيانات: جاري الفحص...";
-                lblLicenseStatus.Text = "الترخيص: ساري";
-                lblVersion.Text = "الإصدار: 1.0.0";
-                lblDateTime.Text = DateTime.Now.ToString("yyyy/MM/dd hh:mm tt"); // تنسيق الوقت والتاريخ الحالي 
+                var health = await _client.GetAsync($"{_baseUrl}health");
+                if (!health.IsSuccessStatusCode)
+                    throw new HttpRequestException("خدمة النظام أو قاعدة البيانات غير جاهزة.");
 
-                // استدعاء دالة جلب الشركات فقط عند الإقلاع لتفعيل التسلسل المنطقي
                 await LoadCompaniesAsync();
-
-                // عند نجاح جلب البيانات بالكامل يتم تحديث شريط الحالة بنجاح الاتصال 
                 lblApiStatus.Text = "API: متصل";
+                lblApiStatus.ForeColor = Color.DarkGreen;
                 lblDatabaseStatus.Text = "قاعدة البيانات: متصلة";
-                // ضبط القائمة المنسدلة لأسماء المستخدمين لتبدأ بدون اختيار افتراضي ومسح كلمة المرور 
-                cmbUsername.SelectedIndex = -1;
-                txtPassword.Clear();
-                cmbUsername.Focus(); // توجيه مؤشر التركيز تلقائياً إلى خانة اختيار المستخدم 
+                lblDatabaseStatus.ForeColor = Color.DarkGreen;
+                btnLogin.Enabled = true;
             }
             catch (Exception ex)
             {
-                // في حال حدوث أي خطأ في الشبكة أو جلب البيانات يتم إخطار المستخدم وتحديث شريط الحالة بفشل الاتصال 
                 lblApiStatus.Text = "API: غير متصل";
+                lblApiStatus.ForeColor = Color.Firebrick;
                 lblDatabaseStatus.Text = "قاعدة البيانات: غير متصلة";
-
-                // تعطيل زر الدخول عند فشل تحميل البيانات من السيرفر لمنع الطلبات العشوائية
-                btnLogin.Enabled = false;
-
-                MessageBox.Show("فشل تحميل بيانات الدخول:\n" + ex.Message, "خطأ تهيئة", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                lblDatabaseStatus.ForeColor = Color.Firebrick;
+                MessageBox.Show("تعذر الاتصال بخدمة النظام.\n" + ex.Message, "خطأ تهيئة", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
-        // دالة جلب الشركات المتاحة من السيرفر وتعبئتها داخل الـ ComboBox الخاص بالشركات 
         private async Task LoadCompaniesAsync()
         {
-            var data = await _client.GetFromJsonAsync<List<CompanyLookupModel>>($"{_baseUrl}Branches/GetCompaniesLookup");
-            cmbCompany.DataSource = data ?? new List<CompanyLookupModel>(); // إسناد البيانات أو قائمة فارغة لتجنب الـ Null 
-            cmbCompany.DisplayMember = "Company_Name_AR"; // النص الظاهر للمستخدم يطابق الـ API تماماً 
-            cmbCompany.ValueMember = "Company_ID"; // القيمة البرمجية المخفية في الخلفية (معرف الشركة) 
-        }
-
-        // دالة جلب فروع المؤسسة المصفاة بحسب الشركة المحددة
-        private async Task LoadBranchesAsync()
-        {
-            string companyId = cmbCompany.SelectedValue?.ToString() ?? "";
-            var data = await _client.GetFromJsonAsync<List<BranchLookupModel>>($"{_baseUrl}Branches/GetActiveBranchesLookup?companyId={companyId}");
-            cmbBranch.DataSource = data ?? new List<BranchLookupModel>();
-            cmbBranch.DisplayMember = "Branch_Name";
-            cmbBranch.ValueMember = "Branch_ID";
-            cmbBranch.SelectedIndex = -1;
-        }
-
-        // دالة جلب السنوات المالية المعتمدة والمصفاة بحسب الشركة المحددة وتحديد الافتراضي بالترتيب الصحيح
-        private async Task LoadFiscalYearsAsync()
-        {
-            string companyId = cmbCompany.SelectedValue?.ToString() ?? "";
-            var data = await _client.GetFromJsonAsync<List<FiscalYearLookupModel>>($"{_baseUrl}FiscalYears?companyId={companyId}");
-
-            cmbFiscalYear.DataSource = null;
-            cmbFiscalYear.DisplayMember = "Year_Name";
-            cmbFiscalYear.ValueMember = "Fiscal_Year_ID";
-            cmbFiscalYear.DataSource = data ?? new List<FiscalYearLookupModel>();
-
-            var defaultYear = data?.FirstOrDefault(x => x.Is_Default);
-            if (defaultYear != null)
-                cmbFiscalYear.SelectedValue = defaultYear.Fiscal_Year_ID;
-        }
-
-        // دالة جلب بيانات حسابات المستخدمين المصفاة بحسب الشركة المحددة
-        private async Task LoadUsersAsync()
-        {
-            string companyId = cmbCompany.SelectedValue?.ToString() ?? "";
-            var data = await _client.GetFromJsonAsync<List<UserLookupModel>>($"{_baseUrl}Users/GetUsersLookup?companyId={companyId}");
-            cmbUsername.DataSource = data ?? new List<UserLookupModel>();
-            cmbUsername.DisplayMember = "Login_Name"; // اسم المستخدم المخصص لتسجيل الدخول 
-            cmbUsername.ValueMember = "User_ID"; // معرف المستخدم الفريد بقاعدة البيانات 
-        }
-
-        // الدالة الجديدة والمجهزة لاستقبال جلب صورة الشعار من السيرفر لاحقاً
-        private async Task LoadCompanyLogoAsync()
-        {
-            if (cmbCompany.SelectedValue == null) return;
-            // سيتم استدعاء API لجلب شعار الشركة لاحقاً 
-            await Task.CompletedTask;
-        }
-
-        // الحدث الرئيسي والمسؤول عن الضغط على زر تسجيل الدخول وفحص الصلاحيات مع الـ API 
-        private async void btnLogin_Click(object sender, EventArgs e)
-        {
-            btnLogin.Enabled = false; // تعطيل الزر لمنع طلبات مكررة 
+            _loadingCompany = true;
             try
             {
-                // التحقق من الحقول الأساسية مع بقاء الفرع اختيارياً
-                if (cmbCompany.SelectedValue == null || cmbFiscalYear.SelectedValue == null || cmbUsername.SelectedValue == null || string.IsNullOrWhiteSpace(txtPassword.Text))
+                var companies = await _client.GetFromJsonAsync<List<CompanyLookupModel>>($"{_baseUrl}Branches/GetCompaniesLookup") ?? new();
+                Bind(cmbCompany, companies, "Company_Name_AR", "Company_ID");
+                if (companies.Count == 1)
+                    cmbCompany.SelectedIndex = 0;
+            }
+            finally
+            {
+                _loadingCompany = false;
+            }
+
+            if (cmbCompany.SelectedValue != null)
+                await LoadCompanyContextAsync();
+        }
+
+        private async Task LoadCompanyContextAsync()
+        {
+            string? companyId = cmbCompany.SelectedValue?.ToString();
+            if (string.IsNullOrWhiteSpace(companyId))
+                return;
+
+            lblCompanyName.Text = cmbCompany.Text;
+            lblCompanyAddress.Text = "العنوان: عدن - المنصورة";
+            lblCompanyPhone.Text = "الهاتف: غير محدد";
+            lblCompanyEmail.Text = "البريد الإلكتروني: غير محدد";
+
+            var branchesTask = _client.GetFromJsonAsync<List<BranchLookupModel>>($"{_baseUrl}Branches/GetActiveBranchesLookup?companyId={Uri.EscapeDataString(companyId)}");
+            var yearsTask = _client.GetFromJsonAsync<List<FiscalYearLookupModel>>($"{_baseUrl}FiscalYears/Lookup?companyId={Uri.EscapeDataString(companyId)}");
+            await Task.WhenAll(branchesTask, yearsTask);
+
+            var branches = branchesTask.Result ?? new List<BranchLookupModel>();
+            var years = yearsTask.Result ?? new List<FiscalYearLookupModel>();
+            Bind(cmbBranch, branches, "Branch_Name", "Branch_ID");
+            Bind(cmbFiscalYear, years, "Year_Name", "Fiscal_Year_ID");
+
+            if (branches.Count == 1)
+                cmbBranch.SelectedIndex = 0;
+
+            var defaultYear = years.FirstOrDefault(x => x.Is_Default);
+            if (defaultYear != null)
+                cmbFiscalYear.SelectedValue = defaultYear.Fiscal_Year_ID;
+            else if (years.Count == 1)
+                cmbFiscalYear.SelectedIndex = 0;
+
+            cmbUsername.DataSource = null;
+            cmbUsername.Text = string.Empty;
+            txtPassword.Clear();
+        }
+
+        private static void Bind<T>(ComboBox combo, List<T> items, string displayMember, string valueMember)
+        {
+            combo.DataSource = null;
+            combo.DisplayMember = displayMember;
+            combo.ValueMember = valueMember;
+            combo.DataSource = items;
+            combo.SelectedIndex = -1;
+        }
+
+        private async void cmbCompany_SelectedIndexChanged(object? sender, EventArgs e)
+        {
+            if (_loadingCompany || cmbCompany.SelectedValue == null)
+                return;
+
+            try
+            {
+                await LoadCompanyContextAsync();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("تعذر تحميل بيانات الشركة.\n" + ex.Message, "الدخول", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
+        }
+
+        private async void btnLogin_Click(object? sender, EventArgs e)
+        {
+            if (cmbCompany.SelectedValue == null || cmbBranch.SelectedValue == null ||
+                cmbFiscalYear.SelectedValue == null || string.IsNullOrWhiteSpace(cmbUsername.Text) ||
+                string.IsNullOrWhiteSpace(txtPassword.Text))
+            {
+                MessageBox.Show("حدد الشركة والفرع والسنة المالية والمستخدم، ثم أدخل كلمة المرور.", "بيانات ناقصة", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            btnLogin.Enabled = false;
+            string originalText = btnLogin.Text;
+            btnLogin.Text = "جاري التحقق...";
+            UseWaitCursor = true;
+
+            try
+            {
+                var request = new LoginRequest
                 {
-                    MessageBox.Show("يرجى إدخال واختيار جميع بيانات الدخول الأساسية.", "تنبيه", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                    btnLogin.Enabled = true;
-                    return;
-                }
+                    Company_ID = cmbCompany.SelectedValue.ToString() ?? string.Empty,
+                    Branch_ID = Convert.ToInt32(cmbBranch.SelectedValue),
+                    Year_ID = Convert.ToInt32(cmbFiscalYear.SelectedValue),
+                    User_ID = 0,
+                    Login_Name = cmbUsername.Text.Trim(),
+                    Password = txtPassword.Text
+                };
 
-                string companyId = cmbCompany.SelectedValue?.ToString() ?? "";
-                int branchId = cmbBranch.SelectedValue != null ? Convert.ToInt32(cmbBranch.SelectedValue) : 0;
-                int yearId = cmbFiscalYear.SelectedValue != null ? Convert.ToInt32(cmbFiscalYear.SelectedValue) : 0;
-                int userId = cmbUsername.SelectedValue != null ? Convert.ToInt32(cmbUsername.SelectedValue) : 0;
-
-                var request = new LoginRequest { Company_ID = companyId, Branch_ID = branchId, Year_ID = yearId, User_ID = userId, Password = txtPassword.Text.Trim() };
                 var response = await _client.PostAsJsonAsync($"{_baseUrl}Auth/Login", request);
                 if (!response.IsSuccessStatusCode)
                 {
-                    string errorMsg = "اسم المستخدم أو كلمة المرور غير صحيحة، أو السيرفر غير مستجيب.";
-                    if (response.Content.Headers.ContentType?.MediaType == "text/plain")
-                    {
-                        errorMsg = await response.Content.ReadAsStringAsync();
-                    }
-                    MessageBox.Show(errorMsg, "فشل الدخول", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    string message = await response.Content.ReadAsStringAsync();
+                    MessageBox.Show(string.IsNullOrWhiteSpace(message) ? "تعذر التحقق من بيانات الدخول." : message,
+                        "فشل الدخول", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                     txtPassword.SelectAll();
                     txtPassword.Focus();
-                    btnLogin.Enabled = true;
                     return;
                 }
+
                 var result = await response.Content.ReadFromJsonAsync<LoginResultModel>();
-                // تعبئة بيانات الجلسة المركزية من الـ السيرفر أو من قيم الطلب الحالية بشكل دقيق لمنع التعارض 
+                if (result == null)
+                    throw new InvalidOperationException("لم تُرجع الخدمة جلسة صالحة.");
 
+                CurrentSession.Company_ID = result.Company_ID;
+                CurrentSession.Company_Name = cmbCompany.Text;
+                CurrentSession.Branch_ID = result.Branch_ID;
+                CurrentSession.Branch_Name = cmbBranch.Text;
+                CurrentSession.Year_ID = result.Year_ID;
+                CurrentSession.Year_Name = cmbFiscalYear.Text;
+                CurrentSession.User_ID = result.User_ID;
+                CurrentSession.Role_ID = result.Role_ID;
+                CurrentSession.Username = result.Login_Name;
+                CurrentSession.Full_Name = result.Full_Name;
+                CurrentSession.Is_System_Admin = result.Is_System_Admin;
+                CurrentSession.Access_Token = result.Access_Token;
+                CurrentSession.Login_Time = DateTime.Now;
+                ApiService.ApplySessionToken(result.Access_Token);
 
-
-              // معرفات الجلسة
-               CurrentSession.Company_ID = result?.Company_ID ?? request.Company_ID;
-                CurrentSession.Branch_ID = result?.Branch_ID ?? request.Branch_ID;
-                CurrentSession.Year_ID = result?.Year_ID ?? request.Year_ID;
-
-                CurrentSession.User_ID = result?.User_ID ?? request.User_ID;
-                CurrentSession.Role_ID = result?.Role_ID ?? 0;
-
-                // أسماء الجلسة
-                CurrentSession.Company_Name =
-                    cmbCompany.Text;
-
-                CurrentSession.Branch_Name =
-                    cmbBranch.Text;
-
-                CurrentSession.Year_Name =
-                    cmbFiscalYear.Text;
-
-                CurrentSession.Username =
-                    result?.Login_Name ?? cmbUsername.Text;
-
-                CurrentSession.Full_Name =
-                    result?.Full_Name ?? cmbUsername.Text;
-
-                // بيانات إضافية
-                CurrentSession.Is_System_Admin =
-                    result?.Is_System_Admin ?? false;
-
-                CurrentSession.Login_Time =
-                    DateTime.Now;
-
-
-
-
-                // ربط حقل مدير النظام مع الـ Static Property في الـ CurrentSession
-                CurrentSession.Is_System_Admin = result?.Is_System_Admin ?? false;
-
-                this.Hide();
-                new FrmMain().Show();
+                Hide();
+                using var main = new FrmMain();
+                main.ShowDialog(this);
+                Show();
+                txtPassword.Clear();
+                cmbUsername.Focus();
             }
             catch (Exception ex)
             {
-                MessageBox.Show("خطأ أثناء تسجيل الدخول:\n" + ex.Message, "خطأ غير متوقع", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show("تعذر إتمام تسجيل الدخول.\n" + ex.Message, "خطأ", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+            finally
+            {
+                UseWaitCursor = false;
+                btnLogin.Text = originalText;
                 btnLogin.Enabled = true;
             }
         }
 
-        private void btnExit_Click(object sender, EventArgs e)
+        private void TxtPassword_KeyDown(object? sender, KeyEventArgs e) => UpdateCapsLockWarning();
+        private void TxtPassword_KeyUp(object? sender, KeyEventArgs e) => UpdateCapsLockWarning();
+
+        private void UpdateCapsLockWarning()
         {
-            Application.Exit();
+            if (_lblCapsLock != null)
+                _lblCapsLock.Visible = Control.IsKeyLocked(Keys.CapsLock);
         }
 
-        private void btnConnectionSettings_Click(object sender, EventArgs e)
+        private void FrmLogin_KeyDown(object? sender, KeyEventArgs e)
         {
-            MessageBox.Show("إعدادات الاتصال ستضاف لاحقاً.", "الإعدادات", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            if (e.KeyCode == Keys.F1)
+            {
+                btnAboutSystem.PerformClick();
+                e.Handled = true;
+            }
+            else if (e.KeyCode == Keys.F2)
+            {
+                btnConnectionSettings.PerformClick();
+                e.Handled = true;
+            }
         }
 
-        private void btnAboutSystem_Click(object sender, EventArgs e)
+        private void btnExit_Click(object? sender, EventArgs e) => Application.Exit();
+
+        private void btnAboutSystem_Click(object? sender, EventArgs e)
         {
-            MessageBox.Show("نظام الطائر لإدارة النقل والشحن\nالإصدار 1.0.0", "حول النظام", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            MessageBox.Show("نظام الطائر لإدارة موارد المؤسسات\nAlTayer ERP\nالإصدار 1.0.0",
+                "حول النظام", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
 
-        private void picSystemLogo_Click(object sender, EventArgs e) { }
-        private void grpLogin_Enter(object sender, EventArgs e) { }
-
-        // الحدث المستدعى بشكل غير متزامن عند تغيير الشركة المختارة لتعبئة الفروع والمستخدمين والسنوات والشعار
-        private async void cmbCompany_SelectedIndexChanged(object sender, EventArgs e)
+        private void btnConnectionSettings_Click(object? sender, EventArgs e)
         {
-            if (cmbCompany.SelectedValue == null) return;
-            await LoadBranchesAsync();
-            await LoadUsersAsync();
-            await LoadFiscalYearsAsync();
-            await LoadCompanyLogoAsync();
+            MessageBox.Show("عنوان خدمة API الحالي:\n" + _baseUrl,
+                "إعدادات الاتصال", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
-        private void cmbBranch_SelectedIndexChanged(object sender, EventArgs e) { }
+
+        protected override void OnFormClosed(FormClosedEventArgs e)
+        {
+            _clockTimer?.Stop();
+            _clockTimer?.Dispose();
+            picSystemLogo.Image?.Dispose();
+            picCompanyLogo.Image?.Dispose();
+            base.OnFormClosed(e);
+        }
     }
 
-    public class LoginRequest { public string Company_ID { get; set; } = ""; public int Branch_ID { get; set; } public int Year_ID { get; set; } public int User_ID { get; set; } public string Password { get; set; } = ""; }
+    public class LoginRequest
+    {
+        public string Company_ID { get; set; } = string.Empty;
+        public int Branch_ID { get; set; }
+        public int Year_ID { get; set; }
+        public int User_ID { get; set; }
+        public string Login_Name { get; set; } = string.Empty;
+        public string Password { get; set; } = string.Empty;
+    }
 
     public class LoginResultModel
     {
         public int User_ID { get; set; }
-        public string Full_Name { get; set; } = "";
-        public string Login_Name { get; set; } = "";
+        public string Full_Name { get; set; } = string.Empty;
+        public string Login_Name { get; set; } = string.Empty;
         public int Role_ID { get; set; }
         public int Branch_ID { get; set; }
-        public string Company_ID { get; set; } = "";
+        public string Company_ID { get; set; } = string.Empty;
         public int Year_ID { get; set; }
-
-        // الحقل الجديد المضاف لاستقبال حالة مدير النظام
         public bool Is_System_Admin { get; set; }
+        public bool Must_Change_Password { get; set; }
+        public string Access_Token { get; set; } = string.Empty;
     }
 
     public class FiscalYearLookupModel
     {
         public int Fiscal_Year_ID { get; set; }
-        public string Year_Name { get; set; } = "";
+        public string Year_Name { get; set; } = string.Empty;
         public bool Is_Default { get; set; }
     }
 
-    public class UserLookupModel { public int User_ID { get; set; } public string Login_Name { get; set; } = ""; }
-
-    // تم الحفاظ على الكلاسات أدناه لضمان عدم حدوث خطأ أثناء تجميع الكود (Compilation) في الواجهة التبادلية للـ Combobox
-    // public class CompanyLookupModel { public string Company_ID { get; set; } = ""; public string Company_Name_AR { get; set; } = ""; }
-    // public class BranchLookupModel { public int Branch_ID { get; set; } public string Branch_Name { get; set; } = ""; }
+    public class UserLookupModel
+    {
+        public int User_ID { get; set; }
+        public string Login_Name { get; set; } = string.Empty;
+        public int Branch_ID { get; set; }
+    }
 }

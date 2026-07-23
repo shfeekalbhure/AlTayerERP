@@ -16,7 +16,7 @@ namespace AlTayerERP.Desktop
         public FrmPaymentVoucher()
         {
             InitializeComponent();
-        }
+}
 
         private void flowLayoutPanel1_Paint(object sender, PaintEventArgs e)
         {

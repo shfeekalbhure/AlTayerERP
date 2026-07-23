@@ -1,5 +1,6 @@
-﻿using AlTayerERP.Infrastructure.Data;
-using AlTayerERP.Core.Entities; // جلب موديل الـ User الفعلي
+using AlTayerERP.API.Security;
+using AlTayerERP.API.Services;
+using AlTayerERP.Infrastructure.Data;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System;
@@ -12,61 +13,136 @@ namespace AlTayerERP.API.Controllers
     public class AuthController : ControllerBase
     {
         private readonly AppDbContext _context;
+        private readonly ServerSessionService _sessions;
 
-        public AuthController(AppDbContext context)
+        public AuthController(AppDbContext context, ServerSessionService sessions)
         {
             _context = context;
+            _sessions = sessions;
         }
 
+        // نقطة الدخول الوحيدة: تتحقق من الشركة والفرع والسنة والمستخدم قبل إنشاء الجلسة المحلية.
         [HttpPost("Login")]
         public async Task<IActionResult> Login([FromBody] LoginRequestDto request)
         {
-            if (request == null)
-                return BadRequest("بيانات الطلب غير مكتملة.");
+            if (request == null ||
+                string.IsNullOrWhiteSpace(request.Company_ID) ||
+                request.Branch_ID <= 0 ||
+                request.Year_ID <= 0 ||
+                (request.User_ID <= 0 && string.IsNullOrWhiteSpace(request.Login_Name)) ||
+                string.IsNullOrWhiteSpace(request.Password))
+            {
+                return BadRequest("يجب تحديد الشركة والفرع والسنة المالية والمستخدم وكلمة المرور.");
+            }
 
             try
             {
-                // 1. التحقق من معرّف المستخدم ونشاطه أولاً
-                var user = await _context.Users
-                    .FirstOrDefaultAsync(x => x.User_ID == request.User_ID && x.Is_Active);
+                // توحيد قيمة الشركة يمنع اختلاف المسافات من تغيير نطاق الوصول.
+                var companyId = request.Company_ID.Trim();
+
+                // البحث باسم الدخول أو بالمعرف لدعم الشاشة الحالية دون كشف قائمة المستخدمين.
+                var user = await _context.Users.FirstOrDefaultAsync(x =>
+                    x.Is_Active &&
+                    (request.User_ID > 0
+                        ? x.User_ID == request.User_ID
+                        : x.Login_Name == request.Login_Name.Trim()));
 
                 if (user == null)
-                    return Unauthorized("المستخدم غير موجود.");
+                    return Unauthorized("بيانات الدخول غير صحيحة.");
 
-                // جلب بيانات الدور لمعرفة هل هو مدير نظام أم لا
                 var role = await _context.Roles
                     .AsNoTracking()
-                    .FirstOrDefaultAsync(x => x.Role_ID == user.Role_ID);
+                    .FirstOrDefaultAsync(x => x.Role_ID == user.Role_ID && x.Is_Active);
 
-                bool isSystemAdmin = role?.Is_System_Admin ?? false;
+                if (role == null)
+                    return Unauthorized("دور المستخدم غير فعال.");
 
-                // استخدام .Trim() لمنع فشل الدخول بسبب المسافات الفارغة المخفية في قاعدة البيانات
-                if (!isSystemAdmin && user.Company_ID.Trim() != request.Company_ID.Trim())
-                    return Unauthorized("المستخدم ليس لديه صلاحية على هذه الشركة.");
+                var isSystemAdmin = role.Is_System_Admin;
 
-                // 2. التحقق من كلمة المرور باستخدام الحقل الفعلي Password_Hash
-                if (user.Password_Hash != request.Password)
-                    return Unauthorized("كلمة المرور غير صحيحة.");
+                var companyExists = await _context.Companies
+                    .AsNoTracking()
+                    .AnyAsync(x => x.Company_ID == companyId && x.Is_Active);
 
-                // 3. إرجاع البيانات بنجاح متطابقة مع نموذج الـ Desktop مع إسناد الشركة والفرع من الـ request لمرونة مدير النظام
+                if (!companyExists)
+                    return BadRequest("الشركة المختارة غير موجودة أو غير فعالة.");
+
+                var branch = await _context.Tenant_Branches
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(x =>
+                        x.Branch_ID == request.Branch_ID &&
+                        x.Company_ID == companyId &&
+                        x.Is_Active);
+
+                if (branch == null)
+                    return BadRequest("الفرع المختار لا يتبع الشركة أو غير فعال.");
+
+                var fiscalYear = await _context.Fiscal_Years
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(x =>
+                        x.Fiscal_Year_ID == request.Year_ID &&
+                        x.Company_ID == companyId &&
+                        x.Is_Active &&
+                        !x.Is_Closed);
+
+                if (fiscalYear == null)
+                    return BadRequest("السنة المالية المختارة لا تتبع الشركة أو أنها مقفلة/غير فعالة.");
+
+                // المستخدم العادي لا يستطيع تبديل شركته أو فرعه من شاشة الدخول.
+                if (!isSystemAdmin &&
+                    (!string.Equals(user.Company_ID?.Trim(), companyId, StringComparison.Ordinal) ||
+                     user.Branch_ID != request.Branch_ID))
+                {
+                    return Unauthorized("المستخدم غير مخول للشركة أو الفرع المختار.");
+                }
+
+                if (!PasswordProtector.Verify(user.Password_Hash, request.Password, out var needsUpgrade))
+                    return Unauthorized("بيانات الدخول غير صحيحة.");
+
+                // تُحوّل كلمة المرور القديمة إلى صيغة مشفرة بعد نجاح الدخول فقط.
+                if (needsUpgrade)
+                {
+                    user.Password_Hash = PasswordProtector.Hash(request.Password);
+                    user.Updated_At = DateTime.Now;
+                    await _context.SaveChangesAsync();
+                }
+
+                // يصدر الخادم رمز جلسة عشوائياً؛ لا يكفي أن يرسل العميل رقم مستخدم أو دوراً.
+                var session = _sessions.Create(
+                    user.User_ID,
+                    user.Role_ID,
+                    isSystemAdmin,
+                    companyId,
+                    branch.Branch_ID,
+                    fiscalYear.Fiscal_Year_ID);
+
                 return Ok(new
                 {
                     user.User_ID,
                     user.Full_Name,
                     user.Login_Name,
                     user.Role_ID,
-
-                    Branch_ID = request.Branch_ID,
-                    Company_ID = request.Company_ID.Trim(),
-
-                    Year_ID = request.Year_ID, // تمرير السنة المالية المختارة للجلسة
-                    Is_System_Admin = isSystemAdmin
+                    Branch_ID = branch.Branch_ID,
+                    Company_ID = companyId,
+                    Year_ID = fiscalYear.Fiscal_Year_ID,
+                    Is_System_Admin = isSystemAdmin,
+                    Must_Change_Password = user.Must_Change_Password,
+                    Access_Token = session.Access_Token,
+                    Session_Expires_At = session.Expires_At
                 });
             }
-            catch (Exception ex)
+            catch
             {
-                return StatusCode(500, $"خطأ داخلي في السيرفر: {ex.Message}");
+                // لا تُرسل تفاصيل الاستثناء للعميل لأنها قد تكشف معلومات عن الخادم أو قاعدة البيانات.
+                return StatusCode(500, "تعذر إتمام عملية تسجيل الدخول حالياً.");
             }
+        }
+
+        // إبطال الرمز على الخادم عند الخروج؛ لا نكتفي بمسح الواجهة المحلية.
+        [HttpPost("Logout")]
+        public IActionResult Logout()
+        {
+            _sessions.Remove(Request.Headers["X-Session-Token"].ToString());
+            return Ok(new { message = "تم إنهاء الجلسة." });
         }
     }
 
@@ -76,6 +152,8 @@ namespace AlTayerERP.API.Controllers
         public int Branch_ID { get; set; }
         public int Year_ID { get; set; }
         public int User_ID { get; set; }
+        // يستخدم عند الدخول اليدوي؛ لا تُعرض قائمة المستخدمين علناً.
+        public string Login_Name { get; set; } = string.Empty;
         public string Password { get; set; } = string.Empty;
     }
 }

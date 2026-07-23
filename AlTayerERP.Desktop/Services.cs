@@ -1,5 +1,6 @@
 using System;
 using System.Net.Http;
+using System.Net.Http.Headers;
 
 namespace AlTayerERP.Desktop.Services
 {
@@ -25,5 +26,18 @@ namespace AlTayerERP.Desktop.Services
                 BaseAddress = new Uri(BaseUrl),
                 Timeout = TimeSpan.FromSeconds(30)
             };
+
+        // يرسل الرمز في ترويسة موحدة لكل طلب بعد نجاح الدخول.
+        public static void ApplySessionToken(string accessToken)
+        {
+            Client.DefaultRequestHeaders.Remove("X-Session-Token");
+            if (!string.IsNullOrWhiteSpace(accessToken))
+                Client.DefaultRequestHeaders.Add("X-Session-Token", accessToken);
+        }
+
+        public static void ClearSessionToken()
+        {
+            Client.DefaultRequestHeaders.Remove("X-Session-Token");
+        }
     }
 }

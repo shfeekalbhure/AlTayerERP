@@ -1135,16 +1135,25 @@ namespace AlTayerERP.API.Services.Accounting
                 int? fiscalYearId,
                 int? voucherTypeId = null)
         {
-            if (string.IsNullOrWhiteSpace(voucherNumber))
+            // لا يسمح بالبحث خارج سياق الفرع والسنة؛ هذه القيم يفرضها المتحكم من جلسة الخادم.
+            if (string.IsNullOrWhiteSpace(voucherNumber) ||
+                string.IsNullOrWhiteSpace(branchId) ||
+                !fiscalYearId.HasValue ||
+                fiscalYearId.Value <= 0)
             {
                 return null;
             }
 
             string searchValue = voucherNumber.Trim();
+            string currentBranch = branchId.Trim();
+            int currentFiscalYearId = fiscalYearId.Value;
+
             IQueryable<FinancialVoucherHeader> query =
                 _context.Financial_Voucher_Headers
                     .AsNoTracking()
-                    .Where(x => x.Is_Active);
+                    .Where(x => x.Is_Active &&
+                                x.Branch_ID == currentBranch &&
+                                x.Fiscal_Year_ID == currentFiscalYearId);
 
             if (voucherTypeId.HasValue && voucherTypeId.Value > 0)
             {
@@ -1155,18 +1164,7 @@ namespace AlTayerERP.API.Services.Accounting
 
             if (int.TryParse(searchValue, out int sequence) && sequence > 0)
             {
-                if (string.IsNullOrWhiteSpace(branchId) ||
-                    !fiscalYearId.HasValue ||
-                    fiscalYearId.Value <= 0)
-                {
-                    return null;
-                }
-
-                string currentBranch = branchId.Trim();
                 var candidates = await query
-                    .Where(x =>
-                        x.Branch_ID == currentBranch &&
-                        x.Fiscal_Year_ID == fiscalYearId.Value)
                     .Select(x => new { x.Voucher_ID, x.Voucher_No })
                     .ToListAsync();
 
@@ -1177,8 +1175,7 @@ namespace AlTayerERP.API.Services.Accounting
             }
             else
             {
-                // الرقم الكامل يبحث مباشرة دون إجباره على فرع أو سنة الشاشة،
-                // وبذلك يمكن فتح سند تابع لفرع أو سنة أخرى.
+                // الرقم الكامل يبقى محصوراً ضمن الفرع والسنة المالية الحالية.
                 voucherId = await query
                     .Where(x => x.Voucher_No == searchValue)
                     .Select(x => (long?)x.Voucher_ID)

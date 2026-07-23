@@ -189,25 +189,54 @@ namespace AlTayerERP.Desktop
             int rowIndex = dgvVoucherDetails.CurrentCell.RowIndex;
             string columnName = dgvVoucherDetails.CurrentCell.OwningColumn.Name;
 
-            // إذا ضغط المستخدم F9 وهو واقفاHistorical على عمود رقم الحساب
-            if (e.KeyCode == Keys.F9 && columnName == "colAccountCode" && rowIndex >= 0)
+            // F9 يفتح شاشة الاستعلام المناسبة للخلية الحالية.
+            if (e.KeyCode != Keys.F9 || rowIndex < 0)
+            {
+                return;
+            }
+
+            if (columnName == "colAccountCode")
             {
                 e.Handled = true;
+                e.SuppressKeyPress = true;
                 OpenAccountLookupForm(rowIndex);
+            }
+            else if (columnName == "colCostCenter")
+            {
+                e.Handled = true;
+                e.SuppressKeyPress = true;
+                OpenCostCenterLookupForm(rowIndex);
             }
         }
 
         /// <summary>
-        /// الدالة المركزية لفتح شاشة البحث واستقبال الحساب المختار
-        /// </summary>
-        /// <summary>
-        /// فتح شاشة البحث عن الحسابات واستقبال الحساب المختار.
+        /// فتح استعلام الحسابات لسطر التفاصيل.
+        /// يعتمد على الحسابات المحملة مع السند، لذلك لا يفتح شاشة فارغة عند تعذر طلب إضافي للـ API.
         /// </summary>
         private void OpenAccountLookupForm(int rowIndex)
         {
-            if (rowIndex < 0 ||
-                rowIndex >= dgvVoucherDetails.Rows.Count)
+            if (rowIndex < 0 || rowIndex >= dgvVoucherDetails.Rows.Count)
             {
+                return;
+            }
+
+            var items = _accountLookups
+                .Select(account => new LookupDialogItem
+                {
+                    Id = account.Account_ID,
+                    Code = account.Account_Code,
+                    Name = account.Account_Name_AR
+                })
+                .Where(item => !string.IsNullOrWhiteSpace(item.Id))
+                .ToList();
+
+            if (items.Count == 0)
+            {
+                MessageBox.Show(
+                    "لا توجد حسابات فعالة متاحة للشركة الحالية. راجع دليل الحسابات.",
+                    "استعلام الحسابات",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Information);
                 return;
             }
 
@@ -217,37 +246,26 @@ namespace AlTayerERP.Desktop
                         .Cells["colAccountCode"].Value)
                 ?? string.Empty;
 
-            using FrmAccountLookup lookupForm =
-                new FrmAccountLookup(currentSearchText);
+            dgvVoucherDetails.EndEdit();
 
-            lookupForm.StartPosition =
-                FormStartPosition.CenterParent;
+            using var lookupForm =
+                new FrmReferenceLookup("استعلام دليل الحسابات", items, currentSearchText);
 
-            lookupForm.ShowInTaskbar =
-                false;
-
-            if (lookupForm.ShowDialog(this) != DialogResult.OK)
+            if (lookupForm.ShowDialog(this) != DialogResult.OK ||
+                lookupForm.SelectedItem == null)
             {
                 return;
             }
 
-            DataGridViewRow row =
-                dgvVoucherDetails.Rows[rowIndex];
-
-            row.Cells["colAccountCode"].Value =
-                lookupForm.SelectedAccountId;
+            DataGridViewRow row = dgvVoucherDetails.Rows[rowIndex];
+            row.Cells["colAccountCode"].Value = lookupForm.SelectedItem.Id;
 
             if (dgvVoucherDetails.Columns.Contains("colAccountName"))
             {
-                row.Cells["colAccountName"].Value =
-                    lookupForm.SelectedAccountId;
+                row.Cells["colAccountName"].Value = lookupForm.SelectedItem.Id;
             }
 
-            dgvVoucherDetails.EndEdit();
-
-            dgvVoucherDetails.CurrentCell =
-                row.Cells["colAccountCode"];
-
+            dgvVoucherDetails.CurrentCell = row.Cells["colAccountCode"];
             dgvVoucherDetails.Refresh();
         }
 
@@ -515,19 +533,37 @@ namespace AlTayerERP.Desktop
         private void dgvVoucherDetails_EditingControlShowing(object? sender, DataGridViewEditingControlShowingEventArgs e)
         {
             // ✅ تعديل اسم العمود هنا إلى colAccountCode ليطابق التصميم تماماً
-            if (dgvVoucherDetails.CurrentCell.OwningColumn.Name == "colAccountCode" && e.Control is ComboBox combo)
+            if (dgvVoucherDetails.CurrentCell == null || e.Control is not ComboBox combo)
+            {
+                return;
+            }
+
+            string columnName = dgvVoucherDetails.CurrentCell.OwningColumn.Name;
+            if (columnName == "colAccountCode")
             {
                 combo.DropDownStyle = ComboBoxStyle.DropDown;
                 combo.AutoCompleteMode = AutoCompleteMode.SuggestAppend;
                 combo.AutoCompleteSource = AutoCompleteSource.ListItems;
-
                 combo.KeyDown -= ComboAccount_KeyDown;
                 combo.KeyDown += ComboAccount_KeyDown;
+            }
+            else if (columnName == "colCostCenter")
+            {
+                combo.KeyDown -= ComboCostCenter_KeyDown;
+                combo.KeyDown += ComboCostCenter_KeyDown;
             }
         }
 
         private void ComboAccount_KeyDown(object? sender, KeyEventArgs e)
         {
+            if (e.KeyCode == Keys.F9 && dgvVoucherDetails.CurrentCell != null)
+            {
+                e.Handled = true;
+                e.SuppressKeyPress = true;
+                OpenAccountLookupForm(dgvVoucherDetails.CurrentCell.RowIndex);
+                return;
+            }
+
             if (sender is ComboBox combo && (e.KeyCode == Keys.Delete || e.KeyCode == Keys.Back))
             {
                 e.Handled = true;

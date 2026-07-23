@@ -24,7 +24,8 @@ namespace AlTayerERP.Desktop
         {
             InitializeComponent();
 
-            // ربط الأحداث (Events) 
+            // تطبيق الثيم العربي الموحد والاختصارات على الشاشة القديمة.
+// ربط الأحداث (Events) 
             Load += FrmCashBoxes_Load;
 
             btnNew.Click += btnNew_Click;

@@ -34,7 +34,9 @@ namespace AlTayerERP.Desktop
         public FrmChartOfAccounts()
         {
             InitializeComponent();
-            RegisterEvents();
+
+            // تطبيق الثيم العربي الموحد والاختصارات على الشاشة القديمة.
+RegisterEvents();
             printDocument.PrintPage += PrintDocument_PrintPage;
         }
 

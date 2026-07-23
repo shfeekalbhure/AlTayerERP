@@ -25,8 +25,7 @@ namespace AlTayerERP.Desktop
         public Form1()
         {
             InitializeComponent();
-
-            // ربط الأحداث برمجياً لضمان العمل السلس
+// ربط الأحداث برمجياً لضمان العمل السلس
             this.Load += Form1_Load;
             btnSaveGroup.Click += btnSaveGroup_Click;
         }

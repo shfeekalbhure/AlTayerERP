@@ -28,7 +28,9 @@ namespace AlTayerERP.Desktop
         public BranchForm()
         {
             InitializeComponent();
-            this.Load -= BranchForm_Load;
+
+            // توحيد شكل الشاشة القديمة والاختصارات العربية دون تغيير منطقها.
+this.Load -= BranchForm_Load;
             this.Load += BranchForm_Load;
             printDocument.PrintPage += PrintDocument_PrintPage;
         }

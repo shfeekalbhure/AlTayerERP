@@ -104,7 +104,7 @@ namespace AlTayerERP.API.DTOs.Accounting
 
         #region بيانات المستخدم
 
-        [Required(ErrorMessage = "معرف المستخدم المنشئ مطلوب.")]
+        // يفرض الخادم المستخدم المنشئ من رمز الجلسة؛ لا يقبل هوية مرسلة من العميل.
         [MaxLength(50)]
         public string Created_By { get; set; } = string.Empty;
 

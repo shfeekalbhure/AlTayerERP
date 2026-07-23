@@ -33,7 +33,8 @@ namespace AlTayerERP.Desktop
         {
             InitializeComponent();
 
-            RegisterEvents();
+            // تطبيق الثيم العربي الموحد والاختصارات على الشاشة القديمة.
+RegisterEvents();
         }
 
         #endregion

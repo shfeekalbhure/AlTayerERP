@@ -30,7 +30,8 @@ namespace AlTayerERP.Desktop
         {
             InitializeComponent();
 
-            // ربط الأحداث مرة واحدة فقط وبشكل صحيح
+            // تطبيق الثيم العربي الموحد والاختصارات على الشاشة القديمة.
+// ربط الأحداث مرة واحدة فقط وبشكل صحيح
             this.Load += FrmCostCenters_Load;
 
             btnSave.Click += btnSave_Click;

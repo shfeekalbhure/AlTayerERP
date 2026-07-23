@@ -278,13 +278,14 @@ namespace AlTayerERP.Desktop
             SetInitialSelections(lookups);
         }
 
+        // لا تُحمَّل قوائم السند قبل اكتمال سياق المستخدم والشركة والفرع والسنة.
         private void ValidateSession()
         {
-            if (string.IsNullOrWhiteSpace(CurrentSession.Company_ID))
-                throw new InvalidOperationException("معرف الشركة غير موجود في جلسة المستخدم.");
-
-            if (CurrentSession.Branch_ID <= 0)
-                throw new InvalidOperationException("معرف الفرع غير موجود في جلسة المستخدم.");
+            if (!CurrentSession.IsLoggedIn)
+            {
+                throw new InvalidOperationException(
+                    "جلسة المستخدم غير مكتملة. سجل الدخول وحدد الشركة والفرع والسنة المالية من جديد.");
+            }
         }
 
         private string BuildLookupUrl()
@@ -333,7 +334,8 @@ namespace AlTayerERP.Desktop
 
         private void BindCashBoxes(List<CashBoxLookupModel> cashBoxes)
         {
-            BindCombo(cmbCashAccount, cashBoxes, nameof(CashBoxLookupModel.Display_Name), nameof(CashBoxLookupModel.Account_ID));
+            _cashBoxLookups = cashBoxes.ToList();
+            BindCombo(cmbCashAccount, _cashBoxLookups, nameof(CashBoxLookupModel.Display_Name), nameof(CashBoxLookupModel.Account_ID));
         }
 
         private void BindCurrencies(List<CurrencyLookupModel> currencies)
@@ -350,7 +352,8 @@ namespace AlTayerERP.Desktop
 
         private void BindCostCenters(List<CostCenterLookupModel> costCenters)
         {
-            var list = AddEmptyOption(costCenters, new CostCenterLookupModel
+            _costCenterLookups = costCenters.ToList();
+            var list = AddEmptyOption(_costCenterLookups, new CostCenterLookupModel
             {
                 Cost_Center_ID = string.Empty,
                 Cost_Center_Code = string.Empty,
@@ -365,8 +368,9 @@ namespace AlTayerERP.Desktop
             var cashMethod = paymentMethods.FirstOrDefault(m =>
                 m.Payment_Method_Code.Equals("CASH", StringComparison.OrdinalIgnoreCase) ||
                 m.Payment_Method_Name_AR.Contains("نقد"));
-            if (cashMethod != null) cmbPaymentMethod.SelectedValue = paymentMethods.FirstOrDefault()?.Payment_Method_ID ?? 0; // تم الحفاظ عليها برمجياً كما وردت بالملف الأصلي دون تدخل لتغيير المنطق
-            if (cashMethod != null) cmbPaymentMethod.SelectedValue = cashMethod.Payment_Method_ID;
+            // اختيار طريقة النقد تلقائياً عند وجودها، دون تمرير اختيار مؤقت خاطئ.
+            if (cashMethod != null)
+                cmbPaymentMethod.SelectedValue = cashMethod.Payment_Method_ID;
         }
 
         private void BindParties(List<PartyLookupModel> parties)

@@ -16,12 +16,14 @@ namespace AlTayerERP.API.Controllers
         // تعريف متغيرات خاصة غير قابلة للتعديل لحفظ سياق قاعدة البيانات والخدمات
         private readonly AppDbContext _context;
         private readonly NumberGeneratorService _numberGenerator;
+        private readonly ServerSessionService _sessions;
 
         // مشيد الكنترولر (Constructor): يتم فيه حقن الاعتماديات (Dependency Injection) لقاعدة البيانات والخدمة
-        public BranchesController(AppDbContext context, NumberGeneratorService numberGenerator)
+        public BranchesController(AppDbContext context, NumberGeneratorService numberGenerator, ServerSessionService sessions)
         {
             _context = context;
             _numberGenerator = numberGenerator;
+            _sessions = sessions;
         }
 
         /// <summary>
@@ -286,47 +288,38 @@ namespace AlTayerERP.API.Controllers
         [HttpGet("GetSessionInfo")]
         public async Task<IActionResult> GetSessionInfo([FromQuery] string companyId, [FromQuery] int branchId, [FromQuery] int yearId)
         {
-            if (string.IsNullOrWhiteSpace(companyId))
-                return BadRequest("معرف الشركة مطلوب.");
+            // يمنع قراءة سياق شركة/فرع/سنة أخرى بمجرد تغيير قيم الاستعلام.
+            if (!_sessions.TryGet(Request.Headers["X-Session-Token"].ToString(), out var session))
+                return Unauthorized("انتهت الجلسة أو أنها غير صالحة. سجل الدخول من جديد.");
 
-            var company = await _context.Companies
-         .AsNoTracking()
-         .Where(c => c.Company_ID.Trim() == companyId.Trim()) // إزالة المسافات الفارغة من الطرفين أثناء المقارنة
-         .Select(c => new
-         {
-             c.Company_ID,
-             c.Company_Name_AR
-         })
-         .FirstOrDefaultAsync();
-
-
-
-
-            var branch = await _context.Tenant_Branches
-                .AsNoTracking()
-                .Where(b => b.Company_ID == companyId && b.Branch_ID == branchId)
-                .Select(b => new
-                {
-                    b.Branch_ID,
-                    b.Branch_Name
-                })
-                .FirstOrDefaultAsync();
-
-            // إضافة استعلام جلب اسم السنة المالية الحالية بناءً على الـ ID الخاص بها
-            string yearName = await _context.Fiscal_Years
-                .AsNoTracking()
-                .Where(x => x.Fiscal_Year_ID == yearId)
-                .Select(x => x.Year_Name)
-                .FirstOrDefaultAsync() ?? yearId.ToString();
-
-            return Ok(new
+            if (!string.Equals(session.Company_ID, companyId?.Trim(), StringComparison.Ordinal) ||
+                session.Branch_ID != branchId || session.Year_ID != yearId)
             {
-                Company_ID = companyId,
-                Company_Name_AR = company?.Company_Name_AR ?? companyId,
-                Branch_ID = branchId,
-                Branch_Name = branch?.Branch_Name ?? "بدون فرع",
-                Year_Name = yearName
-            });
+                return Forbid();
+            }
+
+            var data = await (
+                from company in _context.Companies.AsNoTracking()
+                join branch in _context.Tenant_Branches.AsNoTracking()
+                    on company.Company_ID equals branch.Company_ID
+                join year in _context.Fiscal_Years.AsNoTracking()
+                    on company.Company_ID equals year.Company_ID
+                where company.Company_ID == session.Company_ID &&
+                      branch.Branch_ID == session.Branch_ID &&
+                      year.Fiscal_Year_ID == session.Year_ID
+                select new
+                {
+                    Company_ID = company.Company_ID,
+                    company.Company_Name_AR,
+                    Branch_ID = branch.Branch_ID,
+                    branch.Branch_Name,
+                    year.Year_Name
+                }).FirstOrDefaultAsync();
+
+            if (data == null)
+                return NotFound("تعذر العثور على سياق الجلسة.");
+
+            return Ok(data);
         }
     }
 }
