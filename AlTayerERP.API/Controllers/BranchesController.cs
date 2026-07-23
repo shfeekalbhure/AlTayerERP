@@ -118,7 +118,8 @@ namespace AlTayerERP.API.Controllers
         [HttpGet("GetActiveBranchesLookup")]
         public async Task<IActionResult> GetActiveBranchesLookup([FromQuery] string companyId)
         {
-            if (!TryGetAdminSession(out _)) return Forbid();
+            // هذه قائمة دخول عامة محدودة: تعرض فروعاً نشطة فقط للشركة المختارة.
+            // لا تمنح صلاحيات إدارية ولا تكشف بيانات تشغيلية.
             if (string.IsNullOrWhiteSpace(companyId)) return BadRequest("معرف الشركة مطلوب.");
 
             var data = await _context.Tenant_Branches.AsNoTracking()
@@ -133,7 +134,7 @@ namespace AlTayerERP.API.Controllers
         [HttpGet("GetCompaniesLookup")]
         public async Task<IActionResult> GetCompaniesLookup()
         {
-            if (!TryGetAdminSession(out _)) return Forbid();
+            // شاشة الدخول تحتاج هذه القائمة قبل أن توجد جلسة؛ تعاد أسماء الشركات النشطة فقط.
             return Ok(await _context.Companies.AsNoTracking()
                 .Where(x => x.Is_Active)
                 .OrderBy(x => x.Company_Name_AR)
