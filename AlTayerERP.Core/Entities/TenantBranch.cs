@@ -140,5 +140,41 @@ namespace AlTayerERP.Core.Entities
         // ======================================================
         [Column("Updated_Date")]
         public DateTime? Updated_Date { get; set; }
+
+        /// <summary>معرف المستخدم الذي أنشأ الفرع Created_By ويملؤه الخادم فقط.</summary>
+        [Column("Created_By")]
+        public int? Created_By { get; set; }
+
+        /// <summary>معرف آخر مستخدم عدّل بيانات الفرع Updated_By.</summary>
+        [Column("Updated_By")]
+        public int? Updated_By { get; set; }
+
+        /// <summary>عدد التعديلات الناجحة Edit_Count للعرض والتدقيق ولا يأتي من العميل.</summary>
+        [Column("Edit_Count")]
+        public int Edit_Count { get; set; }
+
+        /// <summary>مستخدم الإيقاف Stopped_By عند إيقاف الفرع دون حذف سجله.</summary>
+        [Column("Stopped_By")]
+        public int? Stopped_By { get; set; }
+
+        /// <summary>وقت الإيقاف Stopped_At وفق ساعة الخادم UTC.</summary>
+        [Column("Stopped_At")]
+        public DateTime? Stopped_At { get; set; }
+
+        /// <summary>سبب الإيقاف Stopped_Reason وهو إلزامي في عملية الإيقاف.</summary>
+        [Column("Stopped_Reason")]
+        public string? Stopped_Reason { get; set; }
+
+        /// <summary>مستخدم إعادة التفعيل Reactivated_By.</summary>
+        [Column("Reactivated_By")]
+        public int? Reactivated_By { get; set; }
+
+        /// <summary>وقت إعادة التفعيل Reactivated_At وفق ساعة الخادم UTC.</summary>
+        [Column("Reactivated_At")]
+        public DateTime? Reactivated_At { get; set; }
+
+        /// <summary>سبب إعادة التفعيل Reactivate_Reason وهو إلزامي للتدقيق.</summary>
+        [Column("Reactivate_Reason")]
+        public string? Reactivate_Reason { get; set; }
     }
 }
