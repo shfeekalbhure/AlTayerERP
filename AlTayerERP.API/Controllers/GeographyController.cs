@@ -89,9 +89,8 @@ public class GeographyController : ControllerBase
         country.Country_Code = code;
         country.Country_Name_AR = nameAr;
         country.Country_Name_EN = input.Country_Name_EN?.Trim();
-        country.Currency_Code = input.Currency_Code?.Trim().ToUpperInvariant();
+        country.Country_Code2 = input.Country_Code2?.Trim().ToUpperInvariant();
         country.Phone_Code = input.Phone_Code?.Trim();
-        country.Iso2_Code = input.Iso2_Code?.Trim().ToUpperInvariant();
         country.Is_Active = input.Is_Active;
         country.Sort_Order = input.Sort_Order;
         country.Updated_At = DateTime.UtcNow;
