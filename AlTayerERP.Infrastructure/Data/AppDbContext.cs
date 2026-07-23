@@ -184,6 +184,8 @@ namespace AlTayerERP.Infrastructure.Data
             {
                 entity.ToTable("tenant_branches");
                 entity.HasKey(e => e.Branch_ID);
+                entity.HasIndex(e => e.Branch_Type_ID);
+                entity.HasOne<BranchType>().WithMany().HasForeignKey(e => e.Branch_Type_ID).OnDelete(DeleteBehavior.Restrict);
                 entity.HasIndex(e => e.Country_ID);
                 entity.HasIndex(e => e.Governorate_ID);
                 entity.HasIndex(e => e.City_ID);
