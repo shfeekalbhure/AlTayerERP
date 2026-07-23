@@ -9,10 +9,11 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using AlTayerERP.Desktop.Services;
+using AlTayerERP.Desktop.Common;
 
 namespace AlTayerERP.Desktop
 {
-    public partial class BranchForm : Form
+    public partial class BranchForm : BaseForm
     {
         private readonly HttpClient _client = ApiService.Client;
         private readonly string _baseUrl = ApiService.BaseUrl;
@@ -28,6 +29,8 @@ namespace AlTayerERP.Desktop
         public BranchForm()
         {
             InitializeComponent();
+            // يرث القالب المرئي الموحد من BaseForm دون نقل قواعد الحفظ أو التدقيق إلى الواجهة.
+            ApplyBaseFormStyle();
 
             // توحيد شكل الشاشة القديمة والاختصارات العربية دون تغيير منطقها.
 this.Load -= BranchForm_Load;
@@ -360,6 +363,10 @@ this.Load -= BranchForm_Load;
             UpdateFormWithSelectedBranch();
         }
 
+        /// <summary>
+        /// إيقاف الفرع بدلاً من حذفه فعلياً. يرسل السبب فقط، بينما يملأ الخادم
+        /// المستخدم والتاريخ وسجل التدقيق من الجلسة الموثوقة.
+        /// </summary>
         private async void btnDelete_Click(object sender, EventArgs e)
         {
             if (_selectedBranchId <= 0)
@@ -368,60 +375,94 @@ this.Load -= BranchForm_Load;
                 return;
             }
 
-            var confirm = MessageBox.Show(
-                "هل أنت متأكد من حذف هذا الفرع؟",
-                "تأكيد الحذف",
-                MessageBoxButtons.YesNo,
-                MessageBoxIcon.Question);
+            var reason = Microsoft.VisualBasic.Interaction.InputBox(
+                "أدخل سبب إيقاف الفرع (حقل إلزامي للتدقيق):",
+                "إيقاف الفرع",
+                string.Empty).Trim();
 
-            if (confirm != DialogResult.Yes)
+            if (string.IsNullOrWhiteSpace(reason))
+            {
+                MessageBox.Show("لا يمكن إيقاف الفرع دون سبب.");
                 return;
+            }
 
             try
             {
-                var response = await _client.DeleteAsync($"{_baseUrl}Branches/{_selectedBranchId}");
+                using var request = new HttpRequestMessage(HttpMethod.Delete, $"{_baseUrl}Branches/{_selectedBranchId}")
+                {
+                    Content = JsonContent.Create(new { Reason = reason })
+                };
+                var response = await _client.SendAsync(request);
                 if (response.IsSuccessStatusCode)
                 {
-                    MessageBox.Show("تم حذف الفرع بنجاح.");
+                    MessageBox.Show("تم إيقاف الفرع دون حذف تاريخه.");
                     ClearFormControls();
                     await LoadBranchesAsync();
                 }
                 else
                 {
-                    string error = await response.Content.ReadAsStringAsync();
-                    MessageBox.Show("فشل الحذف:\n" + error);
+                    MessageBox.Show("فشل إيقاف الفرع:\n" + await response.Content.ReadAsStringAsync());
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show("خطأ أثناء الحذف:\n" + ex.Message);
+                MessageBox.Show("خطأ أثناء إيقاف الفرع:\n" + ex.Message);
             }
         }
 
-        // لوجستيات الاعتماد والموافقة الفورية
+        // إعادة التفعيل والإيقاف عمليتان صريحتان، وليستا تعديل Is_Active داخل PUT العام.
         private async Task ApproveOrUnapproveBranch(bool activate)
         {
             if (_selectedBranchId <= 0)
             {
-                MessageBox.Show(activate ? "يرجى تحديد الفرع المراد اعتماده وتنشيطه من الجدول أولاً." : "يرجى تحديد الفرع المراد تجميده وإلغاء اعتماده من الجدول.");
+                MessageBox.Show("يرجى تحديد فرع من الجدول أولاً.");
+                return;
+            }
+
+            var actionName = activate ? "إعادة تفعيل" : "إيقاف";
+            var reason = Microsoft.VisualBasic.Interaction.InputBox(
+                $"أدخل سبب {actionName} الفرع (حقل إلزامي للتدقيق):",
+                actionName + " الفرع",
+                string.Empty).Trim();
+
+            if (string.IsNullOrWhiteSpace(reason))
+            {
+                MessageBox.Show($"لا يمكن تنفيذ {actionName} دون سبب.");
                 return;
             }
 
             try
             {
-                cmbStatus.SelectedItem = activate ? "نشط" : "موقوف";
-                var branchData = BuildBranchRequest();
-                var response = await _client.PutAsJsonAsync($"{_baseUrl}Branches/{_selectedBranchId}", branchData);
+                HttpResponseMessage response;
+                if (activate)
+                {
+                    response = await _client.PostAsJsonAsync(
+                        $"{_baseUrl}Branches/{_selectedBranchId}/reactivate",
+                        new { Reason = reason });
+                }
+                else
+                {
+                    using var request = new HttpRequestMessage(HttpMethod.Delete, $"{_baseUrl}Branches/{_selectedBranchId}")
+                    {
+                        Content = JsonContent.Create(new { Reason = reason })
+                    };
+                    response = await _client.SendAsync(request);
+                }
 
                 if (response.IsSuccessStatusCode)
                 {
-                    MessageBox.Show(activate ? "تم اعتماد وتنشيط الفرع المحدد بنجاح في النظام." : "تم تجميد وإلغاء اعتماد الفرع المحدد بنجاح.");
+                    MessageBox.Show($"تم {actionName} الفرع بنجاح.");
                     await LoadBranchesAsync();
+                    UpdateFormWithSelectedBranch();
+                }
+                else
+                {
+                    MessageBox.Show($"فشل {actionName} الفرع:\n" + await response.Content.ReadAsStringAsync());
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show("خطأ أثناء معالجة حالة الاعتماد: " + ex.Message);
+                MessageBox.Show($"خطأ أثناء {actionName} الفرع: " + ex.Message);
             }
         }
 
