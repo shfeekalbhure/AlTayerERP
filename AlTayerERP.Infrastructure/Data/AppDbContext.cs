@@ -303,7 +303,7 @@ namespace AlTayerERP.Infrastructure.Data
             {
                 entity.ToTable("user_roles");
                 entity.HasKey(e => e.User_Role_ID);
-                entity.HasIndex(e => new { e.User_ID, e.Role_ID }).IsUnique();
+                entity.HasIndex(e => new { e.User_ID, e.Role_ID, e.Effective_From }).IsUnique();
                 entity.HasIndex(e => new { e.User_ID, e.Is_Active, e.Effective_From, e.Effective_To });
                 entity.HasOne<User>().WithMany().HasForeignKey(e => e.User_ID).OnDelete(DeleteBehavior.Restrict);
                 entity.HasOne<Role>().WithMany().HasForeignKey(e => e.Role_ID).OnDelete(DeleteBehavior.Restrict);
