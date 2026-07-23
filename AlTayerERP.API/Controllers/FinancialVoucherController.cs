@@ -877,6 +877,36 @@ namespace AlTayerERP.API.Controllers
 
         #endregion
 
+        #region العكس المحاسبي
+
+        [HttpPost("{voucherId:long}/reverse")]
+        public async Task<IActionResult> ReverseVoucher(
+            long voucherId,
+            [FromBody] VoucherReasonActionRequest request)
+        {
+            var permissionFailure = await RequireReceiptVoucherPermissionAsync(ScreenOperation.Unapprove);
+            if (permissionFailure != null) return permissionFailure;
+            if (voucherId <= 0 || request is null || string.IsNullOrWhiteSpace(request.Reason))
+                return BadRequest(new { success = false, message = "معرف السند وسبب العكس مطلوبان." });
+
+            var scopeFailure = await EnsureVoucherInCurrentSessionScopeAsync(voucherId);
+            if (scopeFailure != null) return scopeFailure;
+
+            var result = await _postingService.ReverseJournalForVoucherAsync(
+                voucherId,
+                GetServerSession().User_ID.ToString(),
+                request.Reason,
+                request.Action_Channel,
+                request.Device_Name,
+                HttpContext.Connection.RemoteIpAddress?.ToString());
+
+            return result.Success
+                ? Ok(new { success = true, message = result.Message, data = new { result.Journal_Entry_ID, result.Journal_Entry_No } })
+                : BadRequest(new { success = false, message = result.Message });
+        }
+
+        #endregion
+
         #region حالة الاعتماد والترحيل
 
         /// <summary>
