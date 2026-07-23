@@ -1,4 +1,5 @@
 using AlTayerERP.API.DTOs;
+using AlTayerERP.API.Services;
 using AlTayerERP.Core.Entities;
 using AlTayerERP.Infrastructure.Data;
 using Microsoft.AspNetCore.Mvc;
@@ -16,7 +17,21 @@ namespace AlTayerERP.API.Controllers
         private readonly AppDbContext _context;
         public FiscalYearsController(AppDbContext context) => _context = context;
 
-        // قائمة دخول محدودة: الشركة مطلوبة وتُرجع السنوات النشطة غير المقفلة فقط.
+        private ServerSession? Session =>
+            HttpContext.Items["ServerSession"] as ServerSession;
+
+        // إدارة السنوات المالية عملية حساسة؛ لا يكفي وجود جلسة صحيحة.
+        // الشركة تؤخذ دائماً من جلسة الخادم ولا تقبل من سطح المكتب.
+        private IActionResult? RequireSystemAdmin(out ServerSession? session)
+        {
+            session = Session;
+            if (session == null)
+                return Unauthorized(new { message = "انتهت الجلسة أو أنها غير صالحة. سجل الدخول من جديد." });
+
+            return session.Is_System_Admin ? null : Forbid();
+        }
+
+        // قائمة دخول محدودة قبل إنشاء الجلسة: الشركة مطلوبة وتُرجع السنوات النشطة غير المقفلة فقط.
         [HttpGet("Lookup")]
         public async Task<IActionResult> GetLoginLookup([FromQuery] string companyId)
         {
@@ -47,17 +62,18 @@ namespace AlTayerERP.API.Controllers
             return Ok(years);
         }
 
-        // تستخدم شاشة الإدارة هذا المسار بعد المصادقة؛ يعرض السنوات بحسب نطاق الشركة.
+        // شاشة الإدارة تقرأ فقط سنوات الشركة الموجودة في جلسة الخادم.
         [HttpGet]
-        public async Task<IActionResult> GetFiscalYears([FromQuery] string? companyId, [FromQuery] bool includeClosed = false)
+        public async Task<IActionResult> GetFiscalYears([FromQuery] bool includeClosed = false)
         {
-            var query = _context.Fiscal_Years.AsNoTracking().AsQueryable();
+            var accessError = RequireSystemAdmin(out var session);
+            if (accessError != null || session == null)
+                return accessError!;
 
-            // لا تُرجع إلا سنوات الشركة المحددة عند الاستدعاء من شاشة الدخول.
-            if (!string.IsNullOrWhiteSpace(companyId))
-                query = query.Where(x => x.Company_ID == companyId.Trim());
+            var query = _context.Fiscal_Years
+                .AsNoTracking()
+                .Where(x => x.Company_ID == session.Company_ID);
 
-            // لا يسمح بالدخول إلى سنة مقفلة أو موقوفة.
             if (!includeClosed)
                 query = query.Where(x => x.Is_Active && !x.Is_Closed);
 
@@ -70,23 +86,27 @@ namespace AlTayerERP.API.Controllers
         [HttpPost]
         public async Task<IActionResult> CreateFiscalYear([FromBody] CreateFiscalYearDto dto)
         {
-            if (dto == null || string.IsNullOrWhiteSpace(dto.Company_ID) ||
-                string.IsNullOrWhiteSpace(dto.Year_Name))
-                return BadRequest("الشركة واسم السنة المالية مطلوبان.");
+            var accessError = RequireSystemAdmin(out var session);
+            if (accessError != null || session == null)
+                return accessError!;
+
+            if (dto == null || string.IsNullOrWhiteSpace(dto.Year_Name))
+                return BadRequest("اسم السنة المالية مطلوب.");
 
             if (dto.End_Date < dto.Start_Date)
                 return BadRequest("تاريخ نهاية السنة لا يمكن أن يسبق تاريخ البداية.");
 
+            var companyId = session.Company_ID;
             var existing = await _context.Fiscal_Years.AnyAsync(x =>
-                x.Company_ID == dto.Company_ID.Trim() &&
-                x.Year_Name == dto.Year_Name.Trim());
+                x.Company_ID == companyId && x.Year_Name == dto.Year_Name.Trim());
 
             if (existing)
                 return BadRequest("اسم السنة المالية مستخدم مسبقاً داخل الشركة.");
 
             var fiscalYear = new FiscalYear
             {
-                Company_ID = dto.Company_ID.Trim(),
+                // لا تستخدم Company_ID القادم من العميل؛ يمنع ذلك إنشاء سنة في شركة أخرى.
+                Company_ID = companyId,
                 Year_Name = dto.Year_Name.Trim(),
                 Start_Date = dto.Start_Date,
                 End_Date = dto.End_Date,
@@ -100,7 +120,7 @@ namespace AlTayerERP.API.Controllers
             if (fiscalYear.Is_Default)
             {
                 var defaults = await _context.Fiscal_Years
-                    .Where(x => x.Company_ID == fiscalYear.Company_ID && x.Is_Default)
+                    .Where(x => x.Company_ID == companyId && x.Is_Default)
                     .ToListAsync();
                 defaults.ForEach(x => x.Is_Default = false);
             }
@@ -113,16 +133,29 @@ namespace AlTayerERP.API.Controllers
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateFiscalYear(int id, [FromBody] CreateFiscalYearDto dto)
         {
-            if (dto == null || string.IsNullOrWhiteSpace(dto.Company_ID) || string.IsNullOrWhiteSpace(dto.Year_Name))
-                return BadRequest("الشركة واسم السنة المالية مطلوبان.");
+            var accessError = RequireSystemAdmin(out var session);
+            if (accessError != null || session == null)
+                return accessError!;
+
+            if (dto == null || string.IsNullOrWhiteSpace(dto.Year_Name))
+                return BadRequest("اسم السنة المالية مطلوب.");
 
             if (dto.End_Date < dto.Start_Date)
                 return BadRequest("تاريخ نهاية السنة لا يمكن أن يسبق تاريخ البداية.");
 
-            var fiscalYear = await _context.Fiscal_Years.FindAsync(id);
-            if (fiscalYear == null) return NotFound("السنة المالية غير موجودة.");
+            // يمنع تعديل سنة تابعة لشركة أخرى أو نقلها بين الشركات.
+            var fiscalYear = await _context.Fiscal_Years.FirstOrDefaultAsync(x =>
+                x.Fiscal_Year_ID == id && x.Company_ID == session.Company_ID);
+            if (fiscalYear == null)
+                return NotFound("السنة المالية غير موجودة ضمن الشركة الحالية.");
 
-            fiscalYear.Company_ID = dto.Company_ID.Trim();
+            var nameExists = await _context.Fiscal_Years.AnyAsync(x =>
+                x.Company_ID == session.Company_ID &&
+                x.Year_Name == dto.Year_Name.Trim() &&
+                x.Fiscal_Year_ID != id);
+            if (nameExists)
+                return BadRequest("اسم السنة المالية مستخدم مسبقاً داخل الشركة.");
+
             fiscalYear.Year_Name = dto.Year_Name.Trim();
             fiscalYear.Start_Date = dto.Start_Date;
             fiscalYear.End_Date = dto.End_Date;
@@ -134,7 +167,9 @@ namespace AlTayerERP.API.Controllers
             if (fiscalYear.Is_Default)
             {
                 var defaults = await _context.Fiscal_Years
-                    .Where(x => x.Company_ID == fiscalYear.Company_ID && x.Fiscal_Year_ID != id && x.Is_Default)
+                    .Where(x => x.Company_ID == session.Company_ID &&
+                                x.Fiscal_Year_ID != id &&
+                                x.Is_Default)
                     .ToListAsync();
                 defaults.ForEach(x => x.Is_Default = false);
             }
@@ -146,8 +181,14 @@ namespace AlTayerERP.API.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteFiscalYear(int id)
         {
-            var fiscalYear = await _context.Fiscal_Years.FindAsync(id);
-            if (fiscalYear == null) return NotFound("السنة المالية غير موجودة.");
+            var accessError = RequireSystemAdmin(out var session);
+            if (accessError != null || session == null)
+                return accessError!;
+
+            var fiscalYear = await _context.Fiscal_Years.FirstOrDefaultAsync(x =>
+                x.Fiscal_Year_ID == id && x.Company_ID == session.Company_ID);
+            if (fiscalYear == null)
+                return NotFound("السنة المالية غير موجودة ضمن الشركة الحالية.");
 
             // الإيقاف يحافظ على سلامة القيود المحاسبية بدلاً من الحذف الفعلي.
             fiscalYear.Is_Active = false;
