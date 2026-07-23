@@ -45,4 +45,40 @@ public class WorkCentersController : ControllerBase
         await _db.SaveChangesAsync();
         return CreatedAtAction(nameof(GetAll), new { companyId = item.Company_ID, branchId = item.Branch_ID }, item);
     }
+
+    [HttpPut("{id:long}")]
+    public async Task<IActionResult> Update(long id, CreateWorkCenterDto dto)
+    {
+        var item = await _db.Work_Centers.FindAsync(id);
+        if (item is null) return NotFound();
+        var companyId = dto.Company_ID?.Trim();
+        var code = dto.Work_Center_Code?.Trim().ToUpperInvariant();
+        var name = dto.Work_Center_Name_AR?.Trim();
+        var type = dto.Work_Center_Type?.Trim().ToUpperInvariant();
+        if (string.IsNullOrWhiteSpace(companyId) || string.IsNullOrWhiteSpace(code) || string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(type))
+            return BadRequest(new { message = "الشركة والرمز والاسم العربي ونوع مركز العمل مطلوبة." });
+        if (!await _db.Companies.AnyAsync(x => x.Company_ID == companyId && x.Is_Active))
+            return BadRequest(new { message = "الشركة المختارة غير موجودة أو غير نشطة." });
+        if (dto.Branch_ID.HasValue && !await _db.Tenant_Branches.AnyAsync(x => x.Branch_ID == dto.Branch_ID && x.Company_ID == companyId && x.Is_Active))
+            return BadRequest(new { message = "الفرع لا يتبع الشركة المحددة أو غير نشط." });
+        if (dto.Parent_Work_Center_ID == id)
+            return BadRequest(new { message = "لا يمكن أن يكون مركز العمل أباً لنفسه." });
+        if (dto.Parent_Work_Center_ID.HasValue && !await _db.Work_Centers.AnyAsync(x => x.Work_Center_ID == dto.Parent_Work_Center_ID && x.Company_ID == companyId))
+            return BadRequest(new { message = "مركز العمل الأب لا يتبع الشركة المحددة." });
+        if (await _db.Work_Centers.AnyAsync(x => x.Work_Center_ID != id && x.Company_ID == companyId && x.Work_Center_Code == code))
+            return Conflict(new { message = "رمز مركز العمل موجود مسبقاً داخل الشركة." });
+
+        item.Company_ID = companyId;
+        item.Branch_ID = dto.Branch_ID;
+        item.Work_Center_Code = code;
+        item.Work_Center_Name_AR = name;
+        item.Work_Center_Name_EN = dto.Work_Center_Name_EN?.Trim();
+        item.Work_Center_Type = type;
+        item.Parent_Work_Center_ID = dto.Parent_Work_Center_ID;
+        item.Is_Active = dto.Is_Active;
+        item.Sort_Order = dto.Sort_Order;
+        item.Updated_At = DateTime.UtcNow;
+        await _db.SaveChangesAsync();
+        return Ok(item);
+    }
 }
