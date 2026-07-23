@@ -62,6 +62,9 @@ namespace AlTayerERP.Infrastructure.Data
         // جدول شاشات النظام البرمجية المتوفرة لضبط الوصول
         public DbSet<SystemScreen> SystemScreens { get; set; } = null!;
 
+        // سجل محاولات تسجيل الدخول الناجحة والفاشلة.
+        public DbSet<LoginAttempt> Login_Attempts { get; set; } = null!;
+
         #endregion
 
         #region 3. إعدادات الترقيم والرقابة والاعتمادات
@@ -279,6 +282,14 @@ namespace AlTayerERP.Infrastructure.Data
             {
                 entity.ToTable("user_permissions");
                 entity.HasKey(e => e.Permission_ID);
+            });
+
+            modelBuilder.Entity<LoginAttempt>(entity =>
+            {
+                entity.ToTable("login_attempts");
+                entity.HasKey(e => e.Login_Attempt_ID);
+                entity.HasIndex(e => new { e.Login_Name, e.Attempted_At });
+                entity.HasIndex(e => new { e.Company_ID, e.Attempted_At });
             });
 
             // إعدادات جدول صلاحيات النظام وتحديد المفتاح الرئيسي
