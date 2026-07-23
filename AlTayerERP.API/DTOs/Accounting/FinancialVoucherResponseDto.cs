@@ -105,6 +105,13 @@ namespace AlTayerERP.API.DTOs.Accounting
 
         public string? Journal_Entry_No { get; set; }
 
+        public bool Is_Reversed { get; set; }
+        public long? Reversal_Journal_Entry_ID { get; set; }
+        public string? Reversal_Journal_Entry_No { get; set; }
+        public string? Reversed_By { get; set; }
+        public DateTime? Reversed_At { get; set; }
+        public string? Reversal_Reason { get; set; }
+
         #endregion
 
 
