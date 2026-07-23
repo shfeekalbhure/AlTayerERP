@@ -56,7 +56,7 @@ public class FrmGeographicReference : Form
         bar.Controls.Add(MakeButton("جديد  Ctrl+N", (_, _) => ClearForm()));
         bar.Controls.Add(MakeButton("حفظ  Ctrl+S", async (_, _) => await SaveAsync(), true));
         bar.Controls.Add(MakeButton("تعديل", async (_, _) => await SaveAsync()));
-        bar.Controls.Add(MakeButton("حذف", async (_, _) => await DeleteAsync(), false, true));
+        bar.Controls.Add(MakeButton("إيقاف/تفعيل", async (_, _) => await ChangeStatusAsync(), false, true));
         bar.Controls.Add(MakeButton("تحديث  F5", async (_, _) => await LoadRowsAsync()));
         bar.Controls.Add(MakeButton("بحث  Ctrl+F", (_, _) => _txtSearch.Focus()));
         bar.Controls.Add(MakeButton("إغلاق  Esc", (_, _) => Close()));
@@ -91,6 +91,8 @@ public class FrmGeographicReference : Form
             }
         }
 
+        // الحالة للعرض فقط؛ الإيقاف وإعادة التفعيل عبر عملية منفصلة ذات سبب وتدقيق.
+        _chkActive.Enabled = false;
         AddField(table, "الحالة", _chkActive, 3, 2);
         AddField(table, "ملاحظات", _txtNotes, 0, 3, 4);
         card.Controls.Add(table);
@@ -217,12 +219,45 @@ public class FrmGeographicReference : Form
         await LoadRowsAsync(); MessageBox.Show("تم الحفظ بنجاح.");
     }
 
-    private async Task DeleteAsync()
+    /// <summary>إيقاف أو إعادة تفعيل المرجع الجغرافي بعملية مستقلة وسبب إلزامي.</summary>
+    private async Task ChangeStatusAsync()
     {
         if (_selectedId <= 0) { MessageBox.Show("اختر سجلًا أولًا."); return; }
-        if (MessageBox.Show("هل تريد حذف السجل المحدد؟", "تأكيد", MessageBoxButtons.YesNo) != DialogResult.Yes) return;
-        var response = await ApiService.Client.DeleteAsync($"GeographicReferences/{Resource}/{_selectedId}");
-        if (!response.IsSuccessStatusCode) { MessageBox.Show(await response.Content.ReadAsStringAsync()); return; }
+
+        var isActive = _chkActive.Checked;
+        var action = isActive ? "إيقاف" : "إعادة تفعيل";
+        var reason = Microsoft.VisualBasic.Interaction.InputBox(
+            $"أدخل سبب {action} السجل (حقل إلزامي للتدقيق):",
+            action + " السجل",
+            string.Empty).Trim();
+        if (string.IsNullOrWhiteSpace(reason))
+        {
+            MessageBox.Show($"لا يمكن تنفيذ {action} دون سبب.");
+            return;
+        }
+
+        HttpResponseMessage response;
+        if (isActive)
+        {
+            using var request = new HttpRequestMessage(HttpMethod.Delete, $"GeographicReferences/{Resource}/{_selectedId}")
+            {
+                Content = JsonContent.Create(new { Reason = reason })
+            };
+            response = await ApiService.Client.SendAsync(request);
+        }
+        else
+        {
+            response = await ApiService.Client.PostAsJsonAsync(
+                $"GeographicReferences/{Resource}/{_selectedId}/reactivate",
+                new { Reason = reason });
+        }
+
+        if (!response.IsSuccessStatusCode)
+        {
+            MessageBox.Show(await response.Content.ReadAsStringAsync(), "تعذر تنفيذ العملية", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            return;
+        }
+
         await LoadRowsAsync();
     }
 
