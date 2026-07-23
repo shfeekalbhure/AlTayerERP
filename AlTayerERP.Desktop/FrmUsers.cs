@@ -40,6 +40,11 @@ namespace AlTayerERP.Desktop
         // متغير العلم والحارس (Flag): يستخدم لمنع الـ WinForms من إطلاق أحداث برمجية مكررة أو متداخلة أثناء تفريغ أو تعبئة الحقول
         private bool _isBinding = false;
 
+        // الشركة هي أول مستوى في شجرة إنشاء المستخدم. أُضيفت برمجياً حتى لا
+        // نكسر ملف Designer القديم أثناء إعادة بناء الشاشة تدريجياً.
+        private readonly ComboBox cmbCompany = new();
+        private readonly Label lblCompany = new();
+
         /// <summary>
         /// مشيد الشاشة الرئيسي (Constructor) - يتم فيه بناء عناصر الواجهة وربط الأحداث بشكل آمن ومستقر 10/10
         /// </summary>
@@ -61,6 +66,9 @@ namespace AlTayerERP.Desktop
 
             this.cmbRole.SelectedIndexChanged -= cmbRole_SelectedIndexChanged;
             this.cmbRole.SelectedIndexChanged += cmbRole_SelectedIndexChanged;
+
+            SetupCompanySelector();
+            cmbCompany.SelectedIndexChanged += cmbCompany_SelectedIndexChanged;
 
             // ربط حدث كومبو بوكس البحث في الصلاحيات الجديد والمحمى للفحص الآمن
             if (this.cmbPermissionSearch != null)
@@ -106,7 +114,7 @@ namespace AlTayerERP.Desktop
             chkChangePassword.Checked = true;
 
             // استدعاء دوال جلب البيانات الأساسية من الـ API بشكل متزامن ومرتب هندسياً
-            await LoadBranchesAsync();
+            await LoadCompaniesAsync();
             await LoadRolesAsync();
             await LoadUsersAsync();
             await LoadFunctionPermissionsAsync();
@@ -117,6 +125,58 @@ namespace AlTayerERP.Desktop
             // بناء وفلترة كومبو بوكس البحث العلوي وتنظيف الفورم بالكامل
             SetupSearchAndFilters();
             ClearForm();
+        }
+
+        /// <summary>
+        /// المستوى الأول عند إنشاء مستخدم: الشركة. لا توجد قيمة ثابتة داخل الكود.
+        /// تغيير الشركة يعيد تحميل فروعها فقط.
+        /// </summary>
+        private void SetupCompanySelector()
+        {
+            lblCompany.AutoSize = true;
+            lblCompany.Location = new Point(294, 14);
+            lblCompany.Text = "الشركة";
+
+            cmbCompany.DropDownStyle = ComboBoxStyle.DropDownList;
+            cmbCompany.FormattingEnabled = true;
+            cmbCompany.Location = new Point(72, 10);
+            cmbCompany.Size = new Size(203, 33);
+            cmbCompany.TabIndex = 1;
+
+            // نُنزِل عناصر الشاشة القديمة سطراً واحداً لفتح مكان للشركة.
+            foreach (Control control in panel1.Controls)
+            {
+                control.Top += 38;
+            }
+
+            panel1.Controls.Add(lblCompany);
+            panel1.Controls.Add(cmbCompany);
+            lblCompany.BringToFront();
+            cmbCompany.BringToFront();
+        }
+
+        private async Task LoadCompaniesAsync()
+        {
+            try
+            {
+                var companies = await _client.GetFromJsonAsync<List<CompanyLookupModel>>($"{_baseUrl}Companies");
+                _isBinding = true;
+                cmbCompany.DataSource = companies ?? new List<CompanyLookupModel>();
+                cmbCompany.DisplayMember = "Company_Name_AR";
+                cmbCompany.ValueMember = "Company_ID";
+                cmbCompany.SelectedIndex = -1;
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("فشل تحميل الشركات:\n" + ex.Message);
+            }
+            finally { _isBinding = false; }
+        }
+
+        private async void cmbCompany_SelectedIndexChanged(object? sender, EventArgs e)
+        {
+            if (_isBinding || cmbCompany.SelectedValue == null) return;
+            await LoadBranchesAsync(cmbCompany.SelectedValue.ToString());
         }
 
         /// <summary>
@@ -405,12 +465,19 @@ namespace AlTayerERP.Desktop
 
 
         // هذا كود صلاحيات الجلسة
-        private async Task LoadBranchesAsync()
+        private async Task LoadBranchesAsync(string? companyId = null)
         {
+            companyId ??= cmbCompany.SelectedValue?.ToString();
+            if (string.IsNullOrWhiteSpace(companyId))
+            {
+                cmbBranch.DataSource = new List<BranchLookupModel>();
+                return;
+            }
+
             try
             {
                 var branches = await _client.GetFromJsonAsync<List<BranchLookupModel>>(
-                    $"{_baseUrl}Users/GetBranchesLookup?companyId={CurrentSession.Company_ID}");
+                    $"{_baseUrl}Users/GetBranchesLookup?companyId={Uri.EscapeDataString(companyId)}");
 
                 cmbBranch.DataSource = branches ?? new List<BranchLookupModel>();
                 cmbBranch.DisplayMember = "Branch_Name";
@@ -540,7 +607,10 @@ namespace AlTayerERP.Desktop
                     if (user != null)
                     {
                         _isBinding = true; // قفل لمنع التفاف أو تكرار استدعاء الكومبوهات أثناء التعبئة
-                        txtFullName.Text = user.Full_Name; txtLoginName.Text = user.Login_Name; txtPhone.Text = user.Phone; txtEmail.Text = user.Email; txtNotes.Text = user.Notes; cmbBranch.SelectedValue = user.Branch_ID; cmbRole.SelectedValue = user.Role_ID; cmbStatus.Text = user.Is_Active ? "نشط" : "موقوف"; chkIsActive.Checked = user.Is_Active; chkChangePassword.Checked = user.Must_Change_Password; txtPassword.Text = string.Empty; txtConfirmPassword.Text = string.Empty;
+                        txtFullName.Text = user.Full_Name; txtLoginName.Text = user.Login_Name; txtPhone.Text = user.Phone; txtEmail.Text = user.Email; txtNotes.Text = user.Notes;
+                        cmbCompany.SelectedValue = user.Company_ID;
+                        await LoadBranchesAsync(user.Company_ID);
+                        cmbBranch.SelectedValue = user.Branch_ID; cmbRole.SelectedValue = user.Role_ID; cmbStatus.Text = user.Is_Active ? "نشط" : "موقوف"; chkIsActive.Checked = user.Is_Active; chkChangePassword.Checked = user.Must_Change_Password; txtPassword.Text = string.Empty; txtConfirmPassword.Text = string.Empty;
                         _isBinding = false;
 
                         // 👈 الاستدعاء الصريح المباشر لتأشير علامات الصلاحيات فور النقر
@@ -557,13 +627,13 @@ namespace AlTayerERP.Desktop
             if (string.IsNullOrWhiteSpace(txtFullName.Text)) { MessageBox.Show("يرجى إدخال الاسم."); return false; }
             if (string.IsNullOrWhiteSpace(txtLoginName.Text)) { MessageBox.Show("يرجى إدخال اسم الدخول."); return false; }
             if (!isInputsForUpdate) { if (string.IsNullOrWhiteSpace(txtPassword.Text)) { MessageBox.Show("يرجى إدخال كلمة المرور."); return false; } if (txtPassword.Text != txtConfirmPassword.Text) { MessageBox.Show("كلمات المرور غير متطابقة."); return false; } }
-            if (cmbBranch.SelectedValue == null || cmbRole.SelectedValue == null) { MessageBox.Show("يرجى اختيار الفرع والدور."); return false; }
+            if (cmbCompany.SelectedValue == null || cmbBranch.SelectedValue == null || cmbRole.SelectedValue == null) { MessageBox.Show("يرجى اختيار الشركة والفرع والدور."); return false; }
             return true;
         }
 
         private object BuildUserRequestObject(bool isUpdate)
         {
-            return new { Company_ID = "COMP001", Branch_ID = Convert.ToInt32(cmbBranch.SelectedValue), Role_ID = Convert.ToInt32(cmbRole.SelectedValue), User_Code = string.Empty, Full_Name = txtFullName.Text.Trim(), Login_Name = txtLoginName.Text.Trim(), Password = txtPassword.Text.Trim(), Phone = txtPhone.Text.Trim(), Email = txtEmail.Text.Trim(), Notes = txtNotes.Text.Trim(), Must_Change_Password = chkChangePassword.Checked, Is_Active = cmbStatus.Text == "نشط" };
+            return new { Company_ID = cmbCompany.SelectedValue.ToString(), Branch_ID = Convert.ToInt32(cmbBranch.SelectedValue), Role_ID = Convert.ToInt32(cmbRole.SelectedValue), User_Code = string.Empty, Full_Name = txtFullName.Text.Trim(), Login_Name = txtLoginName.Text.Trim(), Password = txtPassword.Text.Trim(), Phone = txtPhone.Text.Trim(), Email = txtEmail.Text.Trim(), Notes = txtNotes.Text.Trim(), Must_Change_Password = chkChangePassword.Checked, Is_Active = cmbStatus.Text == "نشط" };
         }
 
         private void ClearForm()
@@ -571,7 +641,7 @@ namespace AlTayerERP.Desktop
             _isBinding = true;
             try
             {
-                _selectedUserId = 0; txtFullName.Text = string.Empty; txtLoginName.Text = string.Empty; txtPassword.Text = string.Empty; txtConfirmPassword.Text = string.Empty; txtPhone.Text = string.Empty; txtEmail.Text = string.Empty; txtNotes.Text = string.Empty; cmbBranch.SelectedIndex = -1; cmbRole.SelectedIndex = -1; cmbStatus.Text = "نشط"; chkIsActive.Checked = true; chkChangePassword.Checked = true;
+                _selectedUserId = 0; txtFullName.Text = string.Empty; txtLoginName.Text = string.Empty; txtPassword.Text = string.Empty; txtConfirmPassword.Text = string.Empty; txtPhone.Text = string.Empty; txtEmail.Text = string.Empty; txtNotes.Text = string.Empty; cmbCompany.SelectedIndex = -1; cmbBranch.SelectedIndex = -1; cmbRole.SelectedIndex = -1; cmbStatus.Text = "نشط"; chkIsActive.Checked = true; chkChangePassword.Checked = true;
                 if (dgvUsers.SelectedRows.Count > 0) dgvUsers.ClearSelection();
                 foreach (DataGridViewRow row in dgvFunctionPermissions.Rows) { for (int i = 2; i <= 7; i++) row.Cells[i].Value = false; }
                 if (cmbPermissionSearch != null) cmbPermissionSearch.SelectedIndex = -1;

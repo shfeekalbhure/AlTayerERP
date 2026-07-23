@@ -27,6 +27,9 @@ namespace AlTayerERP.Infrastructure.Data
         // جدول الفروع الخاصة بكل شركة
         public DbSet<TenantBranch> Tenant_Branches { get; set; } = null!;
 
+        // بيانات مرجعية مستقلة تغذي قائمة نوع الفرع.
+        public DbSet<BranchType> Branch_Types { get; set; } = null!;
+
         // جدول السنوات المالية لإغلاق وفتح الحسابات
         public DbSet<FiscalYear> Fiscal_Years { get; set; } = null!;
 
@@ -154,6 +157,7 @@ namespace AlTayerERP.Infrastructure.Data
             {
                 entity.ToTable("tenant_groups");
                 entity.HasKey(e => e.Group_ID);
+                entity.HasIndex(e => e.Group_Code).IsUnique();
             });
 
             // إعدادات جدول الشركات وتحديد المفتاح الرئيسي
@@ -168,6 +172,14 @@ namespace AlTayerERP.Infrastructure.Data
             {
                 entity.ToTable("tenant_branches");
                 entity.HasKey(e => e.Branch_ID);
+                entity.HasIndex(e => new { e.Company_ID, e.Branch_Code }).IsUnique();
+            });
+
+            modelBuilder.Entity<BranchType>(entity =>
+            {
+                entity.ToTable("branch_types");
+                entity.HasKey(e => e.Branch_Type_ID);
+                entity.HasIndex(e => e.Branch_Type_Code).IsUnique();
             });
 
             // إعدادات جدول السنوات المالية وتحديد المفتاح الرئيسي

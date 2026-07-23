@@ -18,12 +18,14 @@ namespace AlTayerERP.API.Services
         {
             var catalog = new[]
             {
-                new ScreenSeed("Companies", "الشركات", "الإدارة العامة", 10),
-                new ScreenSeed("Branches", "الفروع", "الإدارة العامة", 20),
-                new ScreenSeed("FiscalYears", "السنوات المالية", "الإدارة العامة", 30),
-                new ScreenSeed("Users", "المستخدمون", "الإدارة العامة", 40),
-                new ScreenSeed("Roles", "الأدوار", "الإدارة العامة", 50),
-                new ScreenSeed("RolePermissions", "صلاحيات الأدوار", "الإدارة العامة", 60),
+                new ScreenSeed("BusinessGroups", "المجموعات التجارية", "الإدارة العامة", 10),
+                new ScreenSeed("Companies", "الشركات", "الإدارة العامة", 20),
+                new ScreenSeed("BranchTypes", "إعدادات أنواع الفروع", "الإدارة العامة", 30),
+                new ScreenSeed("Branches", "الفروع", "الإدارة العامة", 40),
+                new ScreenSeed("FiscalYears", "السنوات المالية", "الإدارة العامة", 50),
+                new ScreenSeed("Users", "المستخدمون", "الإدارة العامة", 60),
+                new ScreenSeed("Roles", "الأدوار", "الإدارة العامة", 70),
+                new ScreenSeed("RolePermissions", "صلاحيات الأدوار", "الإدارة العامة", 80),
                 new ScreenSeed("GeneralSettings", "الإعدادات العامة والمالية", "التهيئة والإعدادات", 70),
                 new ScreenSeed("SystemScreens", "كتالوج شاشات النظام", "التهيئة والإعدادات", 80),
                 new ScreenSeed("NumberingSettings", "إعدادات الترقيم", "التهيئة والإعدادات", 90),

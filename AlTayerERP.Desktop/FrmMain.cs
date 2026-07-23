@@ -15,6 +15,10 @@ namespace AlTayerERP.Desktop
         private readonly HttpClient _client = ApiService.Client;
         private readonly string _baseUrl = ApiService.BaseUrl;
         private HashSet<string> _allowedScreenCodes = new(StringComparer.OrdinalIgnoreCase);
+        // مساحة عمل موحّدة: شاشة إعداد واحدة = تبويب واحد فقط.
+        // يمنع ذلك فقدان حالة الشاشة أو فتح نسخ مكررة من بيانات مرجعية حساسة.
+        private readonly TabControl _workspaceTabs = new();
+        private readonly Dictionary<string, TabPage> _openTabs = new(StringComparer.OrdinalIgnoreCase);
 
         public FrmMain()
         {
@@ -36,10 +40,60 @@ namespace AlTayerERP.Desktop
             _ = LoadSessionDetails();
             _ = RefreshConnectionStatusAsync();
             lblStatusTime.Text = DateTime.Now.ToString("yyyy/MM/dd HH:mm");
+            ApplyMainShellVisuals();
+            InitializeWorkspaceTabs();
+            BuildDashboard();
             BuildMainMenu();
             _ = LoadAllowedScreensAsync();
             tvMainMenu.NodeMouseDoubleClick -= tvMainMenu_NodeMouseDoubleClick;
             tvMainMenu.NodeMouseDoubleClick += tvMainMenu_NodeMouseDoubleClick;
+        }
+
+        private void InitializeWorkspaceTabs()
+        {
+            _workspaceTabs.Dock = DockStyle.Fill;
+            _workspaceTabs.RightToLeft = RightToLeft.Yes;
+            _workspaceTabs.RightToLeftLayout = true;
+            _workspaceTabs.Font = new Font("Segoe UI", 9.5F, FontStyle.Bold);
+            _workspaceTabs.Padding = new Point(16, 5);
+            _workspaceTabs.DrawMode = TabDrawMode.OwnerDrawFixed;
+            _workspaceTabs.DrawItem += WorkspaceTabs_DrawItem;
+            _workspaceTabs.MouseDown += WorkspaceTabs_MouseDown;
+
+            var menu = new ContextMenuStrip();
+            menu.Items.Add("إغلاق التبويب", null, (_, _) => CloseSelectedTab());
+            menu.Items.Add("إغلاق الكل", null, (_, _) => CloseAllTabs(keepHome: true));
+            menu.Items.Add("إغلاق ما عدا هذا", null, (_, _) => CloseAllExceptSelected());
+            _workspaceTabs.ContextMenuStrip = menu;
+
+            pnlWorkspace.Controls.Clear();
+            pnlWorkspace.Controls.Add(_workspaceTabs);
+        }
+
+        private void WorkspaceTabs_DrawItem(object? sender, DrawItemEventArgs e)
+        {
+            var page = _workspaceTabs.TabPages[e.Index];
+            var selected = e.Index == _workspaceTabs.SelectedIndex;
+            using var background = new SolidBrush(selected ? Color.White : Color.FromArgb(231, 237, 244));
+            using var text = new SolidBrush(selected ? Color.FromArgb(8, 49, 92) : Color.FromArgb(67, 80, 96));
+            e.Graphics.FillRectangle(background, e.Bounds);
+            var caption = page.Text + (page.Name == "Home" ? string.Empty : "   ×");
+            TextRenderer.DrawText(e.Graphics, caption, _workspaceTabs.Font, e.Bounds, text.Color,
+                TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.RightToLeft);
+        }
+
+        private void WorkspaceTabs_MouseDown(object? sender, MouseEventArgs e)
+        {
+            for (var index = 0; index < _workspaceTabs.TabPages.Count; index++)
+            {
+                if (!_workspaceTabs.GetTabRect(index).Contains(e.Location)) continue;
+                _workspaceTabs.SelectedIndex = index;
+                // زر الإغلاق المرئي في طرف التبويب؛ الصفحة الرئيسية لا تغلق.
+                if (e.Button == MouseButtons.Left && _workspaceTabs.TabPages[index].Name != "Home" &&
+                    e.X >= _workspaceTabs.GetTabRect(index).Right - 28)
+                    CloseTab(_workspaceTabs.TabPages[index]);
+                return;
+            }
         }
 
         /// <summary>
@@ -113,7 +167,15 @@ namespace AlTayerERP.Desktop
         /// </summary>
         private void BuildDashboard()
         {
-            pnlWorkspace.Controls.Clear();
+            _workspaceTabs.TabPages.Clear();
+            _openTabs.Clear();
+
+            var home = new TabPage("الرئيسية")
+            {
+                Name = "Home",
+                BackColor = Color.FromArgb(249, 250, 252),
+                Padding = Padding.Empty
+            };
 
             var shell = new TableLayoutPanel
             {
@@ -192,7 +254,9 @@ namespace AlTayerERP.Desktop
                 TextAlign = ContentAlignment.MiddleRight
             }, 0, 3);
 
-            pnlWorkspace.Controls.Add(shell);
+            home.Controls.Add(shell);
+            _workspaceTabs.TabPages.Add(home);
+            _workspaceTabs.SelectedTab = home;
         }
 
         private static Control CreateDashboardCard(string title, string description, string icon, Color accent, Action click)
@@ -359,15 +423,30 @@ namespace AlTayerERP.Desktop
             tvMainMenu.Nodes.Clear();
 
             TreeNode adminNode = new("الإدارة العامة");
-            AddScreen(adminNode, "Companies", "الشركات");
-            AddScreen(adminNode, "Branches", "الفروع");
-            AddScreen(adminNode, "FiscalYears", "السنوات المالية");
-            AddScreen(adminNode, "Users", "المستخدمون");
-            AddScreen(adminNode, "Roles", "الأدوار");
+            // التسلسل ظاهر كما يُنفذ: المجموعة ← الشركة ← نوع الفرع ← الفرع.
+            TreeNode organizationNode = new("الهيكل المؤسسي");
+            AddScreen(organizationNode, "BusinessGroups", "المجموعات التجارية");
+            AddScreen(organizationNode, "Companies", "الشركات");
+            AddScreen(organizationNode, "BranchTypes", "إعدادات أنواع الفروع");
+            AddScreen(organizationNode, "Branches", "الفروع");
+            if (organizationNode.Nodes.Count > 0) adminNode.Nodes.Add(organizationNode);
+
+            // السنة والفترة تابعة للشركة في تسلسل التهيئة، وليست إعداداً مالياً عاماً.
+            TreeNode fiscalNode = new("السنوات والفترات المالية");
+            AddScreen(fiscalNode, "FiscalYears", "السنوات المالية");
+            AddScreen(fiscalNode, "FiscalPeriods", "الفترات المالية");
+            if (fiscalNode.Nodes.Count > 0) adminNode.Nodes.Add(fiscalNode);
+
+            TreeNode securityNode = new("الأمن والصلاحيات");
+            AddScreen(securityNode, "Users", "المستخدمون");
+            AddScreen(securityNode, "Roles", "الأدوار");
+            AddScreen(securityNode, "RolePermissions", "صلاحيات الأدوار");
+            // كتالوج الشاشات هو مصدر شجرة النظام وصلاحياتها، لذلك مكانه الطبيعي هنا.
+            AddScreen(securityNode, "SystemScreens", "شجرة النظام / كتالوج الشاشات");
+            if (securityNode.Nodes.Count > 0) adminNode.Nodes.Add(securityNode);
 
             TreeNode accountingNode = new("الحسابات");
             AddScreen(accountingNode, "ChartOfAccounts", "الدليل المحاسبي");
-            AddScreen(accountingNode, "Currencies", "العملات");
             AddScreen(accountingNode, "CostCenters", "مراكز التكلفة");
             AddScreen(accountingNode, "CashBoxes", "الصناديق");
             AddScreen(accountingNode, "ReceiptVoucher", "سند القبض");
@@ -375,14 +454,11 @@ namespace AlTayerERP.Desktop
             // شاشات التهيئة الحساسة مخصصة لمدير النظام إلى أن يكتمل محرك الصلاحيات التفصيلي.
             if (CurrentSession.Is_System_Admin)
             {
-                AddScreen(adminNode, "RolePermissions", "صلاحيات الأدوار");
-
                 TreeNode setupNode = new("التهيئة والإعدادات");
-                AddScreen(setupNode, "GeneralSettings", "الإعدادات العامة والمالية");
-                AddScreen(setupNode, "SystemScreens", "كتالوج شاشات النظام");
-                AddScreen(setupNode, "NumberingSettings", "إعدادات الترقيم");
-                AddScreen(setupNode, "FiscalPeriods", "الفترات المالية");
+                AddScreen(setupNode, "Currencies", "العملات");
                 AddScreen(setupNode, "ExchangeRates", "أسعار الصرف");
+                AddScreen(setupNode, "GeneralSettings", "الإعدادات العامة والمالية");
+                AddScreen(setupNode, "NumberingSettings", "إعدادات الترقيم");
                 AddScreen(setupNode, "PaymentMethods", "طرق السداد");
                 AddScreen(setupNode, "VoucherTypes", "أنواع السندات");
                 AddScreen(setupNode, "VoucherStatuses", "حالات السندات");
@@ -427,9 +503,17 @@ namespace AlTayerERP.Desktop
                 return;
             }
 
+            if (_openTabs.TryGetValue(screenCode, out var existingPage))
+            {
+                _workspaceTabs.SelectedTab = existingPage;
+                return;
+            }
+
             Form? form = screenCode switch
             {
+                "BusinessGroups" => new FrmBusinessGroups(),
                 "Companies" => new CompanyForm(),
+                "BranchTypes" => new FrmBranchTypes(),
                 "Branches" => new BranchForm(),
                 "FiscalYears" => new FiscalYearForm(),
                 "Users" => new FrmUsers(),
@@ -453,7 +537,60 @@ namespace AlTayerERP.Desktop
                 "ReceiptVoucher" => new FrmReceiptVoucher(),
                 _ => null
             };
-            form?.ShowDialog(this);
+            if (form == null)
+                return;
+
+            var tab = new TabPage(form.Text)
+            {
+                Name = screenCode,
+                BackColor = Color.FromArgb(249, 250, 252),
+                Padding = Padding.Empty
+            };
+
+            form.TopLevel = false;
+            form.FormBorderStyle = FormBorderStyle.None;
+            form.Dock = DockStyle.Fill;
+            form.Visible = true;
+            form.FormClosed += (_, _) =>
+            {
+                _openTabs.Remove(screenCode);
+                if (_workspaceTabs.TabPages.Contains(tab))
+                    _workspaceTabs.TabPages.Remove(tab);
+                tab.Dispose();
+            };
+
+            tab.Controls.Add(form);
+            _workspaceTabs.TabPages.Add(tab);
+            _openTabs[screenCode] = tab;
+            _workspaceTabs.SelectedTab = tab;
+        }
+
+        private void CloseSelectedTab()
+        {
+            if (_workspaceTabs.SelectedTab != null)
+                CloseTab(_workspaceTabs.SelectedTab);
+        }
+
+        private void CloseTab(TabPage tab)
+        {
+            if (tab.Name == "Home") return;
+            if (tab.Controls.OfType<Form>().FirstOrDefault() is { } form)
+                form.Close();
+            else
+                _workspaceTabs.TabPages.Remove(tab);
+        }
+
+        private void CloseAllTabs(bool keepHome)
+        {
+            foreach (var tab in _workspaceTabs.TabPages.Cast<TabPage>().ToList())
+                if (!keepHome || tab.Name != "Home") CloseTab(tab);
+        }
+
+        private void CloseAllExceptSelected()
+        {
+            var selected = _workspaceTabs.SelectedTab;
+            foreach (var tab in _workspaceTabs.TabPages.Cast<TabPage>().ToList())
+                if (tab != selected && tab.Name != "Home") CloseTab(tab);
         }
 
         // إنهاء الجلسة المحلية وإرجاع المستخدم إلى شاشة الدخول.
@@ -485,10 +622,10 @@ namespace AlTayerERP.Desktop
                 return;
             }
 
-            new FrmGeneralSettings().ShowDialog(this);
+            OpenScreen("GeneralSettings");
         }
 
-        private void btnUsers_Click(object sender, EventArgs e) => new FrmUsers().ShowDialog(this);
+        private void btnUsers_Click(object sender, EventArgs e) => OpenScreen("Users");
         private void button10_Click(object sender, EventArgs e) { }
         private void btnAccountingCenter_Click(object sender, EventArgs e) { }
         private void label4_Click(object sender, EventArgs e) { }

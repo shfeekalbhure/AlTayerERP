@@ -49,6 +49,7 @@ builder.Services.AddScoped<FinancialPolicyService>();
 builder.Services.AddScoped<AccountNumberService>();
 builder.Services.AddScoped<SystemScreenCatalogSeeder>();
 builder.Services.AddScoped<VoucherReferenceDataSeeder>();
+builder.Services.AddScoped<SystemBootstrapSeeder>();
 // جلسات الخادم تحفظ هوية الدخول بعد التحقق ولا تعتمد على بيانات مرسلة من الواجهة.
 builder.Services.AddSingleton<ServerSessionService>();
 
@@ -78,6 +79,8 @@ var app = builder.Build();
 // تجهيز كتالوج الشاشات مرة عند بدء الخدمة حتى تعمل صلاحيات الأدوار مع شجرة النظام.
 using (var scope = app.Services.CreateScope())
 {
+    var bootstrapSeeder = scope.ServiceProvider.GetRequiredService<SystemBootstrapSeeder>();
+    await bootstrapSeeder.EnsureSeededAsync();
     var screenCatalogSeeder = scope.ServiceProvider.GetRequiredService<SystemScreenCatalogSeeder>();
     await screenCatalogSeeder.EnsureSeededAsync();
     var voucherReferenceSeeder = scope.ServiceProvider.GetRequiredService<VoucherReferenceDataSeeder>();
@@ -107,6 +110,7 @@ app.Use(async (context, next) =>
 {
     var path = context.Request.Path;
     var isPublic = path.StartsWithSegments("/api/Auth/Login") ||
+                   path.StartsWithSegments("/api/InitialSetup") ||
                    path.StartsWithSegments("/api/health") ||
                    (HttpMethods.IsGet(context.Request.Method) &&
                     (path.StartsWithSegments("/api/Branches/GetCompaniesLookup") ||
