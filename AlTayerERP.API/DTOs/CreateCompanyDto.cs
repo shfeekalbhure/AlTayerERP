@@ -37,6 +37,12 @@
         // عنوان الشركة
         public string Address { get; set; } = string.Empty;
 
+        // الموقع الجغرافي من البيانات المرجعية المشتركة.
+        public long? Country_ID { get; set; }
+        public long? Governorate_ID { get; set; }
+        public long? City_ID { get; set; }
+        public string? Postal_Code { get; set; }
+
         // شعار الشركة
         public byte[]? Company_Logo { get; set; }
 
