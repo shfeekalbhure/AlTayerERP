@@ -86,5 +86,18 @@ namespace AlTayerERP.Core.Entities
         /// <summary>عدد التعديلات الناجحة Edit_Count ولا يستقبل من العميل.</summary>
         [Column("Edit_Count")]
         public int Edit_Count { get; set; }
+
+        [Column("Stopped_By")]
+        public int? Stopped_By { get; set; }
+        [Column("Stopped_At")]
+        public DateTime? Stopped_At { get; set; }
+        [Column("Stopped_Reason")]
+        public string? Stopped_Reason { get; set; }
+        [Column("Reactivated_By")]
+        public int? Reactivated_By { get; set; }
+        [Column("Reactivated_At")]
+        public DateTime? Reactivated_At { get; set; }
+        [Column("Reactivate_Reason")]
+        public string? Reactivate_Reason { get; set; }
     }
 }
