@@ -93,9 +93,12 @@ namespace AlTayerERP.API.Controllers
 
         /// <summary>إيقاف الشركة بدلاً من حذفها، مع منع الإيقاف عند وجود فروع نشطة.</summary>
         [HttpDelete("{id}")]
-        public async Task<IActionResult> DeactivateCompany(string id)
+        public async Task<IActionResult> DeactivateCompany(string id, [FromBody] RecordStatusChangeDto dto)
         {
             if (!TryGetAdminSession(out var session)) return Forbid();
+            if (dto is null || string.IsNullOrWhiteSpace(dto.Reason))
+                return BadRequest("سبب الإيقاف مطلوب.");
+
             var company = await _context.Companies.FirstOrDefaultAsync(x => x.Company_ID == id);
             if (company is null) return NotFound("الشركة غير موجودة.");
 
@@ -106,10 +109,40 @@ namespace AlTayerERP.API.Controllers
             company.Is_Active = false;
             company.Updated_At = DateTime.UtcNow;
             company.Updated_By = session.User_ID;
+            company.Stopped_By = session.User_ID;
+            company.Stopped_At = DateTime.UtcNow;
+            company.Stopped_Reason = dto.Reason.Trim();
             company.Edit_Count += 1;
             AddAudit(session, company, "DEACTIVATE", oldValues, Snapshot(company));
             await _context.SaveChangesAsync();
             return Ok(new { message = "تم إيقاف الشركة دون حذف تاريخها." });
+        }
+
+
+        /// <summary>إعادة تفعيل شركة مع سبب إلزامي بعد التحقق من مجموعتها التجارية.</summary>
+        [HttpPost("{id}/reactivate")]
+        public async Task<IActionResult> ReactivateCompany(string id, [FromBody] RecordStatusChangeDto dto)
+        {
+            if (!TryGetAdminSession(out var session)) return Forbid();
+            if (dto is null || string.IsNullOrWhiteSpace(dto.Reason))
+                return BadRequest("سبب إعادة التفعيل مطلوب.");
+
+            var company = await _context.Companies.FirstOrDefaultAsync(x => x.Company_ID == id);
+            if (company is null) return NotFound("الشركة غير موجودة.");
+            if (!await _context.Tenant_Groups.AnyAsync(x => x.Group_ID == company.Group_ID && x.Is_Active))
+                return Conflict("لا يمكن إعادة تفعيل الشركة قبل تفعيل مجموعتها التجارية.");
+
+            var oldValues = Snapshot(company);
+            company.Is_Active = true;
+            company.Updated_At = DateTime.UtcNow;
+            company.Updated_By = session.User_ID;
+            company.Reactivated_By = session.User_ID;
+            company.Reactivated_At = DateTime.UtcNow;
+            company.Reactivate_Reason = dto.Reason.Trim();
+            company.Edit_Count += 1;
+            AddAudit(session, company, "REACTIVATE", oldValues, Snapshot(company));
+            await _context.SaveChangesAsync();
+            return Ok(company);
         }
 
         /// <summary>التحقق من بيانات العمل وعلاقة المجموعة قبل الحفظ.</summary>
