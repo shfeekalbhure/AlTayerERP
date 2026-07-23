@@ -23,6 +23,12 @@ namespace AlTayerERP.API.DTOs
         // العنوان الجغرافي أو الموقع التفصيلي للفرع (مثال: عدن، شارع التسعين)
         public string Address { get; set; } = string.Empty;
 
+        // الموقع الجغرافي المرجعي للفرع.
+        public long? Country_ID { get; set; }
+        public long? Governorate_ID { get; set; }
+        public long? City_ID { get; set; }
+        public string? Postal_Code { get; set; }
+
         // نوع وطبيعة عمل الفرع ويأخذ قيم ثابتة محددة بالشاشة مثل: (رئيسي، فرعي، نقطة توزيع، مستودع)
         public string Branch_Type { get; set; } = string.Empty;
 
