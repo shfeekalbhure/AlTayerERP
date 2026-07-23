@@ -1,5 +1,6 @@
 ﻿using AlTayerERP.Core.Entities;
 using AlTayerERP.Core.Entities.Accounting;
+using AlTayerERP.Core.Entities.Geography;
 using Microsoft.EntityFrameworkCore;
 
 namespace AlTayerERP.Infrastructure.Data
@@ -26,6 +27,11 @@ namespace AlTayerERP.Infrastructure.Data
 
         // جدول الفروع الخاصة بكل شركة
         public DbSet<TenantBranch> Tenant_Branches { get; set; } = null!;
+
+        // البيانات الجغرافية المرجعية المشتركة.
+        public DbSet<Country> Countries { get; set; } = null!;
+        public DbSet<Governorate> Governorates { get; set; } = null!;
+        public DbSet<City> Cities { get; set; } = null!;
 
         // جدول السنوات المالية لإغلاق وفتح الحسابات
         public DbSet<FiscalYear> Fiscal_Years { get; set; } = null!;
@@ -168,6 +174,36 @@ namespace AlTayerERP.Infrastructure.Data
             {
                 entity.ToTable("tenant_branches");
                 entity.HasKey(e => e.Branch_ID);
+            });
+
+            modelBuilder.Entity<Country>(entity =>
+            {
+                entity.ToTable("countries");
+                entity.HasKey(e => e.Country_ID);
+                entity.HasIndex(e => e.Country_Code).IsUnique();
+                entity.HasIndex(e => e.Country_Name_AR).IsUnique();
+                entity.Property(e => e.Country_Code).HasMaxLength(3).IsRequired();
+                entity.Property(e => e.Country_Name_AR).HasMaxLength(150).IsRequired();
+            });
+
+            modelBuilder.Entity<Governorate>(entity =>
+            {
+                entity.ToTable("governorates");
+                entity.HasKey(e => e.Governorate_ID);
+                entity.HasIndex(e => new { e.Country_ID, e.Governorate_Code }).IsUnique();
+                entity.HasIndex(e => new { e.Country_ID, e.Governorate_Name_AR }).IsUnique();
+                entity.HasOne(e => e.Country).WithMany(e => e.Governorates)
+                    .HasForeignKey(e => e.Country_ID).OnDelete(DeleteBehavior.Restrict);
+            });
+
+            modelBuilder.Entity<City>(entity =>
+            {
+                entity.ToTable("cities");
+                entity.HasKey(e => e.City_ID);
+                entity.HasIndex(e => new { e.Governorate_ID, e.City_Code }).IsUnique();
+                entity.HasIndex(e => new { e.Governorate_ID, e.City_Name_AR }).IsUnique();
+                entity.HasOne(e => e.Governorate).WithMany(e => e.Cities)
+                    .HasForeignKey(e => e.Governorate_ID).OnDelete(DeleteBehavior.Restrict);
             });
 
             // إعدادات جدول السنوات المالية وتحديد المفتاح الرئيسي
