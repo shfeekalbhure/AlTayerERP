@@ -74,4 +74,80 @@ public class GeographyController : ControllerBase
         await _db.SaveChangesAsync();
         return CreatedAtAction(nameof(GetCities), new { governorateId = city.Governorate_ID }, city);
     }
+
+    [HttpPut("countries/{id:long}")]
+    public async Task<IActionResult> UpdateCountry(long id, [FromBody] Country input)
+    {
+        var country = await _db.Countries.FindAsync(id);
+        if (country is null) return NotFound();
+        var code = input.Country_Code?.Trim().ToUpperInvariant();
+        var nameAr = input.Country_Name_AR?.Trim();
+        if (string.IsNullOrWhiteSpace(code) || string.IsNullOrWhiteSpace(nameAr))
+            return BadRequest(new { message = "رمز الدولة واسمها العربي مطلوبان." });
+        if (await _db.Countries.AnyAsync(x => x.Country_ID != id && (x.Country_Code == code || x.Country_Name_AR == nameAr)))
+            return Conflict(new { message = "رمز الدولة أو اسمها موجود مسبقاً." });
+        country.Country_Code = code;
+        country.Country_Name_AR = nameAr;
+        country.Country_Name_EN = input.Country_Name_EN?.Trim();
+        country.Currency_Code = input.Currency_Code?.Trim().ToUpperInvariant();
+        country.Phone_Code = input.Phone_Code?.Trim();
+        country.Iso2_Code = input.Iso2_Code?.Trim().ToUpperInvariant();
+        country.Is_Active = input.Is_Active;
+        country.Sort_Order = input.Sort_Order;
+        country.Updated_At = DateTime.UtcNow;
+        await _db.SaveChangesAsync();
+        return Ok(country);
+    }
+
+    [HttpPut("governorates/{id:long}")]
+    public async Task<IActionResult> UpdateGovernorate(long id, [FromBody] Governorate input)
+    {
+        var governorate = await _db.Governorates.FindAsync(id);
+        if (governorate is null) return NotFound();
+        var code = input.Governorate_Code?.Trim().ToUpperInvariant();
+        var nameAr = input.Governorate_Name_AR?.Trim();
+        if (string.IsNullOrWhiteSpace(code) || string.IsNullOrWhiteSpace(nameAr))
+            return BadRequest(new { message = "رمز المحافظة واسمها العربي مطلوبان." });
+        if (!await _db.Countries.AnyAsync(x => x.Country_ID == input.Country_ID && x.Is_Active))
+            return BadRequest(new { message = "الدولة المختارة غير موجودة أو غير نشطة." });
+        if (await _db.Governorates.AnyAsync(x => x.Governorate_ID != id && x.Country_ID == input.Country_ID && (x.Governorate_Code == code || x.Governorate_Name_AR == nameAr)))
+            return Conflict(new { message = "رمز المحافظة أو اسمها موجود مسبقاً داخل الدولة." });
+        governorate.Country_ID = input.Country_ID;
+        governorate.Governorate_Code = code;
+        governorate.Governorate_Name_AR = nameAr;
+        governorate.Governorate_Name_EN = input.Governorate_Name_EN?.Trim();
+        governorate.Is_Active = input.Is_Active;
+        governorate.Sort_Order = input.Sort_Order;
+        governorate.Updated_At = DateTime.UtcNow;
+        await _db.SaveChangesAsync();
+        return Ok(governorate);
+    }
+
+    [HttpPut("cities/{id:long}")]
+    public async Task<IActionResult> UpdateCity(long id, [FromBody] City input)
+    {
+        var city = await _db.Cities.FindAsync(id);
+        if (city is null) return NotFound();
+        var code = input.City_Code?.Trim().ToUpperInvariant();
+        var nameAr = input.City_Name_AR?.Trim();
+        if (string.IsNullOrWhiteSpace(code) || string.IsNullOrWhiteSpace(nameAr))
+            return BadRequest(new { message = "رمز المدينة واسمها العربي مطلوبان." });
+        if (!await _db.Governorates.AnyAsync(x => x.Governorate_ID == input.Governorate_ID && x.Is_Active))
+            return BadRequest(new { message = "المحافظة المختارة غير موجودة أو غير نشطة." });
+        if (await _db.Cities.AnyAsync(x => x.City_ID != id && x.Governorate_ID == input.Governorate_ID && (x.City_Code == code || x.City_Name_AR == nameAr)))
+            return Conflict(new { message = "رمز المدينة أو اسمها موجود مسبقاً داخل المحافظة." });
+        if (input.Latitude is < -90 or > 90 || input.Longitude is < -180 or > 180)
+            return BadRequest(new { message = "الإحداثيات الجغرافية خارج النطاق المسموح." });
+        city.Governorate_ID = input.Governorate_ID;
+        city.City_Code = code;
+        city.City_Name_AR = nameAr;
+        city.City_Name_EN = input.City_Name_EN?.Trim();
+        city.Latitude = input.Latitude;
+        city.Longitude = input.Longitude;
+        city.Is_Active = input.Is_Active;
+        city.Sort_Order = input.Sort_Order;
+        city.Updated_At = DateTime.UtcNow;
+        await _db.SaveChangesAsync();
+        return Ok(city);
+    }
 }
