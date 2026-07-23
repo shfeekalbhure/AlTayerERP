@@ -71,12 +71,16 @@ namespace AlTayerERP.API.Controllers
                 if (!companyExists)
                     return BadRequest("الشركة المختارة غير موجودة أو غير فعالة.");
 
+                // إسقاط الحقول الضرورية فقط: يمنع قراءة أعمدة تدقيق حديثة غير مطبقة
+                // بعد في قاعدة البيانات الحالية عند تنفيذ مسار تسجيل الدخول.
                 var branch = await _context.Tenant_Branches
                     .AsNoTracking()
-                    .FirstOrDefaultAsync(x =>
+                    .Where(x =>
                         x.Branch_ID == request.Branch_ID &&
                         x.Company_ID == companyId &&
-                        x.Is_Active);
+                        x.Is_Active)
+                    .Select(x => new { x.Branch_ID })
+                    .FirstOrDefaultAsync();
 
                 if (branch == null)
                     return BadRequest("الفرع المختار لا يتبع الشركة أو غير فعال.");
