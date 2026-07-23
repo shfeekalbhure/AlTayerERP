@@ -4,6 +4,7 @@ using AlTayerERP.Core.Entities;
 using AlTayerERP.Infrastructure.Data;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Text.Json;
 
 namespace AlTayerERP.API.Controllers
 {
@@ -67,6 +68,7 @@ namespace AlTayerERP.API.Controllers
             };
             Map(dto, group);
             _context.Tenant_Groups.Add(group);
+            AddAuditLog(session, group, "CREATE", null, BuildSnapshot(group));
             await _context.SaveChangesAsync();
 
             return CreatedAtAction(nameof(GetGroup), new { id = group.Group_ID }, group);
@@ -84,10 +86,12 @@ namespace AlTayerERP.API.Controllers
             var validation = await ValidateAsync(dto, id);
             if (validation is not null) return BadRequest(validation);
 
+            var oldValues = BuildSnapshot(group);
             Map(dto, group);
             group.Updated_At = DateTime.UtcNow;
             group.Updated_By = session.User_ID;
             group.Edit_Count += 1;
+            AddAuditLog(session, group, "UPDATE", oldValues, BuildSnapshot(group));
             await _context.SaveChangesAsync();
             return Ok(group);
         }
@@ -104,11 +108,13 @@ namespace AlTayerERP.API.Controllers
             var group = await _context.Tenant_Groups.FirstOrDefaultAsync(x => x.Group_ID == id);
             if (group is null) return NotFound("المجموعة التجارية غير موجودة.");
 
+            var oldValues = BuildSnapshot(group);
             group.Is_Active = false;
             group.Show_In_Login = false;
             group.Updated_At = DateTime.UtcNow;
             group.Updated_By = session.User_ID;
             group.Edit_Count += 1;
+            AddAuditLog(session, group, "DEACTIVATE", oldValues, BuildSnapshot(group));
             await _context.SaveChangesAsync();
 
             return Ok(new { message = "تم إيقاف المجموعة التجارية دون حذف تاريخها." });
@@ -139,6 +145,40 @@ namespace AlTayerERP.API.Controllers
             }
             return null;
         }
+
+        /// <summary>
+        /// يضيف سجل تدقيق داخل نفس وحدة العمل قبل الحفظ. قيمة المستخدم والفرع
+        /// تأتي من ServerSession ولا يعتمد السجل على أي قيمة من واجهة المكتب.
+        /// </summary>
+        private void AddAuditLog(ServerSession session, TenantGroup group, string action,
+            string? oldValues, string newValues)
+        {
+            _context.Audit_Logs.Add(new AlTayerERP.Core.Entities.Accounting.AuditLog
+            {
+                Table_Name = "tenant_groups",
+                Record_ID = group.Group_ID,
+                Action_Type = action,
+                User_ID = session.User_ID.ToString(),
+                Branch_ID = session.Branch_ID.ToString(),
+                Action_At = DateTime.UtcNow,
+                Old_Values = oldValues,
+                New_Values = newValues,
+                Action_Channel = "DESKTOP",
+                Device_Name = Request.Headers["X-Device-ID"].ToString(),
+                IP_Address = HttpContext.Connection.RemoteIpAddress?.ToString(),
+                Notes = "إدارة المجموعات التجارية"
+            });
+        }
+
+        /// <summary>ينتج لقطة بيانات عمل قابلة للمراجعة دون بيانات سرية.</summary>
+        private static string BuildSnapshot(TenantGroup group) =>
+            JsonSerializer.Serialize(new
+            {
+                group.Group_ID, group.Group_Code, group.Group_Name_AR, group.Group_Name_EN,
+                group.Short_Name, group.Group_Type, group.Parent_Group_ID,
+                group.Main_Company_ID, group.Default_Currency_Code, group.Show_In_Login,
+                group.Sort_Order, group.Is_Active, group.Notes, group.Edit_Count
+            });
 
         /// <summary>ينقل حقول العمل فقط من DTO؛ حقول التدقيق مستثناة عمداً.</summary>
         private static void Map(CreateTenantGroupDto dto, TenantGroup group)
