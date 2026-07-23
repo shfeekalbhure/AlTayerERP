@@ -115,3 +115,8 @@ ALTER TABLE role_permissions
 
 CREATE INDEX IX_Role_Permissions_Rbac_Active
     ON role_permissions (Role_ID, Is_Active, Effective_From, Effective_To);
+
+
+-- تفرد كتالوج التراخيص والشاشات، ويجب معالجة أي تكرار تاريخي قبل التنفيذ.
+CREATE UNIQUE INDEX UQ_System_Permissions_Code ON system_permissions (Permission_Code);
+CREATE UNIQUE INDEX UQ_System_Screens_Code ON system_screens (Screen_Code);
