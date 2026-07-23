@@ -101,9 +101,11 @@ namespace AlTayerERP.API.Controllers
         /// للاستعراض تاريخياً ولا تظهر في شاشة الدخول عند إيقافها.
         /// </summary>
         [HttpDelete("{id}")]
-        public async Task<IActionResult> DeactivateGroup(string id)
+        public async Task<IActionResult> DeactivateGroup(string id, [FromBody] RecordStatusChangeDto dto)
         {
             if (!TryGetAdminSession(out var session)) return Forbid();
+            if (dto is null || string.IsNullOrWhiteSpace(dto.Reason))
+                return BadRequest("سبب الإيقاف مطلوب.");
 
             var group = await _context.Tenant_Groups.FirstOrDefaultAsync(x => x.Group_ID == id);
             if (group is null) return NotFound("المجموعة التجارية غير موجودة.");
@@ -113,6 +115,9 @@ namespace AlTayerERP.API.Controllers
             group.Show_In_Login = false;
             group.Updated_At = DateTime.UtcNow;
             group.Updated_By = session.User_ID;
+            group.Stopped_By = session.User_ID;
+            group.Stopped_At = DateTime.UtcNow;
+            group.Stopped_Reason = dto.Reason.Trim();
             group.Edit_Count += 1;
             AddAuditLog(session, group, "DEACTIVATE", oldValues, BuildSnapshot(group));
             await _context.SaveChangesAsync();
@@ -120,6 +125,31 @@ namespace AlTayerERP.API.Controllers
             return Ok(new { message = "تم إيقاف المجموعة التجارية دون حذف تاريخها." });
         }
 
+
+        /// <summary>إعادة تفعيل مجموعة مع سبب إلزامي وتسجيل تدقيقي كامل.</summary>
+        [HttpPost("{id}/reactivate")]
+        public async Task<IActionResult> ReactivateGroup(string id, [FromBody] RecordStatusChangeDto dto)
+        {
+            if (!TryGetAdminSession(out var session)) return Forbid();
+            if (dto is null || string.IsNullOrWhiteSpace(dto.Reason))
+                return BadRequest("سبب إعادة التفعيل مطلوب.");
+
+            var group = await _context.Tenant_Groups.FirstOrDefaultAsync(x => x.Group_ID == id);
+            if (group is null) return NotFound("المجموعة التجارية غير موجودة.");
+
+            var oldValues = BuildSnapshot(group);
+            group.Is_Active = true;
+            group.Show_In_Login = true;
+            group.Updated_At = DateTime.UtcNow;
+            group.Updated_By = session.User_ID;
+            group.Reactivated_By = session.User_ID;
+            group.Reactivated_At = DateTime.UtcNow;
+            group.Reactivate_Reason = dto.Reason.Trim();
+            group.Edit_Count += 1;
+            AddAuditLog(session, group, "REACTIVATE", oldValues, BuildSnapshot(group));
+            await _context.SaveChangesAsync();
+            return Ok(group);
+        }
         /// <summary>يتحقق من الحقول الفريدة وصحة المجموعة الأم قبل الحفظ.</summary>
         private async Task<string?> ValidateAsync(CreateTenantGroupDto dto, string? excludeId = null)
         {
