@@ -259,8 +259,22 @@ public sealed class FrmTenantGroups : BaseForm
     private async Task DeleteAsync()
     {
         if (_selectedId == null) return;
-        if (MessageBox.Show("هل تريد حذف المجموعة المحددة؟", Text, MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes) return;
-        var response = await _client.DeleteAsync($"TenantGroups/{_selectedId}");
+        if (MessageBox.Show("سيتم إيقاف المجموعة دون حذف تاريخها. هل تريد المتابعة؟", Text,
+                MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes) return;
+
+        // سبب الإيقاف إلزامي ويرسل إلى الـAPI كي يسجل في Audit_Logs.
+        var reason = Microsoft.VisualBasic.Interaction.InputBox("أدخل سبب إيقاف المجموعة التجارية:", "سبب الإيقاف", "");
+        if (string.IsNullOrWhiteSpace(reason))
+        {
+            MessageBox.Show("سبب الإيقاف مطلوب.", Text, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            return;
+        }
+
+        using var request = new HttpRequestMessage(HttpMethod.Delete, $"TenantGroups/{_selectedId}")
+        {
+            Content = JsonContent.Create(new { Reason = reason.Trim() })
+        };
+        var response = await _client.SendAsync(request);
         if (!response.IsSuccessStatusCode)
         {
             MessageBox.Show(await response.Content.ReadAsStringAsync(), Text, MessageBoxButtons.OK, MessageBoxIcon.Warning);
