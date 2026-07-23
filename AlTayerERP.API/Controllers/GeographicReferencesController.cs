@@ -151,6 +151,38 @@ public sealed class GeographicReferencesController : ControllerBase
         var changed = await ExecuteAsync("UPDATE cities SET Is_Active=0, Updated_At=UTC_TIMESTAMP() WHERE City_ID=@ID", ("@ID", id));
         if(changed==0) return NotFound("المدينة غير موجودة."); AddAudit("cities",id,"DEACTIVATE",dto.Reason); await _context.SaveChangesAsync(); return Ok();
     }
+    /// <summary>إعادة تفعيل دولة بسبب إلزامي؛ الفروع التابعة لا يعاد تفعيلها تلقائياً.</summary>
+    [HttpPost("countries/{id:int}/reactivate")]
+    public async Task<IActionResult> ReactivateCountry(int id, [FromBody] RecordStatusChangeDto dto)
+    {
+        var access = RequireSystemAdmin(); if (access != null) return access;
+        if (dto is null || string.IsNullOrWhiteSpace(dto.Reason)) return BadRequest("سبب إعادة تفعيل الدولة مطلوب.");
+        var changed=await ExecuteAsync("UPDATE countries SET Is_Active=1, Updated_At=UTC_TIMESTAMP() WHERE Country_ID=@ID", ("@ID",id));
+        if(changed==0) return NotFound("الدولة غير موجودة."); AddAudit("countries",id,"REACTIVATE",dto.Reason); await _context.SaveChangesAsync(); return Ok();
+    }
+
+    /// <summary>إعادة تفعيل محافظة بعد التحقق من نشاط الدولة الأم.</summary>
+    [HttpPost("governorates/{id:int}/reactivate")]
+    public async Task<IActionResult> ReactivateGovernorate(int id, [FromBody] RecordStatusChangeDto dto)
+    {
+        var access=RequireSystemAdmin(); if(access!=null) return access;
+        if(dto is null || string.IsNullOrWhiteSpace(dto.Reason)) return BadRequest("سبب إعادة تفعيل المحافظة مطلوب.");
+        var valid=await ScalarAsync<int>("SELECT COUNT(*) FROM governorates g INNER JOIN countries c ON c.Country_ID=g.Country_ID WHERE g.Governorate_ID=@ID AND c.Is_Active=1",("@ID",id));
+        if(valid==0) return Conflict("لا يمكن إعادة تفعيل المحافظة قبل تفعيل الدولة الأم.");
+        await ExecuteAsync("UPDATE governorates SET Is_Active=1, Updated_At=UTC_TIMESTAMP() WHERE Governorate_ID=@ID",("@ID",id)); AddAudit("governorates",id,"REACTIVATE",dto.Reason); await _context.SaveChangesAsync(); return Ok();
+    }
+
+    /// <summary>إعادة تفعيل مدينة بعد التحقق من نشاط الدولة والمحافظة الأم.</summary>
+    [HttpPost("cities/{id:int}/reactivate")]
+    public async Task<IActionResult> ReactivateCity(int id, [FromBody] RecordStatusChangeDto dto)
+    {
+        var access=RequireSystemAdmin(); if(access!=null) return access;
+        if(dto is null || string.IsNullOrWhiteSpace(dto.Reason)) return BadRequest("سبب إعادة تفعيل المدينة مطلوب.");
+        var valid=await ScalarAsync<int>("SELECT COUNT(*) FROM cities ci INNER JOIN countries c ON c.Country_ID=ci.Country_ID INNER JOIN governorates g ON g.Governorate_ID=ci.Governorate_ID WHERE ci.City_ID=@ID AND c.Is_Active=1 AND g.Is_Active=1",("@ID",id));
+        if(valid==0) return Conflict("لا يمكن إعادة تفعيل المدينة قبل تفعيل الدولة والمحافظة.");
+        await ExecuteAsync("UPDATE cities SET Is_Active=1, Updated_At=UTC_TIMESTAMP() WHERE City_ID=@ID",("@ID",id)); AddAudit("cities",id,"REACTIVATE",dto.Reason); await _context.SaveChangesAsync(); return Ok();
+    }
+
     /// <summary>يكتب تدقيق العملية من جلسة الخادم، ولا يقبل هوية من العميل.</summary>
     private void AddAudit(string tableName,int recordId,string action,string reason)
     {
