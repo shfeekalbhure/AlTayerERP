@@ -296,6 +296,23 @@ namespace AlTayerERP.Core.Entities.Accounting
         [MaxLength(500)]
         [Column("Unpost_Reason")]
         public string? Unpost_Reason { get; set; }
+
+        [Column("Is_Reversed")]
+        public bool Is_Reversed { get; set; }
+
+        [Column("Reversal_Journal_Entry_ID")]
+        public long? Reversal_Journal_Entry_ID { get; set; }
+
+        [MaxLength(50)]
+        [Column("Reversed_By")]
+        public string? Reversed_By { get; set; }
+
+        [Column("Reversed_At")]
+        public DateTime? Reversed_At { get; set; }
+
+        [MaxLength(500)]
+        [Column("Reversal_Reason")]
+        public string? Reversal_Reason { get; set; }
         #endregion
 
         #region ثامناً: بيانات النظام
