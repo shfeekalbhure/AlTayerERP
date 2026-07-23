@@ -297,19 +297,24 @@ namespace AlTayerERP.Core.Entities.Accounting
         [Column("Unpost_Reason")]
         public string? Unpost_Reason { get; set; }
 
+        /// <summary>هل تم عكس السند محاسبياً بقيد عكسي؟</summary>
         [Column("Is_Reversed")]
         public bool Is_Reversed { get; set; }
 
+        /// <summary>معرف القيد العكسي الناتج؛ يستخدم للربط والطباعة والمراجعة.</summary>
         [Column("Reversal_Journal_Entry_ID")]
         public long? Reversal_Journal_Entry_ID { get; set; }
 
+        /// <summary>معرف المستخدم الذي نفذ عملية العكس.</summary>
         [MaxLength(50)]
         [Column("Reversed_By")]
         public string? Reversed_By { get; set; }
 
+        /// <summary>وقت تنفيذ العكس بتوقيت الخادم.</summary>
         [Column("Reversed_At")]
         public DateTime? Reversed_At { get; set; }
 
+        /// <summary>سبب العكس الإلزامي للحفظ في سجل الرقابة والطباعة.</summary>
         [MaxLength(500)]
         [Column("Reversal_Reason")]
         public string? Reversal_Reason { get; set; }
