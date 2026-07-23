@@ -1202,5 +1202,131 @@ namespace AlTayerERP.API.Services.Accounting.VoucherWorkflow
             return voucher.Voucher_Date.Year
                 .ToString();
         }
+        /// <summary>
+        /// إنشاء قيد عكسي لقيد مرحل ناتج عن سند، دون حذف القيد الأصلي.
+        /// </summary>
+        public async Task<PostingResult> ReverseJournalForVoucherAsync(
+            long voucherId, string userId, string reason,
+            string actionChannel = VoucherAuditService.DESKTOP,
+            string? deviceName = null, string? ipAddress = null)
+        {
+            if (voucherId <= 0 || string.IsNullOrWhiteSpace(userId) || string.IsNullOrWhiteSpace(reason))
+                return PostingResult.Fail("معرف السند والمستخدم وسبب العكس مطلوبة.");
+
+            await using var transaction = await _context.Database.BeginTransactionAsync();
+            try
+            {
+                var voucher = await _context.Financial_Voucher_Headers
+                    .FirstOrDefaultAsync(x => x.Voucher_ID == voucherId && x.Is_Active);
+                if (voucher is null || !voucher.Is_Posted || !voucher.Journal_Entry_ID.HasValue)
+                    return PostingResult.Fail("لا يوجد قيد مرحل قابل للعكس لهذا السند.");
+
+                var original = await _context.Journal_Entry_Headers
+                    .Include(x => x.Details)
+                    .FirstOrDefaultAsync(x => x.Journal_Entry_ID == voucher.Journal_Entry_ID &&
+                                              x.Is_Posted && !x.Is_Cancelled);
+                if (original is null || original.Is_Reversed)
+                    return PostingResult.Fail("القيد غير موجود أو سبق عكسه.");
+
+                var now = DateTime.UtcNow;
+                var reversal = new JournalEntryHeader
+                {
+                    Entry_No = await GenerateJournalEntryNumberAsync(voucher),
+                    Entry_Type = 3,
+                    Entry_Status_ID = JournalStatusPosted,
+                    Branch_ID = original.Branch_ID,
+                    Fiscal_Year_ID = original.Fiscal_Year_ID,
+                    Entry_Date = now.Date,
+                    Transaction_Date = now,
+                    Source_System = "VOUCHER_REVERSAL",
+                    Is_System_Generated = true,
+                    Source_Voucher_ID = voucher.Voucher_ID,
+                    Source_Document_Type = "REVERSAL",
+                    Source_Document_No = original.Entry_No,
+                    Description = $"قيد عكسي للقيد {original.Entry_No}",
+                    Notes = reason.Trim(),
+                    Total_Debit = original.Total_Credit,
+                    Total_Credit = original.Total_Debit,
+                    Is_Posted = true,
+                    Posted_By = userId.Trim(),
+                    Posted_At = now,
+                    Is_Reversal = true,
+                    Original_Journal_Entry_ID = original.Journal_Entry_ID,
+                    Is_Active = true,
+                    Created_By = userId.Trim(),
+                    Created_At = now
+                };
+
+                foreach (var line in original.Details.OrderBy(x => x.Line_No))
+                {
+                    reversal.Details.Add(new JournalEntryDetail
+                    {
+                        Line_No = line.Line_No,
+                        Account_ID = line.Account_ID,
+                        Description = $"عكس: {line.Description}",
+                        Cost_Center_ID = line.Cost_Center_ID,
+                        Project_ID = line.Project_ID,
+                        Currency_ID = line.Currency_ID,
+                        Exchange_Rate = line.Exchange_Rate,
+                        Foreign_Amount = line.Foreign_Amount,
+                        Local_Amount = line.Local_Amount,
+                        Debit_Amount = line.Credit_Amount,
+                        Credit_Amount = line.Debit_Amount,
+                        Reference_Type = "REVERSAL",
+                        Reference_No = original.Entry_No,
+                        Reference_Name = line.Reference_Name,
+                        Reference_Date = now,
+                        Source_Voucher_Detail_ID = line.Source_Voucher_Detail_ID,
+                        Line_Type = line.Line_Type,
+                        Notes = reason.Trim(),
+                        Created_By = userId.Trim(),
+                        Created_At = now
+                    });
+                }
+
+                _context.Journal_Entry_Headers.Add(reversal);
+                await _context.SaveChangesAsync();
+
+                original.Is_Reversed = true;
+                original.Reversal_Journal_Entry_ID = reversal.Journal_Entry_ID;
+                original.Reversal_Reason = reason.Trim();
+                original.Reversed_By = userId.Trim();
+                original.Reversed_At = now;
+                original.Updated_By = userId.Trim();
+                original.Updated_At = now;
+
+                voucher.Is_Posted = false;
+                voucher.Unposted_By = userId.Trim();
+                voucher.Unposted_At = now;
+                voucher.Unpost_Reason = $"عكس محاسبي: {reason.Trim()}";
+                voucher.Updated_By = userId.Trim();
+                voucher.Updated_At = now;
+
+                _context.Voucher_Action_Logs.Add(new VoucherActionLog
+                {
+                    Voucher_ID = voucher.Voucher_ID,
+                    Action_Type = "REVERSE",
+                    Old_Status_ID = voucher.Voucher_Status_ID,
+                    New_Status_ID = voucher.Voucher_Status_ID,
+                    User_ID = userId.Trim(),
+                    Action_At = now,
+                    Action_Channel = NormalizeActionChannel(actionChannel),
+                    Device_Name = deviceName,
+                    IP_Address = ipAddress,
+                    Reason = reason.Trim(),
+                    Notes = $"تم إنشاء القيد العكسي {reversal.Entry_No} للقيد {original.Entry_No}."
+                });
+
+                await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
+                return PostingResult.Ok("تم إنشاء القيد العكسي بنجاح.", reversal.Journal_Entry_ID, reversal.Entry_No);
+            }
+            catch (Exception ex)
+            {
+                await transaction.RollbackAsync();
+                return PostingResult.Fail($"تعذر إنشاء القيد العكسي: {ex.Message}");
+            }
+        }
+
     }
 }
