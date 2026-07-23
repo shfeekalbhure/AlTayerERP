@@ -1,4 +1,5 @@
 using AlTayerERP.API.DTOs;
+using AlTayerERP.API.Services;
 using AlTayerERP.Core.Entities;
 using AlTayerERP.Infrastructure.Data;
 using Microsoft.AspNetCore.Mvc;
@@ -14,9 +15,20 @@ namespace AlTayerERP.API.Controllers;
 [ApiController]
 public class RolesController : ControllerBase
 {
+    private const string SessionHeader = "X-Session-Token";
     private readonly AppDbContext _context;
+    private readonly ServerSessionService _sessions;
 
-    public RolesController(AppDbContext context) => _context = context;
+    public RolesController(AppDbContext context, ServerSessionService sessions)
+    {
+        _context = context;
+        _sessions = sessions;
+    }
+
+    /// <summary>إدارة الدور والصلاحيات لا تتاح إلا لمدير النظام.</summary>
+    private bool IsSystemAdmin() =>
+        _sessions.TryGet(Request.Headers[SessionHeader].ToString(), out var session) &&
+        session.Is_System_Admin;
 
     /// <summary>جلب الأدوار مرتبة، بما فيها الأدوار الموقوفة لإدارتها.</summary>
     [HttpGet]
@@ -29,6 +41,7 @@ public class RolesController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> CreateRole([FromBody] CreateRoleDto dto)
     {
+        if (!IsSystemAdmin()) return Forbid();
         if (dto is null || string.IsNullOrWhiteSpace(dto.Role_Code) ||
             string.IsNullOrWhiteSpace(dto.Role_Name))
             return BadRequest("كود الدور واسمه حقول مطلوبة.");
@@ -60,6 +73,7 @@ public class RolesController : ControllerBase
     [HttpGet("{id:int}")]
     public async Task<IActionResult> GetRoleById(int id)
     {
+        if (!IsSystemAdmin()) return Forbid();
         var role = await _context.Roles.AsNoTracking()
             .FirstOrDefaultAsync(x => x.Role_ID == id);
         return role is null ? NotFound("الدور غير موجود.") : Ok(role);
@@ -69,6 +83,7 @@ public class RolesController : ControllerBase
     [HttpPut("{id:int}")]
     public async Task<IActionResult> UpdateRole(int id, [FromBody] UpdateRoleDto dto)
     {
+        if (!IsSystemAdmin()) return Forbid();
         if (dto is null || string.IsNullOrWhiteSpace(dto.Role_Code) ||
             string.IsNullOrWhiteSpace(dto.Role_Name))
             return BadRequest("كود الدور واسمه حقول مطلوبة.");
@@ -104,6 +119,7 @@ public class RolesController : ControllerBase
     [HttpDelete("{id:int}")]
     public async Task<IActionResult> DeactivateRole(int id)
     {
+        if (!IsSystemAdmin()) return Forbid();
         var role = await _context.Roles.FirstOrDefaultAsync(x => x.Role_ID == id);
         if (role is null) return NotFound("الدور غير موجود.");
         if (role.Is_System_Admin)
