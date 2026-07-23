@@ -167,6 +167,12 @@ namespace AlTayerERP.Infrastructure.Data
             {
                 entity.ToTable("companies");
                 entity.HasKey(e => e.Company_ID);
+                entity.HasIndex(e => e.Country_ID);
+                entity.HasIndex(e => e.Governorate_ID);
+                entity.HasIndex(e => e.City_ID);
+                entity.HasOne<Country>().WithMany().HasForeignKey(e => e.Country_ID).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne<Governorate>().WithMany().HasForeignKey(e => e.Governorate_ID).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne<City>().WithMany().HasForeignKey(e => e.City_ID).OnDelete(DeleteBehavior.Restrict);
             });
 
             // إعدادات جدول الفروع وتحديد المفتاح الرئيسي
@@ -174,6 +180,12 @@ namespace AlTayerERP.Infrastructure.Data
             {
                 entity.ToTable("tenant_branches");
                 entity.HasKey(e => e.Branch_ID);
+                entity.HasIndex(e => e.Country_ID);
+                entity.HasIndex(e => e.Governorate_ID);
+                entity.HasIndex(e => e.City_ID);
+                entity.HasOne<Country>().WithMany().HasForeignKey(e => e.Country_ID).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne<Governorate>().WithMany().HasForeignKey(e => e.Governorate_ID).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne<City>().WithMany().HasForeignKey(e => e.City_ID).OnDelete(DeleteBehavior.Restrict);
             });
 
             modelBuilder.Entity<Country>(entity =>
