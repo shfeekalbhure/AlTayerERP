@@ -1,4 +1,5 @@
 using AlTayerERP.Desktop.Services;
+using AlTayerERP.Desktop.Common;
 using System;
 using System.Collections.Generic;
 using System.Drawing;
@@ -13,7 +14,7 @@ namespace AlTayerERP.Desktop;
 /// <summary>
 /// شاشة المجموعات التجارية وفق التصميم الموحد المعتمد للمرحلة الأولى.
 /// </summary>
-public sealed class FrmTenantGroups : Form
+public sealed class FrmTenantGroups : BaseForm
 {
     private readonly HttpClient _client = ApiService.Client;
     private readonly DataGridView dgvGroups = new();
@@ -50,11 +51,8 @@ public sealed class FrmTenantGroups : Form
         Width = 1400;
         Height = 850;
         MinimumSize = new Size(1120, 720);
-        RightToLeft = RightToLeft.Yes;
-        RightToLeftLayout = true;
-        Font = new Font("Segoe UI", 9.5F);
-        BackColor = Color.FromArgb(247, 249, 252);
-        KeyPreview = true;
+        // النمط والاتجاه والاختصارات مسؤولية BaseForm المركزي.
+        ApplyBaseFormStyle();
 
         btnSave = ToolButton("حفظ", true);
         Controls.Add(BuildShell());
@@ -69,17 +67,22 @@ public sealed class FrmTenantGroups : Form
 
     private Control BuildShell()
     {
-        var shell = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 5, Padding = new Padding(16) };
+        // القالب المعتمد: رأس، أدوات، بيانات، جدول، إرشاد، تدقيق، ثم حالة الجلسة.
+        var shell = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 7, Padding = new Padding(16) };
         shell.RowStyles.Add(new RowStyle(SizeType.Absolute, 52));
         shell.RowStyles.Add(new RowStyle(SizeType.Absolute, 54));
         shell.RowStyles.Add(new RowStyle(SizeType.Percent, 58));
         shell.RowStyles.Add(new RowStyle(SizeType.Percent, 42));
         shell.RowStyles.Add(new RowStyle(SizeType.Absolute, 34));
+        shell.RowStyles.Add(new RowStyle(SizeType.Absolute, 86));
+        shell.RowStyles.Add(new RowStyle(SizeType.Absolute, 28));
         shell.Controls.Add(BuildTitle(), 0, 0);
         shell.Controls.Add(BuildToolbar(), 0, 1);
         shell.Controls.Add(BuildEditor(), 0, 2);
         shell.Controls.Add(BuildGridCard(), 0, 3);
         shell.Controls.Add(BuildFooter(), 0, 4);
+        shell.Controls.Add(CreateAuditInfoPanel(), 0, 5);
+        shell.Controls.Add(CreateSessionStatusStrip(), 0, 6);
         return shell;
     }
 
