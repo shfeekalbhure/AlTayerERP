@@ -51,6 +51,8 @@ builder.Services.AddScoped<SystemScreenCatalogSeeder>();
 builder.Services.AddScoped<VoucherReferenceDataSeeder>();
 // جلسات الخادم تحفظ هوية الدخول بعد التحقق ولا تعتمد على بيانات مرسلة من الواجهة.
 builder.Services.AddSingleton<ServerSessionService>();
+// تفويض الشاشات والعمليات من جهة الخادم.
+builder.Services.AddScoped<ScreenAuthorizationService>();
 
 
 // ====================================================================
