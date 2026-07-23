@@ -1,5 +1,6 @@
 using AlTayerERP.API.DTOs;
 using AlTayerERP.API.Security;
+using AlTayerERP.API.Services;
 using AlTayerERP.Core.Entities;
 using AlTayerERP.Infrastructure.Data;
 using Microsoft.AspNetCore.Mvc;
@@ -14,19 +15,35 @@ namespace AlTayerERP.API.Controllers;
 [ApiController]
 public class UsersController : ControllerBase
 {
+    private const string SessionHeader = "X-Session-Token";
     private readonly AppDbContext _context;
-    public UsersController(AppDbContext context) => _context = context;
+    private readonly ServerSessionService _sessions;
+
+    public UsersController(AppDbContext context, ServerSessionService sessions)
+    {
+        _context = context;
+        _sessions = sessions;
+    }
+
+    /// <summary>إدارة المستخدمين محصورة في مدير النظام الصادر له رمز جلسة موثوق.</summary>
+    private bool IsSystemAdmin() =>
+        _sessions.TryGet(Request.Headers[SessionHeader].ToString(), out var session) &&
+        session.Is_System_Admin;
 
     /// <summary>جلب المستخدمين دون أي بيانات اعتماد حساسة.</summary>
     [HttpGet]
-    public async Task<IActionResult> GetUsers() =>
-        Ok(await _context.Users.AsNoTracking().OrderBy(x => x.User_ID)
+    public async Task<IActionResult> GetUsers()
+    {
+        if (!IsSystemAdmin()) return Forbid();
+        return Ok(await _context.Users.AsNoTracking().OrderBy(x => x.User_ID)
             .Select(ToResponseExpression()).ToListAsync());
+    }
 
     /// <summary>جلب مستخدم واحد دون Password_Hash.</summary>
     [HttpGet("{id:int}")]
     public async Task<IActionResult> GetUserById(int id)
     {
+        if (!IsSystemAdmin()) return Forbid();
         var user = await _context.Users.AsNoTracking().FirstOrDefaultAsync(x => x.User_ID == id);
         return user is null ? NotFound("المستخدم غير موجود.") : Ok(ToResponse(user));
     }
@@ -35,6 +52,7 @@ public class UsersController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> CreateUser([FromBody] CreateUserDto dto)
     {
+        if (!IsSystemAdmin()) return Forbid();
         if (dto is null || string.IsNullOrWhiteSpace(dto.Full_Name) ||
             string.IsNullOrWhiteSpace(dto.Login_Name) || string.IsNullOrWhiteSpace(dto.Password))
             return BadRequest("الاسم واسم الدخول وكلمة المرور مطلوبة.");
@@ -70,6 +88,7 @@ public class UsersController : ControllerBase
     [HttpPut("{id:int}")]
     public async Task<IActionResult> UpdateUser(int id, [FromBody] CreateUserDto dto)
     {
+        if (!IsSystemAdmin()) return Forbid();
         var user = await _context.Users.FirstOrDefaultAsync(x => x.User_ID == id);
         if (user is null) return NotFound("المستخدم غير موجود.");
         if (dto is null || string.IsNullOrWhiteSpace(dto.Full_Name) || string.IsNullOrWhiteSpace(dto.Login_Name))
@@ -99,6 +118,7 @@ public class UsersController : ControllerBase
     [HttpDelete("{id:int}")]
     public async Task<IActionResult> DeactivateUser(int id)
     {
+        if (!IsSystemAdmin()) return Forbid();
         var user = await _context.Users.FirstOrDefaultAsync(x => x.User_ID == id);
         if (user is null) return NotFound("المستخدم غير موجود.");
         user.Is_Active = false; user.Updated_At = DateTime.UtcNow;
@@ -107,19 +127,28 @@ public class UsersController : ControllerBase
     }
 
     [HttpGet("GetBranchesLookup")]
-    public async Task<IActionResult> GetBranchesLookup([FromQuery] string companyId) =>
-        Ok(await _context.Tenant_Branches.AsNoTracking().Where(x => x.Company_ID == companyId && x.Is_Active)
+    public async Task<IActionResult> GetBranchesLookup([FromQuery] string companyId)
+    {
+        if (!IsSystemAdmin()) return Forbid();
+        return Ok(await _context.Tenant_Branches.AsNoTracking().Where(x => x.Company_ID == companyId && x.Is_Active)
             .OrderBy(x => x.Branch_Name).Select(x => new { x.Branch_ID, x.Branch_Name }).ToListAsync());
+    }
 
     [HttpGet("GetRolesLookup")]
-    public async Task<IActionResult> GetRolesLookup() =>
-        Ok(await _context.Roles.AsNoTracking().Where(x => x.Is_Active)
+    public async Task<IActionResult> GetRolesLookup()
+    {
+        if (!IsSystemAdmin()) return Forbid();
+        return Ok(await _context.Roles.AsNoTracking().Where(x => x.Is_Active)
             .Select(x => new { x.Role_ID, x.Role_Name }).ToListAsync());
+    }
 
     [HttpGet("GetUsersLookup")]
-    public async Task<IActionResult> GetUsersLookup() =>
-        Ok(await _context.Users.AsNoTracking().Where(x => x.Is_Active)
+    public async Task<IActionResult> GetUsersLookup()
+    {
+        if (!IsSystemAdmin()) return Forbid();
+        return Ok(await _context.Users.AsNoTracking().Where(x => x.Is_Active)
             .Select(x => new { x.User_ID, x.Login_Name }).ToListAsync());
+    }
 
     /// <summary>تحويل كيان المستخدم إلى DTO آمن يستبعد Password_Hash.</summary>
     private static UserResponseDto ToResponse(User x) => new()
