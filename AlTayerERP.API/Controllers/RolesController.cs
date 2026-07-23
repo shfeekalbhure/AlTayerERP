@@ -1,107 +1,119 @@
-﻿using AlTayerERP.API.DTOs;
+using AlTayerERP.API.DTOs;
 using AlTayerERP.Core.Entities;
 using AlTayerERP.Infrastructure.Data;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using System;
-using System.Linq;
-using System.Threading.Tasks;
 
-namespace AlTayerERP.API.Controllers
+namespace AlTayerERP.API.Controllers;
+
+/// <summary>
+/// إدارة الأدوار (Roles). الدور سجل مرجعي لا يحذف فعلياً حتى لا تنكسر
+/// علاقة المستخدمين وسجل التدقيق به.
+/// </summary>
+[Route("api/[controller]")]
+[ApiController]
+public class RolesController : ControllerBase
 {
-    [Route("api/[controller]")]
-    [ApiController]
-    public class RolesController : ControllerBase
+    private readonly AppDbContext _context;
+
+    public RolesController(AppDbContext context) => _context = context;
+
+    /// <summary>جلب الأدوار مرتبة، بما فيها الأدوار الموقوفة لإدارتها.</summary>
+    [HttpGet]
+    public async Task<IActionResult> GetRoles() =>
+        Ok(await _context.Roles.AsNoTracking()
+            .OrderBy(x => x.Role_Name)
+            .ToListAsync());
+
+    /// <summary>إنشاء دور مع كود ثابت وفريد للاستخدام في الصلاحيات والتكامل.</summary>
+    [HttpPost]
+    public async Task<IActionResult> CreateRole([FromBody] CreateRoleDto dto)
     {
-        private readonly AppDbContext _context;
+        if (dto is null || string.IsNullOrWhiteSpace(dto.Role_Code) ||
+            string.IsNullOrWhiteSpace(dto.Role_Name))
+            return BadRequest("كود الدور واسمه حقول مطلوبة.");
 
-        public RolesController(AppDbContext context)
+        var roleCode = dto.Role_Code.Trim().ToUpperInvariant();
+        var roleName = dto.Role_Name.Trim();
+
+        if (await _context.Roles.AnyAsync(x => x.Role_Code == roleCode))
+            return Conflict("كود الدور مستخدم مسبقاً.");
+        if (await _context.Roles.AnyAsync(x => x.Role_Name == roleName))
+            return Conflict("اسم الدور مستخدم مسبقاً.");
+
+        var role = new Role
         {
-            _context = context;
-        }
+            // Role_Code: معرف ثابت مثل ACCOUNTANT ولا يعتمد على وقت الإنشاء.
+            Role_Code = roleCode,
+            Role_Name = roleName,
+            Description = dto.Description?.Trim(),
+            Is_Active = dto.Is_Active,
+            Created_At = DateTime.UtcNow
+        };
 
-        // 1. دالة جلب جميع الأدوار
-        [HttpGet]
-        public async Task<IActionResult> GetRoles()
-        {
-            var roles = await _context.Roles
-                .OrderBy(x => x.Role_ID)
-                .ToListAsync();
+        _context.Roles.Add(role);
+        await _context.SaveChangesAsync();
+        return CreatedAtAction(nameof(GetRoleById), new { id = role.Role_ID }, role);
+    }
 
-            return Ok(roles);
-        }
+    /// <summary>جلب دور محدد بمعرفه الداخلي.</summary>
+    [HttpGet("{id:int}")]
+    public async Task<IActionResult> GetRoleById(int id)
+    {
+        var role = await _context.Roles.AsNoTracking()
+            .FirstOrDefaultAsync(x => x.Role_ID == id);
+        return role is null ? NotFound("الدور غير موجود.") : Ok(role);
+    }
 
-        // 2. [التعديل الجديد]: دالة إضافة دور جديد مع التوليد التلقائي للكود
-        [HttpPost]
-        public async Task<IActionResult> CreateRole([FromBody] CreateRoleDto dto)
-        {
-            if (dto == null || string.IsNullOrWhiteSpace(dto.Role_Name))
-                return BadRequest("اسم الدور مطلوب.");
+    /// <summary>تعديل بيانات الدور دون تغيير معرفه أو إنشاء تاريخ جديد له.</summary>
+    [HttpPut("{id:int}")]
+    public async Task<IActionResult> UpdateRole(int id, [FromBody] UpdateRoleDto dto)
+    {
+        if (dto is null || string.IsNullOrWhiteSpace(dto.Role_Code) ||
+            string.IsNullOrWhiteSpace(dto.Role_Name))
+            return BadRequest("كود الدور واسمه حقول مطلوبة.");
 
-            var role = new Role
-            {
-                // فحص كود الدور: إذا كان فارغاً، يتم توليد كود تلقائي يبدأ بـ ROL متبوعاً بالوقت الحالي بدقة الثانية
-                Role_Code = string.IsNullOrWhiteSpace(dto.Role_Code)
-                    ? "ROL" + DateTime.Now.ToString("yyyyMMddHHmmss")
-                    : dto.Role_Code.Trim(),
+        var role = await _context.Roles.FirstOrDefaultAsync(x => x.Role_ID == id);
+        if (role is null) return NotFound("الدور غير موجود.");
 
-                Role_Name = dto.Role_Name.Trim(),
-                Description = dto.Description,
-                Is_Active = dto.Is_Active,
-                Created_At = DateTime.Now
-            };
+        var roleCode = dto.Role_Code.Trim().ToUpperInvariant();
+        var roleName = dto.Role_Name.Trim();
 
-            await _context.Roles.AddAsync(role);
-            await _context.SaveChangesAsync();
+        if (await _context.Roles.AnyAsync(x => x.Role_ID != id && x.Role_Code == roleCode))
+            return Conflict("كود الدور مستخدم مسبقاً.");
+        if (await _context.Roles.AnyAsync(x => x.Role_ID != id && x.Role_Name == roleName))
+            return Conflict("اسم الدور مستخدم مسبقاً.");
 
-            return Ok(role);
-        }
+        // لا يجوز إيقاف دور مدير النظام؛ ينفذ تغيير هذه السياسة من مسار إداري مستقل.
+        if (role.Is_System_Admin && !dto.Is_Active)
+            return BadRequest("لا يمكن إيقاف دور مدير النظام.");
 
-        // 3. دالة جلب دور محدد بواسطة الرقم
-        [HttpGet("{id}")]
-        public async Task<IActionResult> GetRoleById(int id)
-        {
-            var role = await _context.Roles.FirstOrDefaultAsync(x => x.Role_ID == id);
+        role.Role_Code = roleCode;
+        role.Role_Name = roleName;
+        role.Description = dto.Description?.Trim();
+        role.Is_Active = dto.Is_Active;
+        role.Updated_At = DateTime.UtcNow;
 
-            if (role == null)
-                return NotFound("الدور غير موجود.");
+        await _context.SaveChangesAsync();
+        return Ok(role);
+    }
 
-            return Ok(role);
-        }
+    /// <summary>
+    /// إيقاف الدور بدلاً من حذفه. يمنع الإيقاف عندما يملك مستخدمون نشطون هذا الدور.
+    /// </summary>
+    [HttpDelete("{id:int}")]
+    public async Task<IActionResult> DeactivateRole(int id)
+    {
+        var role = await _context.Roles.FirstOrDefaultAsync(x => x.Role_ID == id);
+        if (role is null) return NotFound("الدور غير موجود.");
+        if (role.Is_System_Admin)
+            return BadRequest("لا يمكن إيقاف دور مدير النظام.");
+        if (await _context.Users.AnyAsync(x => x.Role_ID == id && x.Is_Active))
+            return Conflict("لا يمكن إيقاف دور مرتبط بمستخدمين نشطين. انقلهم إلى دور آخر أولاً.");
 
-        // 4. دالة تعديل بيانات دور
-        [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateRole(int id, [FromBody] UpdateRoleDto dto)
-        {
-            var role = await _context.Roles.FirstOrDefaultAsync(x => x.Role_ID == id);
-
-            if (role == null)
-                return NotFound("الدور غير موجود.");
-
-            role.Role_Code = dto.Role_Code?.Trim();
-            role.Role_Name = dto.Role_Name.Trim();
-            role.Description = dto.Description;
-            role.Is_Active = dto.Is_Active;
-            role.Updated_At = DateTime.Now;
-
-            await _context.SaveChangesAsync();
-
-            return Ok(role);
-        }
-
-        // 5. دالة حذف دور
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteRole(int id)
-        {
-            var role = await _context.Roles.FirstOrDefaultAsync(x => x.Role_ID == id);
-
-            if (role == null)
-                return NotFound("الدور غير موجود.");
-
-            _context.Roles.Remove(role);
-            await _context.SaveChangesAsync();
-
-            return Ok("تم حذف الدور بنجاح.");
-        }
+        role.Is_Active = false;
+        role.Updated_At = DateTime.UtcNow;
+        await _context.SaveChangesAsync();
+        return Ok(new { message = "تم إيقاف الدور دون حذف تاريخه." });
     }
 }
