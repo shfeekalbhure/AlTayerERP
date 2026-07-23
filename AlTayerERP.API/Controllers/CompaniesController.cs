@@ -139,7 +139,9 @@ namespace AlTayerERP.API.Controllers
             company.Mobile = dto.Mobile?.Trim();
             company.Email = dto.Email?.Trim();
             company.Address = dto.Address?.Trim();
-            company.Company_Logo = dto.Company_Logo;
+            // لا نمسح الشعار تلقائياً عند إرسال DTO بلا صورة؛ الإزالة تحتاج عملية صريحة لاحقاً.
+            if (dto.Company_Logo is { Length: > 0 })
+                company.Company_Logo = dto.Company_Logo;
             company.Is_Active = dto.Is_Active;
         }
 
