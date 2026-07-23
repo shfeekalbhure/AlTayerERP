@@ -56,6 +56,13 @@ namespace AlTayerERP.Infrastructure.Data
         // جدول صلاحيات مخصصة لمستخدم معين مباشرة خارج صلاحيات دوره
         public DbSet<UserPermission> User_Permissions { get; set; } = null!;
 
+        // نموذج RBAC المتقدم: أدوار متعددة، استثناءات، نطاقات الشركات/الفروع وحدود الاعتماد.
+        public DbSet<UserRole> User_Roles { get; set; } = null!;
+        public DbSet<UserPermissionOverride> User_Permission_Overrides { get; set; } = null!;
+        public DbSet<UserCompanyAccess> Company_Access { get; set; } = null!;
+        public DbSet<UserBranchAccess> Branch_Access { get; set; } = null!;
+        public DbSet<ApprovalLimit> Approval_Limits { get; set; } = null!;
+
         // جدول العمليات أو الصلاحيات الأساسية المتوفرة في النظام ككل
         public DbSet<SystemPermission> System_Permissions { get; set; } = null!;
 
@@ -284,6 +291,56 @@ namespace AlTayerERP.Infrastructure.Data
             {
                 entity.ToTable("user_permissions");
                 entity.HasKey(e => e.Permission_ID);
+            });
+
+            // العلاقات والفهارس لنموذج RBAC المتقدم. الحذف Restrict لحماية التاريخ التدقيقي.
+            modelBuilder.Entity<UserRole>(entity =>
+            {
+                entity.ToTable("user_roles");
+                entity.HasKey(e => e.User_Role_ID);
+                entity.HasIndex(e => new { e.User_ID, e.Role_ID }).IsUnique();
+                entity.HasIndex(e => new { e.User_ID, e.Is_Active, e.Effective_From, e.Effective_To });
+                entity.HasOne<User>().WithMany().HasForeignKey(e => e.User_ID).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne<Role>().WithMany().HasForeignKey(e => e.Role_ID).OnDelete(DeleteBehavior.Restrict);
+            });
+
+            modelBuilder.Entity<UserPermissionOverride>(entity =>
+            {
+                entity.ToTable("user_permission_overrides");
+                entity.HasKey(e => e.User_Permission_Override_ID);
+                entity.HasIndex(e => new { e.User_ID, e.System_Permission_ID, e.Effective_From }).IsUnique();
+                entity.HasIndex(e => new { e.User_ID, e.Is_Active, e.Effective_From, e.Effective_To });
+                entity.HasOne<User>().WithMany().HasForeignKey(e => e.User_ID).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne<SystemPermission>().WithMany().HasForeignKey(e => e.System_Permission_ID).OnDelete(DeleteBehavior.Restrict);
+            });
+
+            modelBuilder.Entity<UserCompanyAccess>(entity =>
+            {
+                entity.ToTable("company_access");
+                entity.HasKey(e => e.Company_Access_ID);
+                entity.HasIndex(e => new { e.User_ID, e.Company_ID }).IsUnique();
+                entity.HasOne<User>().WithMany().HasForeignKey(e => e.User_ID).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne<Company>().WithMany().HasForeignKey(e => e.Company_ID).OnDelete(DeleteBehavior.Restrict);
+            });
+
+            modelBuilder.Entity<UserBranchAccess>(entity =>
+            {
+                entity.ToTable("branch_access");
+                entity.HasKey(e => e.Branch_Access_ID);
+                entity.HasIndex(e => new { e.User_ID, e.Company_ID, e.Branch_ID }).IsUnique();
+                entity.HasOne<User>().WithMany().HasForeignKey(e => e.User_ID).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne<Company>().WithMany().HasForeignKey(e => e.Company_ID).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne<TenantBranch>().WithMany().HasForeignKey(e => e.Branch_ID).OnDelete(DeleteBehavior.Restrict);
+            });
+
+            modelBuilder.Entity<ApprovalLimit>(entity =>
+            {
+                entity.ToTable("approval_limits");
+                entity.HasKey(e => e.Approval_Limit_ID);
+                entity.Property(e => e.Max_Amount_Local).HasPrecision(18, 6);
+                entity.HasIndex(e => new { e.User_ID, e.Role_ID, e.Company_ID, e.Branch_ID, e.Voucher_Type_Code });
+                entity.HasOne<User>().WithMany().HasForeignKey(e => e.User_ID).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne<Role>().WithMany().HasForeignKey(e => e.Role_ID).OnDelete(DeleteBehavior.Restrict);
             });
 
             modelBuilder.Entity<LoginAttempt>(entity =>
