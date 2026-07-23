@@ -29,8 +29,11 @@ namespace AlTayerERP.API.DTOs
         public long? City_ID { get; set; }
         public string? Postal_Code { get; set; }
 
-        // نوع وطبيعة عمل الفرع ويأخذ قيم ثابتة محددة بالشاشة مثل: (رئيسي، فرعي، نقطة توزيع، مستودع)
-        public string Branch_Type { get; set; } = string.Empty;
+        // النوع المرجعي للفرع؛ إلزامي عند إنشاء أو تعديل فرع جديد.
+        public int Branch_Type_ID { get; set; }
+
+        // حقل انتقالى متوافق مع البيانات القديمة؛ لا تعتمد عليه الواجهة الجديدة.
+        public string? Branch_Type { get; set; }
 
         // معرف الفرع الرئيسي الأعلى في الهيكلية الشجرية (يأخذ قيمة رقمية في حال كان الفرع "فرعي" ويتبع لفرع "رئيسي")
         // تم تعيينه كـ ?int لكي يقبل قيمة فارغة (Null) إذا كان الفرع نفسه هو الفرع الرئيسي الأعلى
