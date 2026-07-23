@@ -43,5 +43,17 @@ namespace AlTayerERP.Core.Entities
         public int Edit_Count { get; set; }
         /// <summary>حالة السجل Is_Active؛ يستخدم الإيقاف بدلاً من الحذف عند الارتباط.</summary>
         public bool Is_Active { get; set; }
+        /// <summary>من أوقف السجل Stopped_By.</summary>
+        public int? Stopped_By { get; set; }
+        /// <summary>وقت الإيقاف Stopped_At.</summary>
+        public DateTime? Stopped_At { get; set; }
+        /// <summary>سبب الإيقاف Stopped_Reason.</summary>
+        public string? Stopped_Reason { get; set; }
+        /// <summary>من أعاد التفعيل Reactivated_By.</summary>
+        public int? Reactivated_By { get; set; }
+        /// <summary>وقت إعادة التفعيل Reactivated_At.</summary>
+        public DateTime? Reactivated_At { get; set; }
+        /// <summary>سبب إعادة التفعيل Reactivate_Reason.</summary>
+        public string? Reactivate_Reason { get; set; }
     }
 }
