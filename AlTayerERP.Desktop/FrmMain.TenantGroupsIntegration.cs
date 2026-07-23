@@ -24,6 +24,10 @@ internal static class TenantGroupsMenuIntegration
 
     private static void Integrate(FrmMain main)
     {
+        // لا تضاف الشاشة إلى الشجرة لمستخدم عادي؛ الـAPI يعيد التحقق أيضاً.
+        if (!CurrentSession.Is_System_Admin)
+            return;
+
         if (main.Controls.Find(Marker, true).Length > 0)
             return;
 
