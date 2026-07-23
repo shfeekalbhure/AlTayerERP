@@ -240,11 +240,18 @@ namespace AlTayerERP.API.Controllers
                     return NotFound(new { message = "الشركة غير موجودة بالفعل أو تم حذفها مسبقاً!" });
                 }
 
-                // إزالة السجل من حاوية الشركات وحفظ التغييرات
-                _context.Companies.Remove(company);
+                // لا تحذف الشركة فعلياً؛ فهي حد الملكية المحاسبية والقانونية.
+                // يمنع الإيقاف عند وجود فروع فعالة حتى لا تُقطع العمليات الجارية.
+                bool hasActiveBranches = await _context.Tenant_Branches
+                    .AnyAsync(x => x.Company_ID == id && x.Is_Active);
+                if (hasActiveBranches)
+                    return BadRequest(new { message = "لا يمكن إيقاف الشركة لأنها تحتوي فروعاً فعالة. أوقف أو انقل الفروع أولاً." });
+
+                company.Is_Active = false;
+                company.Updated_At = DateTime.UtcNow;
                 await _context.SaveChangesAsync();
 
-                return Ok(new { message = "تم حذف الشركة وإزالة كافة الروابط المرتبطة بها بنجاح." });
+                return Ok(new { message = "تم إيقاف الشركة دون حذف تاريخها أو روابطها." });
             }
             catch (Exception ex)
             {
