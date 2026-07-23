@@ -24,6 +24,7 @@ namespace AlTayerERP.API.Controllers
         private readonly JournalEntryInquiryService _journalEntryInquiryService;
         private readonly VoucherApprovalService _approvalService;
         private readonly VoucherPostingService _postingService;
+        private readonly ScreenAuthorizationService _screenAuthorization;
 
         #endregion
 
@@ -33,12 +34,14 @@ namespace AlTayerERP.API.Controllers
             FinancialVoucherService service,
             JournalEntryInquiryService journalEntryInquiryService,
             VoucherApprovalService approvalService,
-            VoucherPostingService postingService)
+            VoucherPostingService postingService,
+            ScreenAuthorizationService screenAuthorization)
         {
             _service = service;
             _journalEntryInquiryService = journalEntryInquiryService;
             _approvalService = approvalService;
             _postingService = postingService;
+            _screenAuthorization = screenAuthorization;
         }
 
         #endregion
@@ -47,6 +50,19 @@ namespace AlTayerERP.API.Controllers
         private ServerSession GetServerSession() =>
             HttpContext.Items["ServerSession"] as ServerSession
             ?? throw new InvalidOperationException("جلسة الخادم غير متاحة.");
+
+        /// <summary>
+        /// يفرض صلاحية العملية من الخادم حتى لا تكفي معرفة رابط API أو إظهار زر في الواجهة.
+        /// </summary>
+        private async Task<IActionResult?> RequireReceiptVoucherPermissionAsync(ScreenOperation operation)
+        {
+            var allowed = await _screenAuthorization.IsAllowedAsync(
+                GetServerSession(),
+                "ReceiptVoucher",
+                operation);
+
+            return allowed ? null : Forbid();
+        }
 
         /// <summary>
         /// يمنع الوصول المباشر إلى سند يخص فرعاً أو سنة مالية مختلفة عن سياق الجلسة.
@@ -136,6 +152,12 @@ namespace AlTayerERP.API.Controllers
         public async Task<IActionResult> Create(
             [FromBody] CreateFinancialVoucherDto dto)
         {
+            var permissionFailure = await RequireReceiptVoucherPermissionAsync(ScreenOperation.Add);
+            if (permissionFailure != null)
+            {
+                return permissionFailure;
+            }
+
             var session = GetServerSession();
             // نطاق السند والمستخدم المنشئ يأتي من جلسة الخادم فقط.
             // يتم ذلك قبل ModelState لأن الهوية لا ينبغي أن تأتي من العميل.
@@ -178,6 +200,12 @@ namespace AlTayerERP.API.Controllers
             [FromQuery] string? branchId = null,
             [FromQuery] int? voucherTypeId = null)
         {
+            var permissionFailure = await RequireReceiptVoucherPermissionAsync(ScreenOperation.View);
+            if (permissionFailure != null)
+            {
+                return permissionFailure;
+            }
+
             if (string.IsNullOrWhiteSpace(voucherNo))
             {
                 return BadRequest(new
@@ -218,6 +246,12 @@ namespace AlTayerERP.API.Controllers
         [HttpGet("{voucherId:long}")]
         public async Task<IActionResult> GetById(long voucherId)
         {
+            var permissionFailure = await RequireReceiptVoucherPermissionAsync(ScreenOperation.View);
+            if (permissionFailure != null)
+            {
+                return permissionFailure;
+            }
+
             if (voucherId <= 0)
             {
                 return BadRequest(new
@@ -256,6 +290,12 @@ namespace AlTayerERP.API.Controllers
             long voucherId,
             [FromBody] UpdateFinancialVoucherDto dto)
         {
+            var permissionFailure = await RequireReceiptVoucherPermissionAsync(ScreenOperation.Edit);
+            if (permissionFailure != null)
+            {
+                return permissionFailure;
+            }
+
             if (voucherId <= 0)
             {
                 return BadRequest(new
@@ -316,6 +356,12 @@ namespace AlTayerERP.API.Controllers
         [HttpDelete("{voucherId:long}")]
         public async Task<IActionResult> Delete(long voucherId)
         {
+            var permissionFailure = await RequireReceiptVoucherPermissionAsync(ScreenOperation.Delete);
+            if (permissionFailure != null)
+            {
+                return permissionFailure;
+            }
+
             if (voucherId <= 0)
             {
                 return BadRequest(new
@@ -358,6 +404,12 @@ namespace AlTayerERP.API.Controllers
             [FromQuery] int? fiscalYearId = null,
             [FromQuery] int? voucherTypeId = null)
         {
+            var permissionFailure = await RequireReceiptVoucherPermissionAsync(ScreenOperation.View);
+            if (permissionFailure != null)
+            {
+                return permissionFailure;
+            }
+
             #region التحقق من بيانات البحث
 
             if (string.IsNullOrWhiteSpace(voucherNumber))
@@ -408,6 +460,12 @@ namespace AlTayerERP.API.Controllers
             long voucherId,
             [FromBody] VoucherActionRequest request)
         {
+            var permissionFailure = await RequireReceiptVoucherPermissionAsync(ScreenOperation.Approve);
+            if (permissionFailure != null)
+            {
+                return permissionFailure;
+            }
+
             if (request == null)
             {
                 return BadRequest(new { success = false, message = "معرف المستخدم مطلوب للمراجعة." });
@@ -434,6 +492,12 @@ namespace AlTayerERP.API.Controllers
             long voucherId,
             [FromBody] VoucherReasonActionRequest request)
         {
+            var permissionFailure = await RequireReceiptVoucherPermissionAsync(ScreenOperation.Unapprove);
+            if (permissionFailure != null)
+            {
+                return permissionFailure;
+            }
+
             if (request == null ||
                 string.IsNullOrWhiteSpace(request.Reason))
             {
@@ -461,6 +525,12 @@ namespace AlTayerERP.API.Controllers
             long voucherId,
             [FromBody] VoucherActionRequest request)
         {
+            var permissionFailure = await RequireReceiptVoucherPermissionAsync(ScreenOperation.Print);
+            if (permissionFailure != null)
+            {
+                return permissionFailure;
+            }
+
             if (request == null)
             {
                 return BadRequest(new { success = false, message = "معرف المستخدم مطلوب لتسجيل الطباعة." });
@@ -489,6 +559,12 @@ namespace AlTayerERP.API.Controllers
             long voucherId,
             [FromBody] VoucherActionRequest request)
         {
+            var permissionFailure = await RequireReceiptVoucherPermissionAsync(ScreenOperation.Approve);
+            if (permissionFailure != null)
+            {
+                return permissionFailure;
+            }
+
             if (voucherId <= 0)
             {
                 return BadRequest(new
@@ -564,6 +640,12 @@ namespace AlTayerERP.API.Controllers
             long voucherId,
             [FromBody] VoucherReasonActionRequest request)
         {
+            var permissionFailure = await RequireReceiptVoucherPermissionAsync(ScreenOperation.Unapprove);
+            if (permissionFailure != null)
+            {
+                return permissionFailure;
+            }
+
             if (voucherId <= 0)
             {
                 return BadRequest(new
@@ -637,6 +719,12 @@ namespace AlTayerERP.API.Controllers
             long voucherId,
             [FromBody] VoucherActionRequest request)
         {
+            var permissionFailure = await RequireReceiptVoucherPermissionAsync(ScreenOperation.Approve);
+            if (permissionFailure != null)
+            {
+                return permissionFailure;
+            }
+
             if (voucherId <= 0)
             {
                 return BadRequest(new
@@ -720,6 +808,12 @@ namespace AlTayerERP.API.Controllers
             long voucherId,
             [FromBody] VoucherReasonActionRequest request)
         {
+            var permissionFailure = await RequireReceiptVoucherPermissionAsync(ScreenOperation.Unapprove);
+            if (permissionFailure != null)
+            {
+                return permissionFailure;
+            }
+
             if (voucherId <= 0)
             {
                 return BadRequest(new
@@ -792,6 +886,12 @@ namespace AlTayerERP.API.Controllers
         public async Task<IActionResult> GetWorkflowStatus(
             long voucherId)
         {
+            var permissionFailure = await RequireReceiptVoucherPermissionAsync(ScreenOperation.View);
+            if (permissionFailure != null)
+            {
+                return permissionFailure;
+            }
+
             if (voucherId <= 0)
             {
                 return BadRequest(new
