@@ -14,11 +14,16 @@ namespace AlTayerERP.API.Controllers
     {
         private readonly AppDbContext _context;
         private readonly ServerSessionService _sessions;
+        private readonly ILogger<AuthController> _logger;
 
-        public AuthController(AppDbContext context, ServerSessionService sessions)
+        public AuthController(
+            AppDbContext context,
+            ServerSessionService sessions,
+            ILogger<AuthController> logger)
         {
             _context = context;
             _sessions = sessions;
+            _logger = logger;
         }
 
         // نقطة الدخول الوحيدة: تتحقق من الشركة والفرع والسنة والمستخدم قبل إنشاء الجلسة المحلية.
@@ -130,8 +135,16 @@ namespace AlTayerERP.API.Controllers
                     Session_Expires_At = session.Expires_At
                 });
             }
-            catch
+            catch (Exception ex)
             {
+                // يسجل الخادم الاستثناء كاملاً للتشخيص، من دون تضمين كلمة المرور أو إرساله للواجهة.
+                _logger.LogError(
+                    ex,
+                    "فشل تسجيل الدخول للمستخدم {LoginName} ضمن الشركة {CompanyId} والفرع {BranchId}.",
+                    request?.Login_Name,
+                    request?.Company_ID,
+                    request?.Branch_ID);
+
                 // لا تُرسل تفاصيل الاستثناء للعميل لأنها قد تكشف معلومات عن الخادم أو قاعدة البيانات.
                 return StatusCode(500, "تعذر إتمام عملية تسجيل الدخول حالياً.");
             }
