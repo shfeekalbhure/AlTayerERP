@@ -53,6 +53,8 @@ builder.Services.AddScoped<VoucherReferenceDataSeeder>();
 builder.Services.AddSingleton<ServerSessionService>();
 // تفويض الشاشات والعمليات من جهة الخادم.
 builder.Services.AddScoped<ScreenAuthorizationService>();
+// محرك RBAC الدقيق: أثر Allow/Deny، النطاق المؤسسي، وحدود الاعتماد.
+builder.Services.AddScoped<PermissionService>();
 
 
 // ====================================================================
