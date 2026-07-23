@@ -211,13 +211,16 @@ namespace AlTayerERP.API.Controllers
         public async Task<IActionResult> UpdateBranch(int id, [FromBody] CreateBranchDto dto)
         {
             // 1. التحقق من صحة واكتمال كائن البيانات القادم من الشاشة
-            if (dto == null || string.IsNullOrWhiteSpace(dto.Branch_Name))
+            if (dto == null || string.IsNullOrWhiteSpace(dto.Branch_Name) || dto.Branch_Type_ID <= 0)
             {
                 return BadRequest("البيانات المرسلة للتعديل غير مكتملة أو خاطئة.");
             }
 
             var locationError = await ValidateLocationAsync(dto.Country_ID, dto.Governorate_ID, dto.City_ID);
             if (locationError is not null) return BadRequest(locationError);
+            var branchType = await _context.Branch_Types.AsNoTracking()
+                .FirstOrDefaultAsync(x => x.Branch_Type_ID == dto.Branch_Type_ID && x.Is_Active);
+            if (branchType is null) return BadRequest("نوع الفرع المختار غير موجود أو غير نشط.");
 
             try
             {
@@ -238,7 +241,8 @@ namespace AlTayerERP.API.Controllers
                 existingBranch.Governorate_ID = dto.Governorate_ID;
                 existingBranch.City_ID = dto.City_ID;
                 existingBranch.Postal_Code = dto.Postal_Code?.Trim();
-                existingBranch.Branch_Type = dto.Branch_Type?.Trim() ?? "فرعي";
+                existingBranch.Branch_Type_ID = branchType.Branch_Type_ID;
+                existingBranch.Branch_Type = branchType.Branch_Type_Name_AR;
                 existingBranch.Parent_Branch_ID = dto.Parent_Branch_ID; // تحديث معرف الفرع الأب شجرياً
 
                 existingBranch.Phone = dto.Phone?.Trim();
