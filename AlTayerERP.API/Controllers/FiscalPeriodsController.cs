@@ -66,6 +66,13 @@ namespace AlTayerERP.API.Controllers
             if (endDate < startDate)
                 return BadRequest(new { message = "تاريخ نهاية الفترة لا يمكن أن يسبق تاريخ البداية." });
 
+            var fiscalYear = await _context.Fiscal_Years.AsNoTracking().FirstOrDefaultAsync(x =>
+                x.Fiscal_Year_ID == session.Year_ID && x.Company_ID == session.Company_ID && x.Is_Active);
+            if (fiscalYear is null)
+                return BadRequest(new { message = "السنة المالية الحالية غير موجودة أو غير نشطة." });
+            if (startDate < fiscalYear.Start_Date.Date || endDate > fiscalYear.End_Date.Date)
+                return BadRequest(new { message = "يجب أن تقع الفترة بالكامل داخل حدود السنة المالية." });
+
             if (request.Is_Closed && string.IsNullOrWhiteSpace(request.Close_Reason))
                 return BadRequest(new { message = "سبب الإقفال مطلوب عند إقفال الفترة." });
 
