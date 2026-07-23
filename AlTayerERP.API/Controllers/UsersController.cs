@@ -21,7 +21,7 @@ public class UsersController : ControllerBase
     [HttpGet]
     public async Task<IActionResult> GetUsers() =>
         Ok(await _context.Users.AsNoTracking().OrderBy(x => x.User_ID)
-            .Select(x => ToResponseExpression(x)).ToListAsync());
+            .Select(ToResponseExpression()).ToListAsync());
 
     /// <summary>جلب مستخدم واحد دون Password_Hash.</summary>
     [HttpGet("{id:int}")]
