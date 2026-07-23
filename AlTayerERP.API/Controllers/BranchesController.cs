@@ -35,7 +35,8 @@ namespace AlTayerERP.API.Controllers
             // التحقق من أن البيانات المرسلة ليست فارغة، وأن الحقول الإلزامية (اسم الفرع، معرف الشركة) تحتوي على قيم
             if (dto == null ||
                 string.IsNullOrWhiteSpace(dto.Branch_Name) ||
-                string.IsNullOrWhiteSpace(dto.Company_ID))
+                string.IsNullOrWhiteSpace(dto.Company_ID) ||
+                dto.Branch_Type_ID <= 0)
             {
                 // إرجاع خطأ 400 (Bad Request) إذا كانت البيانات الأساسية ناقصة
                 return BadRequest("بيانات الفرع الأساسية غير مكتملة");
@@ -43,6 +44,9 @@ namespace AlTayerERP.API.Controllers
 
             var locationError = await ValidateLocationAsync(dto.Country_ID, dto.Governorate_ID, dto.City_ID);
             if (locationError is not null) return BadRequest(locationError);
+            var branchType = await _context.Branch_Types.AsNoTracking()
+                .FirstOrDefaultAsync(x => x.Branch_Type_ID == dto.Branch_Type_ID && x.Is_Active);
+            if (branchType is null) return BadRequest("نوع الفرع المختار غير موجود أو غير نشط.");
 
             try
             {
@@ -66,8 +70,8 @@ namespace AlTayerERP.API.Controllers
                     City_ID = dto.City_ID,
                     Postal_Code = dto.Postal_Code?.Trim(),
 
-                    // إذا لم يتم إرسال نوع الفرع، يتم اعتباره "فرعي" بشكل افتراضي
-                    Branch_Type = dto.Branch_Type?.Trim() ?? "فرعي",
+                    Branch_Type_ID = branchType.Branch_Type_ID,
+                    Branch_Type = branchType.Branch_Type_Name_AR,
                     Parent_Branch_ID = dto.Parent_Branch_ID,
 
                     // إسناد بيانات الاتصال والمعلومات الإضافية مع حمايتها من الفراغات
@@ -130,6 +134,7 @@ namespace AlTayerERP.API.Controllers
                         x.Governorate_ID,
                         x.City_ID,
                         x.Postal_Code,
+                        x.Branch_Type_ID,
                         x.Branch_Type,
                         x.Parent_Branch_ID,
                         x.Phone,
