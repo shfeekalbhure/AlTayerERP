@@ -63,8 +63,11 @@ namespace AlTayerERP.Core.Entities
         public string? Postal_Code { get; set; }
 
         // ======================================================
-        // نوع الفرع وطبيعته (مثال: رئيسي، فرعي، نقطة توزيع، مستودع)
+        // نوع الفرع المرجعي. يبقى Branch_Type النصي متاحاً مؤقتاً أثناء ترحيل البيانات القديمة.
         // ======================================================
+        [Column("Branch_Type_ID")]
+        public int? Branch_Type_ID { get; set; }
+
         [Column("Branch_Type")]
         public string? Branch_Type { get; set; }
 
