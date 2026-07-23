@@ -9,6 +9,8 @@ internal static class GeographicScreensRegistration
     {
         Application.Idle += (_, _) =>
         {
+            if (!CurrentSession.Is_System_Admin) return;
+
             foreach (Form form in Application.OpenForms)
             {
                 if (form is not FrmMain) continue;
