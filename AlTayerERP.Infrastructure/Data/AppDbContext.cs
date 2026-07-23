@@ -187,6 +187,8 @@ namespace AlTayerERP.Infrastructure.Data
             {
                 entity.ToTable("tenant_branches");
                 entity.HasKey(e => e.Branch_ID);
+                // رمز الفرع فريد داخل الشركة، ويمكن أن يتكرر فقط بين شركات مختلفة.
+                entity.HasIndex(e => new { e.Company_ID, e.Branch_Code }).IsUnique();
                 entity.HasIndex(e => e.Branch_Type_ID);
                 entity.HasOne<BranchType>().WithMany().HasForeignKey(e => e.Branch_Type_ID).OnDelete(DeleteBehavior.Restrict);
                 entity.HasIndex(e => e.Country_ID);
