@@ -48,7 +48,10 @@ namespace AlTayerERP.API.Controllers
                         : x.Login_Name == request.Login_Name.Trim()));
 
                 if (user == null)
+                {
+                    await LogAttemptAsync(null, request, companyId, false, "INVALID_CREDENTIALS");
                     return Unauthorized("بيانات الدخول غير صحيحة.");
+                }
 
                 var role = await _context.Roles
                     .AsNoTracking()
@@ -96,7 +99,10 @@ namespace AlTayerERP.API.Controllers
                 }
 
                 if (!PasswordProtector.Verify(user.Password_Hash, request.Password, out var needsUpgrade))
+                {
+                    await LogAttemptAsync(user.User_ID, request, companyId, false, "INVALID_CREDENTIALS");
                     return Unauthorized("بيانات الدخول غير صحيحة.");
+                }
 
                 // تُحوّل كلمة المرور القديمة إلى صيغة مشفرة بعد نجاح الدخول فقط.
                 if (needsUpgrade)
@@ -114,6 +120,8 @@ namespace AlTayerERP.API.Controllers
                     companyId,
                     branch.Branch_ID,
                     fiscalYear.Fiscal_Year_ID);
+
+                await LogAttemptAsync(user.User_ID, request, companyId, true, null);
 
                 return Ok(new
                 {
@@ -143,6 +151,23 @@ namespace AlTayerERP.API.Controllers
         {
             _sessions.Remove(Request.Headers["X-Session-Token"].ToString());
             return Ok(new { message = "تم إنهاء الجلسة." });
+        }
+
+        private async Task LogAttemptAsync(int? userId, LoginRequestDto request, string companyId, bool success, string? reason)
+        {
+            _context.Login_Attempts.Add(new AlTayerERP.Core.Entities.LoginAttempt
+            {
+                User_ID = userId,
+                Company_ID = companyId,
+                Branch_ID = request.Branch_ID > 0 ? request.Branch_ID : null,
+                Login_Name = string.IsNullOrWhiteSpace(request.Login_Name) ? null : request.Login_Name.Trim(),
+                Is_Success = success,
+                Failure_Reason = reason,
+                IP_Address = HttpContext.Connection.RemoteIpAddress?.ToString(),
+                Device_ID = Request.Headers["X-Device-ID"].ToString(),
+                Attempted_At = DateTime.UtcNow
+            });
+            await _context.SaveChangesAsync();
         }
     }
 
