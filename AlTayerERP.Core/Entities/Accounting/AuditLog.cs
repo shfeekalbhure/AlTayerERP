@@ -38,8 +38,31 @@ namespace AlTayerERP.Core.Entities.Accounting
         public string? User_ID { get; set; }
 
         [MaxLength(50)]
+        [Column("Company_ID")]
+        public string? Company_ID { get; set; }
+
+        [MaxLength(50)]
         [Column("Branch_ID")]
         public string? Branch_ID { get; set; }
+
+        [MaxLength(100)]
+        [Column("Screen_Code")]
+        public string? Screen_Code { get; set; }
+
+        [MaxLength(40)]
+        [Column("Result_Status")]
+        public string Result_Status { get; set; } = "SUCCESS";
+
+        [MaxLength(100)]
+        [Column("Correlation_ID")]
+        public string? Correlation_ID { get; set; }
+
+        [Column("Is_Offline")]
+        public bool Is_Offline { get; set; }
+
+        [MaxLength(100)]
+        [Column("Sync_Batch_ID")]
+        public string? Sync_Batch_ID { get; set; }
 
         [Required]
         [Column("Action_At")]
