@@ -49,6 +49,19 @@ namespace AlTayerERP.Core.Entities
         [Column("Address")]
         public string? Address { get; set; }
 
+        // الموقع الجغرافي للفرع. Country_ID مؤقتاً nullable لتسهيل ترحيل بيانات الفروع القائمة.
+        [Column("Country_ID")]
+        public long? Country_ID { get; set; }
+
+        [Column("Governorate_ID")]
+        public long? Governorate_ID { get; set; }
+
+        [Column("City_ID")]
+        public long? City_ID { get; set; }
+
+        [Column("Postal_Code")]
+        public string? Postal_Code { get; set; }
+
         // ======================================================
         // نوع الفرع وطبيعته (مثال: رئيسي، فرعي، نقطة توزيع، مستودع)
         // ======================================================
