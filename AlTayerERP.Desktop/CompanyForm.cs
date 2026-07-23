@@ -329,21 +329,36 @@ namespace AlTayerERP.Desktop
                 return;
             }
 
-            DialogResult confirm = MessageBox.Show("هل أنت متأكد من حذف الشركة المحددة نهائياً؟", "تأكيد حذف", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+            DialogResult confirm = MessageBox.Show("سيتم إيقاف الشركة مع الاحتفاظ بتاريخها. هل تريد المتابعة؟", "تأكيد الإيقاف", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
 
             if (confirm == DialogResult.Yes)
             {
+                var reason = Microsoft.VisualBasic.Interaction.InputBox("أدخل سبب إيقاف الشركة:", "سبب الإيقاف", "");
+                if (string.IsNullOrWhiteSpace(reason))
+                {
+                    MessageBox.Show("سبب الإيقاف مطلوب.", "تنبيه", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+
                 try
                 {
-                    HttpResponseMessage response = await _client.DeleteAsync($"{_baseUrl}Companies/{_selectedCompanyId}");
+                    using var request = new HttpRequestMessage(HttpMethod.Delete, $"{_baseUrl}Companies/{_selectedCompanyId}")
+                    {
+                        Content = JsonContent.Create(new { Reason = reason.Trim() })
+                    };
+                    HttpResponseMessage response = await _client.SendAsync(request);
                     if (response.IsSuccessStatusCode)
                     {
-                        MessageBox.Show("تم حذف الشركة بنجاح من النظام!", "تم الحذف", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                        MessageBox.Show("تم إيقاف الشركة بنجاح مع حفظ تاريخها.", "تم الإيقاف", MessageBoxButtons.OK, MessageBoxIcon.Information);
                         btnNew_Click(null, null);
                         LoadCompanies();
                     }
+                    else
+                    {
+                        MessageBox.Show(await response.Content.ReadAsStringAsync(), "تعذر الإيقاف", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    }
                 }
-                catch (Exception ex) { MessageBox.Show($"خطأ أثناء الحذف: {ex.Message}"); }
+                catch (Exception ex) { MessageBox.Show($"خطأ أثناء الإيقاف: {ex.Message}"); }
             }
         }
 
