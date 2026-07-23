@@ -2,6 +2,8 @@ using AlTayerERP.API.Services;
 using AlTayerERP.API.Services.Accounting;
 using AlTayerERP.API.Services.Accounting.VoucherWorkflow;
 using AlTayerERP.Infrastructure.Data;
+using Microsoft.AspNetCore.Authentication;
+using AlTayerERP.API.Security;
 using Microsoft.EntityFrameworkCore;
 
 
@@ -53,6 +55,15 @@ builder.Services.AddScoped<VoucherReferenceDataSeeder>();
 builder.Services.AddSingleton<ServerSessionService>();
 // تفويض الشاشات والعمليات من جهة الخادم.
 builder.Services.AddScoped<ScreenAuthorizationService>();
+
+// يثبت مخطط المصادقة الافتراضي حتى تُرجع Forbid/Challenge استجابات 403/401 سليمة
+// بدلاً من InvalidOperationException وHTTP 500.
+builder.Services
+    .AddAuthentication(ServerSessionAuthenticationHandler.SchemeName)
+    .AddScheme<AuthenticationSchemeOptions, ServerSessionAuthenticationHandler>(
+        ServerSessionAuthenticationHandler.SchemeName,
+        _ => { });
+builder.Services.AddAuthorization();
 
 
 // ====================================================================
@@ -133,6 +144,8 @@ app.Use(async (context, next) =>
     await next();
 });
 
+// يحوّل جلسة الخادم الموثقة إلى ClaimsPrincipal قبل التفويض.
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
