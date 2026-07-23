@@ -41,6 +41,9 @@ namespace AlTayerERP.API.Controllers
                 return BadRequest("بيانات الفرع الأساسية غير مكتملة");
             }
 
+            var locationError = await ValidateLocationAsync(dto.Country_ID, dto.Governorate_ID, dto.City_ID);
+            if (locationError is not null) return BadRequest(locationError);
+
             try
             {
                 // إنشاء كائن جديد من نوع الفرع (TenantBranch) لنقله إلى قاعدة البيانات
@@ -208,6 +211,9 @@ namespace AlTayerERP.API.Controllers
                 return BadRequest("البيانات المرسلة للتعديل غير مكتملة أو خاطئة.");
             }
 
+            var locationError = await ValidateLocationAsync(dto.Country_ID, dto.Governorate_ID, dto.City_ID);
+            if (locationError is not null) return BadRequest(locationError);
+
             try
             {
                 // 2. البحث عن الفرع المستهدف بالتعديل داخل جدول الفروع بقاعدة البيانات
@@ -332,6 +338,33 @@ namespace AlTayerERP.API.Controllers
                 return NotFound("تعذر العثور على سياق الجلسة.");
 
             return Ok(data);
+        }
+
+        private async Task<string?> ValidateLocationAsync(long? countryId, long? governorateId, long? cityId)
+        {
+            if (!countryId.HasValue)
+                return governorateId.HasValue || cityId.HasValue ? "يجب اختيار الدولة قبل المحافظة أو المدينة." : null;
+
+            if (!await _context.Countries.AnyAsync(x => x.Country_ID == countryId && x.Is_Active))
+                return "الدولة المختارة غير موجودة أو غير نشطة.";
+
+            if (governorateId.HasValue)
+            {
+                var governorate = await _context.Governorates.AsNoTracking()
+                    .FirstOrDefaultAsync(x => x.Governorate_ID == governorateId && x.Is_Active);
+                if (governorate is null || governorate.Country_ID != countryId)
+                    return "المحافظة المختارة لا تتبع الدولة المحددة أو غير نشطة.";
+            }
+            else if (cityId.HasValue) return "يجب اختيار المحافظة قبل المدينة.";
+
+            if (cityId.HasValue)
+            {
+                var city = await _context.Cities.AsNoTracking()
+                    .FirstOrDefaultAsync(x => x.City_ID == cityId && x.Is_Active);
+                if (city is null || city.Governorate_ID != governorateId)
+                    return "المدينة المختارة لا تتبع المحافظة المحددة أو غير نشطة.";
+            }
+            return null;
         }
     }
 }
