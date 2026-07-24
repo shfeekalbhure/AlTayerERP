@@ -32,6 +32,10 @@ namespace AlTayerERP.Desktop
         {
             InitializeComponent();
 
+            // آخر رقم للعرض فقط: العداد المركزي في API هو المالك الوحيد لهذه القيمة.
+            numLastNumber.Enabled = false;
+            numLastNumber.ReadOnly = true;
+
             // تطبيق الثيم العربي الموحد والاختصارات على الشاشة القديمة.
 // ==================================================
             // ربط حدث فتح الشاشة
@@ -267,7 +271,8 @@ private void cmbDocumentType_SelectedIndexChanged(object sender, EventArgs e)
                 dgvNumberingSettings.Columns["Prefix"].HeaderText = "البادئة";
                 dgvNumberingSettings.Columns["Digits_Count"].HeaderText = "عدد الأرقام";
                 dgvNumberingSettings.Columns["Reset_Type"].HeaderText = "طريقة التصفير";
-                dgvNumberingSettings.Columns["Last_Number"].HeaderText = "آخر رقم";
+                if (dgvNumberingSettings.Columns.Contains("Last_Number"))
+                    dgvNumberingSettings.Columns["Last_Number"].HeaderText = "آخر رقم محجوز (للعرض فقط)";
                 dgvNumberingSettings.Columns["Use_Company"].HeaderText = "حسب الشركة";
                 dgvNumberingSettings.Columns["Use_Branch"].HeaderText = "حسب الفرع";
                 dgvNumberingSettings.Columns["Use_Year"].HeaderText = "حسب السنة";
@@ -515,7 +520,10 @@ private void cmbDocumentType_SelectedIndexChanged(object sender, EventArgs e)
             cmbResetType.Text = GetResetTypeArabic(
                 row.Cells["Reset_Type"].Value?.ToString());
 
-            numLastNumber.Value = Convert.ToDecimal(row.Cells["Last_Number"].Value);
+            numLastNumber.Value = dgvNumberingSettings.Columns.Contains("Last_Number") &&
+                row.Cells["Last_Number"].Value != null
+                ? Convert.ToDecimal(row.Cells["Last_Number"].Value)
+                : 0;
 
             chkUseCompany.Checked = Convert.ToBoolean(row.Cells["Use_Company"].Value);
             chkUseBranch.Checked = Convert.ToBoolean(row.Cells["Use_Branch"].Value);
@@ -639,7 +647,6 @@ private void cmbDocumentType_SelectedIndexChanged(object sender, EventArgs e)
                 Prefix = txtPrefix.Text.Trim().ToUpper(),
                 Digits_Count = (int)numDigitsCount.Value,
                 Reset_Type = GetResetTypeCode(),
-                Last_Number = (int)numLastNumber.Value,
                 Use_Company = chkUseCompany.Checked,
                 Use_Branch = chkUseBranch.Checked,
                 Use_Year = chkUseYear.Checked,
