@@ -3,7 +3,8 @@ using System;
 namespace AlTayerERP.Desktop.Services
 {
     /// <summary>
-    /// الجلسة المحلية الحالية. لا تُعد بديلاً عن التحقق في الـ API.
+    /// نسخة ذاكرة فقط من الجلسة التي صدّقها API. لا تعد بديلاً عن التحقق الخادمي.
+    /// لا تحفظ Access Token أو Refresh Token على القرص.
     /// </summary>
     public static class CurrentSession
     {
@@ -20,21 +21,30 @@ namespace AlTayerERP.Desktop.Services
         public static string Username { get; set; } = "";
         public static string Full_Name { get; set; } = "";
         public static bool Is_System_Admin { get; set; }
-        // رمز الجلسة يصدره الخادم بعد التحقق؛ لا يخزن على القرص.
+
+        // بيانات الجلسة والتوكنات مصدرها الخادم فقط.
+        public static string Session_ID { get; set; } = "";
         public static string Access_Token { get; set; } = "";
+        public static DateTime? Access_Token_Expires_At { get; set; }
+        public static string Refresh_Token { get; set; } = "";
+        public static DateTime? Refresh_Token_Expires_At { get; set; }
+
         public static string Currency_Code { get; set; } = "YER";
         public static string Language { get; set; } = "AR";
         public static DateTime Login_Time { get; set; } = DateTime.Now;
         public static string Device_Name { get; } = Environment.MachineName;
 
-        // لا تعتبر الجلسة صالحة إلا إذا اكتمل المستخدم والشركة والفرع والسنة.
+        // لا تعتبر الجلسة محلية صالحة إلا إذا اكتملت الهوية والسياق ورمز الوصول غير المنتهي.
         public static bool IsLoggedIn =>
             User_ID > 0 &&
+            !string.IsNullOrWhiteSpace(Session_ID) &&
+            !string.IsNullOrWhiteSpace(Access_Token) &&
+            Access_Token_Expires_At > DateTime.UtcNow &&
             !string.IsNullOrWhiteSpace(Company_ID) &&
             Branch_ID > 0 &&
             Year_ID > 0;
 
-        // مسح جميع القيم عند تسجيل الخروج لمنع انتقال نطاق المستخدم للجلسة التالية.
+        /// <summary>يمسح الرموز والنطاق بالكامل عند الخروج أو انتهاء الجلسة.</summary>
         public static void Clear()
         {
             Company_ID = "";
@@ -50,7 +60,11 @@ namespace AlTayerERP.Desktop.Services
             Username = "";
             Full_Name = "";
             Is_System_Admin = false;
+            Session_ID = "";
             Access_Token = "";
+            Access_Token_Expires_At = null;
+            Refresh_Token = "";
+            Refresh_Token_Expires_At = null;
             ApiService.ClearSessionToken();
             Currency_Code = "YER";
             Language = "AR";
