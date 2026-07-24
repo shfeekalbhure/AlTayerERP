@@ -602,6 +602,12 @@ namespace AlTayerERP.Desktop
             public bool Is_Active { get; set; } = true;
         }
 
+        // تبقى هذه المعالجات متوافقة مع ملف المصمم الحالي؛ لا تحتوي منطق أعمال.
+        private void lblStatusTime_Click(object? sender, EventArgs e) { }
+        private void label4_Click(object? sender, EventArgs e) { }
+        private void pnlWorkspace_Paint(object? sender, PaintEventArgs e) { }
+        private void tvMainMenu_AfterSelect_1(object? sender, TreeViewEventArgs e) { }
+
         private sealed class SessionInfoResponse
         {
             public string Company_Name_AR { get; set; } = string.Empty;
