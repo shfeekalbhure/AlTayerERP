@@ -14,7 +14,7 @@ namespace AlTayerERP.Desktop
     /// شاشة سند القبض - الملف الرئيسي.
     /// يحتوي على: المتغيرات العامة، النماذج المشتركة، الدوال المساعدة، المنطق الأساسي.
     /// </summary>
-    public partial class FrmReceiptVoucher : Form
+    public partial class FrmReceiptVoucher : BaseForm
     {
         #region === المتغيرات العامة ===
 
@@ -72,6 +72,7 @@ namespace AlTayerERP.Desktop
                 ?? throw new ArgumentNullException(nameof(voucherCaption));
 
             InitializeComponent();
+            ApplyBaseFormStyle();
             Text = _voucherCaption;
             RegisterEvents();
             ConfigureScreen();
