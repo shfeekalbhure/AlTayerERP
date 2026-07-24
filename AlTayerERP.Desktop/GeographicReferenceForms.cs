@@ -1,4 +1,5 @@
 using AlTayerERP.Desktop.Services;
+using AlTayerERP.Desktop.Common;
 using System.Net.Http.Json;
 using System.Text.Json;
 
@@ -6,7 +7,7 @@ namespace AlTayerERP.Desktop;
 
 public enum GeographicReferenceType { Country, Governorate, City }
 
-public class FrmGeographicReference : Form
+public class FrmGeographicReference : BaseForm
 {
     private readonly GeographicReferenceType _type;
     private readonly DataGridView _grid = new();
@@ -29,8 +30,7 @@ public class FrmGeographicReference : Form
         Text = type switch { GeographicReferenceType.Country => "الدول", GeographicReferenceType.Governorate => "المحافظات", _ => "المدن" };
         Width = 1240; Height = 760; MinimumSize = new Size(1000, 640);
         StartPosition = FormStartPosition.CenterParent;
-        RightToLeft = RightToLeft.Yes; RightToLeftLayout = true; KeyPreview = true;
-        Font = new Font("Segoe UI", 9.5F); BackColor = Color.FromArgb(247, 249, 252);
+        ApplyBaseFormStyle();
         Build();
         Load += async (_, _) => await InitializeAsync();
         KeyDown += OnKeyDown;
