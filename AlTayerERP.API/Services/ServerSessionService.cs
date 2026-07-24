@@ -86,5 +86,34 @@ namespace AlTayerERP.API.Services
         int Year_ID,
         string Device_ID,
         DateTime Issued_At,
-        DateTime Expires_At);
+        DateTime Expires_At)
+    {
+        /// <summary>
+        /// توافق مؤقت مع نقاط الحماية القديمة التي كانت تنشئ جلسة فارغة للتحقق فقط.
+        /// لا يصدر هذا المُنشئ JWT ولا يضيف الجلسة إلى مخزن الجلسات.
+        /// </summary>
+        [Obsolete("استخدم ServerSessionService.Create لإنشاء جلسة موثقة.")]
+        public ServerSession(
+            string legacySessionId,
+            int userId,
+            int roleId,
+            bool isSystemAdmin,
+            string companyId,
+            int branchId,
+            int yearId,
+            DateTime expiresAt)
+            : this(
+                legacySessionId,
+                userId,
+                roleId,
+                isSystemAdmin,
+                companyId,
+                branchId,
+                yearId,
+                "legacy",
+                expiresAt == DateTime.MinValue ? DateTime.MinValue : expiresAt.AddMinutes(-30),
+                expiresAt)
+        {
+        }
+    }
 }
