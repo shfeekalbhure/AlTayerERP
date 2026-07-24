@@ -551,6 +551,7 @@ namespace AlTayerERP.Desktop
         {
             // تحويل وجلب القيم المحددة من عناصر الواجهة المختلفة مع تنظيف النصوص
             int voucherTypeId = Convert.ToInt32(cmbVoucherType.SelectedValue, CultureInfo.InvariantCulture);
+            bool isPaymentVoucher = string.Equals(_voucherTypeCode, "PAYMENT", StringComparison.OrdinalIgnoreCase);
             int voucherStatusId = Convert.ToInt32(cmbStatus.SelectedValue, CultureInfo.InvariantCulture);
             string cashAccountId = cmbCashAccount.SelectedValue?.ToString()?.Trim() ?? string.Empty;
             string? partyId = cmbParty.SelectedValue?.ToString()?.Trim();
@@ -620,8 +621,8 @@ namespace AlTayerERP.Desktop
                 Exchange_Rate = decimal.Round(numExchangeRate.Value, 6, MidpointRounding.AwayFromZero),
                 Foreign_Amount = decimal.Round(numForeignAmount.Value, 2, MidpointRounding.AwayFromZero),
                 Local_Amount = decimal.Round(numLocalAmount.Value, 2, MidpointRounding.AwayFromZero),
-                Debit_Amount = decimal.Round(numLocalAmount.Value, 2, MidpointRounding.AwayFromZero),
-                Credit_Amount = 0m,
+                Debit_Amount = isPaymentVoucher ? 0m : decimal.Round(numLocalAmount.Value, 2, MidpointRounding.AwayFromZero),
+                Credit_Amount = isPaymentVoucher ? decimal.Round(numLocalAmount.Value, 2, MidpointRounding.AwayFromZero) : 0m,
                 Line_Type = 1,
                 Notes = NullIfWhiteSpace(txtHeaderNotes.Text)
             });
@@ -735,13 +736,13 @@ namespace AlTayerERP.Desktop
                                 2,
                                 MidpointRounding.AwayFromZero),
 
-                        Debit_Amount = 0m,
+                        Debit_Amount = isPaymentVoucher
+                            ? decimal.Round(localAmount, 2, MidpointRounding.AwayFromZero)
+                            : 0m,
 
-                        Credit_Amount =
-                            decimal.Round(
-                                localAmount,
-                                2,
-                                MidpointRounding.AwayFromZero),
+                        Credit_Amount = isPaymentVoucher
+                            ? 0m
+                            : decimal.Round(localAmount, 2, MidpointRounding.AwayFromZero),
 
                         Line_Type = 2,
 
