@@ -52,6 +52,10 @@ namespace AlTayerERP.Infrastructure.Data
         // جدول شاشات النظام البرمجية المتوفرة لضبط الوصول
         public DbSet<SystemScreen> SystemScreens { get; set; } = null!;
 
+        // سجلات الأمان: محاولات الدخول ورموز التجديد لا تحمل كلمات مرور أو رموزاً أصلية.
+        public DbSet<LoginAttempt> Login_Attempts { get; set; } = null!;
+        public DbSet<RefreshToken> Refresh_Tokens { get; set; } = null!;
+
         #endregion
 
         #region 3. إعدادات الترقيم والرقابة والاعتمادات
@@ -186,6 +190,25 @@ namespace AlTayerERP.Infrastructure.Data
             {
                 entity.ToTable("users");
                 entity.HasKey(e => e.User_ID);
+            });
+
+            // سجل المحاولات مستقل عن المستخدم حتى تسجل أيضاً محاولات اسم دخول غير صحيح.
+            modelBuilder.Entity<LoginAttempt>(entity =>
+            {
+                entity.ToTable("login_attempts");
+                entity.HasKey(e => e.Login_Attempt_ID);
+                entity.HasIndex(e => new { e.Login_Name, e.Attempted_At });
+                entity.HasIndex(e => new { e.User_ID, e.Attempted_At });
+            });
+
+            // رمز التجديد يحفظ كبصمة فقط ويمنع تعدد الرموز النشطة لنفس القيمة.
+            modelBuilder.Entity<RefreshToken>(entity =>
+            {
+                entity.ToTable("refresh_tokens");
+                entity.HasKey(e => e.Refresh_Token_ID);
+                entity.HasIndex(e => e.Token_Hash).IsUnique();
+                entity.HasIndex(e => new { e.User_ID, e.Expires_At });
+                entity.HasIndex(e => e.Session_ID);
             });
 
             // إعدادات جدول الأدوار وتحديد المفتاح الرئيسي
