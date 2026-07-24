@@ -21,6 +21,7 @@ namespace AlTayerERP.API.Services
         private static readonly TimeSpan RefreshLifetime = TimeSpan.FromDays(7);
         // مفتاح واحد طوال عملية التطوير الحالية فقط؛ لا يكتب إلى القرص.
         private static readonly byte[] DevelopmentSigningKey = RandomNumberGenerator.GetBytes(48);
+        private static int DevelopmentKeyWarningWritten;
 
         private readonly AppDbContext _context;
         private readonly ILogger<TokenService> _logger;
@@ -46,7 +47,8 @@ namespace AlTayerERP.API.Services
                 // لا يولد لكل request: يجب أن يبقى ثابتاً طوال عملية API كي تتحقق
                 // خدمة المصادقة من الرموز التي أصدرها طلب الدخول السابق.
                 _signingKey = DevelopmentSigningKey;
-                _logger.LogWarning("يستخدم الخادم مفتاح JWT مؤقتاً لبيئة التطوير؛ ستبطل الجلسات عند إعادة التشغيل.");
+                if (Interlocked.Exchange(ref DevelopmentKeyWarningWritten, 1) == 0)
+                    _logger.LogWarning("يستخدم الخادم مفتاح JWT مؤقتاً لبيئة التطوير؛ ستبطل الجلسات عند إعادة التشغيل.");
             }
             else
             {
