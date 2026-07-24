@@ -62,7 +62,7 @@ namespace AlTayerERP.API.Services.Accounting
 
                 decimal foreignTotal = cashCurrencies.Count == 1
                     ? decimal.Round(cashLines.Sum(x => x.Foreign_Amount), 2)
-                    : 0m;
+                    : decimal.Round(dto.Details.Sum(x => x.Foreign_Amount), 2);
 
                 // 4) توليد رقم السند الرسمي من إعدادات الترقيم. 
                 // يتم تحديث آخر رقم داخل نفس المعاملة، لذلك إذا فشل الحفظ يتم التراجع عن الرقم والسند معًا.
@@ -81,7 +81,7 @@ namespace AlTayerERP.API.Services.Accounting
                     Transaction_Date = dto.Transaction_Date,
                     Cash_Account_ID = dto.Cash_Account_ID,
                     Party_ID = dto.Party_ID,
-                    Received_From_Name = dto.Received_From_Name.Trim(),
+                    Received_From_Name = string.IsNullOrWhiteSpace(dto.Received_From_Name) ? null : dto.Received_From_Name.Trim(),
                     Payment_Method_ID = dto.Payment_Method_ID,
                     Currency_ID = dto.Currency_ID,
                     Exchange_Rate = dto.Exchange_Rate,
