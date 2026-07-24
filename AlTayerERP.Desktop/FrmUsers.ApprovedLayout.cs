@@ -40,7 +40,7 @@ namespace AlTayerERP.Desktop
             {
                 Dock = DockStyle.Fill,
                 ColumnCount = 1,
-                RowCount = 5,
+                RowCount = 6,
                 BackColor = Color.White,
                 Padding = new Padding(8),
                 RightToLeft = RightToLeft.Yes
@@ -140,7 +140,7 @@ namespace AlTayerERP.Desktop
             fields.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 32F));
             fields.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 18F));
             fields.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 32F));
-            for (var row = 0; row < 5; row++) fields.RowStyles.Add(new RowStyle(SizeType.Percent, 20F));
+            for (var row = 0; row < 6; row++) fields.RowStyles.Add(new RowStyle(SizeType.Percent, 16.66F));
 
             AddField(fields, 0, 0, "رقم المستخدم", txtUserName);
             AddField(fields, 2, 0, "اسم المستخدم", txtLoginName);
@@ -160,8 +160,18 @@ namespace AlTayerERP.Desktop
             chkIsActive.AutoSize = true;
             chkIsActive.ForeColor = Color.FromArgb(8, 49, 92);
 
-            fields.Controls.Add(chkChangePassword, 1, 4);
-            fields.Controls.Add(chkIsActive, 3, 3);
+            var accountFlags = new FlowLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                FlowDirection = FlowDirection.RightToLeft,
+                WrapContents = false,
+                AutoSize = false,
+                Padding = new Padding(4)
+            };
+            accountFlags.Controls.Add(chkChangePassword);
+            accountFlags.Controls.Add(chkIsActive);
+            fields.Controls.Add(accountFlags, 0, 5);
+            fields.SetColumnSpan(accountFlags, 4);
             panel1.Controls.Add(fields);
         }
 
