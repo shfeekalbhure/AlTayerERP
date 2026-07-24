@@ -68,11 +68,19 @@ namespace AlTayerERP.Desktop
                 ButtonFor("فك ترحيل", async (_, _) => await LifecycleAsync("unpost", true)),
                 ButtonFor("عرض القيد", async (_, _) => await ViewJournalAsync())
             });
-            _lines.Columns.Add(new DataGridViewTextBoxColumn { Name = "Account", HeaderText = "الحساب", Width = 180 });
-            _lines.Columns.Add(new DataGridViewTextBoxColumn { Name = "Debit", HeaderText = "مدين", Width = 120 });
-            _lines.Columns.Add(new DataGridViewTextBoxColumn { Name = "Credit", HeaderText = "دائن", Width = 120 });
+            _lines.Columns.Add(new DataGridViewTextBoxColumn { Name = "Account", HeaderText = "الحساب", Width = 150 });
+            _lines.Columns.Add(new DataGridViewTextBoxColumn { Name = "CostCenter", HeaderText = "مركز التكلفة", Width = 120 });
+            _lines.Columns.Add(new DataGridViewTextBoxColumn { Name = "Currency", HeaderText = "العملة", Width = 80 });
+            _lines.Columns.Add(new DataGridViewTextBoxColumn { Name = "Rate", HeaderText = "سعر الصرف", Width = 95 });
+            _lines.Columns.Add(new DataGridViewTextBoxColumn { Name = "Foreign", HeaderText = "أجنبي", Width = 100 });
+            _lines.Columns.Add(new DataGridViewTextBoxColumn { Name = "Local", HeaderText = "محلي", Width = 100, ReadOnly = true });
+            _lines.Columns.Add(new DataGridViewTextBoxColumn { Name = "Debit", HeaderText = "مدين", Width = 100 });
+            _lines.Columns.Add(new DataGridViewTextBoxColumn { Name = "Credit", HeaderText = "دائن", Width = 100 });
+            _lines.Columns.Add(new DataGridViewTextBoxColumn { Name = "Reference", HeaderText = "المرجع", Width = 120 });
             _lines.Columns.Add(new DataGridViewTextBoxColumn { Name = "Description", HeaderText = "البيان", AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill });
             _lines.CellValueChanged += (_, _) => CalculateTotals();
+            _lines.DefaultValuesNeeded += (_, e) => { if (_currency.SelectedValue != null) { e.Row.Cells["Currency"].Value=Convert.ToInt32(_currency.SelectedValue); var local=_currencies.FirstOrDefault(x=>x.Is_Local_Currency); e.Row.Cells["Rate"].Value=local != null && Convert.ToInt32(_currency.SelectedValue)==local.Currency_ID ? 1m : 1m; e.Row.Cells["Foreign"].Value=0m; } };
+            _lines.CellEndEdit += (_, e) => CalculateLine(_lines.Rows[e.RowIndex]);
             _lines.RowsRemoved += (_, _) => CalculateTotals();
             Controls.Add(_lines); Controls.Add(_totals); _totals.Dock = DockStyle.Bottom; _totals.Padding = new Padding(12);
             Controls.Add(bar); Controls.Add(header);
@@ -116,6 +124,17 @@ namespace AlTayerERP.Desktop
         private decimal CellDecimal(DataGridViewRow row, string key) =>
             decimal.TryParse(row.Cells[key].Value?.ToString(), out var value) ? value : 0m;
 
+        private void CalculateLine(DataGridViewRow row)
+        {
+            if (row.IsNewRow) return;
+            var localId=_currencies.FirstOrDefault(x=>x.Is_Local_Currency)?.Currency_ID;
+            if(!int.TryParse(row.Cells["Currency"].Value?.ToString(),out var currencyId)) return;
+            var isLocal=localId.HasValue&&currencyId==localId.Value;
+            var rate=CellDecimal(row,"Rate");var foreign=CellDecimal(row,"Foreign");
+            if(isLocal){row.Cells["Rate"].Value=1m;row.Cells["Foreign"].Value=0m;row.Cells["Local"].Value=CellDecimal(row,"Debit")+CellDecimal(row,"Credit");row.Cells["Rate"].ReadOnly=true;row.Cells["Foreign"].ReadOnly=true;}
+            else {if(rate<=0) return;row.Cells["Local"].Value=Math.Round(foreign*rate,4);row.Cells["Rate"].ReadOnly=false;row.Cells["Foreign"].ReadOnly=false;}
+        }
+
         private void CalculateTotals()
         {
             var valid = _lines.Rows.Cast<DataGridViewRow>().Where(x => !x.IsNewRow).ToList();
@@ -125,33 +144,20 @@ namespace AlTayerERP.Desktop
 
         private async Task SaveAsync()
         {
-            var rows = _lines.Rows.Cast<DataGridViewRow>().Where(x => !x.IsNewRow && !string.IsNullOrWhiteSpace(x.Cells["Account"].Value?.ToString())).ToList();
-            var debit = rows.Sum(x => CellDecimal(x, "Debit")); var credit = rows.Sum(x => CellDecimal(x, "Credit"));
-            if (_type.SelectedValue == null || _status.SelectedValue == null || _currency.SelectedValue == null || string.IsNullOrWhiteSpace(_narration.Text) || rows.Count < 2 || debit <= 0 || Math.Round(debit,2) != Math.Round(credit,2))
-            { MessageBox.Show("أدخل بياناً وسطرين على الأقل، ويجب أن يتوازن المدين مع الدائن.", "تحقق القيد", MessageBoxButtons.OK, MessageBoxIcon.Warning); return; }
-            if (rows.Any(x => (CellDecimal(x,"Debit") > 0 && CellDecimal(x,"Credit") > 0) || (CellDecimal(x,"Debit") == 0 && CellDecimal(x,"Credit") == 0)))
-            { MessageBox.Show("كل سطر يجب أن يكون مديناً أو دائناً فقط.", "تحقق القيد", MessageBoxButtons.OK, MessageBoxIcon.Warning); return; }
-
-            var currencyId = Convert.ToInt32(_currency.SelectedValue);
-            var currency = _currencies.First(x => x.Currency_ID == currencyId);
-            var dto = new {
-                Voucher_Type_ID = Convert.ToInt32(_type.SelectedValue), Voucher_Status_ID = Convert.ToInt32(_status.SelectedValue),
-                Voucher_Date = _date.Value.Date, Transaction_Date = _date.Value, Cash_Account_ID = "", Currency_ID = currencyId,
-                Exchange_Rate = currency.Is_Local_Currency ? 1m : currency.Exchange_Rate, Amount = debit, Foreign_Total = debit, Local_Total = debit,
-                Against_Text = _narration.Text.Trim(), Description = _narration.Text.Trim(), Details = rows.Select((r,i) => new {
-                    Line_No = i + 1, Account_ID = r.Cells["Account"].Value!.ToString(), Description = r.Cells["Description"].Value?.ToString(),
-                    Currency_ID = currencyId, Exchange_Rate = currency.Is_Local_Currency ? 1m : currency.Exchange_Rate,
-                    Foreign_Amount = CellDecimal(r, "Debit") + CellDecimal(r, "Credit"), Local_Amount = CellDecimal(r, "Debit") + CellDecimal(r, "Credit"),
-                    Debit_Amount = CellDecimal(r, "Debit"), Credit_Amount = CellDecimal(r, "Credit"), Line_Type = (byte)2
-                }).ToList()
-            };
-            var response = await ApiService.Client.PostAsJsonAsync("FinancialVoucher", dto);
-            var text = await response.Content.ReadAsStringAsync();
-            if (!response.IsSuccessStatusCode) { MessageBox.Show(text, "تعذر الحفظ", MessageBoxButtons.OK, MessageBoxIcon.Warning); return; }
-            using var doc = JsonDocument.Parse(text);
-            _voucherId = doc.RootElement.TryGetProperty("voucher_ID", out var id) ? id.GetInt64() : doc.RootElement.GetProperty("voucher_ID").GetInt64();
-            _number.Text = doc.RootElement.TryGetProperty("voucher_No", out var no) ? no.GetString() ?? "" : "";
-            MessageBox.Show("تم حفظ القيد كمسودة. نفذ المراجعة ثم الاعتماد والترحيل من الأزرار.", "القيد اليومي", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            var rows=_lines.Rows.Cast<DataGridViewRow>().Where(x=>!x.IsNewRow&&!string.IsNullOrWhiteSpace(x.Cells["Account"].Value?.ToString())).ToList();
+            var local=_currencies.FirstOrDefault(x=>x.Is_Local_Currency)??throw new InvalidOperationException("العملة المحلية غير مهيأة.");
+            var payload=new List<object>();decimal debit=0,credit=0;
+            foreach(var r in rows)
+            {
+                if(!int.TryParse(r.Cells["Currency"].Value?.ToString(),out var currencyId)||!_currencies.Any(x=>x.Currency_ID==currencyId&&x.Is_Active)){MessageBox.Show("عملة كل سطر مطلوبة ونشطة.");return;}
+                var d=CellDecimal(r,"Debit");var cr=CellDecimal(r,"Credit");var isLocal=currencyId==local.Currency_ID;var rate=isLocal?1m:CellDecimal(r,"Rate");var foreign=isLocal?0m:CellDecimal(r,"Foreign");var amount=isLocal?d+cr:Math.Round(foreign*rate,4);
+                if((d>0&&cr>0)||(d==0&&cr==0)||rate<=0||foreign<0||amount<=0){MessageBox.Show("كل سطر مدين أو دائن فقط، وبعملة وسعر صرف ومبلغ صحيحين.");return;}
+                debit+=d;credit+=cr;payload.Add(new {Account_ID=r.Cells["Account"].Value!.ToString(),Cost_Center_ID=r.Cells["CostCenter"].Value?.ToString(),Currency_ID=currencyId,Exchange_Rate=rate,Foreign_Amount=foreign,Local_Amount=amount,Debit_Amount=d,Credit_Amount=cr,Reference_No=r.Cells["Reference"].Value?.ToString(),Description=r.Cells["Description"].Value?.ToString(),Line_Type=(byte)2});
+            }
+            if(_type.SelectedValue==null||_status.SelectedValue==null||_currency.SelectedValue==null||string.IsNullOrWhiteSpace(_narration.Text)||rows.Count<2||debit<=0||Math.Round(debit,4)!=Math.Round(credit,4)){MessageBox.Show("أدخل بياناً وسطرين على الأقل، ويجب أن يتوازن المدين مع الدائن.","تحقق القيد",MessageBoxButtons.OK,MessageBoxIcon.Warning);return;}
+            var headerCurrency=Convert.ToInt32(_currency.SelectedValue);var headerIsLocal=headerCurrency==local.Currency_ID;
+            var dto=new {Voucher_Type_ID=Convert.ToInt32(_type.SelectedValue),Voucher_Status_ID=Convert.ToInt32(_status.SelectedValue),Voucher_Date=_date.Value.Date,Transaction_Date=_date.Value,Cash_Account_ID="",Currency_ID=headerCurrency,Exchange_Rate=headerIsLocal?1m:_currencies.First(x=>x.Currency_ID==headerCurrency).Exchange_Rate,Amount=debit,Foreign_Total=headerIsLocal?0m:debit,Local_Total=debit,Against_Text=_narration.Text.Trim(),Description=_narration.Text.Trim(),Details=payload.Select((x,i)=>new {Line_No=i+1,x}).ToList()};
+            var response=await ApiService.Client.PostAsJsonAsync("FinancialVoucher",dto);var text=await response.Content.ReadAsStringAsync();if(!response.IsSuccessStatusCode){MessageBox.Show(text,"تعذر الحفظ",MessageBoxButtons.OK,MessageBoxIcon.Warning);return;}using var doc=JsonDocument.Parse(text);_voucherId=doc.RootElement.GetProperty("voucher_ID").GetInt64();_number.Text=doc.RootElement.GetProperty("voucher_No").GetString()??"";MessageBox.Show("تم حفظ القيد كمسودة.","القيد اليومي",MessageBoxButtons.OK,MessageBoxIcon.Information);
         }
 
         private async Task SearchAsync()
