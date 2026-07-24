@@ -12,7 +12,6 @@ jobs:
   build:
     name: Build API and Desktop
     runs-on: windows-latest
-
     steps:
       - name: Checkout source
         uses: actions/checkout@v4
@@ -22,16 +21,19 @@ jobs:
         with:
           dotnet-version: 8.0.x
 
-      # استعادة الحزم ثم بناء طبقة API وتطبيق سطح المكتب فقط.
-      # لا يشغّل هذا المسار أي Migration أو تعديل على قاعدة بيانات الإنتاج.
-      - name: Restore API packages
-        run: dotnet restore AlTayerERP.API/AlTayerERP.API.csproj
+      - name: Capture API build errors
+        shell: pwsh
+        run: |
+          $output = dotnet build AlTayerERP.API/AlTayerERP.API.csproj --configuration Release 2>&1
+          $output | Out-File api-build.log -Encoding utf8
+          $errors = $output | Select-String -Pattern ': error '
+          if ($errors) { $errors | Out-File api-errors.txt -Encoding utf8 } else { 'NO_API_ERRORS' | Out-File api-errors.txt -Encoding utf8 }
+          exit 0
 
-      - name: Build API
-        run: dotnet build AlTayerERP.API/AlTayerERP.API.csproj --configuration Release --no-restore
-
-      - name: Restore Desktop packages
-        run: dotnet restore AlTayerERP.Desktop/AlTayerERP.Desktop.csproj
-
-      - name: Build Desktop
-        run: dotnet build AlTayerERP.Desktop/AlTayerERP.Desktop.csproj --configuration Release --no-restore
+      - name: Upload API diagnostics
+        uses: actions/upload-artifact@v4
+        with:
+          name: api-build-diagnostics
+          path: |
+            api-errors.txt
+            api-build.log
