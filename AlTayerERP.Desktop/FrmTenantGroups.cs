@@ -26,7 +26,8 @@ public sealed class FrmTenantGroups : BaseForm, IWorkspaceDirtyAware
 
     public FrmTenantGroups()
     {
-        Text = "المجموعات التجارية"; Width = 1420; Height = 870; MinimumSize = new Size(1150, 740); StartPosition = FormStartPosition.CenterParent;
+        base.Text = "المجموعات التجارية";
+        Width = 1420; Height = 870; MinimumSize = new Size(1150, 740); StartPosition = FormStartPosition.CenterParent;
         ApplyBaseFormStyle();
         _save = Button("حفظ  Ctrl+S", async (_, _) => await SaveAsync(), true);
         _deactivate = Button("إيقاف", async (_, _) => await ChangeStatusAsync(false), danger: true);
@@ -36,14 +37,15 @@ public sealed class FrmTenantGroups : BaseForm, IWorkspaceDirtyAware
         Load += async (_, _) => await InitializeAsync();
         KeyDown += HandleKeys;
         _country.SelectedIndexChanged += async (_, _) => { if (!_binding) await LoadCitiesAsync(); };
-        _grid.SelectionChanged += (_, _) => BindSelected();
+        _grid.SelectionChanged += async (_, _) => await BindSelectedAsync();
         _search.TextChanged += (_, _) => Filter();
         foreach (var c in new Control[] { _code, _nameAr, _nameEn, _shortName, _type, _parent, _mainCompany, _currency, _country, _city, _address, _phone, _email, _manager, _notes, _showInLogin, _sort })
         {
             c.TextChanged += (_, _) => MarkDirty();
             if (c is ComboBox cb) cb.SelectedIndexChanged += (_, _) => MarkDirty();
         }
-        _showInLogin.CheckedChanged += (_, _) => MarkDirty(); _sort.ValueChanged += (_, _) => MarkDirty();
+        _showInLogin.CheckedChanged += (_, _) => MarkDirty();
+        _sort.ValueChanged += (_, _) => MarkDirty();
     }
 
     private void Build()
@@ -93,11 +95,7 @@ public sealed class FrmTenantGroups : BaseForm, IWorkspaceDirtyAware
     private async Task InitializeAsync()
     {
         _binding = true;
-        try
-        {
-            await Task.WhenAll(LoadCountriesAsync(), LoadCurrenciesAsync(), LoadCompaniesAsync());
-            await LoadGroupsAsync();
-        }
+        try { await Task.WhenAll(LoadCountriesAsync(), LoadCurrenciesAsync(), LoadCompaniesAsync()); await LoadGroupsAsync(); }
         finally { _binding = false; }
     }
 
@@ -108,10 +106,11 @@ public sealed class FrmTenantGroups : BaseForm, IWorkspaceDirtyAware
             _binding = true;
             _groups = await ApiService.Client.GetFromJsonAsync<List<GroupRow>>("TenantGroups") ?? new();
             _grid.DataSource = _groups.ToList(); _count.Text = $"عدد السجلات: {_groups.Count}";
-            _parent.DataSource = _groups.Where(x => x.Group_ID != _selectedId && x.Is_Active).ToList(); _parent.DisplayMember = nameof(GroupRow.Group_Name_AR); _parent.ValueMember = nameof(GroupRow.Group_ID); _parent.SelectedIndex = -1;
+            _parent.DataSource = _groups.Where(x => x.Group_ID != _selectedId && x.Is_Active).ToList();
+            _parent.DisplayMember = nameof(GroupRow.Group_Name_AR); _parent.ValueMember = nameof(GroupRow.Group_ID); _parent.SelectedIndex = -1;
             ClearForm();
         }
-        catch (Exception ex) { MessageBox.Show("تعذر تحميل المجموعات التجارية.\n" + ex.Message, Text, MessageBoxButtons.OK, MessageBoxIcon.Error); }
+        catch (Exception ex) { MessageBox.Show("تعذر تحميل المجموعات التجارية.\n" + ex.Message, base.Text, MessageBoxButtons.OK, MessageBoxIcon.Error); }
         finally { _binding = false; }
     }
 
@@ -150,10 +149,10 @@ public sealed class FrmTenantGroups : BaseForm, IWorkspaceDirtyAware
         { MessageBox.Show("كود المجموعة والاسم العربي والاسم المختصر ونوع المجموعة حقول مطلوبة."); return; }
         var dto = new
         {
-            Group_Code = _code.Text.Trim(), Group_Name_AR = _nameAr.Text.Trim(), Group_Name_EN = Text(_nameEn.Text), Short_Name = _shortName.Text.Trim(), Group_Type = _type.Text,
+            Group_Code = _code.Text.Trim(), Group_Name_AR = _nameAr.Text.Trim(), Group_Name_EN = CleanText(_nameEn.Text), Short_Name = _shortName.Text.Trim(), Group_Type = _type.Text,
             Parent_Group_ID = _parent.SelectedValue?.ToString(), Main_Company_ID = _mainCompany.SelectedValue?.ToString(), Default_Currency_Code = _currency.SelectedValue?.ToString(),
-            Country_Name = (_country.SelectedItem as CountryLookup)?.Country_Name_AR, City_Name = (_city.SelectedItem as CityLookup)?.City_Name_AR, Short_Address = Text(_address.Text),
-            Phone = Text(_phone.Text), Email = Text(_email.Text), Manager_Name = Text(_manager.Text), Show_In_Login = _showInLogin.Checked, Sort_Order = (int)_sort.Value, Notes = Text(_notes.Text), Is_Active = true
+            Country_Name = (_country.SelectedItem as CountryLookup)?.Country_Name_AR, City_Name = (_city.SelectedItem as CityLookup)?.City_Name_AR, Short_Address = CleanText(_address.Text),
+            Phone = CleanText(_phone.Text), Email = CleanText(_email.Text), Manager_Name = CleanText(_manager.Text), Show_In_Login = _showInLogin.Checked, Sort_Order = (int)_sort.Value, Notes = CleanText(_notes.Text), Is_Active = true
         };
         var response = string.IsNullOrWhiteSpace(_selectedId) ? await ApiService.Client.PostAsJsonAsync("TenantGroups", dto) : await ApiService.Client.PutAsJsonAsync($"TenantGroups/{_selectedId}", dto);
         if (!response.IsSuccessStatusCode) { MessageBox.Show(await response.Content.ReadAsStringAsync(), "تعذر الحفظ", MessageBoxButtons.OK, MessageBoxIcon.Warning); return; }
@@ -174,10 +173,9 @@ public sealed class FrmTenantGroups : BaseForm, IWorkspaceDirtyAware
         await LoadGroupsAsync();
     }
 
-    private async void BindSelected()
+    private async Task BindSelectedAsync()
     {
-        if (_binding || _grid.SelectedRows.Count == 0) return;
-        if (_grid.SelectedRows[0].DataBoundItem is not GroupRow row) return;
+        if (_binding || _grid.SelectedRows.Count == 0 || _grid.SelectedRows[0].DataBoundItem is not GroupRow row) return;
         _binding = true;
         try
         {
@@ -207,7 +205,7 @@ public sealed class FrmTenantGroups : BaseForm, IWorkspaceDirtyAware
     private void UpdateButtons() { _deactivate.Enabled = !string.IsNullOrWhiteSpace(_selectedId) && _active.Checked; _reactivate.Enabled = !string.IsNullOrWhiteSpace(_selectedId) && !_active.Checked; _mainCompany.Enabled = !string.IsNullOrWhiteSpace(_selectedId); }
     private void HandleKeys(object? s, KeyEventArgs e) { if (e.Control && e.KeyCode == Keys.N) { ClearForm(); e.SuppressKeyPress = true; } else if (e.Control && e.KeyCode == Keys.S) { _ = SaveAsync(); e.SuppressKeyPress = true; } else if (e.Control && e.KeyCode == Keys.F) { _search.Focus(); e.SuppressKeyPress = true; } else if (e.KeyCode == Keys.F5) { _ = LoadGroupsAsync(); e.SuppressKeyPress = true; } else if (e.KeyCode == Keys.Escape) { Close(); e.SuppressKeyPress = true; } }
 
-    private static string? Text(string? v) => string.IsNullOrWhiteSpace(v) ? null : v.Trim();
+    private static string? CleanText(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
     private static TextBox Input() => new(); private static ComboBox Combo() => new() { DropDownStyle = ComboBoxStyle.DropDownList };
     private static Button Button(string text, EventHandler handler, bool primary = false, bool danger = false) { var b = new Button { Text = text, Width = 132, Height = 34, Margin = new Padding(4), FlatStyle = FlatStyle.Flat, BackColor = primary ? Color.FromArgb(14, 93, 216) : Color.White, ForeColor = primary ? Color.White : danger ? Color.Firebrick : Color.FromArgb(8, 55, 112) }; b.FlatAppearance.BorderColor = Color.FromArgb(205, 217, 232); b.Click += handler; return b; }
     private static Panel Title(string text) => new() { Dock = DockStyle.Fill, BackColor = Color.FromArgb(8, 55, 112), Controls = { new Label { Text = text, Dock = DockStyle.Fill, ForeColor = Color.White, Font = new Font("Segoe UI", 14F, FontStyle.Bold), TextAlign = ContentAlignment.MiddleCenter } } };
