@@ -1,0 +1,37 @@
+name: Build verification
+
+on:
+  push:
+    branches:
+      - agent/unified-phase1-screens
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+    name: Build API and Desktop
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Install .NET 8 SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      # استعادة الحزم ثم بناء طبقة API وتطبيق سطح المكتب فقط.
+      # لا يشغّل هذا المسار أي Migration أو تعديل على قاعدة بيانات الإنتاج.
+      - name: Restore API packages
+        run: dotnet restore AlTayerERP.API/AlTayerERP.API.csproj
+
+      - name: Build API
+        run: dotnet build AlTayerERP.API/AlTayerERP.API.csproj --configuration Release --no-restore
+
+      - name: Restore Desktop packages
+        run: dotnet restore AlTayerERP.Desktop/AlTayerERP.Desktop.csproj
+
+      - name: Build Desktop
+        run: dotnet build AlTayerERP.Desktop/AlTayerERP.Desktop.csproj --configuration Release --no-restore
