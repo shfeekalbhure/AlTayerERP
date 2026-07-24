@@ -345,6 +345,8 @@ namespace AlTayerERP.Desktop
                 "Banks" => () => new FrmBanks(),
                 "Parties" => () => new FrmParties(),
                 "ReceiptVoucher" => () => new FrmReceiptVoucher(),
+                "PaymentVoucher" => () => new FrmPaymentVoucher(),
+                "JournalVoucher" => () => new FrmJournalVoucher(),
                 _ => null
             };
 
@@ -385,6 +387,8 @@ namespace AlTayerERP.Desktop
                 Padding = new Padding(0, 10, 0, 10)
             };
             AddDashboardCard(cards, "سندات القبض", "إنشاء وحفظ ومراجعة السندات", "ReceiptVoucher", Color.FromArgb(38, 107, 201));
+            AddDashboardCard(cards, "سندات الصرف", "صرف آمن واعتماد وترحيل", "PaymentVoucher", Color.FromArgb(196, 97, 42));
+            AddDashboardCard(cards, "القيود اليومية", "قيود يدوية ضمن الفترة المفتوحة", "JournalVoucher", Color.FromArgb(100, 75, 155));
             AddDashboardCard(cards, "الدليل المحاسبي", "الحسابات ومراكز التكلفة والعملات", "ChartOfAccounts", Color.FromArgb(140, 84, 184));
             AddDashboardCard(cards, "الإعدادات", "السياسات والسنوات والترقيم", "GeneralSettings", Color.FromArgb(33, 141, 103));
             dashboard.Controls.Add(cards, 0, 1);
@@ -409,6 +413,8 @@ namespace AlTayerERP.Desktop
                 Padding = new Padding(0, 12, 0, 0)
             };
             AddQuickAction(quickActions, "سند قبض جديد", "ReceiptVoucher", Color.FromArgb(22, 125, 84));
+            AddQuickAction(quickActions, "سند صرف جديد", "PaymentVoucher", Color.FromArgb(196, 97, 42));
+            AddQuickAction(quickActions, "قيد يومي جديد", "JournalVoucher", Color.FromArgb(100, 75, 155));
             AddQuickAction(quickActions, "دليل الحسابات", "ChartOfAccounts", Color.FromArgb(20, 102, 190));
             AddQuickAction(quickActions, "المستخدمون", "Users", Color.FromArgb(107, 70, 160));
             AddQuickAction(quickActions, "الإعدادات", "GeneralSettings", Color.FromArgb(78, 89, 101));
@@ -585,7 +591,9 @@ namespace AlTayerERP.Desktop
             new("CashBoxes", "الصناديق", "الحسابات", 40),
             new("Banks", "البنوك والحسابات البنكية", "الحسابات", 50),
             new("Parties", "الأطراف المالية", "الحسابات", 60),
-            new("ReceiptVoucher", "سند القبض", "الحسابات", 70)
+            new("ReceiptVoucher", "سند القبض", "الحسابات", 70),
+            new("PaymentVoucher", "سند الصرف", "الحسابات", 80),
+            new("JournalVoucher", "القيد اليومي", "الحسابات", 90)
         };
 
         private sealed class ScreenAccessRow
