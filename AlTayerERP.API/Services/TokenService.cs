@@ -1,4 +1,5 @@
 using AlTayerERP.Core.Entities;
+using Microsoft.AspNetCore.Authentication;
 using AlTayerERP.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Hosting;
