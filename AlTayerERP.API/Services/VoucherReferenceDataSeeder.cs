@@ -56,26 +56,38 @@ namespace AlTayerERP.API.Services
 
         private async Task EnsureVoucherTypesAsync()
         {
-            if (await _context.Voucher_Types.AnyAsync(x => x.Voucher_Type_Code == "RECEIPT"))
+            await AddVoucherTypeIfMissingAsync("RECEIPT", "سند قبض", "Receipt Voucher", 1);
+            await AddVoucherTypeIfMissingAsync("PAYMENT", "سند صرف", "Payment Voucher", 2);
+            await AddVoucherTypeIfMissingAsync("JOURNAL", "قيد يومية", "Journal Voucher", 3);
+            await AddVoucherTypeIfMissingAsync("ADJUSTMENT", "قيد تسوية", "Adjustment Voucher", 4);
+            await AddVoucherTypeIfMissingAsync("OPENING", "قيد افتتاحي", "Opening Voucher", 5);
+        }
+
+        private async Task AddVoucherTypeIfMissingAsync(string code, string nameAr, string nameEn, int sortOrder)
+        {
+            if (await _context.Voucher_Types.AnyAsync(x => x.Voucher_Type_Code == code))
                 return;
 
             _context.Voucher_Types.Add(new VoucherType
             {
-                Voucher_Type_Code = "RECEIPT",
-                Voucher_Type_Name_AR = "سند قبض",
-                Voucher_Type_Name_EN = "Receipt Voucher",
+                Voucher_Type_Code = code,
+                Voucher_Type_Name_AR = nameAr,
+                Voucher_Type_Name_EN = nameEn,
                 Is_Active = true,
-                Sort_Order = 1
+                Sort_Order = sortOrder
             });
         }
 
         private async Task EnsureVoucherStatusesAsync()
         {
             await AddVoucherStatusIfMissingAsync("DRAFT", "مسودة", 1);
-            await AddVoucherStatusIfMissingAsync("REVIEWED", "تمت المراجعة", 2);
-            await AddVoucherStatusIfMissingAsync("RETURNED", "معاد للتصحيح", 3);
-            await AddVoucherStatusIfMissingAsync("APPROVED", "معتمد", 4);
-            await AddVoucherStatusIfMissingAsync("POSTED", "مرحل", 5);
+            await AddVoucherStatusIfMissingAsync("PENDING", "معلق", 2);
+            await AddVoucherStatusIfMissingAsync("REVIEWED", "تمت المراجعة", 3);
+            await AddVoucherStatusIfMissingAsync("RETURNED", "معاد للتصحيح", 4);
+            await AddVoucherStatusIfMissingAsync("APPROVED", "معتمد", 5);
+            await AddVoucherStatusIfMissingAsync("POSTED", "مرحل", 6);
+            await AddVoucherStatusIfMissingAsync("CANCELLED", "ملغي", 7);
+            await AddVoucherStatusIfMissingAsync("REVERSED", "معكوس", 8);
         }
 
         private async Task AddVoucherStatusIfMissingAsync(string code, string arabicName, int sortOrder)
