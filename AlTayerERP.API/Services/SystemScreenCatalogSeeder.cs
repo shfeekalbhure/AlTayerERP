@@ -47,6 +47,7 @@ namespace AlTayerERP.API.Services
                 new ScreenSeed("Parties", "الأطراف المالية", "الحسابات", 210),
                 new ScreenSeed("ReceiptVoucher", "سند القبض", "الحسابات", 220),
                 new ScreenSeed("PaymentVoucher", "سند الصرف", "الحسابات", 230),
+                new ScreenSeed("PaymentRequest", "طلب الصرف", "الحسابات", 235),
                 new ScreenSeed("JournalVoucher", "القيد اليومي", "الحسابات", 240),
                 new ScreenSeed("DocumentSearch", "البحث عن المستندات", "الحسابات", 250),
                 new ScreenSeed("ApprovalRequests", "طلبات الاعتماد", "الحسابات", 260),
