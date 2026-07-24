@@ -1,516 +1,234 @@
-using AlTayerERP.Desktop.Services;
 using AlTayerERP.Desktop.Common;
-using System;
-using System.Collections.Generic;
-using System.Drawing;
-using System.Linq;
-using System.Net.Http;
+using AlTayerERP.Desktop.Services;
 using System.Net.Http.Json;
-using System.Threading.Tasks;
-using System.Windows.Forms;
 
 namespace AlTayerERP.Desktop;
 
-/// <summary>
-/// شاشة المجموعات التجارية وفق التصميم الموحد المعتمد للمرحلة الأولى.
-/// </summary>
+/// <summary>شاشة المجموعات التجارية وفق التصميم الموحد والربط المرجعي المعتمد.</summary>
 public sealed class FrmTenantGroups : BaseForm, IWorkspaceDirtyAware
 {
-    private readonly HttpClient _client = ApiService.Client;
-    private readonly DataGridView dgvGroups = new();
-    private readonly TextBox txtCode = Input();
-    private readonly TextBox txtNameAr = Input();
-    private readonly TextBox txtNameEn = Input();
-    private readonly TextBox txtShortName = Input();
-    private readonly ComboBox cmbType = Combo("مجموعة استثمارية", "مجموعة صناعية", "مجموعة خدمية", "مجموعة قابضة", "أخرى");
-    private readonly ComboBox cmbParent = Combo();
-    private readonly ComboBox cmbMainCompany = Combo();
-    private readonly ComboBox cmbCurrency = Combo("YER", "SAR", "USD", "AED", "EUR");
-    private readonly TextBox txtCountry = Input();
-    private readonly TextBox txtCity = Input();
-    private readonly TextBox txtAddress = Input();
-    private readonly TextBox txtPhone = Input();
-    private readonly TextBox txtEmail = Input();
-    private readonly TextBox txtManager = Input();
-    private readonly RadioButton rbActive = new() { Text = "نشطة", Checked = true, AutoSize = true };
-    private readonly RadioButton rbStopped = new() { Text = "موقوفة", AutoSize = true };
-    private readonly CheckBox chkShowInLogin = new() { Text = "تظهر في شاشة اختيار الشركة", Checked = true, AutoSize = true };
-    private readonly NumericUpDown numSort = new() { Minimum = 0, Maximum = 9999, Width = 220, TextAlign = HorizontalAlignment.Right };
-    private readonly TextBox txtNotes = new() { Multiline = true, ScrollBars = ScrollBars.Vertical, Height = 85, Dock = DockStyle.Fill };
-    private readonly TextBox txtSearch = Input();
-    private readonly Label lblCount = new() { AutoSize = true };
-    private readonly Label lblCompaniesCount = new() { Text = "0", AutoSize = true, Font = new Font("Segoe UI", 11F, FontStyle.Bold) };
-    private readonly Button btnSave;
-    private readonly Button btnReactivate;
+    private readonly DataGridView _grid = new();
+    private readonly TextBox _code = Input(), _nameAr = Input(), _nameEn = Input(), _shortName = Input();
+    private readonly ComboBox _type = Combo(), _parent = Combo(), _mainCompany = Combo(), _currency = Combo();
+    private readonly ComboBox _country = Combo(), _city = Combo();
+    private readonly TextBox _address = Input(), _phone = Input(), _email = Input(), _manager = Input(), _notes = new() { Multiline = true };
+    private readonly CheckBox _showInLogin = new() { Text = "تظهر في شاشة اختيار الشركة", Checked = true, AutoSize = true };
+    private readonly CheckBox _active = new() { Text = "نشطة", Checked = true, Enabled = false, AutoSize = true };
+    private readonly NumericUpDown _sort = new() { Minimum = 0, Maximum = 9999, TextAlign = HorizontalAlignment.Right };
+    private readonly TextBox _search = new() { PlaceholderText = "ابحث بالكود أو الاسم أو النوع…" };
+    private readonly Label _count = new() { AutoSize = true }, _companiesCount = new() { Text = "0", AutoSize = true, Font = new Font("Segoe UI", 11F, FontStyle.Bold) };
+    private readonly Button _save, _deactivate, _reactivate;
+    private List<GroupRow> _groups = new();
     private string? _selectedId;
-    private List<GroupRow> _cache = new();
-    private bool _isDirty;
-    private bool _isBinding;
+    private bool _dirty, _binding;
 
-    /// <summary>تستخدمه مساحة العمل لمنع إغلاق الشاشة عند وجود تعديلات غير محفوظة.</summary>
-    public bool HasUnsavedChanges => _isDirty;
+    public bool HasUnsavedChanges => _dirty;
 
     public FrmTenantGroups()
     {
-        Text = "المجموعة التجارية";
-        StartPosition = FormStartPosition.CenterParent;
-        Width = 1400;
-        Height = 850;
-        MinimumSize = new Size(1120, 720);
-        // النمط والاتجاه والاختصارات مسؤولية BaseForm المركزي.
+        Text = "المجموعات التجارية"; Width = 1420; Height = 870; MinimumSize = new Size(1150, 740); StartPosition = FormStartPosition.CenterParent;
         ApplyBaseFormStyle();
-
-        btnSave = ToolButton("حفظ", true);
-        btnReactivate = ToolButton("إعادة تفعيل");
-        Controls.Add(BuildShell());
-        ConfigureGrid();
-
-        Load += async (_, _) => await LoadAsync();
-        btnSave.Click += async (_, _) => await SaveAsync();
-        btnReactivate.Click += async (_, _) => await ReactivateAsync();
-        txtSearch.TextChanged += (_, _) => FilterGrid();
-        dgvGroups.SelectionChanged += (_, _) => BindSelected();
-        KeyDown += HandleShortcuts;
-        foreach (var control in new Control[] { txtCode, txtNameAr, txtNameEn, txtShortName, txtCountry, txtCity, txtAddress, txtPhone, txtEmail, txtManager, txtNotes, cmbType, cmbParent, cmbMainCompany, cmbCurrency, chkShowInLogin, numSort })
+        _save = Button("حفظ  Ctrl+S", async (_, _) => await SaveAsync(), true);
+        _deactivate = Button("إيقاف", async (_, _) => await ChangeStatusAsync(false), danger: true);
+        _reactivate = Button("إعادة تفعيل", async (_, _) => await ChangeStatusAsync(true));
+        _type.DataSource = new[] { "مجموعة استثمارية", "مجموعة صناعية", "مجموعة خدمية", "مجموعة قابضة", "أخرى" };
+        Build();
+        Load += async (_, _) => await InitializeAsync();
+        KeyDown += HandleKeys;
+        _country.SelectedIndexChanged += async (_, _) => { if (!_binding) await LoadCitiesAsync(); };
+        _grid.SelectionChanged += (_, _) => BindSelected();
+        _search.TextChanged += (_, _) => Filter();
+        foreach (var c in new Control[] { _code, _nameAr, _nameEn, _shortName, _type, _parent, _mainCompany, _currency, _country, _city, _address, _phone, _email, _manager, _notes, _showInLogin, _sort })
         {
-            control.TextChanged += (_, _) => MarkDirty();
+            c.TextChanged += (_, _) => MarkDirty();
+            if (c is ComboBox cb) cb.SelectedIndexChanged += (_, _) => MarkDirty();
         }
-        cmbType.SelectedIndexChanged += (_, _) => MarkDirty();
-        cmbParent.SelectedIndexChanged += (_, _) => MarkDirty();
-        cmbMainCompany.SelectedIndexChanged += (_, _) => MarkDirty();
-        cmbCurrency.SelectedIndexChanged += (_, _) => MarkDirty();
-        chkShowInLogin.CheckedChanged += (_, _) => MarkDirty();
-        numSort.ValueChanged += (_, _) => MarkDirty();
+        _showInLogin.CheckedChanged += (_, _) => MarkDirty(); _sort.ValueChanged += (_, _) => MarkDirty();
     }
 
-    private Control BuildShell()
+    private void Build()
     {
-        // القالب المعتمد: رأس، أدوات، بيانات، جدول، إرشاد، تدقيق، ثم حالة الجلسة.
         var shell = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 7, Padding = new Padding(16) };
-        shell.RowStyles.Add(new RowStyle(SizeType.Absolute, 52));
-        shell.RowStyles.Add(new RowStyle(SizeType.Absolute, 54));
-        shell.RowStyles.Add(new RowStyle(SizeType.Percent, 58));
-        shell.RowStyles.Add(new RowStyle(SizeType.Percent, 42));
-        shell.RowStyles.Add(new RowStyle(SizeType.Absolute, 34));
-        shell.RowStyles.Add(new RowStyle(SizeType.Absolute, 86));
-        shell.RowStyles.Add(new RowStyle(SizeType.Absolute, 28));
-        shell.Controls.Add(BuildTitle(), 0, 0);
-        shell.Controls.Add(BuildToolbar(), 0, 1);
-        shell.Controls.Add(BuildEditor(), 0, 2);
-        shell.Controls.Add(BuildGridCard(), 0, 3);
-        shell.Controls.Add(BuildFooter(), 0, 4);
-        shell.Controls.Add(CreateAuditInfoPanel(), 0, 5);
-        shell.Controls.Add(CreateSessionStatusStrip(), 0, 6);
-        return shell;
+        shell.RowStyles.Add(new RowStyle(SizeType.Absolute, 52)); shell.RowStyles.Add(new RowStyle(SizeType.Absolute, 52));
+        shell.RowStyles.Add(new RowStyle(SizeType.Absolute, 345)); shell.RowStyles.Add(new RowStyle(SizeType.Absolute, 42));
+        shell.RowStyles.Add(new RowStyle(SizeType.Percent, 100)); shell.RowStyles.Add(new RowStyle(SizeType.Absolute, 34)); shell.RowStyles.Add(new RowStyle(SizeType.Absolute, 28));
+        shell.Controls.Add(Title("المجموعات التجارية"), 0, 0); shell.Controls.Add(Toolbar(), 0, 1);
+        var editor = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, RowCount = 1, Margin = new Padding(0, 8, 0, 8) };
+        editor.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 56)); editor.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 44));
+        editor.Controls.Add(IdentityCard(), 0, 0); editor.Controls.Add(ContactCard(), 1, 0); shell.Controls.Add(editor, 0, 2);
+        _search.Dock = DockStyle.Fill; _search.Margin = new Padding(0, 5, 0, 5); shell.Controls.Add(_search, 0, 3);
+        ConfigureGrid(); shell.Controls.Add(Card("قائمة المجموعات التجارية", _grid), 0, 4);
+        var footer = new Panel { Dock = DockStyle.Fill }; _count.Dock = DockStyle.Left; footer.Controls.Add(_count);
+        footer.Controls.Add(new Label { Text = "ترتبط كل شركة بمجموعة تجارية واحدة، وتستخدم الدولة والمدينة والعملة من القوائم المرجعية.", Dock = DockStyle.Right, Width = 760, TextAlign = ContentAlignment.MiddleRight, ForeColor = Color.FromArgb(55, 85, 130) });
+        shell.Controls.Add(footer, 0, 5); shell.Controls.Add(CreateSessionStatusStrip(), 0, 6); Controls.Add(shell);
     }
 
-    private Control BuildTitle()
+    private Control Toolbar()
     {
-        return new Panel
-        {
-            Dock = DockStyle.Fill,
-            BackColor = Color.FromArgb(8, 55, 112),
-            Controls = { new Label { Text = "المجموعة التجارية", Dock = DockStyle.Fill, ForeColor = Color.White, Font = new Font("Segoe UI", 14F, FontStyle.Bold), TextAlign = ContentAlignment.MiddleCenter } }
-        };
-    }
-
-    private Control BuildToolbar()
-    {
-        var bar = new FlowLayoutPanel { Dock = DockStyle.Fill, FlowDirection = FlowDirection.RightToLeft, WrapContents = false, Padding = new Padding(4, 8, 4, 6), BackColor = Color.White };
-        var btnNew = ToolButton("جديد");
-        var btnEdit = ToolButton("تعديل");
-        var btnDelete = ToolButton("إيقاف");
-        var btnRefresh = ToolButton("تحديث");
-        var btnSearch = ToolButton("بحث");
-        var btnClose = ToolButton("إغلاق");
-        btnNew.Click += (_, _) => ClearForm();
-        btnEdit.Click += async (_, _) => await SaveAsync();
-        btnDelete.Click += async (_, _) => await DeleteAsync();
-        btnRefresh.Click += async (_, _) => await LoadAsync();
-        btnSearch.Click += (_, _) => txtSearch.Focus();
-        btnClose.Click += (_, _) => Close();
-        bar.Controls.AddRange(new Control[] { btnNew, btnSave, btnEdit, btnDelete, btnReactivate, btnRefresh, btnSearch, btnClose });
+        var bar = new FlowLayoutPanel { Dock = DockStyle.Fill, FlowDirection = FlowDirection.RightToLeft, WrapContents = false, Padding = new Padding(4, 7, 4, 5), BackColor = Color.White };
+        bar.Controls.AddRange(new Control[] { Button("جديد  Ctrl+N", (_, _) => ClearForm()), _save, Button("تعديل", async (_, _) => await SaveAsync()), _deactivate, _reactivate, Button("تحديث  F5", async (_, _) => await LoadGroupsAsync()), Button("بحث  Ctrl+F", (_, _) => _search.Focus()), Button("إغلاق  Esc", (_, _) => Close()) });
         return bar;
     }
 
-    private Control BuildEditor()
+    private Control IdentityCard()
     {
-        var columns = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, RowCount = 1, Margin = new Padding(0, 8, 0, 8) };
-        columns.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 52));
-        columns.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 48));
-        columns.Controls.Add(BuildIdentityCard(), 0, 0);
-        columns.Controls.Add(BuildContactCard(), 1, 0);
-        return columns;
+        var t = FormTable(6);
+        AddRow(t, 0, "كود المجموعة *", _code, "اسم المجموعة بالعربية *", _nameAr);
+        AddRow(t, 1, "اسم المجموعة بالإنجليزية", _nameEn, "الاسم المختصر *", _shortName);
+        AddRow(t, 2, "نوع المجموعة *", _type, "المجموعة الأم", _parent);
+        AddRow(t, 3, "الشركة الرئيسية", _mainCompany, "العملة الافتراضية", _currency);
+        AddRow(t, 4, "الدولة", _country, "المدينة", _city);
+        AddRow(t, 5, "العنوان المختصر", _address, "عدد الشركات التابعة", _companiesCount);
+        return Card("بيانات المجموعة التجارية", t);
     }
 
-    private Control BuildIdentityCard()
+    private Control ContactCard()
     {
-        var card = Card("بيانات المجموعة التجارية");
-        var grid = FormGrid();
-        AddRow(grid, 0, "كود المجموعة *", txtCode, "اسم المجموعة بالعربية *", txtNameAr);
-        AddRow(grid, 1, "اسم المجموعة بالإنجليزية", txtNameEn, "الاسم المختصر *", txtShortName);
-        AddRow(grid, 2, "نوع المجموعة *", cmbType, "المجموعة الأم", cmbParent);
-        AddRow(grid, 3, "الشركة الرئيسية التابعة للمجموعة", cmbMainCompany, "العملة الافتراضية", cmbCurrency);
-        AddRow(grid, 4, "الدولة", txtCountry, "المدينة", txtCity);
-        AddRow(grid, 5, "العنوان المختصر", txtAddress, "عدد الشركات التابعة", lblCompaniesCount);
-        card.Controls.Add(grid);
-        return card;
+        var t = FormTable(7);
+        AddSingle(t, 0, "الهاتف", _phone); AddSingle(t, 1, "البريد الإلكتروني", _email); AddSingle(t, 2, "المدير المسؤول", _manager);
+        AddSingle(t, 3, "الحالة", _active); AddSingle(t, 4, "إعدادات شاشة الدخول", _showInLogin); AddSingle(t, 5, "ترتيب الظهور", _sort); AddSingle(t, 6, "ملاحظات", _notes);
+        return Card("الاتصال والإدارة", t);
     }
 
-    private Control BuildContactCard()
+    private async Task InitializeAsync()
     {
-        var card = Card("معلومات الاتصال والإدارة");
-        var grid = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, RowCount = 8, Padding = new Padding(12) };
-        grid.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 170));
-        grid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
-        AddSingle(grid, 0, "الهاتف", txtPhone);
-        AddSingle(grid, 1, "البريد الإلكتروني", txtEmail);
-        AddSingle(grid, 2, "المدير المسؤول", txtManager);
-        var status = new FlowLayoutPanel { Dock = DockStyle.Fill, FlowDirection = FlowDirection.RightToLeft };
-        // تغيير الحالة لا يتم من الراديو، بل من إجراء إيقاف/إعادة تفعيل مدقق في API.
-        rbActive.Enabled = false;
-        rbStopped.Enabled = false;
-        status.Controls.AddRange(new Control[] { rbActive, rbStopped });
-        AddSingle(grid, 3, "الحالة *", status);
-        AddSingle(grid, 4, "إعدادات شاشة الدخول", chkShowInLogin);
-        AddSingle(grid, 5, "ترتيب الظهور", numSort);
-        AddSingle(grid, 6, "وصف / ملاحظات", txtNotes);
-        grid.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
-        card.Controls.Add(grid);
-        return card;
-    }
-
-    private Control BuildGridCard()
-    {
-        var card = Card("قائمة المجموعات التجارية");
-        var top = new Panel { Dock = DockStyle.Top, Height = 42, Padding = new Padding(8) };
-        txtSearch.PlaceholderText = "ابحث بالكود أو الاسم أو النوع…";
-        txtSearch.Dock = DockStyle.Fill;
-        top.Controls.Add(txtSearch);
-        card.Controls.Add(dgvGroups);
-        card.Controls.Add(top);
-        return card;
-    }
-
-    private Control BuildFooter()
-    {
-        var footer = new Panel { Dock = DockStyle.Fill };
-        lblCount.Dock = DockStyle.Left;
-        lblCount.TextAlign = ContentAlignment.MiddleLeft;
-        footer.Controls.Add(lblCount);
-        footer.Controls.Add(new Label
+        _binding = true;
+        try
         {
-            Text = "تُربط كل شركة بمجموعة تجارية واحدة، ويمكن استخدام المجموعات لتنظيم شاشة الدخول وهيكل الشركات.",
-            Dock = DockStyle.Fill,
-            ForeColor = Color.FromArgb(55, 85, 130),
-            TextAlign = ContentAlignment.MiddleRight
-        });
-        return footer;
+            await Task.WhenAll(LoadCountriesAsync(), LoadCurrenciesAsync(), LoadCompaniesAsync());
+            await LoadGroupsAsync();
+        }
+        finally { _binding = false; }
     }
 
-    private void ConfigureGrid()
-    {
-        dgvGroups.Dock = DockStyle.Fill;
-        dgvGroups.AutoGenerateColumns = false;
-        dgvGroups.AllowUserToAddRows = false;
-        dgvGroups.ReadOnly = true;
-        dgvGroups.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
-        dgvGroups.MultiSelect = false;
-        dgvGroups.RowHeadersVisible = false;
-        dgvGroups.Columns.Add(TextCol(nameof(GroupRow.Group_Code), "كود المجموعة", 120));
-        dgvGroups.Columns.Add(TextCol(nameof(GroupRow.Group_Name_AR), "اسم المجموعة", 230));
-        dgvGroups.Columns.Add(TextCol(nameof(GroupRow.Group_Type), "النوع", 160));
-        dgvGroups.Columns.Add(TextCol(nameof(GroupRow.Main_Company_ID), "الشركة الرئيسية", 190));
-        dgvGroups.Columns.Add(TextCol(nameof(GroupRow.Sort_Order), "ترتيب الظهور", 100));
-        dgvGroups.Columns.Add(TextCol(nameof(GroupRow.Is_Active_Text), "الحالة", 100));
-    }
-
-    private async Task LoadAsync()
+    private async Task LoadGroupsAsync()
     {
         try
         {
-            UseWaitCursor = true;
-            _isBinding = true;
-            _cache = await _client.GetFromJsonAsync<List<GroupRow>>("TenantGroups") ?? new();
-            dgvGroups.DataSource = _cache.ToList();
-            cmbParent.DataSource = _cache.Where(x => x.Group_ID != _selectedId).ToList();
-            cmbParent.DisplayMember = nameof(GroupRow.Group_Name_AR);
-            cmbParent.ValueMember = nameof(GroupRow.Group_ID);
-            cmbParent.SelectedIndex = -1;
-            lblCount.Text = $"عدد السجلات: {_cache.Count}";
-            await LoadCompaniesAsync();
-            _isDirty = false;
+            _binding = true;
+            _groups = await ApiService.Client.GetFromJsonAsync<List<GroupRow>>("TenantGroups") ?? new();
+            _grid.DataSource = _groups.ToList(); _count.Text = $"عدد السجلات: {_groups.Count}";
+            _parent.DataSource = _groups.Where(x => x.Group_ID != _selectedId && x.Is_Active).ToList(); _parent.DisplayMember = nameof(GroupRow.Group_Name_AR); _parent.ValueMember = nameof(GroupRow.Group_ID); _parent.SelectedIndex = -1;
+            ClearForm();
         }
-        catch (Exception ex)
-        {
-            MessageBox.Show("تعذر تحميل المجموعات التجارية.\n" + ex.Message, Text, MessageBoxButtons.OK, MessageBoxIcon.Error);
-        }
-        finally { _isBinding = false; UseWaitCursor = false; }
+        catch (Exception ex) { MessageBox.Show("تعذر تحميل المجموعات التجارية.\n" + ex.Message, Text, MessageBoxButtons.OK, MessageBoxIcon.Error); }
+        finally { _binding = false; }
     }
 
-    private async Task SaveAsync()
+    private async Task LoadCountriesAsync()
     {
-        if (string.IsNullOrWhiteSpace(txtCode.Text) || string.IsNullOrWhiteSpace(txtNameAr.Text) ||
-            string.IsNullOrWhiteSpace(txtShortName.Text) || string.IsNullOrWhiteSpace(cmbType.Text))
-        {
-            MessageBox.Show("أدخل كود المجموعة والاسم العربي والاسم المختصر ونوع المجموعة.", Text, MessageBoxButtons.OK, MessageBoxIcon.Warning);
-            return;
-        }
-
-        var request = new
-        {
-            Group_Code = txtCode.Text.Trim(), Group_Name_AR = txtNameAr.Text.Trim(), Group_Name_EN = txtNameEn.Text.Trim(),
-            Short_Name = txtShortName.Text.Trim(), Group_Type = cmbType.Text, Parent_Group_ID = cmbParent.SelectedValue?.ToString(),
-            Main_Company_ID = cmbMainCompany.SelectedValue?.ToString(), Default_Currency_Code = cmbCurrency.Text,
-            Country_Name = txtCountry.Text.Trim(), City_Name = txtCity.Text.Trim(), Short_Address = txtAddress.Text.Trim(),
-            Phone = txtPhone.Text.Trim(), Email = txtEmail.Text.Trim(), Manager_Name = txtManager.Text.Trim(),
-            // لا يُسمح للحفظ العادي بتغيير حالة السجل؛ الإيقاف وإعادة التفعيل لهما API منفصل وسبب إلزامي.
-            Show_In_Login = chkShowInLogin.Checked, Sort_Order = (int)numSort.Value, Notes = txtNotes.Text.Trim(), Is_Active = true
-        };
-
-        HttpResponseMessage response = _selectedId == null
-            ? await _client.PostAsJsonAsync("TenantGroups", request)
-            : await _client.PutAsJsonAsync($"TenantGroups/{_selectedId}", request);
-        if (!response.IsSuccessStatusCode)
-        {
-            MessageBox.Show(await response.Content.ReadAsStringAsync(), Text, MessageBoxButtons.OK, MessageBoxIcon.Warning);
-            return;
-        }
-        _isDirty = false;
-        MessageBox.Show("تم حفظ المجموعة التجارية بنجاح.", Text, MessageBoxButtons.OK, MessageBoxIcon.Information);
-        ClearForm();
-        await LoadAsync();
+        var data = await ApiService.Client.GetFromJsonAsync<List<CountryLookup>>("GeographicReferences/countries?activeOnly=true") ?? new();
+        _country.DataSource = data; _country.DisplayMember = nameof(CountryLookup.Country_Name_AR); _country.ValueMember = nameof(CountryLookup.Country_ID); _country.SelectedIndex = -1;
     }
 
-    private async Task DeleteAsync()
+    private async Task LoadCitiesAsync()
     {
-        if (_selectedId == null) return;
-        if (MessageBox.Show("سيتم إيقاف المجموعة دون حذف تاريخها. هل تريد المتابعة؟", Text,
-                MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes) return;
-
-        // سبب الإيقاف إلزامي ويرسل إلى الـAPI كي يسجل في Audit_Logs.
-        var reason = Microsoft.VisualBasic.Interaction.InputBox("أدخل سبب إيقاف المجموعة التجارية:", "سبب الإيقاف", "");
-        if (string.IsNullOrWhiteSpace(reason))
-        {
-            MessageBox.Show("سبب الإيقاف مطلوب.", Text, MessageBoxButtons.OK, MessageBoxIcon.Warning);
-            return;
-        }
-
-        using var request = new HttpRequestMessage(HttpMethod.Delete, $"TenantGroups/{_selectedId}")
-        {
-            Content = JsonContent.Create(new { Reason = reason.Trim() })
-        };
-        var response = await _client.SendAsync(request);
-        if (!response.IsSuccessStatusCode)
-        {
-            MessageBox.Show(await response.Content.ReadAsStringAsync(), Text, MessageBoxButtons.OK, MessageBoxIcon.Warning);
-            return;
-        }
-        _isDirty = false;
-        ClearForm();
-        await LoadAsync();
+        var id = Convert.ToInt32(_country.SelectedValue ?? 0);
+        var data = id > 0 ? await ApiService.Client.GetFromJsonAsync<List<CityLookup>>($"GeographicReferences/cities?countryId={id}&activeOnly=true") ?? new() : new();
+        _city.DataSource = data; _city.DisplayMember = nameof(CityLookup.City_Name_AR); _city.ValueMember = nameof(CityLookup.City_ID); _city.SelectedIndex = -1;
     }
 
-    /// <summary>إعادة تفعيل سجل موقوف عبر Endpoint مستقل مع سبب تدقيقي إلزامي.</summary>
-    private async Task ReactivateAsync()
+    private async Task LoadCurrenciesAsync()
     {
-        if (string.IsNullOrWhiteSpace(_selectedId))
+        try
         {
-            MessageBox.Show("اختر مجموعة موقوفة أولاً.", Text, MessageBoxButtons.OK, MessageBoxIcon.Warning);
-            return;
+            var data = await ApiService.Client.GetFromJsonAsync<List<CurrencyLookup>>("Currencies") ?? new();
+            data = data.Where(x => x.Is_Active).ToList(); _currency.DataSource = data; _currency.DisplayMember = nameof(CurrencyLookup.Display_Name); _currency.ValueMember = nameof(CurrencyLookup.Currency_Code); _currency.SelectedIndex = -1;
         }
-
-        var selected = _cache.FirstOrDefault(x => x.Group_ID == _selectedId);
-        if (selected?.Is_Active == true)
-        {
-            MessageBox.Show("المجموعة المختارة نشطة بالفعل.", Text, MessageBoxButtons.OK, MessageBoxIcon.Information);
-            return;
-        }
-
-        var reason = Microsoft.VisualBasic.Interaction.InputBox("أدخل سبب إعادة التفعيل:", "إعادة تفعيل المجموعة", "").Trim();
-        if (string.IsNullOrWhiteSpace(reason))
-        {
-            MessageBox.Show("سبب إعادة التفعيل مطلوب.", Text, MessageBoxButtons.OK, MessageBoxIcon.Warning);
-            return;
-        }
-
-        var response = await _client.PostAsJsonAsync($"TenantGroups/{_selectedId}/reactivate", new { Reason = reason });
-        if (!response.IsSuccessStatusCode)
-        {
-            MessageBox.Show(await response.Content.ReadAsStringAsync(), Text, MessageBoxButtons.OK, MessageBoxIcon.Warning);
-            return;
-        }
-
-        _isDirty = false;
-        await LoadAsync();
-    }
-
-    private void BindSelected()
-    {
-        if (_isBinding || dgvGroups.CurrentRow?.DataBoundItem is not GroupRow row) return;
-        _isBinding = true;
-        _selectedId = row.Group_ID;
-        txtCode.Text = row.Group_Code;
-        txtNameAr.Text = row.Group_Name_AR;
-        txtNameEn.Text = row.Group_Name_EN;
-        txtShortName.Text = row.Short_Name;
-        cmbType.Text = row.Group_Type;
-        cmbParent.SelectedValue = row.Parent_Group_ID;
-        cmbMainCompany.SelectedValue = row.Main_Company_ID;
-        cmbCurrency.Text = row.Default_Currency_Code;
-        txtCountry.Text = row.Country_Name;
-        txtCity.Text = row.City_Name;
-        txtAddress.Text = row.Short_Address;
-        txtPhone.Text = row.Phone;
-        txtEmail.Text = row.Email;
-        txtManager.Text = row.Manager_Name;
-        chkShowInLogin.Checked = row.Show_In_Login;
-        numSort.Value = Math.Max(numSort.Minimum, Math.Min(numSort.Maximum, row.Sort_Order));
-        txtNotes.Text = row.Notes;
-        rbActive.Checked = row.Is_Active;
-        rbStopped.Checked = !row.Is_Active;
-        lblCompaniesCount.Text = row.Companies_Count.ToString();
-
-        // تعرض بطاقة التدقيق بيانات عادت من API فقط، ولا تستخدم حقول الإدخال كمصدر.
-        SetAuditInfo(new AuditInfoView(
-            row.Created_By is null ? "—" : $"مستخدم #{row.Created_By}",
-            row.Created_At,
-            row.Updated_By is null ? "—" : $"مستخدم #{row.Updated_By}",
-            row.Updated_At,
-            row.Edit_Count,
-            0,
-            row.Is_Active ? "نشطة" : "موقوفة",
-            true));
-        _isDirty = false;
-        _isBinding = false;
-    }
-
-    private void ClearForm()
-    {
-        _isBinding = true;
-        _selectedId = null;
-        foreach (var text in new[] { txtCode, txtNameAr, txtNameEn, txtShortName, txtCountry, txtCity, txtAddress, txtPhone, txtEmail, txtManager, txtNotes }) text.Clear();
-        cmbType.SelectedIndex = -1; cmbParent.SelectedIndex = -1; cmbMainCompany.SelectedIndex = -1; cmbCurrency.SelectedIndex = -1;
-        rbActive.Checked = true; chkShowInLogin.Checked = true; numSort.Value = 0; lblCompaniesCount.Text = "0";
-        // السجل الجديد لا يملك بيانات تدقيق حتى يحفظه الخادم لأول مرة.
-        SetAuditInfo(null);
-        dgvGroups.ClearSelection(); txtCode.Focus();
-        _isDirty = false;
-        _isBinding = false;
+        catch { _currency.DataSource = null; }
     }
 
     private async Task LoadCompaniesAsync()
     {
+        var data = await ApiService.Client.GetFromJsonAsync<List<CompanyLookup>>("Companies") ?? new();
+        _mainCompany.DataSource = data.Where(x => x.Is_Active).ToList(); _mainCompany.DisplayMember = nameof(CompanyLookup.Company_Name_AR); _mainCompany.ValueMember = nameof(CompanyLookup.Company_ID); _mainCompany.SelectedIndex = -1;
+    }
+
+    private async Task SaveAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_code.Text) || string.IsNullOrWhiteSpace(_nameAr.Text) || string.IsNullOrWhiteSpace(_shortName.Text) || _type.SelectedItem is null)
+        { MessageBox.Show("كود المجموعة والاسم العربي والاسم المختصر ونوع المجموعة حقول مطلوبة."); return; }
+        var dto = new
+        {
+            Group_Code = _code.Text.Trim(), Group_Name_AR = _nameAr.Text.Trim(), Group_Name_EN = Text(_nameEn.Text), Short_Name = _shortName.Text.Trim(), Group_Type = _type.Text,
+            Parent_Group_ID = _parent.SelectedValue?.ToString(), Main_Company_ID = _mainCompany.SelectedValue?.ToString(), Default_Currency_Code = _currency.SelectedValue?.ToString(),
+            Country_Name = (_country.SelectedItem as CountryLookup)?.Country_Name_AR, City_Name = (_city.SelectedItem as CityLookup)?.City_Name_AR, Short_Address = Text(_address.Text),
+            Phone = Text(_phone.Text), Email = Text(_email.Text), Manager_Name = Text(_manager.Text), Show_In_Login = _showInLogin.Checked, Sort_Order = (int)_sort.Value, Notes = Text(_notes.Text), Is_Active = true
+        };
+        var response = string.IsNullOrWhiteSpace(_selectedId) ? await ApiService.Client.PostAsJsonAsync("TenantGroups", dto) : await ApiService.Client.PutAsJsonAsync($"TenantGroups/{_selectedId}", dto);
+        if (!response.IsSuccessStatusCode) { MessageBox.Show(await response.Content.ReadAsStringAsync(), "تعذر الحفظ", MessageBoxButtons.OK, MessageBoxIcon.Warning); return; }
+        await LoadGroupsAsync(); MessageBox.Show("تم حفظ المجموعة التجارية بنجاح.");
+    }
+
+    private async Task ChangeStatusAsync(bool reactivate)
+    {
+        if (string.IsNullOrWhiteSpace(_selectedId)) { MessageBox.Show("اختر مجموعة أولاً."); return; }
+        if (reactivate == _active.Checked) return;
+        var action = reactivate ? "إعادة تفعيل" : "إيقاف";
+        var reason = Microsoft.VisualBasic.Interaction.InputBox($"أدخل سبب {action} المجموعة:", action, string.Empty).Trim();
+        if (string.IsNullOrWhiteSpace(reason)) { MessageBox.Show("السبب إلزامي للتدقيق."); return; }
+        HttpResponseMessage response;
+        if (reactivate) response = await ApiService.Client.PostAsJsonAsync($"TenantGroups/{_selectedId}/reactivate", new { Reason = reason });
+        else { using var request = new HttpRequestMessage(HttpMethod.Delete, $"TenantGroups/{_selectedId}") { Content = JsonContent.Create(new { Reason = reason }) }; response = await ApiService.Client.SendAsync(request); }
+        if (!response.IsSuccessStatusCode) { MessageBox.Show(await response.Content.ReadAsStringAsync(), "تعذر تنفيذ العملية", MessageBoxButtons.OK, MessageBoxIcon.Warning); return; }
+        await LoadGroupsAsync();
+    }
+
+    private async void BindSelected()
+    {
+        if (_binding || _grid.SelectedRows.Count == 0) return;
+        if (_grid.SelectedRows[0].DataBoundItem is not GroupRow row) return;
+        _binding = true;
         try
         {
-            var companies = await _client.GetFromJsonAsync<List<CompanyLookupRow>>("Branches/GetCompaniesLookup") ?? new();
-            cmbMainCompany.DataSource = companies;
-            cmbMainCompany.DisplayMember = nameof(CompanyLookupRow.Company_Name_AR);
-            cmbMainCompany.ValueMember = nameof(CompanyLookupRow.Company_ID);
-            cmbMainCompany.SelectedIndex = -1;
+            _selectedId = row.Group_ID; _code.Text = row.Group_Code; _nameAr.Text = row.Group_Name_AR; _nameEn.Text = row.Group_Name_EN; _shortName.Text = row.Short_Name; _type.Text = row.Group_Type;
+            _parent.SelectedValue = row.Parent_Group_ID; _mainCompany.SelectedValue = row.Main_Company_ID; _currency.SelectedValue = row.Default_Currency_Code;
+            if (!string.IsNullOrWhiteSpace(row.Country_Name))
+            {
+                var country = (_country.DataSource as List<CountryLookup>)?.FirstOrDefault(x => x.Country_Name_AR == row.Country_Name); if (country is not null) _country.SelectedValue = country.Country_ID;
+                await LoadCitiesAsync(); var city = (_city.DataSource as List<CityLookup>)?.FirstOrDefault(x => x.City_Name_AR == row.City_Name); if (city is not null) _city.SelectedValue = city.City_ID;
+            }
+            _address.Text = row.Short_Address; _phone.Text = row.Phone; _email.Text = row.Email; _manager.Text = row.Manager_Name; _showInLogin.Checked = row.Show_In_Login; _sort.Value = row.Sort_Order; _notes.Text = row.Notes; _active.Checked = row.Is_Active;
+            _companiesCount.Text = row.Companies_Count.ToString(); _dirty = false; UpdateButtons();
         }
-        catch
-        {
-            // تبقى القائمة فارغة عند فقدان الاتصال؛ الحفظ لا يطلب شركة رئيسية.
-        }
+        finally { _binding = false; }
     }
 
-    private void MarkDirty()
+    private void ConfigureGrid()
     {
-        if (!_isBinding) _isDirty = true;
+        _grid.Dock = DockStyle.Fill; _grid.AutoGenerateColumns = false; _grid.AllowUserToAddRows = false; _grid.ReadOnly = true; _grid.SelectionMode = DataGridViewSelectionMode.FullRowSelect; _grid.MultiSelect = false; _grid.RowHeadersVisible = false;
+        _grid.Columns.Add(Col(nameof(GroupRow.Group_Code), "كود المجموعة", 125)); _grid.Columns.Add(Col(nameof(GroupRow.Group_Name_AR), "اسم المجموعة", 230)); _grid.Columns.Add(Col(nameof(GroupRow.Group_Type), "النوع", 160));
+        _grid.Columns.Add(Col(nameof(GroupRow.Default_Currency_Code), "العملة", 90)); _grid.Columns.Add(Col(nameof(GroupRow.Country_Name), "الدولة", 130)); _grid.Columns.Add(Col(nameof(GroupRow.City_Name), "المدينة", 130)); _grid.Columns.Add(Col(nameof(GroupRow.Status_Text), "الحالة", 90));
     }
 
-    /// <summary>استدعاء MainWorkspaceManager قبل إغلاق تبويب فيه تعديلات غير محفوظة.</summary>
-    public bool ConfirmWorkspaceClose() => MessageBox.Show(
-        "توجد تعديلات غير محفوظة. هل تريد إغلاق الشاشة؟", Text,
-        MessageBoxButtons.YesNo, MessageBoxIcon.Warning) == DialogResult.Yes;
+    private void Filter() { var q = _search.Text.Trim(); _grid.DataSource = _groups.Where(x => string.IsNullOrWhiteSpace(q) || ($"{x.Group_Code} {x.Group_Name_AR} {x.Group_Name_EN} {x.Group_Type} {x.Country_Name} {x.City_Name}").Contains(q, StringComparison.CurrentCultureIgnoreCase)).ToList(); }
+    private void ClearForm() { _binding = true; try { _selectedId = null; foreach (var t in new[] { _code, _nameAr, _nameEn, _shortName, _address, _phone, _email, _manager, _notes }) t.Clear(); _type.SelectedIndex = 0; _parent.SelectedIndex = -1; _mainCompany.SelectedIndex = -1; _currency.SelectedIndex = -1; _country.SelectedIndex = -1; _city.DataSource = null; _showInLogin.Checked = true; _sort.Value = 0; _active.Checked = true; _companiesCount.Text = "0"; _grid.ClearSelection(); _dirty = false; UpdateButtons(); } finally { _binding = false; } _code.Focus(); }
+    private void MarkDirty() { if (!_binding) _dirty = true; }
+    private void UpdateButtons() { _deactivate.Enabled = !string.IsNullOrWhiteSpace(_selectedId) && _active.Checked; _reactivate.Enabled = !string.IsNullOrWhiteSpace(_selectedId) && !_active.Checked; _mainCompany.Enabled = !string.IsNullOrWhiteSpace(_selectedId); }
+    private void HandleKeys(object? s, KeyEventArgs e) { if (e.Control && e.KeyCode == Keys.N) { ClearForm(); e.SuppressKeyPress = true; } else if (e.Control && e.KeyCode == Keys.S) { _ = SaveAsync(); e.SuppressKeyPress = true; } else if (e.Control && e.KeyCode == Keys.F) { _search.Focus(); e.SuppressKeyPress = true; } else if (e.KeyCode == Keys.F5) { _ = LoadGroupsAsync(); e.SuppressKeyPress = true; } else if (e.KeyCode == Keys.Escape) { Close(); e.SuppressKeyPress = true; } }
 
-    private void FilterGrid()
-    {
-        var q = txtSearch.Text.Trim();
-        dgvGroups.DataSource = string.IsNullOrWhiteSpace(q) ? _cache.ToList() : _cache.Where(x =>
-            x.Group_Code.Contains(q, StringComparison.OrdinalIgnoreCase) ||
-            x.Group_Name_AR.Contains(q, StringComparison.OrdinalIgnoreCase) ||
-            x.Group_Type.Contains(q, StringComparison.OrdinalIgnoreCase)).ToList();
-    }
-
-    private void HandleShortcuts(object? sender, KeyEventArgs e)
-    {
-        if (e.Control && e.KeyCode == Keys.S) { _ = SaveAsync(); e.SuppressKeyPress = true; }
-        else if (e.KeyCode == Keys.F5) { _ = LoadAsync(); e.SuppressKeyPress = true; }
-        else if (e.KeyCode == Keys.F2) { ClearForm(); e.SuppressKeyPress = true; }
-        else if (e.KeyCode == Keys.Escape) { Close(); e.SuppressKeyPress = true; }
-    }
-
-    private static Panel Card(string title)
-    {
-        var card = new Panel { Dock = DockStyle.Fill, BackColor = Color.White, BorderStyle = BorderStyle.FixedSingle, Padding = new Padding(10) };
-        card.Controls.Add(new Label { Text = title, Dock = DockStyle.Top, Height = 32, Font = new Font("Segoe UI", 10.5F, FontStyle.Bold), ForeColor = Color.FromArgb(8, 55, 112), TextAlign = ContentAlignment.MiddleRight });
-        return card;
-    }
-
-    private static TableLayoutPanel FormGrid()
-    {
-        var grid = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 4, RowCount = 6, Padding = new Padding(10) };
-        grid.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 155));
-        grid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
-        grid.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 155));
-        grid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
-        return grid;
-    }
-
-    private static void AddRow(TableLayoutPanel grid, int row, string label1, Control input1, string label2, Control input2)
-    {
-        grid.Controls.Add(LabelFor(label1), 0, row); grid.Controls.Add(input1, 1, row);
-        grid.Controls.Add(LabelFor(label2), 2, row); grid.Controls.Add(input2, 3, row);
-        input1.Dock = DockStyle.Fill; input2.Dock = DockStyle.Fill;
-    }
-
-    private static void AddSingle(TableLayoutPanel grid, int row, string label, Control input)
-    {
-        grid.Controls.Add(LabelFor(label), 0, row); grid.Controls.Add(input, 1, row); input.Dock = DockStyle.Fill;
-    }
-
-    private static Label LabelFor(string text) => new() { Text = text, Dock = DockStyle.Fill, TextAlign = ContentAlignment.MiddleRight, ForeColor = Color.FromArgb(31, 52, 82) };
-    private static TextBox Input() => new() { BorderStyle = BorderStyle.FixedSingle, TextAlign = HorizontalAlignment.Right };
-    private static ComboBox Combo(params string[] items) { var c = new ComboBox { DropDownStyle = ComboBoxStyle.DropDownList, FlatStyle = FlatStyle.Flat }; if (items.Length > 0) c.Items.AddRange(items); return c; }
-    private static Button ToolButton(string text, bool primary = false) => new() { Text = text, Width = 125, Height = 36, Margin = new Padding(5, 0, 5, 0), FlatStyle = FlatStyle.Flat, BackColor = primary ? Color.FromArgb(14, 93, 216) : Color.White, ForeColor = primary ? Color.White : Color.FromArgb(8, 55, 112), Font = new Font("Segoe UI", 9F, FontStyle.Bold) };
-    private static DataGridViewTextBoxColumn TextCol(string property, string title, int width) => new() { DataPropertyName = property, HeaderText = title, Width = width, AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill };
-
-    private sealed class CompanyLookupRow
-    {
-        public string Company_ID { get; set; } = string.Empty;
-        public string Company_Name_AR { get; set; } = string.Empty;
-    }
+    private static string? Text(string? v) => string.IsNullOrWhiteSpace(v) ? null : v.Trim();
+    private static TextBox Input() => new(); private static ComboBox Combo() => new() { DropDownStyle = ComboBoxStyle.DropDownList };
+    private static Button Button(string text, EventHandler handler, bool primary = false, bool danger = false) { var b = new Button { Text = text, Width = 132, Height = 34, Margin = new Padding(4), FlatStyle = FlatStyle.Flat, BackColor = primary ? Color.FromArgb(14, 93, 216) : Color.White, ForeColor = primary ? Color.White : danger ? Color.Firebrick : Color.FromArgb(8, 55, 112) }; b.FlatAppearance.BorderColor = Color.FromArgb(205, 217, 232); b.Click += handler; return b; }
+    private static Panel Title(string text) => new() { Dock = DockStyle.Fill, BackColor = Color.FromArgb(8, 55, 112), Controls = { new Label { Text = text, Dock = DockStyle.Fill, ForeColor = Color.White, Font = new Font("Segoe UI", 14F, FontStyle.Bold), TextAlign = ContentAlignment.MiddleCenter } } };
+    private static Panel Card(string title, Control body) { var p = new Panel { Dock = DockStyle.Fill, BackColor = Color.White, BorderStyle = BorderStyle.FixedSingle, Padding = new Padding(8) }; body.Dock = DockStyle.Fill; p.Controls.Add(body); p.Controls.Add(new Label { Text = title, Dock = DockStyle.Top, Height = 30, TextAlign = ContentAlignment.MiddleRight, Font = new Font("Segoe UI", 10.5F, FontStyle.Bold), ForeColor = Color.FromArgb(8, 55, 112) }); return p; }
+    private static TableLayoutPanel FormTable(int rows) { var t = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 4, RowCount = rows, Padding = new Padding(12) }; t.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 150)); t.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50)); t.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 150)); t.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50)); for (var i = 0; i < rows; i++) t.RowStyles.Add(new RowStyle(SizeType.Absolute, 48)); return t; }
+    private static void AddRow(TableLayoutPanel t, int row, string c1, Control x1, string c2, Control x2) { t.Controls.Add(Caption(c1), 0, row); t.Controls.Add(Field(x1), 1, row); t.Controls.Add(Caption(c2), 2, row); t.Controls.Add(Field(x2), 3, row); }
+    private static void AddSingle(TableLayoutPanel t, int row, string c, Control x) { t.Controls.Add(Caption(c), 0, row); t.Controls.Add(Field(x), 1, row); t.SetColumnSpan(x, 3); }
+    private static Label Caption(string text) => new() { Text = text, Dock = DockStyle.Fill, TextAlign = ContentAlignment.MiddleRight, Font = new Font("Segoe UI", 9.5F, FontStyle.Bold), ForeColor = Color.FromArgb(31, 58, 92) };
+    private static Control Field(Control c) { c.Dock = DockStyle.Fill; c.Margin = new Padding(4, 7, 4, 7); return c; }
+    private static DataGridViewTextBoxColumn Col(string property, string header, int width) => new() { DataPropertyName = property, HeaderText = header, Width = width };
 
     private sealed class GroupRow
     {
-        public string Group_ID { get; set; } = "";
-        public string Group_Code { get; set; } = "";
-        public string Group_Name_AR { get; set; } = "";
-        public string Group_Name_EN { get; set; } = "";
-        public string Short_Name { get; set; } = "";
-        public string Group_Type { get; set; } = "";
-        public string? Parent_Group_ID { get; set; }
-        public string? Main_Company_ID { get; set; }
-        public string Default_Currency_Code { get; set; } = "";
-        public string Country_Name { get; set; } = "";
-        public string City_Name { get; set; } = "";
-        public string Short_Address { get; set; } = "";
-        public string Phone { get; set; } = "";
-        public string Email { get; set; } = "";
-        public string Manager_Name { get; set; } = "";
-        public bool Show_In_Login { get; set; }
-        public int Sort_Order { get; set; }
-        public string Notes { get; set; } = "";
-        // حقول التدقيق القادمة من Backend API للعرض فقط داخل BaseForm.
-        public int? Created_By { get; set; }
-        public DateTime? Created_At { get; set; }
-        public int? Updated_By { get; set; }
-        public DateTime? Updated_At { get; set; }
-        public int Edit_Count { get; set; }
-        public bool Is_Active { get; set; }
-        public int Companies_Count { get; set; }
-        public string Is_Active_Text => Is_Active ? "نشطة" : "موقوفة";
+        public string Group_ID { get; set; } = string.Empty; public string Group_Code { get; set; } = string.Empty; public string Group_Name_AR { get; set; } = string.Empty; public string Group_Name_EN { get; set; } = string.Empty;
+        public string Short_Name { get; set; } = string.Empty; public string Group_Type { get; set; } = string.Empty; public string? Parent_Group_ID { get; set; } public string? Main_Company_ID { get; set; } public string? Default_Currency_Code { get; set; }
+        public string? Country_Name { get; set; } public string? City_Name { get; set; } public string? Short_Address { get; set; } public string? Phone { get; set; } public string? Email { get; set; } public string? Manager_Name { get; set; }
+        public bool Show_In_Login { get; set; } public int Sort_Order { get; set; } public string? Notes { get; set; } public bool Is_Active { get; set; } public int Companies_Count { get; set; }
+        public string Status_Text => Is_Active ? "نشطة" : "موقوفة";
     }
+    private sealed class CountryLookup { public int Country_ID { get; set; } public string Country_Name_AR { get; set; } = string.Empty; }
+    private sealed class CityLookup { public int City_ID { get; set; } public string City_Name_AR { get; set; } = string.Empty; }
+    private sealed class CurrencyLookup { public int Currency_ID { get; set; } public string Currency_Code { get; set; } = string.Empty; public string Currency_Name_AR { get; set; } = string.Empty; public bool Is_Active { get; set; } public string Display_Name => $"{Currency_Code} - {Currency_Name_AR}"; }
+    private sealed class CompanyLookup { public string Company_ID { get; set; } = string.Empty; public string Company_Name_AR { get; set; } = string.Empty; public bool Is_Active { get; set; } }
 }
