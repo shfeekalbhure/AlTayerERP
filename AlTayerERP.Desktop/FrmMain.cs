@@ -559,6 +559,7 @@ namespace AlTayerERP.Desktop
         // قائمة مطابقة فقط للشاشات المنفذة حالياً؛ مصدر الإتاحة الفعلي يبقى API.
         private static readonly ScreenAccessRow[] KnownScreens =
         {
+            new("TenantGroups", "المجموعات التجارية", "الإدارة العامة", 5),
             new("Companies", "الشركات", "الإدارة العامة", 10),
             new("Branches", "الفروع", "الإدارة العامة", 20),
             new("FiscalYears", "السنوات المالية", "الإدارة العامة", 30),
