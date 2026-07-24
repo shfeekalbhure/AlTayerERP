@@ -6,7 +6,7 @@ on:
       - agent/unified-phase1-screens
   pull_request:
     branches:
-      - main
+      - master
 
 jobs:
   build:
