@@ -33,12 +33,12 @@ public sealed class AccountingReportsController : ControllerBase
         var denial=await Allow("GeneralLedger");if(denial!=null)return denial;if(string.IsNullOrWhiteSpace(accountId))return BadRequest(new{message="الحساب مطلوب."});
         var s=Session();var from=(fromDate??new DateTime(DateTime.UtcNow.Year,1,1)).Date;var to=(toDate??DateTime.UtcNow).Date;
         var account=await _db.Chart_Of_Accounts.AsNoTracking().Where(x=>x.Account_ID==accountId.Trim()&&x.Company_ID==s.Company_ID).Select(x=>new{x.Account_ID,x.Account_Code,x.Account_Name_AR}).SingleOrDefaultAsync();if(account==null)return NotFound();
-        var opening=await (from d in _db.Financial_Voucher_Details.AsNoTracking() join h in _db.Financial_Voucher_Headers.AsNoTracking() on d.Voucher_ID equals h.Voucher_ID
+        var opening=await ((from d in _db.Financial_Voucher_Details.AsNoTracking() join h in _db.Financial_Voucher_Headers.AsNoTracking() on d.Voucher_ID equals h.Voucher_ID
                            where h.Is_Active&&h.Is_Posted&&h.Branch_ID==s.Branch_ID.ToString()&&h.Fiscal_Year_ID==s.Year_ID&&d.Account_ID==accountId.Trim()&&h.Voucher_Date<from
-                           select d.Debit_Amount-d.Credit_Amount).DefaultIfEmpty().SumAsync();
-        var entries=await (from d in _db.Financial_Voucher_Details.AsNoTracking() join h in _db.Financial_Voucher_Headers.AsNoTracking() on d.Voucher_ID equals h.Voucher_ID
+                           select d.Debit_Amount-d.Credit_Amount).DefaultIfEmpty().SumAsync());
+        var entries=await ((from d in _db.Financial_Voucher_Details.AsNoTracking() join h in _db.Financial_Voucher_Headers.AsNoTracking() on d.Voucher_ID equals h.Voucher_ID
                            where h.Is_Active&&h.Is_Posted&&h.Branch_ID==s.Branch_ID.ToString()&&h.Fiscal_Year_ID==s.Year_ID&&d.Account_ID==accountId.Trim()&&h.Voucher_Date>=from&&h.Voucher_Date<=to
-                           orderby h.Voucher_Date,h.Voucher_No,d.Line_No select new{h.Voucher_Date,h.Voucher_No,d.Line_No,d.Description,d.Reference_No,d.Debit_Amount,d.Credit_Amount}).ToListAsync();
+                           orderby h.Voucher_Date,h.Voucher_No,d.Line_No select new{h.Voucher_Date,h.Voucher_No,d.Line_No,d.Description,d.Reference_No,d.Debit_Amount,d.Credit_Amount}).ToListAsync());
         decimal running=opening;var rows=entries.Select(x=>new{x.Voucher_Date,x.Voucher_No,x.Line_No,x.Description,x.Reference_No,x.Debit_Amount,x.Credit_Amount,Balance=running+=x.Debit_Amount-x.Credit_Amount}).ToList();
         return Ok(new{account,fromDate=from,toDate=to,openingBalance=opening,rows,closingBalance=running});
     }
