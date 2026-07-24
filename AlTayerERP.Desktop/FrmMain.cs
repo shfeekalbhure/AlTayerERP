@@ -320,6 +320,7 @@ namespace AlTayerERP.Desktop
         private static Func<Form>? GetScreenFactory(string screenCode) =>
             screenCode switch
             {
+                "TenantGroups" => () => new FrmTenantGroups(),
                 "Companies" => () => new CompanyForm(),
                 "Branches" => () => new BranchForm(),
                 "FiscalYears" => () => new FiscalYearForm(),
