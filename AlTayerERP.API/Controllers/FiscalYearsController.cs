@@ -111,8 +111,9 @@ namespace AlTayerERP.API.Controllers
                 Start_Date = dto.Start_Date,
                 End_Date = dto.End_Date,
                 Is_Default = dto.Is_Default,
-                Is_Closed = dto.Is_Closed,
-                Is_Active = dto.Is_Active,
+                // إقفال أو إيقاف السنة لا يتم في حفظ عام؛ يخصص له إجراء مدقق مستقل.
+                Is_Closed = false,
+                Is_Active = true,
                 Created_At = DateTime.Now
             };
 
@@ -156,12 +157,16 @@ namespace AlTayerERP.API.Controllers
             if (nameExists)
                 return BadRequest("اسم السنة المالية مستخدم مسبقاً داخل الشركة.");
 
+            if (fiscalYear.Is_Closed)
+                return Conflict("لا يمكن تعديل سنة مالية مقفلة. أعد فتحها بإجراء مدقق أولاً.");
+
             fiscalYear.Year_Name = dto.Year_Name.Trim();
             fiscalYear.Start_Date = dto.Start_Date;
             fiscalYear.End_Date = dto.End_Date;
             fiscalYear.Is_Default = dto.Is_Default;
-            fiscalYear.Is_Closed = dto.Is_Closed;
-            fiscalYear.Is_Active = dto.Is_Active;
+            // تحفظ دورة الحياة الحالية؛ لا يسمح DTO العميل بإغلاق أو إيقاف السنة مباشرة.
+            fiscalYear.Is_Closed = false;
+            fiscalYear.Is_Active = true;
             fiscalYear.Updated_At = DateTime.Now;
 
             if (fiscalYear.Is_Default)
