@@ -10,9 +10,21 @@ namespace AlTayerERP.Desktop.Services
         bool HasUnsavedChanges { get; }
 
         /// <summary>
-        /// تطلب الشاشة من المستخدم حفظ/تجاهل/إلغاء الإغلاق.
-        /// تعيد true فقط عند السماح بإغلاق التبويب.
+        /// التنفيذ الافتراضي يمنع الإغلاق غير المقصود عند وجود تعديلات غير محفوظة.
+        /// يمكن لأي شاشة تجاوز هذا السلوك عند حاجتها إلى حفظ فعلي قبل الإغلاق.
         /// </summary>
-        bool ConfirmWorkspaceClose();
+        bool ConfirmWorkspaceClose()
+        {
+            if (!HasUnsavedChanges) return true;
+
+            var result = MessageBox.Show(
+                "توجد تعديلات غير محفوظة. هل تريد تجاهلها وإغلاق الشاشة؟",
+                "تعديلات غير محفوظة",
+                MessageBoxButtons.YesNo,
+                MessageBoxIcon.Warning,
+                MessageBoxDefaultButton.Button2);
+
+            return result == DialogResult.Yes;
+        }
     }
 }
