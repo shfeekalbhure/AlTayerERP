@@ -91,9 +91,12 @@
 		</Compile>
 	</ItemGroup>
 
-	<!-- شاشة سند الصرف -->
+	<!-- شاشتا سند الصرف والقيد اليومي تعيدان استخدام نموذج السند الموحد -->
 	<ItemGroup>
 		<Compile Update="FrmPaymentVoucher.cs">
+			<SubType>Form</SubType>
+		</Compile>
+		<Compile Update="FrmJournalVoucher.cs">
 			<SubType>Form</SubType>
 		</Compile>
 	</ItemGroup>
