@@ -57,18 +57,27 @@ namespace AlTayerERP.Desktop.Services
         /// <summary>يعرض لوحة الملخص الثابتة ولا يسمح بإغلاقها.</summary>
         public void ShowHome(Control dashboard)
         {
-            if (_pages.TryGetValue(HomeKey, out var existing))
+            SetHome(dashboard, activate: true);
+        }
+
+        /// <summary>يحدث محتوى لوحة الملخص بعد تحميل الصلاحيات، دون إغلاق بقية التبويبات.</summary>
+        public void SetHome(Control dashboard, bool activate = false)
+        {
+            if (!_pages.TryGetValue(HomeKey, out var page))
             {
-                _tabs.SelectedTab = existing;
-                return;
+                page = CreatePage(HomeKey, "الرئيسية");
+                _tabs.TabPages.Insert(0, page);
+                _pages[HomeKey] = page;
             }
 
-            var page = CreatePage(HomeKey, "الرئيسية");
+            foreach (Control control in page.Controls)
+                control.Dispose();
+            page.Controls.Clear();
+
             dashboard.Dock = DockStyle.Fill;
             page.Controls.Add(dashboard);
-            _tabs.TabPages.Add(page);
-            _pages[HomeKey] = page;
-            _tabs.SelectedTab = page;
+            if (activate)
+                _tabs.SelectedTab = page;
         }
 
         /// <summary>
