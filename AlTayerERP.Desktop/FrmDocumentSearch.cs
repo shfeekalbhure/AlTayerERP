@@ -133,13 +133,13 @@ public sealed class FrmDocumentSearch : BaseForm
                 return;
 
             _grid.Rows.Clear();
-            var row = _grid.Rows.Add(
+            var rowIndex = _grid.Rows.Add(
                 GetString(data, "voucher_No"),
                 type.Name,
                 GetDate(data, "voucher_Date"),
                 GetBool(data, "is_Posted") ? "مرحل" : "غير مرحل",
                 GetString(data, "journal_Entry_No"));
-            row.Tag = new VoucherResult(GetString(data, "voucher_No"), typeId);
+            _grid.Rows[rowIndex].Tag = new VoucherResult(GetString(data, "voucher_No"), typeId);
             SetAuditInfo(new AuditInfoView(GetString(data, "created_By"), GetDateTime(data, "created_At"),
                 GetString(data, "updated_By"), GetDateTime(data, "updated_At"), GetInt(data, "edit_Count"),
                 GetInt(data, "print_Count"), GetBool(data, "is_Posted") ? "مرحل" : "غير مرحل", true));
