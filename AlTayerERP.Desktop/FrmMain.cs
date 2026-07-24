@@ -27,6 +27,8 @@ namespace AlTayerERP.Desktop
         public FrmMain()
         {
             InitializeComponent();
+            ApplyMainShellVisuals();
+            _workspace = new MainWorkspaceManager(pnlWorkspace);
 
             // لا تفتح الشاشة الرئيسية من المصمم أو من Program من دون جلسة مكتملة.
             if (!CurrentSession.IsLoggedIn)
@@ -37,8 +39,6 @@ namespace AlTayerERP.Desktop
                 return;
             }
 
-            ApplyMainShellVisuals();
-            _workspace = new MainWorkspaceManager(pnlWorkspace);
             WireEvents();
             PopulateHeaderFromSession();
             BuildDashboard();
