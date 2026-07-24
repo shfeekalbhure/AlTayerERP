@@ -53,28 +53,32 @@ namespace AlTayerERP.API.Security
             }
 
             // تحقق نطاق العمل لكل طلب يمنع استمرار الجلسة إذا أوقف المستخدم أو الدور أو السياق.
-            var isValidContext = await _context.Users.AsNoTracking()
-                .Where(x => x.User_ID == session.User_ID && x.Is_Active)
-                .Join(_context.Roles.AsNoTracking().Where(x => x.Is_Active),
-                    user => user.Role_ID,
-                    role => role.Role_ID,
-                    (user, role) => new { user, role })
-                .AnyAsync(x =>
-                    x.user.Role_ID == session.Role_ID &&
-                    x.role.Is_System_Admin == session.Is_System_Admin &&
-                    _context.Companies.Any(c => c.Company_ID == session.Company_ID && c.Is_Active) &&
-                    _context.Tenant_Branches.Any(b =>
-                        b.Branch_ID == session.Branch_ID &&
-                        b.Company_ID == session.Company_ID &&
-                        b.Is_Active) &&
-                    _context.Fiscal_Years.Any(y =>
-                        y.Fiscal_Year_ID == session.Year_ID &&
-                        y.Company_ID == session.Company_ID &&
-                        y.Is_Active &&
-                        !y.Is_Closed) &&
-                    (session.Is_System_Admin ||
-                        (x.user.Company_ID == session.Company_ID &&
-                         x.user.Branch_ID == session.Branch_ID)));
+            // الاستعلامات المنفصلة متعمدة؛ وهي أوضح وأضمن من استعلام متداخل على كل موفر بيانات.
+            var user = await _context.Users.AsNoTracking()
+                .FirstOrDefaultAsync(x => x.User_ID == session.User_ID && x.Is_Active);
+            var roleIsValid = user != null &&
+                user.Role_ID == session.Role_ID &&
+                await _context.Roles.AsNoTracking().AnyAsync(x =>
+                    x.Role_ID == session.Role_ID &&
+                    x.Is_Active &&
+                    x.Is_System_Admin == session.Is_System_Admin);
+            var companyIsValid = await _context.Companies.AsNoTracking()
+                .AnyAsync(x => x.Company_ID == session.Company_ID && x.Is_Active);
+            var branchIsValid = await _context.Tenant_Branches.AsNoTracking()
+                .AnyAsync(x => x.Branch_ID == session.Branch_ID &&
+                               x.Company_ID == session.Company_ID &&
+                               x.Is_Active);
+            var yearIsValid = await _context.Fiscal_Years.AsNoTracking()
+                .AnyAsync(x => x.Fiscal_Year_ID == session.Year_ID &&
+                               x.Company_ID == session.Company_ID &&
+                               x.Is_Active &&
+                               !x.Is_Closed);
+            var userScopeIsValid = session.Is_System_Admin ||
+                (user != null &&
+                 string.Equals(user.Company_ID?.Trim(), session.Company_ID, StringComparison.Ordinal) &&
+                 user.Branch_ID == session.Branch_ID);
+            var isValidContext = roleIsValid && companyIsValid && branchIsValid &&
+                                 yearIsValid && userScopeIsValid;
 
             if (!isValidContext)
             {
