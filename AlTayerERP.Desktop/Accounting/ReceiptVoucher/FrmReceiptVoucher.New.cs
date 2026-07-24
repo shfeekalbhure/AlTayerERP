@@ -15,9 +15,10 @@ namespace AlTayerERP.Desktop
 
         private sealed class GeneratedDocumentNumberModel
         {
+            // الرقم النهائي المحجوز من الخادم؛ لا يعاد بعد إلغاء السند.
+            public string Document_Number { get; set; } = string.Empty;
             public string Document_Type { get; set; } = string.Empty;
-            public string Generated_Number { get; set; } = string.Empty;
-            public int Next_Number { get; set; }
+            public int Serial_Number { get; set; }
         }
 
         #endregion
@@ -123,35 +124,28 @@ namespace AlTayerERP.Desktop
 
         private async Task GenerateVoucherNumberAsync()
         {
-            if (string.IsNullOrWhiteSpace(CurrentSession.Company_ID))
-                throw new InvalidOperationException("معرف الشركة غير موجود في جلسة المستخدم.");
+            if (string.IsNullOrWhiteSpace(CurrentSession.Company_ID) ||
+                CurrentSession.Branch_ID <= 0 || CurrentSession.Year_ID <= 0)
+            {
+                throw new InvalidOperationException("سياق الشركة والفرع والسنة المالية غير مكتمل.");
+            }
 
-            if (CurrentSession.Branch_ID <= 0)
-                throw new InvalidOperationException("معرف الفرع غير موجود في جلسة المستخدم.");
-
+            // الحجز عملية POST متعمدة: توليد رقم العرض يغير العداد المركزي،
+            // ولذلك لا يمكن أن يتكرر الرقم إذا أغلق المستخدم المسودة أو ألغاها.
             const string documentType = "RECEIPT_VOUCHER";
-            int fiscalYear = GetCurrentFiscalYearNumber();
+            var response = await _client.PostAsJsonAsync(
+                $"{_baseUrl}NumberingSettings/Reserve",
+                new { Document_Type = documentType });
 
-            string companyId = Uri.EscapeDataString(CurrentSession.Company_ID);
-            string encodedDocumentType = Uri.EscapeDataString(documentType);
+            if (!response.IsSuccessStatusCode)
+                throw new InvalidOperationException(await response.Content.ReadAsStringAsync());
 
-            string requestUrl = $"{_baseUrl}NumberingSettings/GenerateNumber" +
-                $"?documentType={encodedDocumentType}" +
-                $"&companyId={companyId}" +
-                $"&branchId={CurrentSession.Branch_ID}" +
-                $"&year={fiscalYear}";
+            var result = await response.Content.ReadFromJsonAsync<GeneratedDocumentNumberModel>();
+            if (result == null || string.IsNullOrWhiteSpace(result.Document_Number))
+                throw new InvalidOperationException("لم ترجع خدمة الترقيم رقماً محجوزاً للسند.");
 
-            GeneratedDocumentNumberModel? result = await _client.GetFromJsonAsync<GeneratedDocumentNumberModel>(requestUrl);
-
-            if (result == null)
-                throw new InvalidOperationException("لم ترجع خدمة الترقيم رقماً للسند.");
-
-            if (string.IsNullOrWhiteSpace(result.Generated_Number))
-                throw new InvalidOperationException("رقم السند المولد فارغ.");
-
-            txtVoucherNo.Text = result.Generated_Number;
+            txtVoucherNo.Text = result.Document_Number;
         }
-
         #endregion
 
         #region === تحديد السنة المالية ===
