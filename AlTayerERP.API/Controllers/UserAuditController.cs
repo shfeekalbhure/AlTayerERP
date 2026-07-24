@@ -1,3 +1,4 @@
+using AlTayerERP.API.Services;
 using AlTayerERP.Core.Entities;
 using AlTayerERP.Infrastructure.Data;
 using Microsoft.AspNetCore.Authorization;
@@ -55,8 +56,9 @@ public sealed class UserAuditController : ControllerBase
             .FirstOrDefault();
 
         var actorIds = new[] { creationLog?.User_ID, updateLog?.User_ID }
-            .Where(x => int.TryParse(x, out _))
-            .Select(int.Parse)
+            .Select(x => int.TryParse(x, out var parsed) ? (int?)parsed : null)
+            .Where(x => x.HasValue)
+            .Select(x => x!.Value)
             .Distinct()
             .ToList();
 
