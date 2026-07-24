@@ -9,10 +9,6 @@ using Microsoft.EntityFrameworkCore;
 
 namespace AlTayerERP.API.Controllers
 {
-    /// <summary>
-    /// إدارة المستخدمين. لا يسمح API للعميل بتحديد هوية منفذ العملية أو نطاقه؛
-    /// سياق الجلسة الموثوق هو المرجع، والحذف يتحول إلى إيقاف منطقي.
-    /// </summary>
     [Authorize]
     [Route("api/[controller]")]
     [ApiController]
@@ -52,15 +48,33 @@ namespace AlTayerERP.API.Controllers
             if (!session.Is_System_Admin)
                 query = query.Where(x => x.Company_ID == session.Company_ID && x.Branch_ID == session.Branch_ID);
 
-            var users = await query.OrderBy(x => x.User_ID)
-                .Select(x => new
-                {
-                    x.User_ID, x.Company_ID, x.Branch_ID, x.Role_ID, x.User_Code,
-                    x.Full_Name, x.Login_Name, x.Phone, x.Email, x.Notes,
-                    x.Must_Change_Password, x.Is_Active, x.Created_At, x.Updated_At,
-                    x.Last_Login_At, x.Locked_Until
-                })
+            var users = await (
+                    from user in query
+                    join role in _context.Roles.AsNoTracking() on user.Role_ID equals role.Role_ID into roleJoin
+                    from role in roleJoin.DefaultIfEmpty()
+                    orderby user.User_ID
+                    select new
+                    {
+                        user.User_ID,
+                        user.Company_ID,
+                        user.Branch_ID,
+                        user.Role_ID,
+                        Role_Name = role == null ? "—" : role.Role_Name,
+                        user.User_Code,
+                        user.Full_Name,
+                        user.Login_Name,
+                        user.Phone,
+                        user.Email,
+                        user.Notes,
+                        user.Must_Change_Password,
+                        user.Is_Active,
+                        user.Created_At,
+                        user.Updated_At,
+                        user.Last_Login_At,
+                        user.Locked_Until
+                    })
                 .ToListAsync();
+
             return Ok(users);
         }
 
@@ -77,11 +91,16 @@ namespace AlTayerERP.API.Controllers
                 (user.Company_ID != session.Company_ID || user.Branch_ID != session.Branch_ID))
                 return Forbid();
 
-            // لا يعاد Password_Hash إلى الواجهة تحت أي ظرف.
+            var roleName = await _context.Roles.AsNoTracking()
+                .Where(x => x.Role_ID == user.Role_ID)
+                .Select(x => x.Role_Name)
+                .FirstOrDefaultAsync();
+
             return Ok(new
             {
-                user.User_ID, user.Company_ID, user.Branch_ID, user.Role_ID, user.User_Code,
-                user.Full_Name, user.Login_Name, user.Phone, user.Email, user.Notes,
+                user.User_ID, user.Company_ID, user.Branch_ID, user.Role_ID,
+                Role_Name = roleName ?? "—",
+                user.User_Code, user.Full_Name, user.Login_Name, user.Phone, user.Email, user.Notes,
                 user.Must_Change_Password, user.Is_Active, user.Created_At, user.Updated_At,
                 user.Last_Login_At, user.Locked_Until
             });
@@ -130,7 +149,7 @@ namespace AlTayerERP.API.Controllers
             };
 
             _context.Users.Add(user);
-            _audit.Add(session, HttpContext, "users", "new", "CREATE", newValues: new
+            _audit.Add(session, HttpContext, "users", "new", "INSERT", newValues: new
             {
                 user.Company_ID, user.Branch_ID, user.Role_ID, user.User_Code, user.Login_Name, user.Is_Active
             });
@@ -205,10 +224,11 @@ namespace AlTayerERP.API.Controllers
                 (user.Company_ID != session.Company_ID || user.Branch_ID != session.Branch_ID))
                 return Forbid();
 
+            var wasActive = user.Is_Active;
             user.Is_Active = false;
             user.Updated_At = DateTime.UtcNow;
-            _audit.Add(session, HttpContext, "users", id.ToString(), "DEACTIVATE",
-                new { Is_Active = true }, new { Is_Active = false });
+            _audit.Add(session, HttpContext, "users", id.ToString(), "UPDATE",
+                new { Is_Active = wasActive }, new { Is_Active = false }, "إيقاف منطقي للمستخدم");
             await _context.SaveChangesAsync();
             return Ok(new { message = "تم إيقاف المستخدم بنجاح." });
         }
@@ -230,7 +250,7 @@ namespace AlTayerERP.API.Controllers
             user.Last_Failed_Login_At = null;
             user.Locked_Until = null;
             user.Updated_At = DateTime.UtcNow;
-            _audit.Add(session, HttpContext, "users", id.ToString(), "UNLOCK");
+            _audit.Add(session, HttpContext, "users", id.ToString(), "UPDATE", notes: "إلغاء قفل حساب المستخدم");
             await _context.SaveChangesAsync();
             return Ok(new { message = "تم إلغاء قفل حساب المستخدم." });
         }
