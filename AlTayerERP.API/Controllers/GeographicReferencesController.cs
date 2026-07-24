@@ -15,20 +15,26 @@ namespace AlTayerERP.API.Controllers;
 public sealed class GeographicReferencesController : ControllerBase
 {
     private readonly AppDbContext _context;
+    private readonly ScreenAuthorizationService _authorization;
 
-    public GeographicReferencesController(AppDbContext context) => _context = context;
+    public GeographicReferencesController(AppDbContext context, ScreenAuthorizationService authorization)
+    {
+        _context = context;
+        _authorization = authorization;
+    }
 
-    private IActionResult? RequireSystemAdmin()
+    /// <summary>تفويض خادمي Default Deny لكل شاشة ولكل إجراء؛ لا يعتمد على إظهار الزر في سطح المكتب.</summary>
+    private async Task<IActionResult?> RequireAsync(string screenCode, ScreenOperation operation)
     {
         var session = HttpContext.Items["ServerSession"] as ServerSession;
         if (session == null) return Unauthorized("انتهت الجلسة أو أنها غير صالحة.");
-        return session.Is_System_Admin ? null : Forbid();
+        return await _authorization.IsAllowedAsync(session, screenCode, operation) ? null : Forbid();
     }
 
     [HttpGet("countries")]
     public async Task<IActionResult> GetCountries([FromQuery] bool activeOnly = false)
     {
-        var access = RequireSystemAdmin();
+        var access = await RequireAsync("Countries", ScreenOperation.View);
         if (access != null) return access;
         return Ok(await QueryAsync($"SELECT Country_ID, Country_Code, Country_Name_AR, Country_Name_EN, ISO2, ISO3, Phone_Code, Currency_Code, Nationality_Name_AR, Sort_Order, Is_Active, Notes FROM countries {(activeOnly ? "WHERE Is_Active = 1" : string.Empty)} ORDER BY Sort_Order, Country_Name_AR"));
     }
@@ -36,7 +42,7 @@ public sealed class GeographicReferencesController : ControllerBase
     [HttpGet("governorates")]
     public async Task<IActionResult> GetGovernorates([FromQuery] int? countryId = null, [FromQuery] bool activeOnly = false)
     {
-        var access = RequireSystemAdmin();
+        var access = await RequireAsync("Governorates", ScreenOperation.View);
         if (access != null) return access;
         var where = new List<string>();
         if (countryId.HasValue) where.Add("g.Country_ID = @Country_ID");
@@ -50,7 +56,7 @@ public sealed class GeographicReferencesController : ControllerBase
     [HttpGet("cities")]
     public async Task<IActionResult> GetCities([FromQuery] int? governorateId = null, [FromQuery] int? countryId = null, [FromQuery] bool activeOnly = false)
     {
-        var access = RequireSystemAdmin();
+        var access = await RequireAsync("Cities", ScreenOperation.View);
         if (access != null) return access;
         var where = new List<string>();
         if (countryId.HasValue) where.Add("ci.Country_ID = @Country_ID");
@@ -65,7 +71,7 @@ public sealed class GeographicReferencesController : ControllerBase
     [HttpPost("countries")]
     public async Task<IActionResult> SaveCountry([FromBody] CountryRequest dto)
     {
-        var access = RequireSystemAdmin();
+        var access = await RequireAsync("Countries", dto.Country_ID > 0 ? ScreenOperation.Edit : ScreenOperation.Add);
         if (access != null) return access;
         if (string.IsNullOrWhiteSpace(dto.Country_Code) || string.IsNullOrWhiteSpace(dto.Country_Name_AR))
             return BadRequest("كود الدولة واسمها العربي مطلوبان.");
@@ -85,7 +91,7 @@ public sealed class GeographicReferencesController : ControllerBase
     [HttpPost("governorates")]
     public async Task<IActionResult> SaveGovernorate([FromBody] GovernorateRequest dto)
     {
-        var access = RequireSystemAdmin();
+        var access = await RequireAsync("Governorates", dto.Governorate_ID > 0 ? ScreenOperation.Edit : ScreenOperation.Add);
         if (access != null) return access;
         if (dto.Country_ID <= 0 || string.IsNullOrWhiteSpace(dto.Governorate_Code) || string.IsNullOrWhiteSpace(dto.Governorate_Name_AR))
             return BadRequest("الدولة وكود المحافظة واسمها العربي مطلوبة.");
@@ -105,7 +111,7 @@ public sealed class GeographicReferencesController : ControllerBase
     [HttpPost("cities")]
     public async Task<IActionResult> SaveCity([FromBody] CityRequest dto)
     {
-        var access = RequireSystemAdmin();
+        var access = await RequireAsync("Cities", dto.City_ID > 0 ? ScreenOperation.Edit : ScreenOperation.Add);
         if (access != null) return access;
         if (dto.Country_ID <= 0 || dto.Governorate_ID <= 0 || string.IsNullOrWhiteSpace(dto.City_Code) || string.IsNullOrWhiteSpace(dto.City_Name_AR))
             return BadRequest("الدولة والمحافظة وكود المدينة واسمها العربي مطلوبة.");
@@ -126,7 +132,7 @@ public sealed class GeographicReferencesController : ControllerBase
     [HttpDelete("countries/{id:int}")]
     public async Task<IActionResult> DeactivateCountry(int id, [FromBody] RecordStatusChangeDto dto)
     {
-        var access = RequireSystemAdmin(); if (access != null) return access;
+        var access = await RequireAsync("Countries", ScreenOperation.Delete); if (access != null) return access;
         if (dto is null || string.IsNullOrWhiteSpace(dto.Reason)) return BadRequest("سبب إيقاف الدولة مطلوب.");
         if (await ScalarAsync<int>("SELECT COUNT(*) FROM governorates WHERE Country_ID=@ID AND Is_Active=1", ("@ID", id)) > 0) return Conflict("أوقف المحافظات النشطة أولاً.");
         var changed = await ExecuteAsync("UPDATE countries SET Is_Active=0, Updated_At=UTC_TIMESTAMP() WHERE Country_ID=@ID", ("@ID", id));
@@ -136,7 +142,7 @@ public sealed class GeographicReferencesController : ControllerBase
     [HttpDelete("governorates/{id:int}")]
     public async Task<IActionResult> DeactivateGovernorate(int id, [FromBody] RecordStatusChangeDto dto)
     {
-        var access = RequireSystemAdmin(); if (access != null) return access;
+        var access = await RequireAsync("Governorates", ScreenOperation.Delete); if (access != null) return access;
         if (dto is null || string.IsNullOrWhiteSpace(dto.Reason)) return BadRequest("سبب إيقاف المحافظة مطلوب.");
         if (await ScalarAsync<int>("SELECT COUNT(*) FROM cities WHERE Governorate_ID=@ID AND Is_Active=1", ("@ID", id)) > 0) return Conflict("أوقف المدن النشطة أولاً.");
         var changed = await ExecuteAsync("UPDATE governorates SET Is_Active=0, Updated_At=UTC_TIMESTAMP() WHERE Governorate_ID=@ID", ("@ID", id));
@@ -146,7 +152,7 @@ public sealed class GeographicReferencesController : ControllerBase
     [HttpDelete("cities/{id:int}")]
     public async Task<IActionResult> DeactivateCity(int id, [FromBody] RecordStatusChangeDto dto)
     {
-        var access = RequireSystemAdmin(); if (access != null) return access;
+        var access = await RequireAsync("Cities", ScreenOperation.Delete); if (access != null) return access;
         if (dto is null || string.IsNullOrWhiteSpace(dto.Reason)) return BadRequest("سبب إيقاف المدينة مطلوب.");
         var changed = await ExecuteAsync("UPDATE cities SET Is_Active=0, Updated_At=UTC_TIMESTAMP() WHERE City_ID=@ID", ("@ID", id));
         if(changed==0) return NotFound("المدينة غير موجودة."); AddAudit("cities",id,"DEACTIVATE",dto.Reason); await _context.SaveChangesAsync(); return Ok();
@@ -155,7 +161,7 @@ public sealed class GeographicReferencesController : ControllerBase
     [HttpPost("countries/{id:int}/reactivate")]
     public async Task<IActionResult> ReactivateCountry(int id, [FromBody] RecordStatusChangeDto dto)
     {
-        var access = RequireSystemAdmin(); if (access != null) return access;
+        var access = await RequireAsync("Countries", ScreenOperation.Edit); if (access != null) return access;
         if (dto is null || string.IsNullOrWhiteSpace(dto.Reason)) return BadRequest("سبب إعادة تفعيل الدولة مطلوب.");
         var changed=await ExecuteAsync("UPDATE countries SET Is_Active=1, Updated_At=UTC_TIMESTAMP() WHERE Country_ID=@ID", ("@ID",id));
         if(changed==0) return NotFound("الدولة غير موجودة."); AddAudit("countries",id,"REACTIVATE",dto.Reason); await _context.SaveChangesAsync(); return Ok();
@@ -165,7 +171,7 @@ public sealed class GeographicReferencesController : ControllerBase
     [HttpPost("governorates/{id:int}/reactivate")]
     public async Task<IActionResult> ReactivateGovernorate(int id, [FromBody] RecordStatusChangeDto dto)
     {
-        var access=RequireSystemAdmin(); if(access!=null) return access;
+        var access = await RequireAsync("Countries", ScreenOperation.Edit); if (access != null) return access;
         if(dto is null || string.IsNullOrWhiteSpace(dto.Reason)) return BadRequest("سبب إعادة تفعيل المحافظة مطلوب.");
         var valid=await ScalarAsync<int>("SELECT COUNT(*) FROM governorates g INNER JOIN countries c ON c.Country_ID=g.Country_ID WHERE g.Governorate_ID=@ID AND c.Is_Active=1",("@ID",id));
         if(valid==0) return Conflict("لا يمكن إعادة تفعيل المحافظة قبل تفعيل الدولة الأم.");
@@ -176,7 +182,7 @@ public sealed class GeographicReferencesController : ControllerBase
     [HttpPost("cities/{id:int}/reactivate")]
     public async Task<IActionResult> ReactivateCity(int id, [FromBody] RecordStatusChangeDto dto)
     {
-        var access=RequireSystemAdmin(); if(access!=null) return access;
+        var access = await RequireAsync("Governorates", ScreenOperation.Edit); if (access != null) return access;
         if(dto is null || string.IsNullOrWhiteSpace(dto.Reason)) return BadRequest("سبب إعادة تفعيل المدينة مطلوب.");
         var valid=await ScalarAsync<int>("SELECT COUNT(*) FROM cities ci INNER JOIN countries c ON c.Country_ID=ci.Country_ID INNER JOIN governorates g ON g.Governorate_ID=ci.Governorate_ID WHERE ci.City_ID=@ID AND c.Is_Active=1 AND g.Is_Active=1",("@ID",id));
         if(valid==0) return Conflict("لا يمكن إعادة تفعيل المدينة قبل تفعيل الدولة والمحافظة.");
@@ -187,7 +193,7 @@ public sealed class GeographicReferencesController : ControllerBase
     private void AddAudit(string tableName,int recordId,string action,string reason)
     {
         var session=HttpContext.Items["ServerSession"] as ServerSession;
-        _context.Audit_Logs.Add(new AuditLog { Table_Name=tableName, Record_ID=recordId.ToString(), Action_Type=action, User_ID=session?.User_ID.ToString(), Branch_ID=session?.Branch_ID.ToString(), Action_At=DateTime.UtcNow, Action_Channel="DESKTOP", Device_Name=Request.Headers["X-Device-ID"].ToString(), IP_Address=HttpContext.Connection.RemoteIpAddress?.ToString(), Notes=reason, New_Values=JsonSerializer.Serialize(new { Is_Active=false, Reason=reason })});
+        _context.Audit_Logs.Add(new AuditLog { Table_Name=tableName, Record_ID=recordId.ToString(), Action_Type=action, User_ID=session?.User_ID.ToString(), Branch_ID=session?.Branch_ID.ToString(), Action_At=DateTime.UtcNow, Action_Channel="DESKTOP", Device_Name=Request.Headers["X-Device-ID"].ToString(), IP_Address=HttpContext.Connection.RemoteIpAddress?.ToString(), Notes=reason, New_Values=JsonSerializer.Serialize(new { Is_Active = !string.Equals(action, "DEACTIVATE", StringComparison.Ordinal), Reason = reason })});
     }
 
     private async Task<List<Dictionary<string, object?>>> QueryAsync(string sql, params (string Name, object? Value)[] parameters)
