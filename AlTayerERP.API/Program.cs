@@ -53,6 +53,9 @@ builder.Services.AddScoped<SystemScreenCatalogSeeder>();
 builder.Services.AddScoped<VoucherReferenceDataSeeder>();
 // جلسات الخادم تحفظ هوية الدخول بعد التحقق ولا تعتمد على بيانات مرسلة من الواجهة.
 builder.Services.AddSingleton<ServerSessionService>();
+// التوكنات والقفل وسجل المحاولات خدمات خادمية لا تنفذها واجهة سطح المكتب.
+builder.Services.AddScoped<TokenService>();
+builder.Services.AddScoped<LoginSecurityService>();
 // تفويض الشاشات والعمليات من جهة الخادم.
 builder.Services.AddScoped<ScreenAuthorizationService>();
 
@@ -114,38 +117,33 @@ app.UseHttpsRedirection();
 app.UseCors("AllowAll");
 
 
-// حماية عامة: بعد الدخول لا يمكن استدعاء واجهات العمل دون رمز جلسة صادر من الخادم.
-// تستثنى فقط نقاط الدخول وحالة الخدمة وقوائم شاشة الدخول المحدودة.
+// يحوّل JWT الموقّع وجلسة الخادم وسياق العمل إلى ClaimsPrincipal قبل التفويض.
+app.UseAuthentication();
+
+// نقطة الدخول والتجديد والصحة وقوائم شاشة الدخول فقط عامة. بقية API تتطلب
+// JWT صالحاً وجلسة قابلة للإبطال وسياق شركة/فرع/سنة موثقاً من الخادم.
 app.Use(async (context, next) =>
 {
     var path = context.Request.Path;
+    var isApiRequest = path.StartsWithSegments("/api");
     var isPublic = path.StartsWithSegments("/api/Auth/Login") ||
+                   path.StartsWithSegments("/api/Auth/Refresh") ||
                    path.StartsWithSegments("/api/health") ||
                    (HttpMethods.IsGet(context.Request.Method) &&
                     (path.StartsWithSegments("/api/Branches/GetCompaniesLookup") ||
                      path.StartsWithSegments("/api/Branches/GetActiveBranchesLookup") ||
                      path.StartsWithSegments("/api/FiscalYears/Lookup")));
 
-    if (isPublic)
-    {
-        await next();
-        return;
-    }
-
-    var sessions = context.RequestServices.GetRequiredService<ServerSessionService>();
-    if (!sessions.TryGet(context.Request.Headers["X-Session-Token"].ToString(), out var session))
+    if (isApiRequest && !isPublic && context.User.Identity?.IsAuthenticated != true)
     {
         context.Response.StatusCode = StatusCodes.Status401Unauthorized;
-        await context.Response.WriteAsJsonAsync(new { message = "انتهت الجلسة أو أنها غير صالحة. سجل الدخول من جديد." });
+        await context.Response.WriteAsJsonAsync(new { message = "انتهت الجلسة أو رمز الوصول غير صالح. سجل الدخول من جديد." });
         return;
     }
 
-    context.Items["ServerSession"] = session;
     await next();
 });
 
-// يحوّل جلسة الخادم الموثقة إلى ClaimsPrincipal قبل التفويض.
-app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
