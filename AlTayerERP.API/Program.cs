@@ -65,6 +65,8 @@ builder.Services.AddScoped<LoginSecurityService>();
 builder.Services.AddScoped<ScreenAuthorizationService>();
 // يحل الإعدادات بحسب النظام ثم الشركة ثم الفرع ثم السنة المالية.
 builder.Services.AddScoped<SettingsResolverService>();
+// يخدم مسارات السنوات والفترات والتدقيق؛ تسجيله يمنع فشل إنشاء الـController عند شاشة الدخول.
+builder.Services.AddScoped<AuditTrailService>();
 
 // يثبت مخطط المصادقة الافتراضي حتى تُرجع Forbid/Challenge استجابات 403/401 سليمة
 // بدلاً من InvalidOperationException وHTTP 500.
