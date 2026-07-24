@@ -262,6 +262,18 @@ namespace AlTayerERP.Infrastructure.Data
             {
                 entity.ToTable("numbering_counters");
                 entity.HasKey(e => e.Counter_ID);
+
+                // القيم غير المستخدمة تخزن كسلسلة فارغة/صفر؛ المفتاح يمنع إنشاء
+                // عدادين لنفس نوع المستند ونطاق الشركة/الفرع/السنة.
+                entity.HasIndex(e => new
+                {
+                    e.Document_Type,
+                    e.Company_ID,
+                    e.Branch_ID,
+                    e.Year_Value
+                })
+                .IsUnique()
+                .HasDatabaseName("UQ_Numbering_Counter_Scope");
             });
 
             // إعدادات جدول الحدود المالية وتحديد المفتاح الرئيسي
