@@ -38,7 +38,9 @@ namespace AlTayerERP.API.Controllers
         private bool TryGetAdminSession(out ServerSession session)
         {
             session = HttpContext.Items["ServerSession"] as ServerSession
-                ?? new ServerSession(string.Empty, 0, 0, false, string.Empty, 0, 0, DateTime.MinValue);
+                ?? new ServerSession(
+                    string.Empty, 0, 0, false, string.Empty, 0, 0, "unknown",
+                    DateTime.MinValue, DateTime.MinValue);
             return session.Is_System_Admin;
         }
 
