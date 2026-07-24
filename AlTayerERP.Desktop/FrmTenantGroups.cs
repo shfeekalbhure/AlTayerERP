@@ -14,7 +14,7 @@ namespace AlTayerERP.Desktop;
 /// <summary>
 /// شاشة المجموعات التجارية وفق التصميم الموحد المعتمد للمرحلة الأولى.
 /// </summary>
-public sealed class FrmTenantGroups : BaseForm
+public sealed class FrmTenantGroups : BaseForm, IWorkspaceDirtyAware
 {
     private readonly HttpClient _client = ApiService.Client;
     private readonly DataGridView dgvGroups = new();
@@ -41,8 +41,14 @@ public sealed class FrmTenantGroups : BaseForm
     private readonly Label lblCount = new() { AutoSize = true };
     private readonly Label lblCompaniesCount = new() { Text = "0", AutoSize = true, Font = new Font("Segoe UI", 11F, FontStyle.Bold) };
     private readonly Button btnSave;
+    private readonly Button btnReactivate;
     private string? _selectedId;
     private List<GroupRow> _cache = new();
+    private bool _isDirty;
+    private bool _isBinding;
+
+    /// <summary>تستخدمه مساحة العمل لمنع إغلاق الشاشة عند وجود تعديلات غير محفوظة.</summary>
+    public bool HasUnsavedChanges => _isDirty;
 
     public FrmTenantGroups()
     {
@@ -55,14 +61,26 @@ public sealed class FrmTenantGroups : BaseForm
         ApplyBaseFormStyle();
 
         btnSave = ToolButton("حفظ", true);
+        btnReactivate = ToolButton("إعادة تفعيل");
         Controls.Add(BuildShell());
         ConfigureGrid();
 
         Load += async (_, _) => await LoadAsync();
         btnSave.Click += async (_, _) => await SaveAsync();
+        btnReactivate.Click += async (_, _) => await ReactivateAsync();
         txtSearch.TextChanged += (_, _) => FilterGrid();
         dgvGroups.SelectionChanged += (_, _) => BindSelected();
         KeyDown += HandleShortcuts;
+        foreach (var control in new Control[] { txtCode, txtNameAr, txtNameEn, txtShortName, txtCountry, txtCity, txtAddress, txtPhone, txtEmail, txtManager, txtNotes, cmbType, cmbParent, cmbMainCompany, cmbCurrency, chkShowInLogin, numSort })
+        {
+            control.TextChanged += (_, _) => MarkDirty();
+        }
+        cmbType.SelectedIndexChanged += (_, _) => MarkDirty();
+        cmbParent.SelectedIndexChanged += (_, _) => MarkDirty();
+        cmbMainCompany.SelectedIndexChanged += (_, _) => MarkDirty();
+        cmbCurrency.SelectedIndexChanged += (_, _) => MarkDirty();
+        chkShowInLogin.CheckedChanged += (_, _) => MarkDirty();
+        numSort.ValueChanged += (_, _) => MarkDirty();
     }
 
     private Control BuildShell()
@@ -101,7 +119,7 @@ public sealed class FrmTenantGroups : BaseForm
         var bar = new FlowLayoutPanel { Dock = DockStyle.Fill, FlowDirection = FlowDirection.RightToLeft, WrapContents = false, Padding = new Padding(4, 8, 4, 6), BackColor = Color.White };
         var btnNew = ToolButton("جديد");
         var btnEdit = ToolButton("تعديل");
-        var btnDelete = ToolButton("حذف");
+        var btnDelete = ToolButton("إيقاف");
         var btnRefresh = ToolButton("تحديث");
         var btnSearch = ToolButton("بحث");
         var btnClose = ToolButton("إغلاق");
@@ -111,7 +129,7 @@ public sealed class FrmTenantGroups : BaseForm
         btnRefresh.Click += async (_, _) => await LoadAsync();
         btnSearch.Click += (_, _) => txtSearch.Focus();
         btnClose.Click += (_, _) => Close();
-        bar.Controls.AddRange(new Control[] { btnNew, btnSave, btnEdit, btnDelete, btnRefresh, btnSearch, btnClose });
+        bar.Controls.AddRange(new Control[] { btnNew, btnSave, btnEdit, btnDelete, btnReactivate, btnRefresh, btnSearch, btnClose });
         return bar;
     }
 
@@ -149,6 +167,9 @@ public sealed class FrmTenantGroups : BaseForm
         AddSingle(grid, 1, "البريد الإلكتروني", txtEmail);
         AddSingle(grid, 2, "المدير المسؤول", txtManager);
         var status = new FlowLayoutPanel { Dock = DockStyle.Fill, FlowDirection = FlowDirection.RightToLeft };
+        // تغيير الحالة لا يتم من الراديو، بل من إجراء إيقاف/إعادة تفعيل مدقق في API.
+        rbActive.Enabled = false;
+        rbStopped.Enabled = false;
         status.Controls.AddRange(new Control[] { rbActive, rbStopped });
         AddSingle(grid, 3, "الحالة *", status);
         AddSingle(grid, 4, "إعدادات شاشة الدخول", chkShowInLogin);
@@ -209,6 +230,7 @@ public sealed class FrmTenantGroups : BaseForm
         try
         {
             UseWaitCursor = true;
+            _isBinding = true;
             _cache = await _client.GetFromJsonAsync<List<GroupRow>>("TenantGroups") ?? new();
             dgvGroups.DataSource = _cache.ToList();
             cmbParent.DataSource = _cache.Where(x => x.Group_ID != _selectedId).ToList();
@@ -216,12 +238,14 @@ public sealed class FrmTenantGroups : BaseForm
             cmbParent.ValueMember = nameof(GroupRow.Group_ID);
             cmbParent.SelectedIndex = -1;
             lblCount.Text = $"عدد السجلات: {_cache.Count}";
+            await LoadCompaniesAsync();
+            _isDirty = false;
         }
         catch (Exception ex)
         {
             MessageBox.Show("تعذر تحميل المجموعات التجارية.\n" + ex.Message, Text, MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
-        finally { UseWaitCursor = false; }
+        finally { _isBinding = false; UseWaitCursor = false; }
     }
 
     private async Task SaveAsync()
@@ -240,7 +264,8 @@ public sealed class FrmTenantGroups : BaseForm
             Main_Company_ID = cmbMainCompany.SelectedValue?.ToString(), Default_Currency_Code = cmbCurrency.Text,
             Country_Name = txtCountry.Text.Trim(), City_Name = txtCity.Text.Trim(), Short_Address = txtAddress.Text.Trim(),
             Phone = txtPhone.Text.Trim(), Email = txtEmail.Text.Trim(), Manager_Name = txtManager.Text.Trim(),
-            Show_In_Login = chkShowInLogin.Checked, Sort_Order = (int)numSort.Value, Notes = txtNotes.Text.Trim(), Is_Active = rbActive.Checked
+            // لا يُسمح للحفظ العادي بتغيير حالة السجل؛ الإيقاف وإعادة التفعيل لهما API منفصل وسبب إلزامي.
+            Show_In_Login = chkShowInLogin.Checked, Sort_Order = (int)numSort.Value, Notes = txtNotes.Text.Trim(), Is_Active = true
         };
 
         HttpResponseMessage response = _selectedId == null
@@ -251,6 +276,7 @@ public sealed class FrmTenantGroups : BaseForm
             MessageBox.Show(await response.Content.ReadAsStringAsync(), Text, MessageBoxButtons.OK, MessageBoxIcon.Warning);
             return;
         }
+        _isDirty = false;
         MessageBox.Show("تم حفظ المجموعة التجارية بنجاح.", Text, MessageBoxButtons.OK, MessageBoxIcon.Information);
         ClearForm();
         await LoadAsync();
@@ -280,13 +306,49 @@ public sealed class FrmTenantGroups : BaseForm
             MessageBox.Show(await response.Content.ReadAsStringAsync(), Text, MessageBoxButtons.OK, MessageBoxIcon.Warning);
             return;
         }
+        _isDirty = false;
         ClearForm();
+        await LoadAsync();
+    }
+
+    /// <summary>إعادة تفعيل سجل موقوف عبر Endpoint مستقل مع سبب تدقيقي إلزامي.</summary>
+    private async Task ReactivateAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_selectedId))
+        {
+            MessageBox.Show("اختر مجموعة موقوفة أولاً.", Text, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            return;
+        }
+
+        var selected = _cache.FirstOrDefault(x => x.Group_ID == _selectedId);
+        if (selected?.Is_Active == true)
+        {
+            MessageBox.Show("المجموعة المختارة نشطة بالفعل.", Text, MessageBoxButtons.OK, MessageBoxIcon.Information);
+            return;
+        }
+
+        var reason = Microsoft.VisualBasic.Interaction.InputBox("أدخل سبب إعادة التفعيل:", "إعادة تفعيل المجموعة", "").Trim();
+        if (string.IsNullOrWhiteSpace(reason))
+        {
+            MessageBox.Show("سبب إعادة التفعيل مطلوب.", Text, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            return;
+        }
+
+        var response = await _client.PostAsJsonAsync($"TenantGroups/{_selectedId}/reactivate", new { Reason = reason });
+        if (!response.IsSuccessStatusCode)
+        {
+            MessageBox.Show(await response.Content.ReadAsStringAsync(), Text, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            return;
+        }
+
+        _isDirty = false;
         await LoadAsync();
     }
 
     private void BindSelected()
     {
-        if (dgvGroups.CurrentRow?.DataBoundItem is not GroupRow row) return;
+        if (_isBinding || dgvGroups.CurrentRow?.DataBoundItem is not GroupRow row) return;
+        _isBinding = true;
         _selectedId = row.Group_ID;
         txtCode.Text = row.Group_Code;
         txtNameAr.Text = row.Group_Name_AR;
@@ -319,10 +381,13 @@ public sealed class FrmTenantGroups : BaseForm
             0,
             row.Is_Active ? "نشطة" : "موقوفة",
             true));
+        _isDirty = false;
+        _isBinding = false;
     }
 
     private void ClearForm()
     {
+        _isBinding = true;
         _selectedId = null;
         foreach (var text in new[] { txtCode, txtNameAr, txtNameEn, txtShortName, txtCountry, txtCity, txtAddress, txtPhone, txtEmail, txtManager, txtNotes }) text.Clear();
         cmbType.SelectedIndex = -1; cmbParent.SelectedIndex = -1; cmbMainCompany.SelectedIndex = -1; cmbCurrency.SelectedIndex = -1;
@@ -330,7 +395,35 @@ public sealed class FrmTenantGroups : BaseForm
         // السجل الجديد لا يملك بيانات تدقيق حتى يحفظه الخادم لأول مرة.
         SetAuditInfo(null);
         dgvGroups.ClearSelection(); txtCode.Focus();
+        _isDirty = false;
+        _isBinding = false;
     }
+
+    private async Task LoadCompaniesAsync()
+    {
+        try
+        {
+            var companies = await _client.GetFromJsonAsync<List<CompanyLookupRow>>("Branches/GetCompaniesLookup") ?? new();
+            cmbMainCompany.DataSource = companies;
+            cmbMainCompany.DisplayMember = nameof(CompanyLookupRow.Company_Name_AR);
+            cmbMainCompany.ValueMember = nameof(CompanyLookupRow.Company_ID);
+            cmbMainCompany.SelectedIndex = -1;
+        }
+        catch
+        {
+            // تبقى القائمة فارغة عند فقدان الاتصال؛ الحفظ لا يطلب شركة رئيسية.
+        }
+    }
+
+    private void MarkDirty()
+    {
+        if (!_isBinding) _isDirty = true;
+    }
+
+    /// <summary>استدعاء MainWorkspaceManager قبل إغلاق تبويب فيه تعديلات غير محفوظة.</summary>
+    public bool ConfirmWorkspaceClose() => MessageBox.Show(
+        "توجد تعديلات غير محفوظة. هل تريد إغلاق الشاشة؟", Text,
+        MessageBoxButtons.YesNo, MessageBoxIcon.Warning) == DialogResult.Yes;
 
     private void FilterGrid()
     {
@@ -383,6 +476,12 @@ public sealed class FrmTenantGroups : BaseForm
     private static ComboBox Combo(params string[] items) { var c = new ComboBox { DropDownStyle = ComboBoxStyle.DropDownList, FlatStyle = FlatStyle.Flat }; if (items.Length > 0) c.Items.AddRange(items); return c; }
     private static Button ToolButton(string text, bool primary = false) => new() { Text = text, Width = 125, Height = 36, Margin = new Padding(5, 0, 5, 0), FlatStyle = FlatStyle.Flat, BackColor = primary ? Color.FromArgb(14, 93, 216) : Color.White, ForeColor = primary ? Color.White : Color.FromArgb(8, 55, 112), Font = new Font("Segoe UI", 9F, FontStyle.Bold) };
     private static DataGridViewTextBoxColumn TextCol(string property, string title, int width) => new() { DataPropertyName = property, HeaderText = title, Width = width, AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill };
+
+    private sealed class CompanyLookupRow
+    {
+        public string Company_ID { get; set; } = string.Empty;
+        public string Company_Name_AR { get; set; } = string.Empty;
+    }
 
     private sealed class GroupRow
     {
