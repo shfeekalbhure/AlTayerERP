@@ -58,13 +58,20 @@ namespace AlTayerERP.API.Services
                 new ScreenSeed("JournalEntryView", "عرض القيد المحاسبي", "التقارير المالية", 300)
             };
 
-            var knownCodes = await _context.SystemScreens
-                .AsNoTracking()
-                .Select(x => x.Screen_Code)
-                .ToListAsync();
+            var existingScreens = await _context.SystemScreens.ToListAsync();
+
+            foreach (var item in catalog)
+            {
+                var existing = existingScreens.FirstOrDefault(x =>
+                    string.Equals(x.Screen_Code, item.Code, StringComparison.OrdinalIgnoreCase));
+
+                if (existing != null && !string.Equals(existing.Screen_Code, item.Code, StringComparison.Ordinal))
+                    existing.Screen_Code = item.Code;
+            }
 
             var missingScreens = catalog
-                .Where(item => !knownCodes.Contains(item.Code, StringComparer.OrdinalIgnoreCase))
+                .Where(item => !existingScreens.Any(x =>
+                    string.Equals(x.Screen_Code, item.Code, StringComparison.OrdinalIgnoreCase)))
                 .Select(item => new SystemScreen
                 {
                     Screen_Code = item.Code,
