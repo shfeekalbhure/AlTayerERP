@@ -10,9 +10,10 @@ using System.Windows.Forms;
 using System.Text;
 // استدعاء المجلد المركزي لخدمات الـ API
 using AlTayerERP.Desktop.Services;
+using AlTayerERP.Desktop.Common;
 namespace AlTayerERP.Desktop
 {
-    public partial class CompanyForm : Form
+    public partial class CompanyForm : BaseForm
     {
         // ====================================================================
         // ربط المتغيرات المحلية بكلاس الـ ApiService المركزي
@@ -29,6 +30,13 @@ namespace AlTayerERP.Desktop
         public CompanyForm()
         {
             InitializeComponent();
+            ApplyBaseFormStyle();
+            // الحالة للعرض فقط. الإيقاف وإعادة التفعيل إجراءات مستقلة مدققة من الخادم.
+            chkIsActive.Enabled = false;
+            chkIsActive.TabStop = false;
+            btnDelete.Text = "إيقاف";
+            btnApprove.Text = "إعادة تفعيل";
+            btnUnApprove.Visible = false;
 
             // توحيد شكل الشاشة القديمة والاختصارات العربية دون تغيير منطقها.
 // إعداد أعمدة الجدول لمرة واحدة فقط عند الإقلاع لمنع تضاعف الأعمدة
@@ -473,13 +481,25 @@ namespace AlTayerERP.Desktop
                 return;
             }
 
+            var reason = Microsoft.VisualBasic.Interaction.InputBox(
+                "أدخل سبب إعادة تفعيل الشركة:", "إعادة تفعيل الشركة", string.Empty).Trim();
+            if (string.IsNullOrWhiteSpace(reason))
+            {
+                MessageBox.Show("سبب إعادة التفعيل مطلوب.", "تنبيه", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
             try
             {
-                var response = await _client.PostAsync($"{_baseUrl}Companies/Approve/{_selectedCompanyId}", null);
-                if (response.IsSuccessStatusCode || response.StatusCode == System.Net.HttpStatusCode.NotFound)
+                var response = await _client.PostAsJsonAsync($"{_baseUrl}Companies/{_selectedCompanyId}/reactivate", new { Reason = reason });
+                if (response.IsSuccessStatusCode)
                 {
-                    MessageBox.Show("تم إصدار وتوثيق قرار اعتماد تشغيل الشركة بنجاح داخل منظومة الحسابات الموحدة.", "تم الاعتماد 🗸", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    MessageBox.Show("تمت إعادة تفعيل الشركة وتسجيل السبب في سجل التدقيق.", "إعادة تفعيل", MessageBoxButtons.OK, MessageBoxIcon.Information);
                     LoadCompanies();
+                }
+                else
+                {
+                    MessageBox.Show(await response.Content.ReadAsStringAsync(), "تعذر إعادة التفعيل", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 }
             }
             catch (Exception ex) { MessageBox.Show($"خطأ اتصال: {ex.Message}"); }
@@ -496,16 +516,8 @@ namespace AlTayerERP.Desktop
                 return;
             }
 
-            try
-            {
-                var response = await _client.PostAsync($"{_baseUrl}Companies/UnApprove/{_selectedCompanyId}", null);
-                if (response.IsSuccessStatusCode || response.StatusCode == System.Net.HttpStatusCode.NotFound)
-                {
-                    MessageBox.Show("تم سحب وإيقاف اعتماد تشغيل الشركة، وتم تجميد ترحيل قيودها المالية مؤقتاً.", "سحب الاعتماد 🗙", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                    LoadCompanies();
-                }
-            }
-            catch (Exception ex) { MessageBox.Show($"خطأ اتصال: {ex.Message}"); }
+            // الزر مخفي في هذه المرحلة؛ إيقاف الشركة يتم من زر «إيقاف» مع سبب إلزامي.
+            await Task.CompletedTask;
         }
 
         // ======================================================
