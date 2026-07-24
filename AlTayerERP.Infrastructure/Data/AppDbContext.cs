@@ -143,6 +143,8 @@ namespace AlTayerERP.Infrastructure.Data
 
         // جدول الأطراف المالية
         public DbSet<Party> Parties { get; set; } = null!;
+        public DbSet<PaymentRequest> Payment_Requests { get; set; } = null!;
+        public DbSet<PaymentRequestLine> Payment_Request_Lines { get; set; } = null!;
         #endregion
 
         #region إعداد الجداول والعلاقات باستخدام (Fluent API)
@@ -296,6 +298,8 @@ namespace AlTayerERP.Infrastructure.Data
                 entity.ToTable("approval_requests");
                 entity.HasKey(e => e.Approval_ID);
             });
+            modelBuilder.Entity<PaymentRequest>(entity => { entity.ToTable("payment_requests"); entity.HasKey(e=>e.Payment_Request_ID); entity.HasIndex(e=>new {e.Company_ID,e.Branch_ID,e.Fiscal_Year_ID,e.Request_No}).IsUnique(); entity.Property(e=>e.Approved_Local_Total).HasPrecision(19,4); entity.HasMany(e=>e.Details).WithOne(e=>e.PaymentRequest).HasForeignKey(e=>e.Payment_Request_ID).OnDelete(DeleteBehavior.Restrict); });
+            modelBuilder.Entity<PaymentRequestLine>(entity => { entity.ToTable("payment_request_lines"); entity.HasKey(e=>e.Payment_Request_Line_ID); entity.HasIndex(e=>new {e.Payment_Request_ID,e.Line_No}).IsUnique(); entity.Property(e=>e.Exchange_Rate).HasPrecision(19,8); entity.Property(e=>e.Foreign_Amount).HasPrecision(19,4); entity.Property(e=>e.Local_Amount).HasPrecision(19,4); });
 
             #endregion
 
