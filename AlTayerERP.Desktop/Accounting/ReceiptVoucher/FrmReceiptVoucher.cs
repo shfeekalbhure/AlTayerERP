@@ -41,6 +41,8 @@ namespace AlTayerERP.Desktop
         private bool _isCrossContextVoucher = false;
         private readonly Label _lblReviewStatus = new Label();
         private readonly ToolTip _workflowToolTip = new ToolTip();
+        private readonly string _voucherTypeCode;
+        private readonly string _voucherCaption;
 
         // قوائم لتخزين بيانات العملات والحسابات المسترجعة من قاعدة البيانات
         private List<CurrencyLookupModel> _currencyLookups = new();
@@ -54,12 +56,25 @@ namespace AlTayerERP.Desktop
         #region === المشيد ===
 
         // مشيد الشاشة الرئيسي المسؤول عن تهيئة المكونات وتسجيل الأحداث وإعداد الخصائص
-        public FrmReceiptVoucher()
+        public FrmReceiptVoucher() : this("RECEIPT", "سند القبض")
         {
-            InitializeComponent(); // تهيئة عناصر الواجهة المصممة
+        }
 
-            RegisterEvents();      // تسجيل أحداث العناصر (النقر، التغيير...)
-            ConfigureScreen();     // ضبط إعدادات وخصائص عناصر الشاشة
+        /// <summary>
+        /// قاعدة موحدة لسندات القبض والصرف والقيد اليومي. نوع السند يحدد من الشاشة
+        /// ولا يمكن للمستخدم تغييره يدوياً أثناء الإدخال.
+        /// </summary>
+        protected FrmReceiptVoucher(string voucherTypeCode, string voucherCaption)
+        {
+            _voucherTypeCode = voucherTypeCode?.Trim().ToUpperInvariant()
+                ?? throw new ArgumentNullException(nameof(voucherTypeCode));
+            _voucherCaption = voucherCaption?.Trim()
+                ?? throw new ArgumentNullException(nameof(voucherCaption));
+
+            InitializeComponent();
+            Text = _voucherCaption;
+            RegisterEvents();
+            ConfigureScreen();
         }
 
         #endregion
