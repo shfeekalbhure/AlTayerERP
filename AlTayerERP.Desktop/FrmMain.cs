@@ -347,6 +347,7 @@ namespace AlTayerERP.Desktop
                 "ReceiptVoucher" => () => new FrmReceiptVoucher(),
                 "PaymentVoucher" => () => new FrmPaymentVoucher(),
                 "JournalVoucher" => () => new FrmJournalVoucher(),
+                "DocumentSearch" => () => new FrmDocumentSearch(),
                 _ => null
             };
 
@@ -415,6 +416,7 @@ namespace AlTayerERP.Desktop
             AddQuickAction(quickActions, "سند قبض جديد", "ReceiptVoucher", Color.FromArgb(22, 125, 84));
             AddQuickAction(quickActions, "سند صرف جديد", "PaymentVoucher", Color.FromArgb(196, 97, 42));
             AddQuickAction(quickActions, "قيد يومي جديد", "JournalVoucher", Color.FromArgb(100, 75, 155));
+            AddQuickAction(quickActions, "بحث المستندات", "DocumentSearch", Color.FromArgb(70, 105, 125));
             AddQuickAction(quickActions, "دليل الحسابات", "ChartOfAccounts", Color.FromArgb(20, 102, 190));
             AddQuickAction(quickActions, "المستخدمون", "Users", Color.FromArgb(107, 70, 160));
             AddQuickAction(quickActions, "الإعدادات", "GeneralSettings", Color.FromArgb(78, 89, 101));
@@ -593,7 +595,8 @@ namespace AlTayerERP.Desktop
             new("Parties", "الأطراف المالية", "الحسابات", 60),
             new("ReceiptVoucher", "سند القبض", "الحسابات", 70),
             new("PaymentVoucher", "سند الصرف", "الحسابات", 80),
-            new("JournalVoucher", "القيد اليومي", "الحسابات", 90)
+            new("JournalVoucher", "القيد اليومي", "الحسابات", 90),
+            new("DocumentSearch", "البحث عن المستندات", "الحسابات", 100)
         };
 
         private sealed class ScreenAccessRow
