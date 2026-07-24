@@ -150,7 +150,7 @@ namespace AlTayerERP.API.Services
             });
 
             await _context.SaveChangesAsync(cancellationToken);
-            return new RefreshTokenResult(value, expiresAt);
+            return new RefreshTokenResult(value, expiresAt, hash);
         }
 
         /// <summary>يبطل كل رموز التجديد التابعة لجلسة خروج واحدة.</summary>
@@ -178,7 +178,7 @@ namespace AlTayerERP.API.Services
             Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(value)));
 
         public sealed record AccessTokenResult(string Access_Token, DateTime Expires_At);
-        public sealed record RefreshTokenResult(string Refresh_Token, DateTime Expires_At);
+        public sealed record RefreshTokenResult(string Refresh_Token, DateTime Expires_At, string Token_Hash);
         public sealed record AccessTokenClaims(int User_ID, string Session_ID);
     }
 }
