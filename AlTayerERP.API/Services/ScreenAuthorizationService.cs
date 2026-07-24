@@ -48,6 +48,19 @@ namespace AlTayerERP.API.Services
             return permission != null && IsOperationAllowed(permission, operation);
         }
 
+        /// <summary>تفويض صريح للعمليات المالية الحساسة: لا يتجاوز مدير النظام Default Deny.</summary>
+        public async Task<bool> IsExplicitlyAllowedAsync(ServerSession session, string screenCode, ScreenOperation operation, CancellationToken cancellationToken = default)
+        {
+            var normalizedScreen = screenCode.Trim();
+            var directOverride = await _context.User_Permissions.AsNoTracking().FirstOrDefaultAsync(x => x.User_ID == session.User_ID && x.Permission_Category == "SCREEN" && x.Permission_Name == normalizedScreen, cancellationToken);
+            if (directOverride != null) return IsOperationAllowed(directOverride, operation);
+            var permission = await (from rolePermission in _context.RolePermissions.AsNoTracking()
+                                    join screen in _context.SystemScreens.AsNoTracking() on rolePermission.Screen_ID equals screen.Screen_ID
+                                    where rolePermission.Role_ID == session.Role_ID && screen.Is_Active && screen.Screen_Code == normalizedScreen
+                                    select rolePermission).FirstOrDefaultAsync(cancellationToken);
+            return permission != null && IsOperationAllowed(permission, operation);
+        }
+
         private static bool IsOperationAllowed(RolePermission permission, ScreenOperation operation) =>
             operation switch
             {
