@@ -1,4 +1,5 @@
 using AlTayerERP.Core.Entities.Accounting;
+using AlTayerERP.Core.Entities;
 using AlTayerERP.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 
@@ -19,7 +20,40 @@ namespace AlTayerERP.API.Services
             await EnsurePaymentMethodsAsync();
             await EnsureVoucherTypesAsync();
             await EnsureVoucherStatusesAsync();
+            await EnsureDefaultSystemSettingsAsync();
             await _context.SaveChangesAsync();
+        }
+
+        private async Task EnsureDefaultSystemSettingsAsync()
+        {
+            await AddSystemSettingIfMissingAsync("AUTO_POST_VOUCHERS", "الترحيل التلقائي للسندات", "false",
+                "الترحيل يتم بعملية اعتماد/ترحيل صريحة من الخادم.");
+            await AddSystemSettingIfMissingAsync("ALLOW_DRAFT_UNBALANCED", "السماح بمسودة غير متوازنة", "false",
+                "المسودة غير المتوازنة لا تصبح جزءاً من التقارير الرسمية.");
+            await AddSystemSettingIfMissingAsync("PREVENT_NEGATIVE_CASH", "منع الرصيد السالب للصندوق", "true",
+                "يمنع Backend اعتماد أو ترحيل صرف يتجاوز رصيد الصندوق.");
+            await AddSystemSettingIfMissingAsync("NUMBER_RESERVATION_POLICY", "سياسة حجز أرقام المستندات", "RESERVE_ON_NEW",
+                "الرقم يحجز من العداد المركزي عند إنشاء المستند ولا يعاد استخدامه بعد الإلغاء.");
+        }
+
+        private async Task AddSystemSettingIfMissingAsync(string key, string name, string value, string description)
+        {
+            if (await _context.System_Settings.AnyAsync(x => x.Setting_Key == key && x.Scope == "SYSTEM"))
+                return;
+
+            _context.System_Settings.Add(new SystemSetting
+            {
+                Setting_Key = key,
+                Setting_Name = name,
+                Setting_Value = value,
+                Scope = "SYSTEM",
+                Company_ID = string.Empty,
+                Branch_ID = 0,
+                Fiscal_Year_ID = 0,
+                Description = description,
+                Is_Active = true,
+                Created_At = DateTime.UtcNow
+            });
         }
 
         private async Task EnsurePaymentMethodsAsync()
