@@ -433,12 +433,16 @@ namespace AlTayerERP.Desktop
 
         private void SetInitialSelections(FinancialVoucherLookupsModel lookups)
         {
-            var receiptType = lookups.VoucherTypes.FirstOrDefault(t =>
-                t.Voucher_Type_Code.Equals("RECEIPT", StringComparison.OrdinalIgnoreCase) ||
-                t.Voucher_Type_Code.Equals("RECEIPT_VOUCHER", StringComparison.OrdinalIgnoreCase) ||
-                t.Voucher_Type_Name_AR.Contains("قبض"));
+            var configuredType = lookups.VoucherTypes.FirstOrDefault(t =>
+                t.Voucher_Type_Code.Equals(_voucherTypeCode, StringComparison.OrdinalIgnoreCase));
 
-            if (receiptType != null) cmbVoucherType.SelectedValue = receiptType.Voucher_Type_ID;
+            if (configuredType == null)
+            {
+                throw new InvalidOperationException(
+                    $"لم يتم إعداد نوع السند '{_voucherTypeCode}' ضمن البيانات المرجعية.");
+            }
+
+            cmbVoucherType.SelectedValue = configuredType.Voucher_Type_ID;
             cmbVoucherType.Enabled = false;
 
             var draftStatus = lookups.VoucherStatuses.FirstOrDefault(s =>
