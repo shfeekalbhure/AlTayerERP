@@ -133,12 +133,14 @@ namespace AlTayerERP.Desktop
             dgvUsers.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
 
             dgvUsers.Columns.Add("User_ID", "رقم المستخدم");
-            dgvUsers.Columns.Add("User_Code", "كود المستخدم");
-            dgvUsers.Columns.Add("Full_Name", "اسم الموظف");
-            dgvUsers.Columns.Add("Login_Name", "اسم الدخول");
-            dgvUsers.Columns.Add("Phone", "الهاتف");
-            dgvUsers.Columns.Add("Email", "البريد");
+            dgvUsers.Columns.Add("Login_Name", "اسم المستخدم");
+            dgvUsers.Columns.Add("Full_Name", "الاسم الكامل");
+            dgvUsers.Columns.Add("Role_Name", "الدور");
+            dgvUsers.Columns.Add("Company_ID", "الشركة");
+            dgvUsers.Columns.Add("Branch_ID", "الفرع");
             dgvUsers.Columns.Add("Is_Active", "الحالة");
+            dgvUsers.Columns.Add("Last_Login_At", "آخر دخول");
+            dgvUsers.Columns.Add("Locked_Until", "مقفل");
         }
 
         /// <summary>
@@ -390,7 +392,19 @@ namespace AlTayerERP.Desktop
             try
             {
                 dgvUsers.Rows.Clear();
-                foreach (var user in usersList) dgvUsers.Rows.Add(user.User_ID, user.User_Code, user.Full_Name, user.Login_Name, user.Phone, user.Email, user.Is_Active ? "نشط" : "موقوف");
+                foreach (var user in usersList)
+                {
+                    dgvUsers.Rows.Add(
+                        user.User_ID,
+                        user.Login_Name,
+                        user.Full_Name,
+                        user.Role_Name,
+                        user.Company_ID,
+                        user.Branch_ID,
+                        user.Is_Active ? "نشط" : "موقوف",
+                        user.Last_Login_At?.ToLocalTime().ToString("yyyy/MM/dd HH:mm") ?? "—",
+                        user.Locked_Until is { } locked && locked > DateTime.UtcNow ? "نعم" : "لا");
+                }
             }
             finally { _isBinding = false; }
         }
@@ -614,7 +628,22 @@ namespace AlTayerERP.Desktop
         public string? Module_Name { get; set; }
     }
 
-    public class UserListModel { public int User_ID { get; set; } public string User_Code { get; set; } = string.Empty; public string Full_Name { get; set; } = string.Empty; public string Login_Name { get; set; } = string.Empty; public string? Phone { get; set; } public string? Email { get; set; } public bool Is_Active { get; set; } }
+    public class UserListModel
+    {
+        public int User_ID { get; set; }
+        public string User_Code { get; set; } = string.Empty;
+        public string Company_ID { get; set; } = string.Empty;
+        public int Branch_ID { get; set; }
+        public int Role_ID { get; set; }
+        public string Role_Name { get; set; } = string.Empty;
+        public string Full_Name { get; set; } = string.Empty;
+        public string Login_Name { get; set; } = string.Empty;
+        public string? Phone { get; set; }
+        public string? Email { get; set; }
+        public bool Is_Active { get; set; }
+        public DateTime? Last_Login_At { get; set; }
+        public DateTime? Locked_Until { get; set; }
+    }
     public class UserDetailModel { public int User_ID { get; set; } public string Company_ID { get; set; } = string.Empty; public int Branch_ID { get; set; } public int Role_ID { get; set; } public string User_Code { get; set; } = string.Empty; public string Full_Name { get; set; } = string.Empty; public string Login_Name { get; set; } = string.Empty; public string? Phone { get; set; } public string? Email { get; set; } public string? Notes { get; set; } public bool Must_Change_Password { get; set; } public bool Is_Active { get; set; } }
     public class BranchLookupModel { public int Branch_ID { get; set; } public string Branch_Name { get; set; } = string.Empty; }
     public class RoleLookupModel { public int Role_ID { get; set; } public string Role_Name { get; set; } = string.Empty; }
