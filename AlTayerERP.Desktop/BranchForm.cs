@@ -20,6 +20,8 @@ namespace AlTayerERP.Desktop
 
         private int _selectedBranchId = 0;
         private List<BranchListModel> _branchesList = new List<BranchListModel>();
+        // يمنع إعادة تحميل الجدول أثناء تعبئة قائمة الشركات عند فتح الشاشة.
+        private bool _isLoadingCompanies;
 
         // كائنات نظام الطباعة والمعاينة
         private System.Drawing.Printing.PrintDocument printDocument = new System.Drawing.Printing.PrintDocument();
@@ -35,6 +37,7 @@ namespace AlTayerERP.Desktop
             // توحيد شكل الشاشة القديمة والاختصارات العربية دون تغيير منطقها.
 this.Load -= BranchForm_Load;
             this.Load += BranchForm_Load;
+            cmbCompanies.SelectedValueChanged += cmbCompanies_SelectedValueChanged;
             printDocument.PrintPage += PrintDocument_PrintPage;
         }
 
@@ -70,24 +73,39 @@ this.Load -= BranchForm_Load;
         {
             try
             {
+                _isLoadingCompanies = true;
                 var companies = await _client.GetFromJsonAsync<List<CompanyLookupModel>>($"{_baseUrl}Branches/GetCompaniesLookup");
                 cmbCompanies.DataSource = companies;
                 cmbCompanies.DisplayMember = "Company_Name_AR";
                 cmbCompanies.ValueMember = "Company_ID";
 
+                // سياق الجلسة هو الاختيار الابتدائي فقط؛ مدير النظام يستطيع اختيار شركة أخرى من القائمة.
                 cmbCompanies.SelectedValue = CurrentSession.Company_ID;
             }
             catch (Exception ex)
             {
                 MessageBox.Show("فشل تحميل الشركات:\n" + ex.Message);
             }
+            finally
+            {
+                _isLoadingCompanies = false;
+            }
         }
 
-        private async Task LoadBranchesAsync()
+        private async Task LoadBranchesAsync(string? companyId = null)
         {
             try
             {
-                var branches = await _client.GetFromJsonAsync<List<BranchListModel>>($"{_baseUrl}Branches?companyId={CurrentSession.Company_ID}");
+                // لا يعتمد تحميل الفروع على قيمة قديمة من CurrentSession بعد تغيير الشركة في الواجهة.
+                var selectedCompanyId = companyId ?? cmbCompanies.SelectedValue?.ToString() ?? CurrentSession.Company_ID;
+                if (string.IsNullOrWhiteSpace(selectedCompanyId))
+                {
+                    _branchesList = new List<BranchListModel>();
+                    FillBranchesGrid(_branchesList);
+                    return;
+                }
+
+                var branches = await _client.GetFromJsonAsync<List<BranchListModel>>($"{_baseUrl}Branches?companyId={Uri.EscapeDataString(selectedCompanyId)}");
                 _branchesList = branches ?? new List<BranchListModel>();
                 FillBranchesGrid(_branchesList);
                 PopulateParentBranchComboBox();
@@ -96,6 +114,16 @@ this.Load -= BranchForm_Load;
             {
                 MessageBox.Show("فشل تحميل الفروع:\n" + ex.Message);
             }
+        }
+
+        /// <summary>يحمّل فروع الشركة المحددة فقط، ولا يغيّر سياق الجلسة أو صلاحياتها.</summary>
+        private async void cmbCompanies_SelectedValueChanged(object? sender, EventArgs e)
+        {
+            if (_isLoadingCompanies || cmbCompanies.SelectedValue is null)
+                return;
+
+            await LoadBranchesAsync(cmbCompanies.SelectedValue.ToString());
+            _selectedBranchId = 0;
         }
 
         private void PopulateParentBranchComboBox()
