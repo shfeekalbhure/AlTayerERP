@@ -1,145 +1,97 @@
 using AlTayerERP.API.Services;
 using AlTayerERP.Core.Entities;
 using AlTayerERP.Infrastructure.Data;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace AlTayerERP.API.Controllers
 {
-    /// <summary>
-    /// سجل أسعار الصرف التاريخية للشركة الحالية.
-    /// </summary>
+    /// <summary>سجل أسعار الصرف التاريخية للشركة الحالية، مع تدقيق وتفويض شاشة العملات.</summary>
+    [Authorize]
     [ApiController]
     [Route("api/[controller]")]
     public sealed class ExchangeRatesController : ControllerBase
     {
         private readonly AppDbContext _context;
+        private readonly ScreenAuthorizationService _authorization;
+        private readonly AuditTrailService _audit;
 
-        public ExchangeRatesController(AppDbContext context) => _context = context;
-
-        private ServerSession? Session() =>
-            HttpContext.Items["ServerSession"] as ServerSession;
-
-        private IActionResult? RequireSystemAdmin(out ServerSession? session)
+        public ExchangeRatesController(AppDbContext context, ScreenAuthorizationService authorization, AuditTrailService audit)
         {
-            session = Session();
-            if (session == null)
-                return Unauthorized(new { message = "انتهت الجلسة أو أنها غير صالحة. سجل الدخول من جديد." });
+            _context = context;
+            _authorization = authorization;
+            _audit = audit;
+        }
 
-            return session.Is_System_Admin ? null : Forbid();
+        private ServerSession? Session => HttpContext.Items["ServerSession"] as ServerSession;
+        private async Task<IActionResult?> RequireAsync(ScreenOperation operation)
+        {
+            if (Session == null) return Unauthorized(new { message = "انتهت الجلسة أو أنها غير صالحة." });
+            return await _authorization.IsAllowedAsync(Session, "ExchangeRates", operation) ? null : Forbid();
         }
 
         [HttpGet]
         public async Task<IActionResult> Get()
         {
-            var accessError = RequireSystemAdmin(out var session);
-            if (accessError != null || session == null)
-                return accessError!;
-
-            var rates = await _context.Exchange_Rates
-                .AsNoTracking()
-                .Where(x => x.Company_ID == session.Company_ID)
-                .OrderByDescending(x => x.Rate_Date)
-                .ThenBy(x => x.Currency_Code)
-                .ToListAsync();
-
-            return Ok(rates);
+            var error = await RequireAsync(ScreenOperation.View);
+            if (error != null || Session == null) return error!;
+            return Ok(await _context.Exchange_Rates.AsNoTracking()
+                .Where(x => x.Company_ID == Session.Company_ID).OrderByDescending(x => x.Rate_Date)
+                .ThenBy(x => x.Currency_Code).ToListAsync());
         }
 
         [HttpPost]
         public async Task<IActionResult> Save([FromBody] SaveExchangeRateRequest request)
         {
-            var accessError = RequireSystemAdmin(out var session);
-            if (accessError != null || session == null)
-                return accessError!;
+            var operation = request.Exchange_Rate_ID > 0 ? ScreenOperation.Edit : ScreenOperation.Add;
+            var error = await RequireAsync(operation);
+            if (error != null || Session == null) return error!;
 
-            if (request == null || string.IsNullOrWhiteSpace(request.Currency_Code))
-                return BadRequest(new { message = "كود العملة مطلوب." });
+            if (string.IsNullOrWhiteSpace(request.Currency_Code) || request.Exchange_Rate <= 0)
+                return BadRequest(new { message = "كود العملة وسعر صرف موجب حقول مطلوبة." });
 
             var code = request.Currency_Code.Trim().ToUpperInvariant();
-            if (request.Exchange_Rate <= 0)
-                return BadRequest(new { message = "سعر الصرف يجب أن يكون أكبر من صفر." });
+            decimal? min = request.Min_Rate > 0 ? request.Min_Rate : null;
+            decimal? max = request.Max_Rate > 0 ? request.Max_Rate : null;
+            if (min.HasValue && max.HasValue && min > max || min.HasValue && request.Exchange_Rate < min || max.HasValue && request.Exchange_Rate > max)
+                return BadRequest(new { message = "سعر الصرف خارج الحدود المسموح بها." });
 
-            decimal? minRate = request.Min_Rate > 0 ? request.Min_Rate : null;
-            decimal? maxRate = request.Max_Rate > 0 ? request.Max_Rate : null;
-            if (minRate.HasValue && maxRate.HasValue && minRate > maxRate)
-                return BadRequest(new { message = "الحد الأدنى لا يمكن أن يتجاوز الحد الأعلى." });
-
-            if (minRate.HasValue && request.Exchange_Rate < minRate ||
-                maxRate.HasValue && request.Exchange_Rate > maxRate)
-            {
-                return BadRequest(new { message = "سعر الصرف خارج الحد الأدنى أو الأعلى المحدد." });
-            }
-
-            var currency = await _context.Currencies
-                .AsNoTracking()
-                .FirstOrDefaultAsync(x => x.Company_ID == session.Company_ID &&
-                                          x.Currency_Code == code &&
-                                          x.Is_Active);
-            if (currency == null)
-                return BadRequest(new { message = "العملة غير موجودة أو غير فعالة في الشركة الحالية." });
-
-            if (currency.Is_Local_Currency && request.Exchange_Rate != 1)
+            var currency = await _context.Currencies.AsNoTracking().FirstOrDefaultAsync(x =>
+                x.Company_ID == Session.Company_ID && x.Currency_Code == code && x.Is_Active);
+            if (currency == null) return BadRequest(new { message = "العملة غير موجودة أو موقوفة في الشركة الحالية." });
+            if (currency.Is_Local_Currency && request.Exchange_Rate != 1m)
                 return BadRequest(new { message = "سعر صرف العملة المحلية يجب أن يساوي 1." });
 
-            ExchangeRate rate;
-            if (request.Exchange_Rate_ID > 0)
-            {
-                var existing = await _context.Exchange_Rates.FirstOrDefaultAsync(x =>
-                    x.Exchange_Rate_ID == request.Exchange_Rate_ID &&
-                    x.Company_ID == session.Company_ID);
-                if (existing == null)
-                    return NotFound(new { message = "سجل سعر الصرف غير موجود ضمن الشركة الحالية." });
+            var rate = request.Exchange_Rate_ID > 0
+                ? await _context.Exchange_Rates.FirstOrDefaultAsync(x => x.Exchange_Rate_ID == request.Exchange_Rate_ID && x.Company_ID == Session.Company_ID)
+                : null;
+            if (request.Exchange_Rate_ID > 0 && rate == null) return NotFound(new { message = "سجل سعر الصرف غير موجود." });
 
-                rate = existing;
-            }
-            else
+            var rateDate = request.Rate_Date == default ? DateTime.UtcNow.Date : request.Rate_Date.Date;
+            if (await _context.Exchange_Rates.AnyAsync(x => x.Company_ID == Session.Company_ID && x.Currency_Code == code && x.Rate_Date == rateDate && x.Exchange_Rate_ID != request.Exchange_Rate_ID))
+                return Conflict(new { message = "يوجد سعر صرف للعملة نفسها في تاريخ السريان ذاته." });
+
+            await using var tx = await _context.Database.BeginTransactionAsync();
+            if (request.Is_Default)
+                await _context.Exchange_Rates.Where(x => x.Company_ID == Session.Company_ID && x.Currency_Code == code && x.Is_Default && x.Exchange_Rate_ID != request.Exchange_Rate_ID)
+                    .ExecuteUpdateAsync(x => x.SetProperty(v => v.Is_Default, false).SetProperty(v => v.Updated_At, DateTime.UtcNow));
+
+            var old = rate == null ? null : new { rate.Currency_Code, rate.Rate_Date, rate.Exchange_Rate_Value, rate.Is_Active };
+            if (rate == null)
             {
-                rate = new ExchangeRate
-                {
-                    Company_ID = session.Company_ID,
-                    Created_At = DateTime.Now
-                };
+                rate = new ExchangeRate { Company_ID = Session.Company_ID, Created_At = DateTime.UtcNow };
                 _context.Exchange_Rates.Add(rate);
             }
-
-            var rateDate = request.Rate_Date.Date;
-            var duplicate = await _context.Exchange_Rates.AnyAsync(x =>
-                x.Company_ID == session.Company_ID &&
-                x.Currency_Code == code &&
-                x.Rate_Date == rateDate &&
-                x.Exchange_Rate_ID != rate.Exchange_Rate_ID);
-            if (duplicate)
-                return BadRequest(new { message = "يوجد سعر صرف لهذه العملة في تاريخ السريان نفسه." });
-
-            if (request.Is_Default)
-            {
-                var defaults = await _context.Exchange_Rates
-                    .Where(x => x.Company_ID == session.Company_ID &&
-                                x.Currency_Code == code &&
-                                x.Exchange_Rate_ID != rate.Exchange_Rate_ID &&
-                                x.Is_Default)
-                    .ToListAsync();
-                defaults.ForEach(x => x.Is_Default = false);
-            }
-
-            rate.Currency_Code = code;
-            rate.Rate_Date = rateDate;
-            rate.Exchange_Rate_Value = request.Exchange_Rate;
-            rate.Min_Rate = minRate;
-            rate.Max_Rate = maxRate;
-            rate.Is_Default = request.Is_Default;
+            rate.Currency_Code = code; rate.Rate_Date = rateDate; rate.Exchange_Rate_Value = request.Exchange_Rate;
+            rate.Min_Rate = min; rate.Max_Rate = max; rate.Is_Default = request.Is_Default;
             rate.Notes = string.IsNullOrWhiteSpace(request.Notes) ? null : request.Notes.Trim();
-            rate.Is_Active = request.Is_Active;
-            rate.Updated_At = DateTime.Now;
-
+            rate.Is_Active = request.Is_Active; rate.Updated_At = DateTime.UtcNow;
+            _audit.Add(Session, HttpContext, "exchange_rates", request.Exchange_Rate_ID > 0 ? request.Exchange_Rate_ID.ToString() : $"{code}:{rateDate:yyyyMMdd}",
+                request.Exchange_Rate_ID > 0 ? "UPDATE" : "CREATE", old, new { rate.Currency_Code, rate.Rate_Date, rate.Exchange_Rate_Value, rate.Is_Active });
             await _context.SaveChangesAsync();
-
-            return Ok(new
-            {
-                message = request.Exchange_Rate_ID > 0 ? "تم تعديل سعر الصرف." : "تمت إضافة سعر الصرف.",
-                rate.Exchange_Rate_ID
-            });
+            await tx.CommitAsync();
+            return Ok(new { message = request.Exchange_Rate_ID > 0 ? "تم تعديل سعر الصرف." : "تمت إضافة سعر الصرف.", rate.Exchange_Rate_ID });
         }
     }
 
