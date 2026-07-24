@@ -14,5 +14,6 @@
 | عرض القيد والبحث بالرقم الكامل/الجزئي | جزئي | `FinancialVoucherController`, `FrmJournalVoucher.cs` | البحث محصور بسياق الجلسة؛ يلزم شاشة استعلام موحدة مكتملة. |
 | مرفقات السندات | منفذ برمجياً / قيد قبول | `VoucherAttachmentsController.cs`, `FrmVoucherAttachments.cs` | تخزين ملفات خارج DB ضمن نطاق جلسة موثق وتدقيق وحذف منطقي. |
 | طلبات الاعتماد والسقوف | جزئي | `FinancialGovernanceController.cs` | API صارم بلا تجاوز تلقائي لمدير النظام؛ شاشات الإدارة ما زالت مطلوبة. |
-| ميزان المراجعة/الأستاذ العام | غير مكتمل | — | لم يبدأ التنفيذ في هذه الدفعة. |
+| ميزان المراجعة/الأستاذ العام | منفذ برمجياً / قيد قبول | `AccountingReportsController.cs`, `FrmFinancialReports.cs` | نطاق جلسة، حساب/تاريخ/عملة/مركز تكلفة، والأرصدة الافتتاحية والحركة والختامية. |
+| Fail-Closed والتقارير | منفذ برمجياً / قيد قبول | `FrmMain.cs`, `Tests/FrmMain_Permission_FailClosed_And_Reports_Acceptance.md` | لا قائمة بديلة عند فشل API الصلاحيات، حتى لمدير النظام. |
 | اختبارات القبول وقاعدة altayer_erp_db | قيد التحقق | GitHub Actions | لا توجد ترقية قاعدة مطلوبة في هذه الحزمة. |
