@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Concurrent;
+using System.Linq;
+using System.Collections.Generic;
 
 namespace AlTayerERP.API.Services
 {
@@ -63,6 +65,13 @@ namespace AlTayerERP.API.Services
         {
             if (!string.IsNullOrWhiteSpace(sessionId))
                 Sessions.TryRemove(sessionId, out _);
+        }
+
+        /// <summary>يعيد لقائمة الرقابة جلسات حية فقط؛ لا يعيد رموز وصول أو تجديد.</summary>
+        public IReadOnlyCollection<ServerSession> GetActiveSessions()
+        {
+            RemoveExpired();
+            return Sessions.Values.OrderBy(x => x.Issued_At).ToArray();
         }
 
         private static void RemoveExpired()
