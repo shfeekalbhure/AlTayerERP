@@ -219,13 +219,19 @@ namespace AlTayerERP.API.Services.Accounting
         private async Task<string> GenerateOfficialVoucherNoAsync(CreateFinancialVoucherDto dto)
         {
             #region تحديد نوع المستند
-            // تحديد كود إعداد الترقيم بحسب نوع السند المالي.
-            string documentType = dto.Voucher_Type_ID switch
+            // يحدد كود نوع المستند من البيانات المرجعية النشطة؛ لا نعتمد على
+            // معرفات رقمية ثابتة لأنها تختلف بين قواعد الشركات.
+            var voucherTypeCode = await _context.Voucher_Types.AsNoTracking()
+                .Where(x => x.Voucher_Type_ID == dto.Voucher_Type_ID && x.Is_Active)
+                .Select(x => x.Voucher_Type_Code)
+                .SingleOrDefaultAsync();
+
+            string documentType = voucherTypeCode?.Trim().ToUpperInvariant() switch
             {
-                1 => "RECEIPT_VOUCHER",
-                2 => "PAYMENT_VOUCHER",
-                3 => "JOURNAL_ENTRY",
-                _ => throw new InvalidOperationException($"نوع السند رقم {dto.Voucher_Type_ID} غير مدعوم في إعدادات الترقيم.")
+                "RECEIPT" => "RECEIPT_VOUCHER",
+                "PAYMENT" => "PAYMENT_VOUCHER",
+                "JOURNAL" => "JOURNAL_ENTRY",
+                _ => throw new InvalidOperationException("نوع السند غير معروف أو موقوف في إعدادات الترقيم.")
             };
             #endregion
 
