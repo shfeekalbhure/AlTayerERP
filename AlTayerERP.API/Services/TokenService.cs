@@ -109,7 +109,8 @@ namespace AlTayerERP.API.Services
                     },
                     out _);
 
-                var userIdText = principal.FindFirstValue(JwtRegisteredClaimNames.Sub);
+                var userIdText = principal.FindFirstValue(JwtRegisteredClaimNames.Sub)
+                    ?? principal.FindFirstValue(ClaimTypes.NameIdentifier);
                 var sessionId = principal.FindFirstValue("sid");
                 if (!int.TryParse(userIdText, out var userId) || string.IsNullOrWhiteSpace(sessionId))
                     return false;
