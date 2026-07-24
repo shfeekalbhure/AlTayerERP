@@ -299,7 +299,7 @@ namespace AlTayerERP.API.Services.Accounting.VoucherWorkflow
                     DateTime.Now;
 
                 string sourceDocumentType =
-                    GetSourceDocumentType(
+                    await GetSourceDocumentTypeAsync(
                         voucher.Voucher_Type_ID);
 
                 var journalEntry =
@@ -1050,40 +1050,23 @@ namespace AlTayerERP.API.Services.Accounting.VoucherWorkflow
         /// تحويل نوع السند الرقمي إلى كود برمجي واضح.
         /// يمكن إضافة أنواع جديدة مستقبلًا.
         /// </summary>
-        private static string GetSourceDocumentType(
+        private async Task<string> GetSourceDocumentTypeAsync(
             int voucherTypeId)
         {
-            return voucherTypeId switch
+            var voucherTypeCode = await _context.Voucher_Types.AsNoTracking()
+                .Where(x => x.Voucher_Type_ID == voucherTypeId && x.Is_Active)
+                .Select(x => x.Voucher_Type_Code)
+                .SingleOrDefaultAsync();
+
+            return voucherTypeCode?.Trim().ToUpperInvariant() switch
             {
-                1 =>
-                    "RECEIPT_VOUCHER",
-
-                2 =>
-                    "PAYMENT_VOUCHER",
-
-                3 =>
-                    "JOURNAL_VOUCHER",
-
-                4 =>
-                    "DEBIT_NOTE",
-
-                5 =>
-                    "CREDIT_NOTE",
-
-                6 =>
-                    "ADJUSTMENT_VOUCHER",
-
-                7 =>
-                    "CUSTODY_VOUCHER",
-
-                8 =>
-                    "COLLECTION_VOUCHER",
-
-                9 =>
-                    "SHIPMENT_COLLECTION",
-
-                _ =>
-                    $"FINANCIAL_VOUCHER_{voucherTypeId}"
+                "RECEIPT" => "RECEIPT_VOUCHER",
+                "PAYMENT" => "PAYMENT_VOUCHER",
+                "JOURNAL" => "JOURNAL_VOUCHER",
+                "ADJUSTMENT" => "ADJUSTMENT_VOUCHER",
+                "OPENING" => "OPENING_VOUCHER",
+                _ => throw new InvalidOperationException(
+                    "نوع السند غير مهيأ أو موقوف ولا يمكن ترحيله.")
             };
         }
 
