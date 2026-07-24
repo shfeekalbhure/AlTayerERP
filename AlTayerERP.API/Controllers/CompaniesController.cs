@@ -64,6 +64,8 @@ namespace AlTayerERP.API.Controllers
                 Edit_Count = 0
             };
             Map(dto, company);
+            // إنشـاء الشركة يبدأ نشطاً؛ الإيقاف يمر فقط عبر DeactivateCompany مع سبب وتدقيق.
+            company.Is_Active = true;
             _context.Companies.Add(company);
             AddAudit(session, company, "CREATE", null, Snapshot(company));
             await _context.SaveChangesAsync();
@@ -82,7 +84,10 @@ namespace AlTayerERP.API.Controllers
             if (error is not null) return BadRequest(error);
 
             var oldValues = Snapshot(company);
+            var currentStatus = company.Is_Active;
             Map(dto, company);
+            // لا يسمح PUT العام بتغيير حالة الشركة أو تجاوز سجل الإيقاف/إعادة التفعيل.
+            company.Is_Active = currentStatus;
             company.Updated_At = DateTime.UtcNow;
             company.Updated_By = session.User_ID;
             company.Edit_Count += 1;
