@@ -15,6 +15,8 @@ namespace AlTayerERP.Desktop
         private readonly HttpClient _client = ApiService.Client;
         private readonly string _baseUrl = ApiService.BaseUrl;
         private HashSet<string> _allowedScreenCodes = new(StringComparer.OrdinalIgnoreCase);
+        // مؤقت خفيف لتدوير Access Token قبل انتهائه دون حفظ Refresh Token على القرص.
+        private readonly System.Windows.Forms.Timer _sessionTimer = new() { Interval = 60_000 };
 
         public FrmMain()
         {
@@ -40,6 +42,29 @@ namespace AlTayerERP.Desktop
             _ = LoadAllowedScreensAsync();
             tvMainMenu.NodeMouseDoubleClick -= tvMainMenu_NodeMouseDoubleClick;
             tvMainMenu.NodeMouseDoubleClick += tvMainMenu_NodeMouseDoubleClick;
+            _sessionTimer.Tick += async (_, _) => await RefreshAccessTokenIfNeededAsync();
+            _sessionTimer.Start();
+            FormClosed += (_, _) => _sessionTimer.Dispose();
+        }
+
+        /// <summary>
+        /// يجدد الرمز قبل ثلاث دقائق من انتهائه. عند انتهاء الوصول وعدم إمكان التجديد
+        /// ينهي الجلسة محلياً حتى لا تستمر واجهة في نطاق غير موثوق.
+        /// </summary>
+        private async Task RefreshAccessTokenIfNeededAsync()
+        {
+            if (CurrentSession.Access_Token_Expires_At > DateTime.UtcNow.AddMinutes(3))
+                return;
+
+            var refreshed = await SessionService.RefreshAccessTokenAsync();
+            if (refreshed || CurrentSession.Access_Token_Expires_At > DateTime.UtcNow)
+                return;
+
+            _sessionTimer.Stop();
+            CurrentSession.Clear();
+            MessageBox.Show("انتهت الجلسة وتعذر تجديدها. سجل الدخول من جديد.",
+                "الجلسة", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            Close();
         }
 
         /// <summary>
