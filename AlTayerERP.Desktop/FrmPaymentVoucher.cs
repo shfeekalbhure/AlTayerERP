@@ -43,6 +43,8 @@ public sealed class FrmPaymentVoucher : BaseForm
         commands.Controls.AddRange(new Control[] { B("جديد F2", (_, _) => NewVoucher()), B("حفظ Ctrl+S", async (_, _) => await SaveAsync()), B("بحث", async (_, _) => await SearchAsync()), B("مرفقات", (_, _) => OpenAttachments()), B("مراجعة", async (_, _) => await ActionAsync("review", false)), B("اعتماد", async (_, _) => await ActionAsync("approve", false)), B("ترحيل", async (_, _) => await ActionAsync("post", false)), B("فك ترحيل", async (_, _) => await ActionAsync("unpost", true)), B("عرض القيد", async (_, _) => await ViewJournalAsync()) });
         _lines.Columns.AddRange(new DataGridViewColumn[] { C("Account","الحساب"), C("CostCenter","مركز التكلفة"), C("Currency","العملة"), C("Rate","سعر الصرف"), C("Foreign","أجنبي"), C("Local","محلي"), C("Debit","مدين"), C("Credit","دائن"), C("Description","الوصف", 220), C("Notes","ملاحظات", 180) });
         _lines.CellValueChanged += (_, _) => Totals(); _lines.RowsRemoved += (_, _) => Totals();
+        _lines.DefaultValuesNeeded += (_, e) => ApplyLineDefaults(e.Row);
+        _lines.CellEndEdit += (_, e) => CalculateLine(_lines.Rows[e.RowIndex]);
         Controls.Add(_lines); Controls.Add(_totals); Controls.Add(commands); Controls.Add(header);
     }
     private static Label L(string text) => new() { Text = text, AutoSize = true, Margin = new Padding(7, 8, 2, 2) };
@@ -60,15 +62,45 @@ public sealed class FrmPaymentVoucher : BaseForm
     }
     private static void Bind<T>(ComboBox box,List<T> list,string display,string value){ box.DataSource=null; box.DisplayMember=display; box.ValueMember=value; box.DataSource=list; }
     private void NewVoucher(){_voucherId=0;_number.Clear();_reference.Clear();_beneficiary.Clear();_narration.Clear();_reason.Clear();_lines.Rows.Clear();_lines.Rows.Add();_lines.Rows.Add();Totals();}
+    private void ApplyLineDefaults(DataGridViewRow row)
+    {
+        if (_currency.SelectedValue == null) return;
+        row.Cells["Currency"].Value = Convert.ToInt32(_currency.SelectedValue);
+        var local = _currencies.FirstOrDefault(x => x.Is_Local_Currency);
+        var currencyId = Convert.ToInt32(_currency.SelectedValue);
+        row.Cells["Rate"].Value = local != null && currencyId == local.Currency_ID ? 1m : _rate.Value;
+        row.Cells["Foreign"].Value = 0m; row.Cells["Local"].Value = 0m;
+    }
+    private void CalculateLine(DataGridViewRow row)
+    {
+        if (row.IsNewRow || _currency.SelectedValue == null) return;
+        var localId = _currencies.FirstOrDefault(x => x.Is_Local_Currency)?.Currency_ID;
+        var currencyId = int.TryParse(row.Cells["Currency"].Value?.ToString(), out var parsed) ? parsed : Convert.ToInt32(_currency.SelectedValue);
+        var isLocal = localId.HasValue && currencyId == localId.Value;
+        var foreign = D(row,"Foreign"); var rate = D(row,"Rate");
+        if (isLocal) { row.Cells["Foreign"].Value=0m; row.Cells["Rate"].Value=1m; row.Cells["Local"].Value=D(row,"Debit")+D(row,"Credit"); row.Cells["Foreign"].ReadOnly=true; row.Cells["Rate"].ReadOnly=true; }
+        else { if(rate<=0) rate=_rate.Value; row.Cells["Rate"].Value=rate; row.Cells["Foreign"].ReadOnly=false; row.Cells["Rate"].ReadOnly=false; row.Cells["Local"].Value=Math.Round(foreign*rate,4); }
+        Totals();
+    }
     private decimal D(DataGridViewRow r,string n)=>decimal.TryParse(r.Cells[n].Value?.ToString(),NumberStyles.Any,CultureInfo.CurrentCulture,out var x)?x:0;
     private void Totals(){var rows=_lines.Rows.Cast<DataGridViewRow>().Where(r=>!r.IsNewRow).ToList();var debit=rows.Sum(r=>D(r,"Debit"));var credit=rows.Sum(r=>D(r,"Credit"));_totals.Text=$"إجمالي المدين: {debit:N2} | إجمالي الدائن: {credit:N2} | الفرق: {(debit-credit):N2}";}
 
     private async Task SaveAsync()
     {
-        var rows=_lines.Rows.Cast<DataGridViewRow>().Where(r=>!r.IsNewRow&&!string.IsNullOrWhiteSpace(r.Cells["Account"].Value?.ToString())).ToList(); var debit=rows.Sum(r=>D(r,"Debit")); var credit=rows.Sum(r=>D(r,"Credit"));
-        if(_type.SelectedValue==null||_status.SelectedValue==null||_cash.SelectedValue==null||_currency.SelectedValue==null||string.IsNullOrWhiteSpace(_narration.Text)||string.IsNullOrWhiteSpace(_beneficiary.Text)||rows.Count==0||debit<=0||Math.Round(credit,2)!=Math.Round(debit,2)){MessageBox.Show("أكمل بيانات الصرف، والمستفيد، والأسطر المدينة المتوازنة.");return;}
-        var currencyId=Convert.ToInt32(_currency.SelectedValue); var currency=_currencies.First(c=>c.Currency_ID==currencyId); var rate=currency.Is_Local_Currency?1m:_rate.Value;
-        var cashId=_cash.SelectedValue?.ToString()??""; var dto=new { Voucher_Type_ID=Convert.ToInt32(_type.SelectedValue),Voucher_Status_ID=Convert.ToInt32(_status.SelectedValue),Voucher_Date=_date.Value.Date,Transaction_Date=_date.Value,Cash_Account_ID=cashId,Party_ID=string.IsNullOrWhiteSpace(_party.SelectedValue?.ToString())?null:_party.SelectedValue!.ToString(),Received_From_Name=_beneficiary.Text.Trim(),Payment_Method_ID=Convert.ToInt32(_method.SelectedValue),Currency_ID=currencyId,Exchange_Rate=rate,Amount=debit,Foreign_Total=currency.Is_Local_Currency?0m:debit,Local_Total=debit,Reference_No=string.IsNullOrWhiteSpace(_reference.Text)?null:_reference.Text.Trim(),Reference_Date=_date.Value.Date,Against_Text=_narration.Text.Trim(),Description=_narration.Text.Trim(),Notes=(string?)null,Requires_Approval=true,Details=rows.Select((r,i)=>new {Line_No=i+2,Account_ID=r.Cells["Account"].Value!.ToString(),Cost_Center_ID=r.Cells["CostCenter"].Value?.ToString(),Currency_ID=currencyId,Exchange_Rate=rate,Foreign_Amount=currency.Is_Local_Currency?0m:D(r,"Debit"),Local_Amount=D(r,"Debit"),Debit_Amount=D(r,"Debit"),Credit_Amount=0m,Line_Type=(byte)2,Description=r.Cells["Description"].Value?.ToString(),Notes=r.Cells["Notes"].Value?.ToString()}).Prepend(new {Line_No=1,Account_ID=cashId,Cost_Center_ID=(string?)null,Currency_ID=currencyId,Exchange_Rate=rate,Foreign_Amount=currency.Is_Local_Currency?0m:credit,Local_Amount=credit,Debit_Amount=0m,Credit_Amount=credit,Line_Type=(byte)1,Description=_narration.Text,Notes=(string?)null}).ToList()};
+        var local = _currencies.FirstOrDefault(c => c.Is_Local_Currency) ?? throw new InvalidOperationException("العملة المحلية غير مهيأة.");
+        var rows=_lines.Rows.Cast<DataGridViewRow>().Where(r=>!r.IsNewRow&&!string.IsNullOrWhiteSpace(r.Cells["Account"].Value?.ToString())).ToList();
+        var normalized=new List<object>();
+        foreach(var r in rows)
+        {
+            if(!int.TryParse(r.Cells["Currency"].Value?.ToString(),out var currencyId) || !_currencies.Any(c=>c.Currency_ID==currencyId&&c.Is_Active)){MessageBox.Show("عملة كل سطر مطلوبة ونشطة.");return;}
+            var isLocal=currencyId==local.Currency_ID;var rate=isLocal?1m:D(r,"Rate");var foreign=isLocal?0m:D(r,"Foreign");var localAmount=isLocal?D(r,"Debit")+D(r,"Credit"):Math.Round(foreign*rate,4);var debit=D(r,"Debit");var credit=D(r,"Credit");
+            if(rate<=0||foreign<0||localAmount<=0||debit<=0||credit!=0){MessageBox.Show("أسطر سند الصرف يجب أن تكون مدينة فقط، مع سعر صرف ومبلغ صالحين.");return;}
+            normalized.Add(new {Account_ID=r.Cells["Account"].Value!.ToString(),Cost_Center_ID=r.Cells["CostCenter"].Value?.ToString(),Currency_ID=currencyId,Exchange_Rate=rate,Foreign_Amount=foreign,Local_Amount=localAmount,Debit_Amount=localAmount,Credit_Amount=0m,Line_Type=(byte)2,Description=r.Cells["Description"].Value?.ToString(),Notes=r.Cells["Notes"].Value?.ToString()});
+        }
+        var debitTotal=normalized.Cast<dynamic>().Sum(x=>(decimal)x.Debit_Amount);
+        if(_type.SelectedValue==null||_status.SelectedValue==null||_cash.SelectedValue==null||_currency.SelectedValue==null||_method.SelectedValue==null||string.IsNullOrWhiteSpace(_narration.Text)||string.IsNullOrWhiteSpace(_beneficiary.Text)||normalized.Count==0||debitTotal<=0){MessageBox.Show("أكمل بيانات الصرف والمستفيد والأسطر المدينة.");return;}
+        var cashCurrencyId=Convert.ToInt32(_currency.SelectedValue);var cashIsLocal=cashCurrencyId==local.Currency_ID;var cashRate=cashIsLocal?1m:_rate.Value;if(cashRate<=0){MessageBox.Show("سعر صرف الصندوق/البنك غير صالح.");return;}
+        var dto=new { Voucher_Type_ID=Convert.ToInt32(_type.SelectedValue),Voucher_Status_ID=Convert.ToInt32(_status.SelectedValue),Voucher_Date=_date.Value.Date,Transaction_Date=_date.Value,Cash_Account_ID=_cash.SelectedValue!.ToString(),Party_ID=string.IsNullOrWhiteSpace(_party.SelectedValue?.ToString())?null:_party.SelectedValue!.ToString(),Received_From_Name=_beneficiary.Text.Trim(),Payment_Method_ID=Convert.ToInt32(_method.SelectedValue),Currency_ID=cashCurrencyId,Exchange_Rate=cashRate,Amount=debitTotal,Foreign_Total=cashIsLocal?0m:Math.Round(debitTotal/cashRate,4),Local_Total=debitTotal,Reference_No=string.IsNullOrWhiteSpace(_reference.Text)?null:_reference.Text.Trim(),Reference_Date=_date.Value.Date,Against_Text=_narration.Text.Trim(),Description=_narration.Text.Trim(),Notes=(string?)null,Requires_Approval=true,Details=normalized.Select((x,i)=>new {Line_No=i+2,x.Account_ID,x.Cost_Center_ID,x.Currency_ID,x.Exchange_Rate,x.Foreign_Amount,x.Local_Amount,x.Debit_Amount,x.Credit_Amount,x.Line_Type,x.Description,x.Notes}).Prepend(new {Line_No=1,Account_ID=_cash.SelectedValue!.ToString(),Cost_Center_ID=(string?)null,Currency_ID=cashCurrencyId,Exchange_Rate=cashRate,Foreign_Amount=cashIsLocal?0m:Math.Round(debitTotal/cashRate,4),Local_Amount=debitTotal,Debit_Amount=0m,Credit_Amount=debitTotal,Line_Type=(byte)1,Description=_narration.Text,Notes=(string?)null}).ToList() };
         var response=await ApiService.Client.PostAsJsonAsync("FinancialVoucher",dto);var text=await response.Content.ReadAsStringAsync();if(!response.IsSuccessStatusCode){MessageBox.Show(text,"تعذر الحفظ",MessageBoxButtons.OK,MessageBoxIcon.Warning);return;}using var doc=JsonDocument.Parse(text);_voucherId=doc.RootElement.GetProperty("voucher_ID").GetInt64();_number.Text=doc.RootElement.GetProperty("voucher_No").GetString()??"";MessageBox.Show("تم حفظ سند الصرف كمسودة.","سند الصرف");
     }
     private async Task SearchAsync(){if(string.IsNullOrWhiteSpace(_number.Text)){_number.ReadOnly=false;_number.Focus();return;}var response=await ApiService.Client.GetAsync($"FinancialVoucher/ByNumber?voucherNumber={Uri.EscapeDataString(_number.Text)}&voucherTypeId={Convert.ToInt32(_type.SelectedValue)}");var text=await response.Content.ReadAsStringAsync();if(!response.IsSuccessStatusCode){MessageBox.Show(text);return;}using var d=JsonDocument.Parse(text);var data=d.RootElement.GetProperty("data");_voucherId=data.GetProperty("voucher_ID").GetInt64();_number.Text=data.GetProperty("voucher_No").GetString()??"";}
