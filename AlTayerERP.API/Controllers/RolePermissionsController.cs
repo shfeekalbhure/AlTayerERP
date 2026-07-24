@@ -120,10 +120,10 @@ namespace AlTayerERP.API.Controllers
                 }).ToList();
 
                 await _context.RolePermissions.AddRangeAsync(newRows);
-                _audit.Add(session, HttpContext, "role_permissions", roleId.ToString(), "PERMISSIONS_REPLACED",
+                _audit.Add(session, HttpContext, "role_permissions", roleId.ToString(), "UPDATE",
                     new { Count = oldRows.Count },
-                    new { Count = newRows.Count, GrantedView = newRows.Count(x => x.Can_View) });
-
+                    new { Count = newRows.Count, GrantedView = newRows.Count(x => x.Can_View) },
+                    "استبدال مصفوفة صلاحيات الدور");
                 await _context.SaveChangesAsync();
                 await transaction.CommitAsync();
                 return Ok(new { message = "تم حفظ الصلاحيات بنجاح." });
