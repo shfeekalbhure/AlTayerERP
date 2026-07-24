@@ -42,7 +42,9 @@ namespace AlTayerERP.API.Services
                 new ScreenSeed("CashBoxes", "الصناديق", "الحسابات", 190),
                 new ScreenSeed("Banks", "البنوك والحسابات البنكية", "الحسابات", 200),
                 new ScreenSeed("Parties", "الأطراف المالية", "الحسابات", 210),
-                new ScreenSeed("ReceiptVoucher", "سند القبض", "الحسابات", 220)
+                new ScreenSeed("ReceiptVoucher", "سند القبض", "الحسابات", 220),
+                new ScreenSeed("PaymentVoucher", "سند الصرف", "الحسابات", 230),
+                new ScreenSeed("JournalVoucher", "القيد اليومي", "الحسابات", 240)
             };
 
             var knownCodes = await _context.SystemScreens
