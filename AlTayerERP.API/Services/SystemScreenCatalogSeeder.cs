@@ -44,7 +44,8 @@ namespace AlTayerERP.API.Services
                 new ScreenSeed("Parties", "الأطراف المالية", "الحسابات", 210),
                 new ScreenSeed("ReceiptVoucher", "سند القبض", "الحسابات", 220),
                 new ScreenSeed("PaymentVoucher", "سند الصرف", "الحسابات", 230),
-                new ScreenSeed("JournalVoucher", "القيد اليومي", "الحسابات", 240)
+                new ScreenSeed("JournalVoucher", "القيد اليومي", "الحسابات", 240),
+                new ScreenSeed("DocumentSearch", "البحث عن المستندات", "الحسابات", 250)
             };
 
             var knownCodes = await _context.SystemScreens
