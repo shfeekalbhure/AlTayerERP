@@ -55,6 +55,10 @@ namespace AlTayerERP.API.Services
                 ScreenOperation.Add => permission.Can_View && permission.Can_Add,
                 ScreenOperation.Edit => permission.Can_View && permission.Can_Edit,
                 ScreenOperation.Delete => permission.Can_View && permission.Can_Delete,
+                ScreenOperation.Deactivate => permission.Can_View && permission.Can_Delete,
+                ScreenOperation.Reactivate => permission.Can_View && permission.Can_Edit,
+                ScreenOperation.Deactivate => permission.Can_View && permission.Can_Delete,
+                ScreenOperation.Reactivate => permission.Can_View && permission.Can_Edit,
                 ScreenOperation.Print => permission.Can_View && permission.Can_Print,
                 ScreenOperation.Export => permission.Can_View && permission.Can_Export,
                 ScreenOperation.Import => permission.Can_View && permission.Can_Import,
@@ -85,6 +89,10 @@ namespace AlTayerERP.API.Services
         Add,
         Edit,
         Delete,
+        /// <summary>إيقاف منطقي؛ يحكمه حق الحذف المنطقي.</summary>
+        Deactivate,
+        /// <summary>إعادة تفعيل سجل موقوف؛ يحكمها حق التعديل.</summary>
+        Reactivate,
         Print,
         Export,
         Import,
