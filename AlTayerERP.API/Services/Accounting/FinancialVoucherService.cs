@@ -261,7 +261,7 @@ namespace AlTayerERP.API.Services.Accounting
             // إضافة الشركة بحسب إعداد الترقيم.
             if (setting.Use_Company)
             {
-                numberParts.Add(CurrentCompanyId(dto));
+                numberParts.Add(await ResolveCompanyIdAsync(dto));
             }
 
             // إضافة الفرع بحسب إعداد الترقيم.
@@ -288,12 +288,23 @@ namespace AlTayerERP.API.Services.Accounting
         /// <summary>
         /// استخراج معرف الشركة المستخدم في رقم المستند.
         /// </summary>
-        private string CurrentCompanyId(CreateFinancialVoucherDto dto)
+        /// <summary>
+        /// يحدد الشركة من الفرع الموثوق المحفوظ في السند، ولا يقبل أي قيمة ثابتة
+        /// أو قيمة شركة مرسلة من العميل.
+        /// </summary>
+        private async Task<string> ResolveCompanyIdAsync(CreateFinancialVoucherDto dto)
         {
-            // إذا كان DTO يحتوي Company_ID استخدم:
-            // return dto.Company_ID;
-            // حاليًا نستخدم الشركة المعتمدة في النظام.
-            return "FG-00001";
+            if (!int.TryParse(dto.Branch_ID, out var branchId))
+                throw new InvalidOperationException("معرف الفرع غير صالح لتوليد رقم المستند.");
+
+            var companyId = await _context.Tenant_Branches.AsNoTracking()
+                .Where(x => x.Branch_ID == branchId && x.Is_Active)
+                .Select(x => x.Company_ID)
+                .SingleOrDefaultAsync();
+
+            return string.IsNullOrWhiteSpace(companyId)
+                ? throw new InvalidOperationException("تعذر تحديد الشركة التابعة للفرع عند توليد رقم المستند.")
+                : companyId;
         }
 
         /// <summary>
