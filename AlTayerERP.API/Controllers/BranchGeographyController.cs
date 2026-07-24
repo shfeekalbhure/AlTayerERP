@@ -88,7 +88,7 @@ public sealed class BranchGeographyController : ControllerBase
 
     private async Task<Dictionary<string, object?>?> QuerySingleAsync(string sql, params (string Name, object? Value)[] args)
     {
-        await using var connection = _db.Database.GetDbConnection();
+        var connection = _db.Database.GetDbConnection();
         if (connection.State != ConnectionState.Open) await connection.OpenAsync();
         await using var command = connection.CreateCommand();
         command.CommandText = sql;
@@ -102,7 +102,7 @@ public sealed class BranchGeographyController : ControllerBase
 
     private async Task<T> ScalarAsync<T>(string sql, params (string Name, object? Value)[] args)
     {
-        await using var connection = _db.Database.GetDbConnection();
+        var connection = _db.Database.GetDbConnection();
         if (connection.State != ConnectionState.Open) await connection.OpenAsync();
         await using var command = connection.CreateCommand();
         command.CommandText = sql;
