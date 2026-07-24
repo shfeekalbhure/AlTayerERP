@@ -246,7 +246,9 @@ namespace AlTayerERP.API.Controllers
         [HttpGet("GetSessionInfo")]
         public async Task<IActionResult> GetSessionInfo([FromQuery] string companyId, [FromQuery] int branchId, [FromQuery] int yearId)
         {
-            if (!_sessions.TryGet(Request.Headers["X-Session-Token"].ToString(), out var session))
+            // يعتمد على ServerSession التي تحقق منها JWT Authentication Handler، ولا يفسر
+            // أي معرف مستخدم أو نطاق عمل مرسل من التطبيق.
+            if (HttpContext.Items["ServerSession"] is not ServerSession session)
                 return Unauthorized("انتهت الجلسة أو أنها غير صالحة. سجل الدخول من جديد.");
 
             if (!string.Equals(session.Company_ID, companyId?.Trim(), StringComparison.Ordinal) ||
