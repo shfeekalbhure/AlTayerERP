@@ -19,6 +19,8 @@ namespace AlTayerERP.API.Services
         private const string Audience = "AlTayerERP.Desktop";
         private static readonly TimeSpan AccessLifetime = TimeSpan.FromMinutes(30);
         private static readonly TimeSpan RefreshLifetime = TimeSpan.FromDays(7);
+        // مفتاح واحد طوال عملية التطوير الحالية فقط؛ لا يكتب إلى القرص.
+        private static readonly byte[] DevelopmentSigningKey = RandomNumberGenerator.GetBytes(48);
 
         private readonly AppDbContext _context;
         private readonly ILogger<TokenService> _logger;
@@ -41,13 +43,17 @@ namespace AlTayerERP.API.Services
                 if (!environment.IsDevelopment())
                     throw new InvalidOperationException("يجب ضبط Jwt__SigningKey بطول 32 حرفاً على الأقل في بيئة الإنتاج.");
 
-                configuredKey = Convert.ToBase64String(RandomNumberGenerator.GetBytes(48));
+                // لا يولد لكل request: يجب أن يبقى ثابتاً طوال عملية API كي تتحقق
+                // خدمة المصادقة من الرموز التي أصدرها طلب الدخول السابق.
+                _signingKey = DevelopmentSigningKey;
                 _logger.LogWarning("يستخدم الخادم مفتاح JWT مؤقتاً لبيئة التطوير؛ ستبطل الجلسات عند إعادة التشغيل.");
             }
-
-            _signingKey = Encoding.UTF8.GetBytes(configuredKey);
-            if (_signingKey.Length < 32)
-                throw new InvalidOperationException("Jwt__SigningKey يجب أن يكون بطول 32 بايت على الأقل.");
+            else
+            {
+                _signingKey = Encoding.UTF8.GetBytes(configuredKey);
+                if (_signingKey.Length < 32)
+                    throw new InvalidOperationException("Jwt__SigningKey يجب أن يكون بطول 32 بايت على الأقل.");
+            }
         }
 
         /// <summary>ينشئ Access Token مرتبطاً بجلسة خادم محددة.</summary>
