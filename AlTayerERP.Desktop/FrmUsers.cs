@@ -464,7 +464,8 @@ namespace AlTayerERP.Desktop
         /// </summary>
         private void btnSearch_Click(object sender, EventArgs e)
         {
-            string searchText = txtUserName.Text.Trim();
+            // مربع البحث يعتمد اسم الدخول، وهو الحقل الموحد الموجود في ملف التصميم.
+            string searchText = txtLoginName.Text.Trim();
             if (string.IsNullOrEmpty(searchText)) DisplayUsersInGrid(_usersCache);
             else
             {
