@@ -63,13 +63,54 @@ namespace AlTayerERP.API.Services
                 })
                 .ToList();
 
-            if (missingScreens.Count == 0)
-                return;
+            if (missingScreens.Count > 0)
+                await _context.SystemScreens.AddRangeAsync(missingScreens);
 
-            await _context.SystemScreens.AddRangeAsync(missingScreens);
-            await _context.SaveChangesAsync();
+            await EnsureScreenActionCatalogAsync();
+
+            if (missingScreens.Count > 0 || _context.ChangeTracker.HasChanges())
+                await _context.SaveChangesAsync();
         }
 
+        /// <summary>
+        /// تعريف إجراءات الشاشة الثابتة. هذه ليست أرقام مستندات ولا تتبع محرك الترقيم،
+        /// بل أكواد صلاحيات تستخدمها الواجهة والـ API والتدقيق.
+        /// </summary>
+        private async Task EnsureScreenActionCatalogAsync()
+        {
+            var actions = new[]
+            {
+                new ActionSeed("SCREEN.VIEW", "عرض الشاشة (View)", 10),
+                new ActionSeed("SCREEN.ADD", "إضافة (Create)", 20),
+                new ActionSeed("SCREEN.EDIT", "تعديل (Edit)", 30),
+                new ActionSeed("SCREEN.DELETE", "إيقاف أو حذف منطقي (Delete)", 40),
+                new ActionSeed("SCREEN.PRINT", "طباعة (Print)", 50),
+                new ActionSeed("SCREEN.EXPORT", "تصدير (Export)", 60),
+                new ActionSeed("SCREEN.IMPORT", "استيراد (Import)", 70),
+                new ActionSeed("SCREEN.APPROVE", "اعتماد (Approve)", 80),
+                new ActionSeed("SCREEN.UNAPPROVE", "فك الاعتماد أو الترحيل (Unapprove)", 90)
+            };
+
+            var known = await _context.System_Permissions.AsNoTracking()
+                .Select(x => x.Permission_Code).ToListAsync();
+
+            var missing = actions.Where(x => !known.Contains(x.Code, StringComparer.OrdinalIgnoreCase))
+                .Select(x => new SystemPermission
+                {
+                    Permission_Code = x.Code,
+                    Permission_Name = x.Name,
+                    Permission_Type = "ACTION",
+                    Module_Name = "Security",
+                    Sort_Order = x.SortOrder,
+                    Is_Active = true,
+                    Created_At = DateTime.UtcNow
+                }).ToList();
+
+            if (missing.Count > 0)
+                await _context.System_Permissions.AddRangeAsync(missing);
+        }
+
+        private sealed record ActionSeed(string Code, string Name, int SortOrder);
         private sealed record ScreenSeed(string Code, string Name, string Module, int SortOrder);
     }
 }
