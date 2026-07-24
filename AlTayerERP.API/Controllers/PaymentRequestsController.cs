@@ -18,7 +18,7 @@ public sealed class PaymentRequestsController : ControllerBase
     private async Task<IActionResult?> Allow(ScreenOperation op)=>await _auth.IsExplicitlyAllowedAsync(Session(),"PaymentRequest",op)?null:Forbid();
     private IQueryable<PaymentRequest> Scoped()=>_db.Payment_Requests.Include(x=>x.Details).Where(x=>x.Company_ID==Session().Company_ID&&x.Branch_ID==Session().Branch_ID&&x.Fiscal_Year_ID==Session().Year_ID);
 
-    [HttpGet] public async Task<IActionResult> List([FromQuery]string? status){var d=await Allow(ScreenOperation.View);if(d!=null)return d;var q=Scoped().AsNoTracking();if(!string.IsNullOrWhiteSpace(status))q=q.Where(x=>x.Status==status.Trim().ToUpperInvariant());return Ok(await q.OrderByDescending(x=>x.Created_At).Take(500).ToListAsync());}
+    [HttpGet] public async Task<IActionResult> List([FromQuery]string? status,[FromQuery]string? requestNo){var d=await Allow(ScreenOperation.View);if(d!=null)return d;var q=Scoped().AsNoTracking();if(!string.IsNullOrWhiteSpace(status))q=q.Where(x=>x.Status==status.Trim().ToUpperInvariant());if(!string.IsNullOrWhiteSpace(requestNo))q=q.Where(x=>x.Request_No.Contains(requestNo.Trim()));return Ok(await q.OrderByDescending(x=>x.Created_At).Take(500).ToListAsync());}
     [HttpGet("{id:long}")] public async Task<IActionResult> Get(long id){var d=await Allow(ScreenOperation.View);if(d!=null)return d;var r=await Scoped().AsNoTracking().SingleOrDefaultAsync(x=>x.Payment_Request_ID==id);return r==null?NotFound():Ok(r);}
 
     [HttpPost] public async Task<IActionResult> Create([FromBody]PaymentRequestDto dto)
