@@ -355,16 +355,21 @@ namespace AlTayerERP.API.Services.Accounting
                 return (false, "إجمالي المدين لا يساوي إجمالي الدائن.");
             }
 
+            var isJournal = await _context.Voucher_Types.AsNoTracking()
+                .AnyAsync(x => x.Voucher_Type_ID == dto.Voucher_Type_ID && x.Is_Active &&
+                    x.Voucher_Type_Code.ToUpper() == "JOURNAL");
             var cashLines = dto.Details.Where(x => x.Line_Type == 1).ToList();
-            if (cashLines.Count != 1)
+            if ((!isJournal && cashLines.Count != 1) || (isJournal && cashLines.Count != 0))
             {
-                return (false, "يجب أن يحتوي السند على سطر صندوق أو بنك واحد فقط.");
+                return (false, isJournal
+                    ? "القيد اليومي لا يحتوي سطر صندوق أو بنك."
+                    : "يجب أن يحتوي السند على سطر صندوق أو بنك واحد فقط.");
             }
 
             var cashCurrencies = cashLines.Select(x => x.Currency_ID).Distinct().ToList();
             decimal foreignTotal = cashCurrencies.Count == 1
                 ? decimal.Round(cashLines.Sum(x => x.Foreign_Amount), 2)
-                : 0m;
+                : decimal.Round(dto.Details.Sum(x => x.Foreign_Amount), 2);
 
             await using var transaction = await _context.Database.BeginTransactionAsync();
 
