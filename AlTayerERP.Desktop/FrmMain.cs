@@ -362,6 +362,7 @@ namespace AlTayerERP.Desktop
                 "Parties" => () => new FrmParties(),
                 "ReceiptVoucher" => () => new FrmReceiptVoucher(),
                 "PaymentVoucher" => () => new FrmPaymentVoucher(),
+                "PaymentRequest" => () => new FrmPaymentRequest(),
                 "JournalVoucher" => () => new FrmJournalVoucher(),
                 "DocumentSearch" => () => new FrmDocumentSearch(),
                 "TrialBalance" => () => new FrmFinancialReports(),
