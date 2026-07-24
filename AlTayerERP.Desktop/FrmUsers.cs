@@ -47,6 +47,7 @@ namespace AlTayerERP.Desktop
         {
             // دالة النظام الأساسية لبناء ورسم عناصر الواجهة المعرفة في الـ Designer
             InitializeComponent();
+            ApplyApprovedUsersLayout();
 
             // توحيد شكل الشاشة القديمة والاختصارات العربية دون تغيير منطقها.
 // --- ربط الأحداث الأساسية للشاشة والأزرار مع إلغاء الاشتراك أولاً لمنع التكرار ---
@@ -107,6 +108,7 @@ namespace AlTayerERP.Desktop
 
             // استدعاء دوال جلب البيانات الأساسية من الـ API بشكل متزامن ومرتب هندسياً
             await LoadBranchesAsync();
+            InitializeApprovedUserFilters();
             await LoadRolesAsync();
             await LoadUsersAsync();
             await LoadFunctionPermissionsAsync();
@@ -557,14 +559,24 @@ namespace AlTayerERP.Desktop
         {
             if (string.IsNullOrWhiteSpace(txtFullName.Text)) { MessageBox.Show("يرجى إدخال الاسم."); return false; }
             if (string.IsNullOrWhiteSpace(txtLoginName.Text)) { MessageBox.Show("يرجى إدخال اسم الدخول."); return false; }
-            if (!isInputsForUpdate) { if (string.IsNullOrWhiteSpace(txtPassword.Text)) { MessageBox.Show("يرجى إدخال كلمة المرور."); return false; } if (txtPassword.Text != txtConfirmPassword.Text) { MessageBox.Show("كلمات المرور غير متطابقة."); return false; } }
+            bool passwordProvided = !string.IsNullOrWhiteSpace(txtPassword.Text) || !string.IsNullOrWhiteSpace(txtConfirmPassword.Text);
+            if (!isInputsForUpdate && string.IsNullOrWhiteSpace(txtPassword.Text))
+            {
+                MessageBox.Show("يرجى إدخال كلمة المرور.");
+                return false;
+            }
+            if (passwordProvided && txtPassword.Text != txtConfirmPassword.Text)
+            {
+                MessageBox.Show("كلمتا المرور غير متطابقتين.");
+                return false;
+            }
             if (cmbBranch.SelectedValue == null || cmbRole.SelectedValue == null) { MessageBox.Show("يرجى اختيار الفرع والدور."); return false; }
             return true;
         }
 
         private object BuildUserRequestObject(bool isUpdate)
         {
-            return new { Company_ID = "COMP001", Branch_ID = Convert.ToInt32(cmbBranch.SelectedValue), Role_ID = Convert.ToInt32(cmbRole.SelectedValue), User_Code = string.Empty, Full_Name = txtFullName.Text.Trim(), Login_Name = txtLoginName.Text.Trim(), Password = txtPassword.Text.Trim(), Phone = txtPhone.Text.Trim(), Email = txtEmail.Text.Trim(), Notes = txtNotes.Text.Trim(), Must_Change_Password = chkChangePassword.Checked, Is_Active = cmbStatus.Text == "نشط" };
+            return new { Company_ID = CurrentSession.Company_ID, Branch_ID = Convert.ToInt32(cmbBranch.SelectedValue), Role_ID = Convert.ToInt32(cmbRole.SelectedValue), User_Code = string.Empty, Full_Name = txtFullName.Text.Trim(), Login_Name = txtLoginName.Text.Trim(), Password = txtPassword.Text.Trim(), Phone = txtPhone.Text.Trim(), Email = txtEmail.Text.Trim(), Notes = txtNotes.Text.Trim(), Must_Change_Password = chkChangePassword.Checked, Is_Active = cmbStatus.Text == "نشط" };
         }
 
         private void ClearForm()
