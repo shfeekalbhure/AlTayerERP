@@ -31,10 +31,15 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 // ====================================================================
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowAll", policy =>
+    // تطبيق WinForms لا يعتمد على CORS، لكن Swagger والمتصفحات المحلية تحتاج نطاقاً معروفاً.
+    // لا يسمح API بالوصول من أي Origin عشوائي.
+    options.AddPolicy("AlTayerERPClients", policy =>
     {
-        policy
-            .AllowAnyOrigin()
+        policy.WithOrigins(
+                "https://localhost:7021",
+                "http://localhost:5021",
+                "https://localhost:7022",
+                "http://localhost:5022")
             .AllowAnyMethod()
             .AllowAnyHeader();
     });
@@ -58,6 +63,8 @@ builder.Services.AddScoped<TokenService>();
 builder.Services.AddScoped<LoginSecurityService>();
 // تفويض الشاشات والعمليات من جهة الخادم.
 builder.Services.AddScoped<ScreenAuthorizationService>();
+// يحل الإعدادات بحسب النظام ثم الشركة ثم الفرع ثم السنة المالية.
+builder.Services.AddScoped<SettingsResolverService>();
 
 // يثبت مخطط المصادقة الافتراضي حتى تُرجع Forbid/Challenge استجابات 403/401 سليمة
 // بدلاً من InvalidOperationException وHTTP 500.
@@ -114,7 +121,7 @@ if (app.Environment.IsDevelopment())
 // ====================================================================
 app.UseHttpsRedirection();
 
-app.UseCors("AllowAll");
+app.UseCors("AlTayerERPClients");
 
 
 // يحوّل JWT الموقّع وجلسة الخادم وسياق العمل إلى ClaimsPrincipal قبل التفويض.
