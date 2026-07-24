@@ -52,7 +52,25 @@ public sealed class PaymentRequestsController : ControllerBase
     }
     private async Task<IActionResult> Transition(long id,string from,string to,ScreenOperation op,string? reason,string action){var d=await Allow(op);if(d!=null)return d;var row=await Scoped().SingleOrDefaultAsync(x=>x.Payment_Request_ID==id);if(row==null)return NotFound();if(row.Status!=from)return Conflict(new{message="الحالة الحالية لا تسمح بهذه العملية."});row.Status=to;row.Review_Reason=Text(reason);row.Updated_By=Session().User_ID.ToString();row.Updated_At=DateTime.UtcNow;_audit.Add(Session(),HttpContext,"payment_requests",id.ToString(),action,null,new{row.Status},reason);await _db.SaveChangesAsync();return Ok(row);}
     private Task<IActionResult> Close(long id,string to,ReasonDto dto,string action)=>string.IsNullOrWhiteSpace(dto?.Reason)?Task.FromResult<IActionResult>(BadRequest(new{message="السبب إلزامي."})):Transition(id,"PENDING_APPROVAL",to,ScreenOperation.Unapprove,dto.Reason,action);
-    private async Task<string?> Validate(PaymentRequestDto dto){if(dto==null||string.IsNullOrWhiteSpace(dto.Beneficiary_Name)||dto.Lines.Count==0)return "المستفيد والتفاصيل مطلوبان.";foreach(var x in dto.Lines){if(string.IsNullOrWhiteSpace(x.Account_ID)||x.Currency_ID<=0||x.Exchange_Rate<=0||x.Local_Amount<=0)return "الحساب والعملة وسعر الصرف والمبلغ المحلي مطلوبة لكل سطر.";var currency=await _db.Currencies.AnyAsync(c=>c.Currency_ID==x.Currency_ID&&c.Is_Active);if(!currency)return "توجد عملة موقوفة أو غير صالحة.";}return null;}
+    private async Task<string?> Validate(PaymentRequestDto dto)
+    {
+        if(dto==null||string.IsNullOrWhiteSpace(dto.Beneficiary_Name)||dto.Lines.Count==0)return "المستفيد والتفاصيل مطلوبان.";
+        var s=Session();
+        var periodOpen=await _db.Fiscal_Periods.AsNoTracking().AnyAsync(p=>p.Branch_ID==s.Branch_ID&&p.Fiscal_Year_ID==s.Year_ID&&p.Is_Active&&!p.Is_Closed&&p.Start_Date.Date<=dto.Request_Date.Date&&p.End_Date.Date>=dto.Request_Date.Date);
+        if(!periodOpen)return "لا توجد فترة مالية مفتوحة لتاريخ طلب الصرف.";
+        foreach(var x in dto.Lines)
+        {
+            if(string.IsNullOrWhiteSpace(x.Account_ID)||x.Currency_ID<=0||x.Exchange_Rate<=0||x.Local_Amount<=0)return "الحساب والعملة وسعر الصرف والمبلغ المحلي مطلوبة لكل سطر.";
+            var currency=await _db.Currencies.AsNoTracking().SingleOrDefaultAsync(c=>c.Currency_ID==x.Currency_ID&&c.Company_ID==s.Company_ID&&c.Is_Active);
+            if(currency==null)return "توجد عملة موقوفة أو خارج نطاق الشركة.";
+            if(currency.Is_Local_Currency&&(x.Foreign_Amount!=0m||x.Exchange_Rate!=1m))return "في العملة المحلية يجب أن يكون الأجنبي صفراً وسعر الصرف 1.";
+            if(!currency.Is_Local_Currency&&decimal.Round(x.Foreign_Amount*x.Exchange_Rate,4)!=decimal.Round(x.Local_Amount,4))return "المبلغ المحلي للسطر الأجنبي يجب أن يساوي الأجنبي × سعر الصرف.";
+            var account=await _db.Chart_Of_Accounts.AsNoTracking().AnyAsync(a=>a.Account_ID==x.Account_ID.Trim()&&a.Company_ID==s.Company_ID&&a.Is_Active&&a.Is_Postable);
+            if(!account)return "يوجد حساب غير نشط أو غير قابل للترحيل.";
+            if(!string.IsNullOrWhiteSpace(x.Cost_Center_ID)&&!await _db.Cost_Centers.AsNoTracking().AnyAsync(cc=>cc.Cost_Center_ID==x.Cost_Center_ID.Trim()&&cc.Company_ID==s.Company_ID&&cc.Is_Active&&cc.Is_Postable))return "يوجد مركز تكلفة غير نشط أو غير قابل للترحيل.";
+        }
+        return null;
+    }
     private static PaymentRequestLine Line(PaymentRequestLineDto x,int n)=>new(){Line_No=n,Account_ID=x.Account_ID.Trim(),Cost_Center_ID=Text(x.Cost_Center_ID),Currency_ID=x.Currency_ID,Exchange_Rate=x.Exchange_Rate,Foreign_Amount=x.Foreign_Amount,Local_Amount=x.Local_Amount,Reference_No=Text(x.Reference_No),Description=Text(x.Description)};
     private static string? Text(string? x)=>string.IsNullOrWhiteSpace(x)?null:x.Trim();
     public sealed class PaymentRequestDto{public DateTime Request_Date{get;set;}=DateTime.UtcNow;public string Beneficiary_Name{get;set;}=string.Empty;public string? Party_ID{get;set;}public int? Payment_Method_ID{get;set;}public string? Header_Reference_No{get;set;}public string? Description{get;set;}public List<PaymentRequestLineDto> Lines{get;set;}=new();}
