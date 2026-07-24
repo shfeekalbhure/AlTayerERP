@@ -1,4 +1,6 @@
 using AlTayerERP.API.Services;
+using AlTayerERP.API.Security;
+using AlTayerERP.Core.Entities;
 using AlTayerERP.Infrastructure.Data;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
