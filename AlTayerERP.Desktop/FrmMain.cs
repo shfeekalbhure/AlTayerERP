@@ -21,6 +21,8 @@ namespace AlTayerERP.Desktop
         private readonly System.Windows.Forms.Timer _statusTimer = new() { Interval = 30_000 };
         private readonly System.Windows.Forms.Timer _sessionTimer = new() { Interval = 60_000 };
         private readonly List<ScreenAccessRow> _allowedScreens = new();
+        // لا تفتح أي شاشة حتى ينجح API في تحميل تفويض العرض الخاص بالجلسة الحالية.
+        private bool _permissionsLoaded;
         private bool _allowClose;
         private bool _loggingOut;
 
@@ -53,10 +55,16 @@ namespace AlTayerERP.Desktop
         /// <summary>تهيئة الغلاف بعد عرضه دون تعطيل واجهة المستخدم.</summary>
         private async Task InitializeShellAsync()
         {
-            await Task.WhenAll(
-                LoadSessionDetailsAsync(),
-                RefreshShellStatusAsync(),
-                LoadAllowedScreensAsync());
+            var permissionTask = LoadAllowedScreensAsync();
+            await Task.WhenAll(LoadSessionDetailsAsync(), RefreshShellStatusAsync(), permissionTask);
+
+            _permissionsLoaded = await permissionTask;
+            if (!_permissionsLoaded)
+            {
+                tvMainMenu.Nodes.Clear();
+                BuildAccessUnavailableDashboard();
+                return;
+            }
 
             BuildMainMenu();
             BuildDashboard();
@@ -209,30 +217,36 @@ namespace AlTayerERP.Desktop
         /// يجلب API قائمة الشاشات المسموح بها للدور. مدير النظام يستخدم القائمة
         /// النشطة نفسها، لكنه لا يتقيد بمصفوفة الدور مؤقتاً وفق السياسة المعتمدة.
         /// </summary>
-        private async Task LoadAllowedScreensAsync()
+        private async Task<bool> LoadAllowedScreensAsync()
         {
             _allowedScreens.Clear();
+            _permissionsLoaded = false;
 
             try
             {
-                var rows = await _client.GetFromJsonAsync<List<ScreenAccessRow>>("SystemScreens") ?? new();
+                using var response = await _client.GetAsync("SystemScreens");
+                if (!response.IsSuccessStatusCode)
+                    throw new HttpRequestException($"حالة API: {(int)response.StatusCode}");
+
+                var rows = await response.Content.ReadFromJsonAsync<List<ScreenAccessRow>>();
+                if (rows == null)
+                    throw new InvalidOperationException("لم يرجع الخادم قائمة الصلاحيات.");
+
                 _allowedScreens.AddRange(rows.Where(x => x.Is_Active && IsSupportedScreen(x.Screen_Code)));
+                return true;
             }
-            catch
+            catch (Exception ex)
             {
-                // لا تمنح صلاحيات بديلة لمستخدم عادي. مدير النظام فقط يملك تجاوز التطوير المعتمد.
-                if (CurrentSession.Is_System_Admin)
-                    _allowedScreens.AddRange(KnownScreens);
-                else
-                    MessageBox.Show("تعذر تحميل صلاحيات الدور؛ أخفيت القوائم لحماية النظام.",
-                        "الصلاحيات", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                _allowedScreens.Clear();
+                MessageBox.Show("تعذر تحميل صلاحيات الشاشات من الخادم. لن يتم فتح أي شاشة محمية حتى تعود خدمة الصلاحيات.\n\n" + ex.Message,
+                    "الصلاحيات غير متاحة", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return false;
             }
         }
 
         private bool CanOpenScreen(string screenCode) =>
-            CurrentSession.Is_System_Admin
-                ? IsSupportedScreen(screenCode)
-                : _allowedScreens.Any(x => string.Equals(x.Screen_Code, screenCode, StringComparison.OrdinalIgnoreCase));
+            _permissionsLoaded &&
+            _allowedScreens.Any(x => string.Equals(x.Screen_Code, screenCode, StringComparison.OrdinalIgnoreCase));
 
         /// <summary>يبني شجرة القائمة من وحدة الكتالوج وصلاحية العرض المرتبطة بالدور.</summary>
         private void BuildMainMenu()
@@ -311,7 +325,6 @@ namespace AlTayerERP.Desktop
 
             var caption = _allowedScreens.FirstOrDefault(x =>
                 string.Equals(x.Screen_Code, screenCode, StringComparison.OrdinalIgnoreCase))?.Screen_Name
-                ?? GetKnownScreen(screenCode)?.Screen_Name
                 ?? screenCode;
 
             _workspace.Open(screenCode, caption, factory, recordKey);
@@ -351,6 +364,8 @@ namespace AlTayerERP.Desktop
                 "PaymentVoucher" => () => new FrmPaymentVoucher(),
                 "JournalVoucher" => () => new FrmJournalVoucher(),
                 "DocumentSearch" => () => new FrmDocumentSearch(),
+                "TrialBalance" => () => new FrmFinancialReports(),
+                "GeneralLedger" => () => new FrmFinancialReports(),
                 _ => null
             };
 
@@ -435,6 +450,18 @@ namespace AlTayerERP.Desktop
             }, 0, 3);
 
             _workspace.SetHome(dashboard);
+        }
+
+        private void BuildAccessUnavailableDashboard()
+        {
+            _workspace.SetHome(new Label
+            {
+                Dock = DockStyle.Fill,
+                Text = "الصلاحيات غير متاحة من الخادم.\nلن يتم فتح أي شاشة محمية حتى تنجح قراءة صلاحيات الجلسة.",
+                Font = new Font("Segoe UI", 14F, FontStyle.Bold),
+                ForeColor = Color.Firebrick,
+                TextAlign = ContentAlignment.MiddleCenter
+            });
         }
 
         private void AddDashboardCard(FlowLayoutPanel target, string title, string description, string screenCode, Color accent)
@@ -565,45 +592,6 @@ namespace AlTayerERP.Desktop
             e.Cancel = true;
             await LogoutAsync(showConfirmation: true);
         }
-
-        private static ScreenAccessRow? GetKnownScreen(string code) =>
-            KnownScreens.FirstOrDefault(x => string.Equals(x.Screen_Code, code, StringComparison.OrdinalIgnoreCase));
-
-        // قائمة مطابقة فقط للشاشات المنفذة حالياً؛ مصدر الإتاحة الفعلي يبقى API.
-        private static readonly ScreenAccessRow[] KnownScreens =
-        {
-            new("TenantGroups", "المجموعات التجارية", "الإدارة العامة", 5),
-            new("Companies", "الشركات", "الإدارة العامة", 10),
-            new("Branches", "الفروع", "الإدارة العامة", 20),
-            new("Countries", "الدول", "الإدارة العامة", 25),
-            new("Governorates", "المحافظات", "الإدارة العامة", 26),
-            new("Cities", "المدن", "الإدارة العامة", 27),
-            new("FiscalYears", "السنوات المالية", "الإدارة العامة", 30),
-            new("Users", "المستخدمون", "الإدارة العامة", 40),
-            new("Roles", "الأدوار", "الإدارة العامة", 50),
-            new("RolePermissions", "صلاحيات الأدوار", "الإدارة العامة", 60),
-            new("AuditLogs", "سجل التدقيق والرقابة", "الإدارة العامة", 70),
-            new("Sessions", "الجلسات النشطة", "الإدارة العامة", 80),
-            new("GeneralSettings", "الإعدادات العامة والمالية", "التهيئة والإعدادات", 10),
-            new("SystemScreens", "كتالوج شاشات النظام", "التهيئة والإعدادات", 20),
-            new("NumberingSettings", "إعدادات الترقيم", "التهيئة والإعدادات", 30),
-            new("FiscalPeriods", "الفترات المالية", "التهيئة والإعدادات", 40),
-            new("ExchangeRates", "أسعار الصرف", "التهيئة والإعدادات", 50),
-            new("PaymentMethods", "طرق السداد", "التهيئة والإعدادات", 60),
-            new("VoucherTypes", "أنواع السندات", "التهيئة والإعدادات", 70),
-            new("VoucherStatuses", "حالات السندات", "التهيئة والإعدادات", 80),
-            new("ApprovalPolicies", "سياسات الاعتماد والسقوف", "التهيئة والإعدادات", 90),
-            new("ChartOfAccounts", "الدليل المحاسبي", "الحسابات", 10),
-            new("Currencies", "العملات", "الحسابات", 20),
-            new("CostCenters", "مراكز التكلفة", "الحسابات", 30),
-            new("CashBoxes", "الصناديق", "الحسابات", 40),
-            new("Banks", "البنوك والحسابات البنكية", "الحسابات", 50),
-            new("Parties", "الأطراف المالية", "الحسابات", 60),
-            new("ReceiptVoucher", "سند القبض", "الحسابات", 70),
-            new("PaymentVoucher", "سند الصرف", "الحسابات", 80),
-            new("JournalVoucher", "القيد اليومي", "الحسابات", 90),
-            new("DocumentSearch", "البحث عن المستندات", "الحسابات", 100)
-        };
 
         private sealed class ScreenAccessRow
         {
