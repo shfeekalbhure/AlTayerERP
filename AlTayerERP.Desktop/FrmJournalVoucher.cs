@@ -173,8 +173,9 @@ namespace AlTayerERP.Desktop
         {
             if (_voucherId <= 0) { MessageBox.Show("احفظ أو ابحث عن القيد أولاً."); return; }
             if (needsReason && string.IsNullOrWhiteSpace(_reason.Text)) { MessageBox.Show("سبب فك الترحيل إلزامي."); _reason.Focus(); return; }
-            var body = needsReason ? new { Reason = _reason.Text.Trim(), Action_Channel = "DESKTOP" } : new { Notes = _narration.Text.Trim(), Action_Channel = "DESKTOP" };
-            var response = await ApiService.Client.PostAsJsonAsync($"FinancialVoucher/{_voucherId}/{action}", body);
+            HttpResponseMessage response = needsReason
+                ? await ApiService.Client.PostAsJsonAsync($"FinancialVoucher/{_voucherId}/{action}", new { Reason = _reason.Text.Trim(), Action_Channel = "DESKTOP" })
+                : await ApiService.Client.PostAsJsonAsync($"FinancialVoucher/{_voucherId}/{action}", new { Notes = _narration.Text.Trim(), Action_Channel = "DESKTOP" });
             var text = await response.Content.ReadAsStringAsync();
             MessageBox.Show(response.IsSuccessStatusCode ? "تم تنفيذ العملية بنجاح." : text, "دورة القيد", MessageBoxButtons.OK, response.IsSuccessStatusCode ? MessageBoxIcon.Information : MessageBoxIcon.Warning);
         }
