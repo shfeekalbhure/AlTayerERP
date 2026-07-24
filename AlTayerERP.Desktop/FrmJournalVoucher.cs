@@ -146,13 +146,13 @@ namespace AlTayerERP.Desktop
         {
             var rows=_lines.Rows.Cast<DataGridViewRow>().Where(x=>!x.IsNewRow&&!string.IsNullOrWhiteSpace(x.Cells["Account"].Value?.ToString())).ToList();
             var local=_currencies.FirstOrDefault(x=>x.Is_Local_Currency)??throw new InvalidOperationException("العملة المحلية غير مهيأة.");
-            var payload=new List<object>();decimal debit=0,credit=0;
+            var payload=new List<JournalVoucherDetailDto>();decimal debit=0,credit=0;
             foreach(var r in rows)
             {
                 if(!int.TryParse(r.Cells["Currency"].Value?.ToString(),out var currencyId)||!_currencies.Any(x=>x.Currency_ID==currencyId&&x.Is_Active)){MessageBox.Show("عملة كل سطر مطلوبة ونشطة.");return;}
                 var d=CellDecimal(r,"Debit");var cr=CellDecimal(r,"Credit");var isLocal=currencyId==local.Currency_ID;var rate=isLocal?1m:CellDecimal(r,"Rate");var foreign=isLocal?0m:CellDecimal(r,"Foreign");var amount=isLocal?d+cr:Math.Round(foreign*rate,4);
                 if((d>0&&cr>0)||(d==0&&cr==0)||rate<=0||foreign<0||amount<=0){MessageBox.Show("كل سطر مدين أو دائن فقط، وبعملة وسعر صرف ومبلغ صحيحين.");return;}
-                debit+=d;credit+=cr;payload.Add(new {Line_No=payload.Count+1,Account_ID=r.Cells["Account"].Value!.ToString(),Cost_Center_ID=r.Cells["CostCenter"].Value?.ToString(),Currency_ID=currencyId,Exchange_Rate=rate,Foreign_Amount=foreign,Local_Amount=amount,Debit_Amount=d,Credit_Amount=cr,Reference_No=r.Cells["Reference"].Value?.ToString(),Description=r.Cells["Description"].Value?.ToString(),Line_Type=(byte)2});
+                debit+=d;credit+=cr;payload.Add(new JournalVoucherDetailDto {Line_No=payload.Count+1,Account_ID=r.Cells["Account"].Value!.ToString(),Cost_Center_ID=r.Cells["CostCenter"].Value?.ToString(),Currency_ID=currencyId,Exchange_Rate=rate,Foreign_Amount=foreign,Local_Amount=amount,Debit_Amount=d,Credit_Amount=cr,Reference_No=r.Cells["Reference"].Value?.ToString(),Description=r.Cells["Description"].Value?.ToString(),Line_Type=(byte)2});
             }
             if(_type.SelectedValue==null||_status.SelectedValue==null||_currency.SelectedValue==null||string.IsNullOrWhiteSpace(_narration.Text)||rows.Count<2||debit<=0||Math.Round(debit,4)!=Math.Round(credit,4)){MessageBox.Show("أدخل بياناً وسطرين على الأقل، ويجب أن يتوازن المدين مع الدائن.","تحقق القيد",MessageBoxButtons.OK,MessageBoxIcon.Warning);return;}
             var headerCurrency=Convert.ToInt32(_currency.SelectedValue);var headerIsLocal=headerCurrency==local.Currency_ID;
@@ -171,7 +171,7 @@ namespace AlTayerERP.Desktop
             _voucherId = data.GetProperty("voucher_ID").GetInt64(); _number.Text = data.GetProperty("voucher_No").GetString() ?? "";
             _narration.Text = data.TryGetProperty("against_Text", out var n) ? n.GetString() ?? "" : "";
             _lines.Rows.Clear();
-            foreach(var line in data.GetProperty("details").EnumerateArray()) _lines.Rows.Add(line.GetProperty("account_ID").GetString(), line.GetProperty("debit_Amount").GetDecimal(), line.GetProperty("credit_Amount").GetDecimal(), line.TryGetProperty("description", out var d) ? d.GetString() : "");
+            foreach(var line in data.GetProperty("details").EnumerateArray()) _lines.Rows.Add(line.GetProperty("account_ID").GetString(), line.TryGetProperty("cost_Center_ID",out var cc)?cc.GetString():null, line.GetProperty("currency_ID").GetInt32(), line.GetProperty("exchange_Rate").GetDecimal(), line.GetProperty("foreign_Amount").GetDecimal(), line.GetProperty("local_Amount").GetDecimal(), line.GetProperty("debit_Amount").GetDecimal(), line.GetProperty("credit_Amount").GetDecimal(), line.TryGetProperty("reference_No",out var rf)?rf.GetString():null, line.TryGetProperty("description", out var d) ? d.GetString() : "");
             CalculateTotals();
         }
 
@@ -194,6 +194,7 @@ namespace AlTayerERP.Desktop
             MessageBox.Show(await response.Content.ReadAsStringAsync(), "عرض القيد الناتج", MessageBoxButtons.OK, response.IsSuccessStatusCode ? MessageBoxIcon.Information : MessageBoxIcon.Warning);
         }
 
+        private sealed class JournalVoucherDetailDto { public int Line_No{get;set;} public string Account_ID{get;set;}=""; public string? Cost_Center_ID{get;set;} public int Currency_ID{get;set;} public decimal Exchange_Rate{get;set;} public decimal Foreign_Amount{get;set;} public decimal Local_Amount{get;set;} public decimal Debit_Amount{get;set;} public decimal Credit_Amount{get;set;} public string? Reference_No{get;set;} public string? Description{get;set;} public byte Line_Type{get;set;} }
         private sealed class LookupResponse { public List<LookupType> VoucherTypes { get; set; } = new(); public List<LookupStatus> VoucherStatuses { get; set; } = new(); public List<LookupCurrency> Currencies { get; set; } = new(); }
         private sealed class LookupType { public int Voucher_Type_ID { get; set; } public string Voucher_Type_Code { get; set; } = ""; public string Voucher_Type_Name_AR { get; set; } = ""; public bool Is_Active { get; set; } = true; }
         private sealed class LookupStatus { public int Voucher_Status_ID { get; set; } public string Voucher_Status_Code { get; set; } = ""; public string Voucher_Status_Name_AR { get; set; } = ""; public bool Is_Active { get; set; } = true; }
