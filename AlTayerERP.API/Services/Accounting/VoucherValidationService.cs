@@ -28,11 +28,20 @@ namespace AlTayerERP.API.Services.Accounting
 
             if (string.IsNullOrWhiteSpace(voucher.Branch_ID) ||
                 voucher.Fiscal_Year_ID <= 0 ||
-                string.IsNullOrWhiteSpace(voucher.Cash_Account_ID) ||
-                string.IsNullOrWhiteSpace(voucher.Received_From_Name) ||
                 string.IsNullOrWhiteSpace(voucher.Against_Text))
             {
-                return (false, "الفرع والسنة وحساب الصندوق واسم المستلم منه وبيان السند حقول إلزامية.");
+                return (false, "الفرع والسنة والبيان المحاسبي حقول إلزامية.");
+            }
+
+            var voucherTypeCode = await _context.Voucher_Types.AsNoTracking()
+                .Where(x => x.Voucher_Type_ID == voucher.Voucher_Type_ID && x.Is_Active)
+                .Select(x => x.Voucher_Type_Code)
+                .SingleOrDefaultAsync();
+            var isJournal = string.Equals(voucherTypeCode, "JOURNAL", StringComparison.OrdinalIgnoreCase);
+            if (!isJournal && (string.IsNullOrWhiteSpace(voucher.Cash_Account_ID) ||
+                string.IsNullOrWhiteSpace(voucher.Received_From_Name)))
+            {
+                return (false, "حساب الصندوق أو البنك واسم الطرف مطلوبان لسندي القبض والصرف.");
             }
 
             if (voucher.Exchange_Rate <= 0 || voucher.Currency_ID <= 0)
@@ -60,8 +69,7 @@ namespace AlTayerERP.API.Services.Accounting
             if (!fiscalYearIsValid)
                 return (false, "السنة المالية لا تتبع الفرع الحالي أو أنها مقفلة/غير فعالة.");
 
-            var voucherTypeIsActive = await _context.Voucher_Types.AsNoTracking()
-                .AnyAsync(x => x.Voucher_Type_ID == voucher.Voucher_Type_ID && x.Is_Active);
+            var voucherTypeIsActive = !string.IsNullOrWhiteSpace(voucherTypeCode);
             if (!voucherTypeIsActive)
                 return (false, "نوع السند غير موجود أو غير فعال.");
 
@@ -95,7 +103,7 @@ namespace AlTayerERP.API.Services.Accounting
             }
 
             var accountIds = voucher.Details.Select(x => x.Account_ID.Trim())
-                .Append(voucher.Cash_Account_ID.Trim())
+                .Concat(isJournal ? Enumerable.Empty<string>() : new[] { voucher.Cash_Account_ID.Trim() })
                 .Distinct()
                 .ToList();
 
@@ -111,8 +119,17 @@ namespace AlTayerERP.API.Services.Accounting
                 return (false, "يوجد حساب غير موجود أو غير نشط أو غير قابل للترحيل ضمن السند.");
 
             var cashLines = voucher.Details.Where(x => x.Line_Type == 1).ToList();
-            if (cashLines.Count != 1 || !string.Equals(cashLines[0].Account_ID?.Trim(), voucher.Cash_Account_ID.Trim(), StringComparison.Ordinal))
+            if (!isJournal && (cashLines.Count != 1 || !string.Equals(cashLines[0].Account_ID?.Trim(), voucher.Cash_Account_ID.Trim(), StringComparison.Ordinal)))
                 return (false, "يجب وجود سطر صندوق/بنك واحد فقط ومطابق لحساب الصندوق في رأس السند.");
+            if (isJournal && cashLines.Count != 0)
+                return (false, "القيد اليومي لا يحتوي سطر صندوق/بنك؛ استخدم سطوراً محاسبية عادية.");
+
+            var periodIsOpen = await _context.Fiscal_Periods.AsNoTracking().AnyAsync(x =>
+                x.Branch_ID == branchId && x.Fiscal_Year_ID == voucher.Fiscal_Year_ID &&
+                x.Is_Active && !x.Is_Closed &&
+                x.Start_Date.Date <= voucher.Transaction_Date.Date && x.End_Date.Date >= voucher.Transaction_Date.Date);
+            if (!periodIsOpen)
+                return (false, "لا توجد فترة مالية مفتوحة لتاريخ الحركة ضمن الفرع والسنة الحالية.");
 
             return (true, string.Empty);
         }
