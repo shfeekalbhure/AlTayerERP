@@ -20,7 +20,7 @@ public sealed class FrmPaymentRequest : BaseForm
     public FrmPaymentRequest()
     {
         Text="طلب الصرف";ApplyBaseFormStyle();RightToLeft=RightToLeft.Yes;RightToLeftLayout=true;KeyPreview=true;Build();
-        KeyDown+=async(_,e)=>{if(e.KeyCode==Keys.F2)NewRequest();if(e.Control&&e.KeyCode==Keys.S)await SaveAsync();if(e.KeyCode==Keys.Escape)Close();};
+        KeyDown+=async(_,e)=>{if(e.KeyCode==Keys.F2)NewRequest();if(e.Control&&e.KeyCode==Keys.S)await SaveAsync();if(e.Control&&e.KeyCode==Keys.F){_number.Focus();e.Handled=true;}if(e.KeyCode==Keys.Escape)Close();};
     }
     private void Build()
     {
