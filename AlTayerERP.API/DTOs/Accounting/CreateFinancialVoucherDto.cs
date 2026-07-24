@@ -35,16 +35,16 @@ namespace AlTayerERP.API.DTOs.Accounting
 
         #region بيانات الصندوق أو البنك
 
-        [Required(ErrorMessage = "حساب الصندوق أو البنك مطلوب.")]
+        // مطلوب لسندي القبض والصرف فقط؛ القيد اليومي لا يملك حساب صندوق/بنك في الرأس.
         [MaxLength(50)]
         public string Cash_Account_ID { get; set; } = string.Empty;
 
         [MaxLength(50)]
         public string? Party_ID { get; set; }
 
-        [Required(ErrorMessage = "اسم الشخص في حقل استلمت من السيد مطلوب.")]
+        // اسم الطرف مطلوب لسندي القبض والصرف فقط؛ القيد اليومي يستخدم البيان المحاسبي.
         [MaxLength(200)]
-        public string Received_From_Name { get; set; } = string.Empty;
+        public string? Received_From_Name { get; set; }
 
         public int? Payment_Method_ID { get; set; }
 
@@ -54,7 +54,8 @@ namespace AlTayerERP.API.DTOs.Accounting
         [Range(0.000001, double.MaxValue, ErrorMessage = "سعر الصرف يجب أن يكون أكبر من صفر.")]
         public decimal Exchange_Rate { get; set; } = 1.000000m;
 
-        [Range(0.01, double.MaxValue, ErrorMessage = "المبلغ يجب أن يكون أكبر من صفر.")]
+        // المبلغ يحسبه الخادم من الطرف المدين؛ لا تقبل الشاشة قيمة موثوقة مستقلة.
+        [Range(0, double.MaxValue)]
         public decimal Amount { get; set; }
 
         [Range(0, double.MaxValue)]
