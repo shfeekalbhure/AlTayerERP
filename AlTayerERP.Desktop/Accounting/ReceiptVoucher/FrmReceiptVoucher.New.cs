@@ -132,7 +132,14 @@ namespace AlTayerERP.Desktop
 
             // الحجز عملية POST متعمدة: توليد رقم العرض يغير العداد المركزي،
             // ولذلك لا يمكن أن يتكرر الرقم إذا أغلق المستخدم المسودة أو ألغاها.
-            const string documentType = "RECEIPT_VOUCHER";
+            var documentType = _voucherTypeCode switch
+            {
+                "RECEIPT" => "RECEIPT_VOUCHER",
+                "PAYMENT" => "PAYMENT_VOUCHER",
+                "JOURNAL" => "JOURNAL_ENTRY",
+                _ => throw new InvalidOperationException("نوع السند غير مدعوم للترقيم.")
+            };
+
             var response = await _client.PostAsJsonAsync(
                 $"{_baseUrl}NumberingSettings/Reserve",
                 new { Document_Type = documentType });
