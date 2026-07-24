@@ -88,7 +88,7 @@ public sealed class VoucherAttachmentsController : ControllerBase
         if (item == null) return NotFound();
         item.Active = false; item.DeletedAtUtc = DateTime.UtcNow; item.DeleteReason = Trim(request.Reason, 500);
         await WriteAsync(voucherId, items);
-        _audit.Add(Session(), HttpContext, "voucher_attachments", item.Id, "DELETE", new { item.Active = true }, new { item.Active = false }, item.DeleteReason);
+        _audit.Add(Session(), HttpContext, "voucher_attachments", item.Id, "DELETE", new { Active = true }, new { Active = false }, item.DeleteReason);
         await _audit.SaveChangesAsync();
         return Ok();
     }
