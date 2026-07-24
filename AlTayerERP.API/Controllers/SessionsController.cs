@@ -55,7 +55,7 @@ namespace AlTayerERP.API.Controllers
             _sessions.Remove(sessionId);
             _audit.Add(current, HttpContext, "sessions", sessionId, "SESSION_REVOKE",
                 newValues: new { target.User_ID, target.Device_ID });
-            await _tokens.SaveChangesAsync(cancellationToken);
+            await _audit.SaveChangesAsync(cancellationToken);
             return Ok(new { message = "تم إبطال الجلسة." });
         }
     }
