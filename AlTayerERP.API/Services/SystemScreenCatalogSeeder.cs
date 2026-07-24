@@ -18,6 +18,7 @@ namespace AlTayerERP.API.Services
         {
             var catalog = new[]
             {
+                new ScreenSeed("TenantGroups", "المجموعات التجارية", "الإدارة العامة", 5),
                 new ScreenSeed("Companies", "الشركات", "الإدارة العامة", 10),
                 new ScreenSeed("Branches", "الفروع", "الإدارة العامة", 20),
                 new ScreenSeed("FiscalYears", "السنوات المالية", "الإدارة العامة", 30),
