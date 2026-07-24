@@ -20,3 +20,10 @@ CREATE TABLE IF NOT EXISTS payment_request_lines (
  PRIMARY KEY (Payment_Request_Line_ID), UNIQUE KEY UQ_payment_request_lines_no (Payment_Request_ID,Line_No),
  KEY IX_payment_request_lines_currency (Currency_ID)
 ) ENGINE=InnoDB;
+CREATE TABLE IF NOT EXISTS payment_request_attachments (
+ Payment_Request_Attachment_ID BIGINT NOT NULL AUTO_INCREMENT, Payment_Request_ID BIGINT NOT NULL,
+ Company_ID VARCHAR(50) NOT NULL, Branch_ID INT NOT NULL, Fiscal_Year_ID INT NOT NULL,
+ Original_File_Name VARCHAR(260) NOT NULL, Storage_Key VARCHAR(500) NOT NULL, Content_Type VARCHAR(100) NOT NULL, File_Size BIGINT NOT NULL,
+ Is_Active TINYINT(1) NOT NULL DEFAULT 1, Created_By VARCHAR(50) NOT NULL, Created_At DATETIME NOT NULL,
+ PRIMARY KEY (Payment_Request_Attachment_ID), KEY IX_payment_request_attachments_scope (Payment_Request_ID,Is_Active)
+) ENGINE=InnoDB;
