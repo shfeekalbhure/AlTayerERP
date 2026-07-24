@@ -26,6 +26,7 @@ namespace AlTayerERP.API.Services
                 new ScreenSeed("Roles", "الأدوار", "الإدارة العامة", 50),
                 new ScreenSeed("RolePermissions", "صلاحيات الأدوار", "الإدارة العامة", 60),
                 new ScreenSeed("AuditLogs", "سجل التدقيق والرقابة", "الإدارة العامة", 70),
+                new ScreenSeed("Sessions", "الجلسات النشطة", "الإدارة العامة", 80),
                 new ScreenSeed("GeneralSettings", "الإعدادات العامة والمالية", "التهيئة والإعدادات", 70),
                 new ScreenSeed("SystemScreens", "كتالوج شاشات النظام", "التهيئة والإعدادات", 80),
                 new ScreenSeed("NumberingSettings", "إعدادات الترقيم", "التهيئة والإعدادات", 90),
