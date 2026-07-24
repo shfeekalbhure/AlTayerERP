@@ -48,6 +48,10 @@ namespace AlTayerERP.API.Services
             });
         }
 
+        /// <summary>يستخدم عند عملية تدقيق مستقلة لا تملك حفظاً لاحقاً.</summary>
+        public Task SaveChangesAsync(CancellationToken cancellationToken = default) =>
+            _context.SaveChangesAsync(cancellationToken);
+
         private static string? Trim(string? value, int maxLength) =>
             string.IsNullOrWhiteSpace(value) ? null :
             value.Trim().Length <= maxLength ? value.Trim() : value.Trim()[..maxLength];
