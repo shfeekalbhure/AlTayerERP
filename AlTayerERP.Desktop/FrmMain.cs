@@ -409,8 +409,9 @@ namespace AlTayerERP.Desktop
                 "PaymentRequest" => () => new FrmPaymentRequest(),
                 "JournalVoucher" => () => new FrmJournalVoucher(),
                 "DocumentSearch" => () => new FrmDocumentSearch(),
-                "TrialBalance" => () => new FrmFinancialReports(),
-                "GeneralLedger" => () => new FrmFinancialReports(),
+                // عناصر التقارير مستقلة في الشجرة، لكنها تفتح التبويب الصحيح داخل مركز واحد.
+                "TrialBalance" => () => new FrmFinancialReports(FinancialReportTab.TrialBalance),
+                "GeneralLedger" => () => new FrmFinancialReports(FinancialReportTab.GeneralLedger),
                 _ => null
             };
 
