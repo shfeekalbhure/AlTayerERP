@@ -623,7 +623,10 @@ namespace AlTayerERP.Desktop
 
                         // تحميل أثر السجل من الخادم: تاريخ/منشئ/معدل/عدادات.
                         await LoadUserAuditInfoAsync(user.User_ID);
-                        await LoadRolePermissionsAsync(user.Role_ID);
+
+                        // صلاحيات الدور مستقلة عن بيانات المستخدم ولا تُحمّل إلا إن أُظهرت المجموعة صراحة.
+                        if (grpPermissions.Visible)
+                            await LoadRolePermissionsAsync(user.Role_ID);
                     }
                 }
             }
