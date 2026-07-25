@@ -33,6 +33,8 @@ namespace AlTayerERP.Desktop
         private readonly Button _btnClearFilters = new();
         private readonly Button _btnResetPassword = new();
         private readonly Button _btnReactivate = new();
+        // إجراء مستقل لإلغاء قفل الحساب دون تغيير كلمة المرور.
+        private readonly Button _btnUnlock = new();
         private readonly Label _lblResultCount = new();
         private readonly Label _lblSelectionState = new();
         // حقول بطاقة التدقيق تُملأ من API عند اختيار مستخدم، ولا تُؤخذ من الواجهة.
@@ -137,9 +139,11 @@ namespace AlTayerERP.Desktop
             btnPrint.Text = "طباعة";
             btnClose.Text = "إغلاق";
             _btnReactivate.Text = "إعادة تفعيل";
+            _btnUnlock.Text = "إلغاء القفل";
             _btnResetPassword.Text = "إعادة تعيين كلمة المرور";
 
             _btnReactivate.Click += async (_, _) => await ReactivateSelectedUserAsync();
+            _btnUnlock.Click += async (_, _) => await UnlockSelectedUserAsync();
             _btnResetPassword.Click += (_, _) => BeginPasswordReset();
             btnSearch.Click -= btnSearch_Click;
             btnSearch.Click += (_, _) => { _txtUserSearch.Focus(); ApplyUsersFilter(); };
@@ -151,6 +155,7 @@ namespace AlTayerERP.Desktop
             ConfigureActionButton(btnEdit, Color.FromArgb(245, 158, 11), Color.White, 70);
             ConfigureActionButton(btnDelete, Color.FromArgb(220, 38, 38), Color.White, 70);
             ConfigureActionButton(_btnReactivate, Color.FromArgb(13, 148, 136), Color.White, 92);
+            ConfigureActionButton(_btnUnlock, Color.FromArgb(180, 83, 9), Color.White, 88);
             ConfigureActionButton(_btnResetPassword, Color.FromArgb(109, 40, 217), Color.White, 132);
             ConfigureActionButton(btnPrint, Color.White, Color.FromArgb(8, 49, 92), 70);
             ConfigureActionButton(btnSearch, Color.White, Color.FromArgb(8, 49, 92), 70);
@@ -159,7 +164,7 @@ namespace AlTayerERP.Desktop
 
             var buttons = new[]
             {
-                btnNew, btnSave, btnEdit, btnDelete, _btnReactivate,
+                btnNew, btnSave, btnEdit, btnDelete, _btnReactivate, _btnUnlock,
                 _btnResetPassword, btnPrint, btnSearch, btnRefresh, btnClose
             };
 
