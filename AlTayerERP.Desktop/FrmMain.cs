@@ -89,7 +89,7 @@ namespace AlTayerERP.Desktop
         private void WireEvents()
         {
             btnLogout.Click += async (_, _) => await LogoutAsync(showConfirmation: true);
-            btnSettings.Click += (_, _) => OpenScreen("GeneralSettings");
+            btnSettings.Click += (_, _) => ShowSettingsMenu();
             btnNotifications.Click += (_, _) => ShowNotifications();
             btnAboutSystem.Click += (_, _) => ShowAbout();
             tvMainMenu.NodeMouseDoubleClick += tvMainMenu_NodeMouseDoubleClick;
@@ -389,6 +389,7 @@ namespace AlTayerERP.Desktop
                 "RolePermissions" => () => new FrmRolePermissions(),
                 "AuditLogs" => () => new FrmAuditLogs(),
                 "Sessions" => () => new FrmSessions(),
+                "ChangePassword" => () => new FrmChangePassword(),
                 "GeneralSettings" => () => new FrmGeneralSettings(),
                 "SystemScreens" => () => new FrmSystemScreens(),
                 "NumberingSettings" => () => new FrmNumberingSettings(),
@@ -416,6 +417,25 @@ namespace AlTayerERP.Desktop
                 "GeneralLedger" => () => new FrmFinancialReports(FinancialReportTab.GeneralLedger),
                 _ => null
             };
+
+        /// <summary>يوفر تغيير كلمة المرور لكل مستخدم مسجل؛ إعدادات النظام تبقى محمية بالصلاحية.</summary>
+        private void ShowSettingsMenu()
+        {
+            var menu = new ContextMenuStrip { RightToLeft = RightToLeft.Yes };
+            var changePassword = new ToolStripMenuItem("تغيير كلمة المرور");
+            changePassword.Click += (_, _) => _workspace.Open("ChangePassword", "تغيير كلمة المرور", () => new FrmChangePassword());
+            menu.Items.Add(changePassword);
+
+            if (CanOpenScreen("GeneralSettings"))
+            {
+                var generalSettings = new ToolStripMenuItem("الإعدادات العامة والمالية");
+                generalSettings.Click += (_, _) => OpenScreen("GeneralSettings");
+                menu.Items.Add(generalSettings);
+            }
+
+            menu.Closed += (_, _) => menu.Dispose();
+            menu.Show(btnSettings, new Point(0, btnSettings.Height));
+        }
 
         private static bool IsSupportedScreen(string screenCode) =>
             GetScreenFactory(screenCode) != null;
