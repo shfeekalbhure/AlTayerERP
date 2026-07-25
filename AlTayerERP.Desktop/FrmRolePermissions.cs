@@ -10,6 +10,14 @@ using System.Windows.Forms;
 
 namespace AlTayerERP.Desktop
 {
+    /*
+     * دليل عربي لشاشة صلاحيات الأدوار:
+     * cmbRoles = اختيار الدور، txtSearch = البحث في الشاشات، dgvPermissions = جدول الصلاحيات.
+     * أعمدة Can_View/Can_Add/Can_Edit/Can_Delete وغيرها تمثل: عرض/إضافة/تعديل/حذف.
+     * btnSave حفظ الصلاحيات، btnGrantViewAll منح العرض للكل، btnClearAll إلغاء الكل،
+     * btnRefresh تحديث البيانات. تبقى الأسماء البرمجية بالإنجليزية لأنها مرتبطة مع API.
+     */
+
     /// <summary>
     /// إدارة صلاحيات الأدوار على مستوى الشاشة والعملية.
     /// تمنع الواجهة الصلاحيات المتناقضة، ويبقى التحقق النهائي في API.
