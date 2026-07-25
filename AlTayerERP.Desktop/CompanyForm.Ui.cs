@@ -1,6 +1,8 @@
 using System;
 using System.Drawing;
 using System.Linq;
+using System.Text.Json;
+using System.Threading.Tasks;
 using System.Windows.Forms;
 
 namespace AlTayerERP.Desktop
@@ -141,15 +143,99 @@ namespace AlTayerERP.Desktop
         }
 
         /// <summary>
-        /// تفعيل الإجراءات المرتبطة بالسجل عند تحديد صف من الجدول.
+        /// تفعيل الإجراءات المرتبطة بالسجل وتحميل حقول التدقيق عند تحديد شركة.
         /// </summary>
-        private void DgvCompanies_SelectionChanged(object? sender, EventArgs e)
+        private async void DgvCompanies_SelectionChanged(object? sender, EventArgs e)
         {
             bool hasSelection = dgvCompanies.SelectedRows.Count > 0;
             btnEdit.Enabled = hasSelection;
             btnDelete.Enabled = hasSelection;
             btnApprove.Enabled = hasSelection;
             btnPreview.Enabled = hasSelection;
+
+            if (!hasSelection)
+            {
+                ResetAuditView();
+                return;
+            }
+
+            object? idValue = dgvCompanies.SelectedRows[0].Cells[0].Value;
+            if (idValue is null)
+            {
+                ResetAuditView();
+                return;
+            }
+
+            await LoadAuditViewAsync(idValue.ToString() ?? string.Empty);
+        }
+
+        /// <summary>
+        /// قراءة حقول التدقيق مباشرة من استجابة الشركة دون ربط الشاشة بكائن قاعدة البيانات.
+        /// </summary>
+        private async Task LoadAuditViewAsync(string companyId)
+        {
+            if (string.IsNullOrWhiteSpace(companyId))
+            {
+                ResetAuditView();
+                return;
+            }
+
+            try
+            {
+                using var response = await _client.GetAsync($"{_baseUrl}Companies/{companyId}");
+                if (!response.IsSuccessStatusCode)
+                {
+                    ResetAuditView();
+                    return;
+                }
+
+                await using var stream = await response.Content.ReadAsStreamAsync();
+                using JsonDocument document = await JsonDocument.ParseAsync(stream);
+                JsonElement root = document.RootElement;
+
+                lblCreatedBy.Text = ReadJsonValue(root, "Created_By", "created_By", "createdBy");
+                lblCreatedAt.Text = FormatDate(ReadJsonValue(root, "Created_At", "created_At", "createdAt"));
+                lblModifiedBy.Text = ReadJsonValue(root, "Updated_By", "updated_By", "updatedBy");
+                lblModifiedAt.Text = FormatDate(ReadJsonValue(root, "Updated_At", "updated_At", "updatedAt"));
+                lblEditCount.Text = ReadJsonValue(root, "Edit_Count", "edit_Count", "editCount", fallback: "0");
+            }
+            catch
+            {
+                ResetAuditView();
+            }
+        }
+
+        private static string ReadJsonValue(JsonElement root, string name1, string name2, string name3, string fallback = "—")
+        {
+            foreach (string name in new[] { name1, name2, name3 })
+            {
+                if (!root.TryGetProperty(name, out JsonElement value) || value.ValueKind == JsonValueKind.Null)
+                    continue;
+
+                string? text = value.ValueKind switch
+                {
+                    JsonValueKind.String => value.GetString(),
+                    JsonValueKind.Number => value.GetRawText(),
+                    JsonValueKind.True => "نعم",
+                    JsonValueKind.False => "لا",
+                    _ => value.ToString()
+                };
+
+                if (!string.IsNullOrWhiteSpace(text))
+                    return text;
+            }
+
+            return fallback;
+        }
+
+        private static string FormatDate(string value)
+        {
+            if (value == "—")
+                return value;
+
+            return DateTime.TryParse(value, out DateTime date)
+                ? date.ToLocalTime().ToString("yyyy/MM/dd HH:mm")
+                : value;
         }
 
         /// <summary>
@@ -172,6 +258,7 @@ namespace AlTayerERP.Desktop
             if (e.Control && e.KeyCode == Keys.N)
             {
                 btnNew.PerformClick();
+                ResetAuditView();
                 e.SuppressKeyPress = true;
             }
             else if (e.Control && e.KeyCode == Keys.S)
@@ -206,7 +293,6 @@ namespace AlTayerERP.Desktop
 
         /// <summary>
         /// إعادة حقول التدقيق إلى حالتها الافتراضية عند إنشاء سجل جديد.
-        /// القيم الحقيقية ستعرض عند توفيرها من استجابة الـ API.
         /// </summary>
         private void ResetAuditView()
         {
