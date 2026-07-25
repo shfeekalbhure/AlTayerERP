@@ -554,12 +554,12 @@ public class FrmGeographicReference : BaseForm
         {
             var audit = await ApiService.Client.GetFromJsonAsync<CountryAuditInfo>($"GeographicReferences/countries/{countryId}/audit-info");
             if (audit is null) { ClearAuditInfo(); return; }
-            _auditCreatedBy.Text = audit.CreatedBy ?? "غير متاح";
-            _auditCreatedAt.Text = FormatAuditDate(audit.CreatedAt);
-            _auditUpdatedBy.Text = audit.UpdatedBy ?? "غير متاح";
-            _auditUpdatedAt.Text = FormatAuditDate(audit.UpdatedAt);
-            _auditEditCount.Text = audit.EditCount.ToString();
-            _auditPrintCount.Text = audit.PrintCount.ToString();
+            _auditCreatedBy.Text = audit.Created_By ?? "غير متاح";
+            _auditCreatedAt.Text = FormatAuditDate(audit.Created_At);
+            _auditUpdatedBy.Text = audit.Updated_By ?? "غير متاح";
+            _auditUpdatedAt.Text = FormatAuditDate(audit.Updated_At);
+            _auditEditCount.Text = audit.Edit_Count.ToString();
+            _auditPrintCount.Text = audit.Print_Count.ToString();
         }
         catch
         {
@@ -681,12 +681,12 @@ public class FrmGeographicReference : BaseForm
 
     private sealed class CountryAuditInfo
     {
-        public string? CreatedBy { get; set; }
-        public DateTime? CreatedAt { get; set; }
-        public string? UpdatedBy { get; set; }
-        public DateTime? UpdatedAt { get; set; }
-        public int EditCount { get; set; }
-        public int PrintCount { get; set; }
+        public string? Created_By { get; set; }
+        public DateTime? Created_At { get; set; }
+        public string? Updated_By { get; set; }
+        public DateTime? Updated_At { get; set; }
+        public int Edit_Count { get; set; }
+        public int Print_Count { get; set; }
     }
 
     private sealed class CountryLookup
