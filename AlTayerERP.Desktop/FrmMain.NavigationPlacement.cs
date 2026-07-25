@@ -13,9 +13,11 @@ public partial class FrmMain
         RightToLeft = RightToLeft.Yes;
         RightToLeftLayout = false;
         pnlSideMenu.Dock = DockStyle.Right;
-        pnlSideMenu.BringToFront();
-        pnlTopBar.BringToFront();
-        pnlStatusBar.BringToFront();
+        // إعادة ترتيب الـDock تحجز مساحة العمل فعلياً ولا تسمح للشجرة بتغطية النموذج.
+        Controls.SetChildIndex(pnlTopBar, 0);
+        Controls.SetChildIndex(pnlStatusBar, 1);
+        Controls.SetChildIndex(pnlSideMenu, 2);
+        Controls.SetChildIndex(pnlWorkspace, 3);
         EnsureMenuSearchBox();
     }
 }
