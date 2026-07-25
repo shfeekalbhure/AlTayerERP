@@ -36,6 +36,11 @@
 		</EmbeddedResource>
 	</ItemGroup>
 
+	<!-- أيقونات شريط أوامر شاشات المرحلة الأولى (Font Awesome Free). -->
+	<ItemGroup>
+		<EmbeddedResource Include="Assets\Toolbar\*.png" />
+	</ItemGroup>
+
 	<!-- الشاشة الرئيسية لسند القبض -->
 	<ItemGroup>
 		<Compile Update="Accounting\ReceiptVoucher\FrmReceiptVoucher.cs" />

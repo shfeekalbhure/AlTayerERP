@@ -46,9 +46,9 @@ public class FrmGeographicReference : BaseForm
         StartPosition = FormStartPosition.CenterParent;
         ApplyBaseFormStyle();
 
-        _save = ActionButton("حفظ", async (_, _) => await SaveAsync(), primary: true);
-        _deactivate = ActionButton("إيقاف", async (_, _) => await ChangeStatusAsync(false), danger: true);
-        _reactivate = ActionButton("إعادة تفعيل", async (_, _) => await ChangeStatusAsync(true));
+        _save = ActionButton("حفظ", async (_, _) => await SaveAsync(), "save", primary: true);
+        _deactivate = ActionButton("إيقاف", async (_, _) => await ChangeStatusAsync(false), "stop", danger: true);
+        _reactivate = ActionButton("إعادة تفعيل", async (_, _) => await ChangeStatusAsync(true), "restore");
 
         Build();
         Load += async (_, _) => await InitializeAsync();
@@ -73,7 +73,7 @@ public class FrmGeographicReference : BaseForm
         // بطاقة البحث تحتوي عنواناً داخلياً؛ الارتفاع السابق كان يقص الحقول.
         shell.RowStyles.Add(new RowStyle(SizeType.Absolute, 78));
         shell.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
-        shell.RowStyles.Add(new RowStyle(SizeType.Absolute, 70));
+        shell.RowStyles.Add(new RowStyle(SizeType.Absolute, 86));
         shell.RowStyles.Add(new RowStyle(SizeType.Absolute, 26));
 
         shell.Controls.Add(new BrandHeaderControl(ScreenTitle), 0, 0);
@@ -102,15 +102,15 @@ public class FrmGeographicReference : BaseForm
 
         bar.Controls.AddRange(new Control[]
         {
-            ActionButton("جديد", (_, _) => ClearForm()),
+            ActionButton("جديد", (_, _) => ClearForm(), "new"),
             _save,
-            ActionButton("تعديل", async (_, _) => await SaveAsync()),
+            ActionButton("تعديل", async (_, _) => await SaveAsync(), "edit"),
             _deactivate,
             _reactivate,
-            ActionButton("طباعة", async (_, _) => await PrintSelectedCountryAsync()),
-            ActionButton("بحث", (_, _) => _search.Focus()),
-            ActionButton("تحديث", async (_, _) => await LoadRowsAsync()),
-            ActionButton("إغلاق", (_, _) => Close())
+            ActionButton("تحديث", async (_, _) => await LoadRowsAsync(), "refresh"),
+            ActionButton("بحث", (_, _) => _search.Focus(), "search"),
+            ActionButton("طباعة", async (_, _) => await PrintSelectedCountryAsync(), "print"),
+            ActionButton("إغلاق", (_, _) => Close(), "close")
         });
         return bar;
     }
@@ -191,17 +191,17 @@ public class FrmGeographicReference : BaseForm
         var panel = new TableLayoutPanel
         {
             Dock = DockStyle.Fill,
-            ColumnCount = 6,
+            ColumnCount = 5,
             Padding = new Padding(12, 5, 12, 6),
             BackColor = Color.White,
             RightToLeft = RightToLeft.Yes
         };
         panel.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 84));
         panel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 58));
-        panel.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 58));
+        panel.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 70));
+        panel.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 175));
         panel.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 150));
-        panel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 42));
-        panel.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 128));
+        panel.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
 
         _search.Dock = DockStyle.Fill;
         _search.Margin = new Padding(5, 2, 10, 2);
@@ -219,11 +219,11 @@ public class FrmGeographicReference : BaseForm
         _count.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
         _count.ForeColor = Color.FromArgb(75, 85, 99);
 
-        panel.Controls.Add(Caption("البحث:"), 0, 0);
+        panel.Controls.Add(Caption("ابحث بالكود أو الاسم:"), 0, 0);
         panel.Controls.Add(_search, 1, 0);
         panel.Controls.Add(Caption("الحالة:"), 2, 0);
         panel.Controls.Add(_statusFilter, 3, 0);
-        panel.Controls.Add(_count, 5, 0);
+        panel.Controls.Add(_count, 4, 0);
         return Card("البحث والتصفية", panel);
     }
 
@@ -265,13 +265,13 @@ public class FrmGeographicReference : BaseForm
     // ينشئ بطاقة تدقيق قراءة فقط بحدود واضحة للحفاظ على اتساق واجهات النظام.
     private static Control CreateAuditCard(string title, string firstCaption, Label firstValue, string secondCaption, Label secondValue)
     {
-        var table = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, RowCount = 3, Padding = new Padding(7, 2, 7, 2), BackColor = Color.White, BorderStyle = BorderStyle.FixedSingle, Margin = new Padding(2) };
-        table.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 112));
+        var table = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, RowCount = 3, Padding = new Padding(8, 3, 8, 3), BackColor = Color.White, BorderStyle = BorderStyle.FixedSingle, Margin = new Padding(3) };
+        table.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 118));
         table.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
-        table.RowStyles.Add(new RowStyle(SizeType.Absolute, 21));
-        table.RowStyles.Add(new RowStyle(SizeType.Absolute, 22));
-        table.RowStyles.Add(new RowStyle(SizeType.Absolute, 22));
-        var header = new Label { Text = title, Dock = DockStyle.Fill, TextAlign = ContentAlignment.MiddleRight, Font = new Font("Segoe UI", 8.8F, FontStyle.Bold), ForeColor = Color.FromArgb(8, 55, 112) };
+        table.RowStyles.Add(new RowStyle(SizeType.Absolute, 23));
+        table.RowStyles.Add(new RowStyle(SizeType.Absolute, 27));
+        table.RowStyles.Add(new RowStyle(SizeType.Absolute, 27));
+        var header = new Label { Text = title, Dock = DockStyle.Fill, TextAlign = ContentAlignment.MiddleRight, Padding = new Padding(5, 0, 5, 0), BackColor = Color.FromArgb(232, 240, 250), Font = new Font("Segoe UI", 8.8F, FontStyle.Bold), ForeColor = Color.FromArgb(8, 55, 112) };
         table.Controls.Add(header, 0, 0);
         table.SetColumnSpan(header, 2);
         table.Controls.Add(AuditCaption(firstCaption), 0, 1);
@@ -619,21 +619,51 @@ public class FrmGeographicReference : BaseForm
     private static bool IsTrue(string value) => value == "1" || value.Equals("true", StringComparison.OrdinalIgnoreCase);
     private static string? CleanText(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 
-    private static Button ActionButton(string text, EventHandler handler, bool primary = false, bool danger = false)
+    private static Button ActionButton(string text, EventHandler handler, string iconName, bool primary = false, bool danger = false)
     {
+        var backColor = iconName switch
+        {
+            "new" => Color.FromArgb(13, 110, 133),
+            "save" => Color.FromArgb(15, 103, 208),
+            "edit" => Color.FromArgb(196, 119, 18),
+            "stop" => Color.FromArgb(181, 48, 48),
+            "restore" => Color.FromArgb(105, 75, 170),
+            "refresh" => Color.FromArgb(26, 117, 166),
+            "search" => Color.FromArgb(25, 76, 130),
+            "print" => Color.FromArgb(83, 98, 126),
+            _ => Color.FromArgb(91, 101, 116)
+        };
         var button = new Button
         {
             Text = text,
-            Width = 96,
+            Width = 108,
             Height = 34,
-            Margin = new Padding(3),
+            Margin = new Padding(3, 1, 3, 1),
             FlatStyle = FlatStyle.Flat,
-            BackColor = primary ? Color.FromArgb(15, 103, 208) : Color.White,
-            ForeColor = primary ? Color.White : danger ? Color.FromArgb(174, 35, 35) : Color.FromArgb(8, 55, 112)
+            UseVisualStyleBackColor = false,
+            BackColor = primary ? Color.FromArgb(15, 103, 208) : backColor,
+            ForeColor = Color.White,
+            Image = LoadToolbarIcon(iconName),
+            ImageAlign = ContentAlignment.MiddleRight,
+            TextAlign = ContentAlignment.MiddleLeft,
+            TextImageRelation = TextImageRelation.ImageBeforeText,
+            RightToLeft = RightToLeft.Yes,
+            Padding = new Padding(7, 0, 7, 0)
         };
-        button.FlatAppearance.BorderColor = danger ? Color.FromArgb(238, 188, 188) : Color.FromArgb(205, 217, 232);
+        button.FlatAppearance.BorderSize = 0;
+        button.FlatAppearance.MouseOverBackColor = ControlPaint.Light(backColor, .12F);
+        button.FlatAppearance.MouseDownBackColor = ControlPaint.Dark(backColor, .10F);
         button.Click += handler;
         return button;
+    }
+
+    private static Image? LoadToolbarIcon(string iconName)
+    {
+        var resourceName = $"AlTayerERP.Desktop.Assets.Toolbar.{iconName}.png";
+        using var stream = typeof(FrmGeographicReference).Assembly.GetManifestResourceStream(resourceName);
+        if (stream is null) return null;
+        using var source = Image.FromStream(stream);
+        return new Bitmap(source);
     }
 
     private static Panel Card(string title, Control body)
