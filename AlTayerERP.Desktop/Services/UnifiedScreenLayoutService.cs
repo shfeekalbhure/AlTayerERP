@@ -145,7 +145,6 @@ namespace AlTayerERP.Desktop.Services
         {
             foreach (var grid in FindControls<DataGridView>(root))
             {
-                grid.Dock = DockStyle.Fill;
                 grid.Margin = Padding.Empty;
                 grid.AutoSizeColumnsMode = grid.AutoSizeColumnsMode == DataGridViewAutoSizeColumnsMode.None
                     ? DataGridViewAutoSizeColumnsMode.Fill
@@ -155,12 +154,41 @@ namespace AlTayerERP.Desktop.Services
                 grid.AllowUserToResizeRows = false;
                 grid.BackgroundColor = Color.White;
 
+                // لا نملأ النموذج مباشرة عندما توجد حقول أعلى الجدول؛
+                // ذلك كان يجعل الجدول يغطي حقول الإدخال في الشاشات القديمة.
+                // داخل حاوية مخصصة للجدول يظل Dock.Fill هو السلوك الصحيح،
+                // أما الجدول المباشر فيتمدد بالـ Anchor مع أبعاد الشاشة.
+                if (CanFillGrid(grid))
+                {
+                    grid.Dock = DockStyle.Fill;
+                }
+                else
+                {
+                    grid.Dock = DockStyle.None;
+                    grid.Anchor = AnchorStyles.Top | AnchorStyles.Bottom |
+                                  AnchorStyles.Left | AnchorStyles.Right;
+                }
+
                 if (grid.Parent is Panel panel)
                 {
                     panel.Padding = Padding.Empty;
                     panel.Margin = Padding.Empty;
                 }
             }
+        }
+
+        private static bool CanFillGrid(DataGridView grid)
+        {
+            if (grid.Parent is TableLayoutPanel or SplitterPanel or TabPage)
+                return true;
+
+            if (grid.Parent is not Panel panel)
+                return false;
+
+            // Panel مخصص للجدول وحده، أو يحتوي عناصر Docked فقط.
+            return panel.Controls.Count == 1 ||
+                   panel.Controls.Cast<Control>().All(control =>
+                       control == grid || control.Dock != DockStyle.None);
         }
 
         private static void NormalizeSearchInputs(Control root)
