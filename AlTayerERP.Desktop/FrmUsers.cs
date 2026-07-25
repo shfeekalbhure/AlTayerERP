@@ -361,7 +361,15 @@ namespace AlTayerERP.Desktop
                     });
                 }
                 var response = await _client.PostAsJsonAsync($"{_baseUrl}RolePermissions/SaveRolePermissions", permissions);
-                if (!response.IsSuccessStatusCode) MessageBox.Show(await response.Content.ReadAsStringAsync(), "خطأ حفظ الصلاحيات", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                if (!response.IsSuccessStatusCode)
+                {
+                    MessageBox.Show(await response.Content.ReadAsStringAsync(), "خطأ حفظ الصلاحيات", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+
+                // نقرأ المصفوفة بعد الحفظ من الخادم نفسه؛ لا نبقي واجهة قديمة
+                // ولا نعتمد على القيم المحلية عند تغيير صلاحيات الدور.
+                await ReloadPermissionsForCurrentRoleAsync();
             }
             catch (Exception ex)
             {
@@ -473,7 +481,33 @@ namespace AlTayerERP.Desktop
         private void btnNew_Click(object sender, EventArgs e) { ClearForm(); }
         private async void btnDelete_Click(object sender, EventArgs e) { await ExecuteDeleteAsync(); }
         private void btnClose_Click(object sender, EventArgs e) { this.Close(); }
-        private async void btnRefresh_Click(object sender, EventArgs e) { await LoadUsersAsync(); ClearForm(); }
+        private async void btnRefresh_Click(object sender, EventArgs e)
+        {
+            btnRefresh.Enabled = false;
+            try
+            {
+                await LoadUsersAsync();
+                await LoadFunctionPermissionsAsync();
+                await ReloadPermissionsForCurrentRoleAsync();
+                InitializeApprovedUserFilters();
+                MessageBox.Show("تم تحديث المستخدمين وصلاحيات الدور من النظام.", "تحديث النظام", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
+            finally
+            {
+                btnRefresh.Enabled = true;
+            }
+        }
+
+        /// <summary>يعيد تحميل صلاحيات الدور المحدد بعد الحفظ أو عند طلب التحديث.</summary>
+        private async Task ReloadPermissionsForCurrentRoleAsync()
+        {
+            if (cmbRole.SelectedValue != null &&
+                int.TryParse(cmbRole.SelectedValue.ToString(), out var roleId) &&
+                roleId > 0)
+            {
+                await LoadRolePermissionsAsync(roleId);
+            }
+        }
 
         /// <summary>
         /// 🔍 تفعيل ميزة البحث والفلترة السريعة لجدول المستخدمين داخل الذاكرة كاش لتسريع الأداء وحماية السيرفر
