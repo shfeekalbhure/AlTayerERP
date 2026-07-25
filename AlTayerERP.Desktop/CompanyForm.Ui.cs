@@ -18,11 +18,12 @@ namespace AlTayerERP.Desktop
         private int _localPrintCount;
 
         /// <summary>
-        /// تهيئة الشاشة بعد اكتمال إنشاء عناصرها وإظهارها للمستخدم.
+        /// تهيئة واجهة الشركات بعد إنشاء مقبض النافذة.
+        /// استخدام هذه المرحلة يمنع التعارض مع دورة OnShown الموجودة في BaseForm.
         /// </summary>
-        protected override void OnShown(EventArgs e)
+        protected override void OnHandleCreated(EventArgs e)
         {
-            base.OnShown(e);
+            base.OnHandleCreated(e);
 
             if (_unifiedUiInitialized)
                 return;
@@ -82,20 +83,31 @@ namespace AlTayerERP.Desktop
             dgvCompanies.GridColor = Color.FromArgb(220, 226, 232);
             dgvCompanies.CellBorderStyle = DataGridViewCellBorderStyle.SingleHorizontal;
 
-            if (dgvCompanies.Columns.Contains("Company_ID"))
-                dgvCompanies.Columns["Company_ID"].Visible = false;
+            SetColumnVisibility("Company_ID", false);
+            SetColumnVisibility("Address", false);
+            SetColumnVisibility("Email", false);
+            SetColumnFillWeight("Company_Name_AR", 150F);
+            SetColumnFillWeight("Company_Name_EN", 120F);
+        }
 
-            if (dgvCompanies.Columns.Contains("Company_Name_AR"))
-                dgvCompanies.Columns["Company_Name_AR"].FillWeight = 150;
+        private void SetColumnVisibility(string columnName, bool visible)
+        {
+            DataGridViewColumn? column = dgvCompanies.Columns
+                .Cast<DataGridViewColumn>()
+                .FirstOrDefault(x => string.Equals(x.Name, columnName, StringComparison.OrdinalIgnoreCase));
 
-            if (dgvCompanies.Columns.Contains("Company_Name_EN"))
-                dgvCompanies.Columns["Company_Name_EN"].FillWeight = 120;
+            if (column is not null)
+                column.Visible = visible;
+        }
 
-            if (dgvCompanies.Columns.Contains("Address"))
-                dgvCompanies.Columns["Address"].Visible = false;
+        private void SetColumnFillWeight(string columnName, float fillWeight)
+        {
+            DataGridViewColumn? column = dgvCompanies.Columns
+                .Cast<DataGridViewColumn>()
+                .FirstOrDefault(x => string.Equals(x.Name, columnName, StringComparison.OrdinalIgnoreCase));
 
-            if (dgvCompanies.Columns.Contains("Email"))
-                dgvCompanies.Columns["Email"].Visible = false;
+            if (column is not null)
+                column.FillWeight = fillWeight;
         }
 
         /// <summary>
