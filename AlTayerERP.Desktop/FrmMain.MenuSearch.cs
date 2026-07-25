@@ -9,6 +9,7 @@ namespace AlTayerERP.Desktop
         private TextBox? _txtMenuSearch;
         private Panel? _menuSearchPanel;
         private Panel? _menuTreeHost;
+        private Panel? _menuTreeHeader;
 
         private void EnsureMenuSearchBox()
         {
@@ -28,11 +29,27 @@ namespace AlTayerERP.Desktop
             _menuTreeHost = new Panel
             {
                 Dock = DockStyle.Fill,
-                // المسافة العلوية تُظهر أن الشريط السابق مستقل عن بطاقة الشجرة.
-                Padding = new Padding(3, 8, 3, 3),
+                Padding = new Padding(3),
                 BackColor = Color.FromArgb(5, 36, 69),
                 BorderStyle = BorderStyle.FixedSingle
             };
+
+            // رأس قالب الشجرة يبقى ظاهراً ولا يستبدله حقل البحث.
+            _menuTreeHeader = new Panel
+            {
+                Dock = DockStyle.Top,
+                Height = 34,
+                Padding = new Padding(8, 3, 8, 3),
+                BackColor = Color.FromArgb(8, 49, 92)
+            };
+            _menuTreeHeader.Controls.Add(new Label
+            {
+                Text = "شجرة النظام",
+                Dock = DockStyle.Fill,
+                ForeColor = Color.White,
+                Font = new Font("Segoe UI", 9F, FontStyle.Bold),
+                TextAlign = ContentAlignment.MiddleRight
+            });
 
             pnlSideMenu.SuspendLayout();
             pnlSideMenu.BackColor = Color.FromArgb(239, 243, 248);
@@ -40,6 +57,7 @@ namespace AlTayerERP.Desktop
             pnlSideMenu.Controls.Remove(tvMainMenu);
             tvMainMenu.Dock = DockStyle.Fill;
             _menuTreeHost.Controls.Add(tvMainMenu);
+            _menuTreeHost.Controls.Add(_menuTreeHeader);
 
             _txtMenuSearch = new TextBox
             {
@@ -75,7 +93,7 @@ namespace AlTayerERP.Desktop
 
             _menuSearchPanel.Controls.Add(_txtMenuSearch);
 
-            // البحث فوق قالب الشجرة، والشجرة داخل قالب مستقل أسفله.
+            // البحث أعلى الشجرة، ثم رأس واضح للقالب، ثم محتوى الشجرة.
             pnlSideMenu.Controls.Add(_menuTreeHost);
             pnlSideMenu.Controls.Add(_menuSearchPanel);
             _menuSearchPanel.BringToFront();
