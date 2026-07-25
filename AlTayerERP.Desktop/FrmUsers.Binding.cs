@@ -49,6 +49,36 @@ namespace AlTayerERP.Desktop
         }
 
         /// <summary>
+        /// يلغي قفل الحساب من الخادم فقط؛ لا يغير كلمة المرور ولا حالة الحساب.
+        /// </summary>
+        private async Task UnlockSelectedUserAsync()
+        {
+            if (_selectedUserId <= 0)
+            {
+                MessageBox.Show("اختر مستخدماً أولاً لإلغاء القفل.", "إدارة المستخدمين",
+                    MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
+
+            var answer = MessageBox.Show("هل تريد إلغاء قفل حساب المستخدم المحدد؟", "تأكيد إلغاء القفل",
+                MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+            if (answer != DialogResult.Yes) return;
+
+            var response = await _client.PostAsync($"{_baseUrl}Users/{_selectedUserId}/unlock", null);
+            if (!response.IsSuccessStatusCode)
+            {
+                MessageBox.Show(await response.Content.ReadAsStringAsync(), "فشل إلغاء القفل",
+                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            await LoadUsersAsync();
+            await GetUserDetailsAsync(_selectedUserId);
+            MessageBox.Show("تم إلغاء قفل حساب المستخدم.", "إدارة المستخدمين",
+                MessageBoxButtons.OK, MessageBoxIcon.Information);
+        }
+
+        /// <summary>
         /// يسجل عملية طباعة بيانات المستخدم المحدد ثم ينعش عداد الطباعة في التذييل.
         /// </summary>
         private async Task RegisterUserPrintAsync(int userId)
