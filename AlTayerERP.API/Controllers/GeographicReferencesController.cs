@@ -68,6 +68,26 @@ public sealed class GeographicReferencesController : ControllerBase
         return Ok(await QueryAsync(sql, ("@Country_ID", countryId), ("@Governorate_ID", governorateId)));
     }
 
+    /// <summary>يعيد بطاقة تدقيق الدولة دون كشف أي بيانات حساسة.</summary>
+    [HttpGet("countries/{id:int}/audit-info")]
+    public Task<IActionResult> GetCountryAuditInfo(int id) =>
+        GetAuditInfoAsync("Countries", "countries", id);
+
+    /// <summary>يسجل معاينة طباعة قائمة أو بطاقة دولة في سجل التدقيق.</summary>
+    [HttpPost("countries/{id:int}/print")]
+    public async Task<IActionResult> RegisterCountryPrint(int id)
+    {
+        var access = await RequireAsync("Countries", ScreenOperation.Print);
+        if (access != null) return access;
+
+        if (await ScalarAsync<int>("SELECT COUNT(*) FROM countries WHERE Country_ID=@ID", ("@ID", id)) == 0)
+            return NotFound("الدولة غير موجودة.");
+
+        AddAudit("countries", id, "PRINT", "معاينة طباعة بيانات الدولة.");
+        await _context.SaveChangesAsync();
+        return Ok(new { message = "تم تسجيل عملية الطباعة." });
+    }
+
     [HttpPost("countries")]
     public async Task<IActionResult> SaveCountry([FromBody] CountryRequest dto)
     {
@@ -75,6 +95,24 @@ public sealed class GeographicReferencesController : ControllerBase
         if (access != null) return access;
         if (string.IsNullOrWhiteSpace(dto.Country_Code) || string.IsNullOrWhiteSpace(dto.Country_Name_AR))
             return BadRequest("كود الدولة واسمها العربي مطلوبان.");
+
+        dto.Country_Code = dto.Country_Code.Trim().ToUpperInvariant();
+        dto.ISO2 = string.IsNullOrWhiteSpace(dto.ISO2) ? null : dto.ISO2.Trim().ToUpperInvariant();
+        dto.ISO3 = string.IsNullOrWhiteSpace(dto.ISO3) ? null : dto.ISO3.Trim().ToUpperInvariant();
+        dto.Currency_Code = string.IsNullOrWhiteSpace(dto.Currency_Code) ? null : dto.Currency_Code.Trim().ToUpperInvariant();
+
+        if (dto.ISO2 is not null && dto.ISO2.Length != 2)
+            return BadRequest("رمز ISO2 يجب أن يتكون من حرفين.");
+        if (dto.ISO3 is not null && dto.ISO3.Length != 3)
+            return BadRequest("رمز ISO3 يجب أن يتكون من ثلاثة أحرف.");
+        if (dto.Currency_Code is not null && dto.Currency_Code.Length != 3)
+            return BadRequest("رمز العملة يجب أن يتكون من ثلاثة أحرف.");
+
+        var duplicate = await ScalarAsync<int>(
+            "SELECT COUNT(*) FROM countries WHERE Country_Code=@Code AND Country_ID<>@ID",
+            ("@Code", dto.Country_Code), ("@ID", dto.Country_ID));
+        if (duplicate > 0)
+            return Conflict("كود الدولة مستخدم مسبقاً.");
 
         if (dto.Country_ID > 0)
         {
@@ -167,7 +205,7 @@ public sealed class GeographicReferencesController : ControllerBase
     [HttpPost("countries/{id:int}/reactivate")]
     public async Task<IActionResult> ReactivateCountry(int id, [FromBody] RecordStatusChangeDto dto)
     {
-        var access = await RequireAsync("Countries", ScreenOperation.Edit); if (access != null) return access;
+        var access = await RequireAsync("Countries", ScreenOperation.Reactivate); if (access != null) return access;
         if (dto is null || string.IsNullOrWhiteSpace(dto.Reason)) return BadRequest("سبب إعادة تفعيل الدولة مطلوب.");
         var changed=await ExecuteAsync("UPDATE countries SET Is_Active=1, Updated_At=UTC_TIMESTAMP() WHERE Country_ID=@ID", ("@ID",id));
         if(changed==0) return NotFound("الدولة غير موجودة."); AddAudit("countries",id,"REACTIVATE",dto.Reason); await _context.SaveChangesAsync(); return Ok();
@@ -193,6 +231,48 @@ public sealed class GeographicReferencesController : ControllerBase
         var valid=await ScalarAsync<int>("SELECT COUNT(*) FROM cities ci INNER JOIN countries c ON c.Country_ID=ci.Country_ID INNER JOIN governorates g ON g.Governorate_ID=ci.Governorate_ID WHERE ci.City_ID=@ID AND c.Is_Active=1 AND g.Is_Active=1",("@ID",id));
         if(valid==0) return Conflict("لا يمكن إعادة تفعيل المدينة قبل تفعيل الدولة والمحافظة.");
         await ExecuteAsync("UPDATE cities SET Is_Active=1, Updated_At=UTC_TIMESTAMP() WHERE City_ID=@ID",("@ID",id)); AddAudit("cities",id,"REACTIVATE",dto.Reason); await _context.SaveChangesAsync(); return Ok();
+    }
+
+    /// <summary>
+    /// يبني بيانات التدقيق من السجل المركزي مع تحويل أرقام المنفذين إلى أسمائهم.
+    /// </summary>
+    private async Task<IActionResult> GetAuditInfoAsync(string screenCode, string tableName, int recordId)
+    {
+        var access = await RequireAsync(screenCode, ScreenOperation.View);
+        if (access != null) return access;
+
+        var logs = await _context.Audit_Logs.AsNoTracking()
+            .Where(x => x.Table_Name == tableName && x.Record_ID == recordId.ToString())
+            .OrderBy(x => x.Action_At)
+            .Select(x => new { x.Action_Type, x.User_ID, x.Action_At })
+            .ToListAsync();
+
+        var operatorIds = logs
+            .Select(x => int.TryParse(x.User_ID, out var userId) ? userId : 0)
+            .Where(x => x > 0)
+            .Distinct()
+            .ToList();
+
+        var names = await _context.Users.AsNoTracking()
+            .Where(x => operatorIds.Contains(x.User_ID))
+            .ToDictionaryAsync(x => x.User_ID, x => x.Full_Name);
+
+        string NameOf(string? id) =>
+            int.TryParse(id, out var userId) && names.TryGetValue(userId, out var name) ? name : "—";
+
+        var created = logs.FirstOrDefault(x => x.Action_Type is "CREATE" or "INSERT");
+        var updates = logs.Where(x => x.Action_Type == "UPDATE").ToList();
+        var lastUpdate = updates.LastOrDefault();
+
+        return Ok(new
+        {
+            Created_By = NameOf(created?.User_ID),
+            Created_At = created?.Action_At,
+            Updated_By = NameOf(lastUpdate?.User_ID),
+            Updated_At = lastUpdate?.Action_At,
+            Edit_Count = updates.Count,
+            Print_Count = logs.Count(x => x.Action_Type == "PRINT")
+        });
     }
 
     /// <summary>يكتب تدقيق العملية من جلسة الخادم، ولا يقبل هوية من العميل.</summary>
