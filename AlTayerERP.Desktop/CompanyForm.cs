@@ -46,7 +46,7 @@ namespace AlTayerERP.Desktop
         // ======================================================
         // [دالة] جلب قائمة الشركات من قاعدة البيانات عبر الـ API وعرضها في الجدول
         // ======================================================
-        private async void LoadCompanies()
+        private async Task LoadCompaniesAsync()
         {
             try
             {
@@ -92,7 +92,7 @@ namespace AlTayerERP.Desktop
         // ======================================================
         private async void CompanyForm_Load(object sender, EventArgs e)
         {
-            LoadCompanies();
+            await LoadCompaniesAsync();
 
             try
             {
@@ -209,7 +209,7 @@ namespace AlTayerERP.Desktop
                 {
                     MessageBox.Show("تم تأسيس الشركة بنجاح!", "نجاح", MessageBoxButtons.OK, MessageBoxIcon.Information);
                     btnNew_Click(null, null);
-                    LoadCompanies();
+                    await LoadCompaniesAsync();
                 }
                 else
                 {
@@ -320,7 +320,7 @@ namespace AlTayerERP.Desktop
                 {
                     MessageBox.Show("تم تحديث بيانات الشركة بنجاح!", "نجاح", MessageBoxButtons.OK, MessageBoxIcon.Information);
                     btnNew_Click(null, null);
-                    LoadCompanies();
+                    await LoadCompaniesAsync();
                 }
             }
             catch (Exception ex) { MessageBox.Show($"خطأ أثناء التعديل: {ex.Message}"); }
@@ -359,7 +359,7 @@ namespace AlTayerERP.Desktop
                     {
                         MessageBox.Show("تم إيقاف الشركة بنجاح مع حفظ تاريخها.", "تم الإيقاف", MessageBoxButtons.OK, MessageBoxIcon.Information);
                         btnNew_Click(null, null);
-                        LoadCompanies();
+                        await LoadCompaniesAsync();
                     }
                     else
                     {
@@ -495,7 +495,7 @@ namespace AlTayerERP.Desktop
                 if (response.IsSuccessStatusCode)
                 {
                     MessageBox.Show("تمت إعادة تفعيل الشركة وتسجيل السبب في سجل التدقيق.", "إعادة تفعيل", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                    LoadCompanies();
+                    await LoadCompaniesAsync();
                 }
                 else
                 {
