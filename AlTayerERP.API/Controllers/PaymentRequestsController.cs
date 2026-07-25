@@ -12,8 +12,8 @@ namespace AlTayerERP.API.Controllers;
 [Route("api/payment-requests")]
 public sealed class PaymentRequestsController : ControllerBase
 {
-    private readonly AppDbContext _db; private readonly ScreenAuthorizationService _auth; private readonly AuditTrailService _audit; private readonly FinancialVoucherService _vouchers;
-    public PaymentRequestsController(AppDbContext db,ScreenAuthorizationService auth,AuditTrailService audit,FinancialVoucherService vouchers){_db=db;_auth=auth;_audit=audit;_vouchers=vouchers;}
+    private readonly AppDbContext _db; private readonly ScreenAuthorizationService _auth; private readonly AuditTrailService _audit; private readonly FinancialVoucherService _vouchers; private readonly NumberGeneratorService _numbers;
+    public PaymentRequestsController(AppDbContext db,ScreenAuthorizationService auth,AuditTrailService audit,FinancialVoucherService vouchers,NumberGeneratorService numbers){_db=db;_auth=auth;_audit=audit;_vouchers=vouchers;_numbers=numbers;}
     private ServerSession Session()=>HttpContext.Items["ServerSession"] as ServerSession??throw new InvalidOperationException("جلسة الخادم غير متاحة.");
     private async Task<IActionResult?> Allow(ScreenOperation op)=>await _auth.IsExplicitlyAllowedAsync(Session(),"PaymentRequest",op)?null:Forbid();
     private IQueryable<PaymentRequest> Scoped()=>_db.Payment_Requests.Include(x=>x.Details).Where(x=>x.Company_ID==Session().Company_ID&&x.Branch_ID==Session().Branch_ID&&x.Fiscal_Year_ID==Session().Year_ID);
@@ -24,8 +24,20 @@ public sealed class PaymentRequestsController : ControllerBase
     [HttpPost] public async Task<IActionResult> Create([FromBody]PaymentRequestDto dto)
     {
         var denial=await Allow(ScreenOperation.Add);if(denial!=null)return denial;var s=Session();var validation=await Validate(dto);if(validation!=null)return BadRequest(new{message=validation});
-        var row=new PaymentRequest{Company_ID=s.Company_ID,Branch_ID=s.Branch_ID,Fiscal_Year_ID=s.Year_ID,Request_No=$"PR-{DateTime.UtcNow:yyyyMMddHHmmssfff}",Request_Date=dto.Request_Date.Date,Status="DRAFT",Beneficiary_Name=dto.Beneficiary_Name.Trim(),Party_ID=Text(dto.Party_ID),Payment_Method_ID=dto.Payment_Method_ID,Header_Reference_No=Text(dto.Header_Reference_No),Description=Text(dto.Description),Created_By=s.User_ID.ToString(),Created_At=DateTime.UtcNow,Details=dto.Lines.Select((x,i)=>Line(x,i+1)).ToList()};
-        _db.Payment_Requests.Add(row);_audit.Add(s,HttpContext,"payment_requests","new","CREATE",null,new{row.Request_No,row.Status,row.Beneficiary_Name,Lines=row.Details.Count});await _db.SaveChangesAsync();return Ok(row);
+        NumberReservation reservation;
+        try
+        {
+            // الرقم المالي يحجز من الخدمة المركزية وبنطاق جلسة الخادم، لا من ساعة جهاز العميل.
+            reservation=await _numbers.ReserveNextNumberAsync("PAYMENT_REQUEST",s.Company_ID,s.Branch_ID,s.Year_ID);
+        }
+        catch(NumberingException ex)
+        {
+            return BadRequest(new{message=ex.Message});
+        }
+        var row=new PaymentRequest{Company_ID=s.Company_ID,Branch_ID=s.Branch_ID,Fiscal_Year_ID=s.Year_ID,Request_No=reservation.Document_Number,Request_Date=dto.Request_Date.Date,Status="DRAFT",Beneficiary_Name=dto.Beneficiary_Name.Trim(),Party_ID=Text(dto.Party_ID),Payment_Method_ID=dto.Payment_Method_ID,Header_Reference_No=Text(dto.Header_Reference_No),Description=Text(dto.Description),Created_By=s.User_ID.ToString(),Created_At=DateTime.UtcNow,Details=dto.Lines.Select((x,i)=>Line(x,i+1)).ToList()};
+        _db.Payment_Requests.Add(row);
+        _audit.Add(s,HttpContext,"numbering_counters",reservation.Counter_ID.ToString(),"NUMBER_RESERVED",null,new{reservation.Document_Number,reservation.Document_Type,reservation.Serial_Number,reservation.Company_ID,reservation.Branch_ID,reservation.Fiscal_Year_ID});
+        _audit.Add(s,HttpContext,"payment_requests","new","CREATE",null,new{row.Request_No,row.Status,row.Beneficiary_Name,Lines=row.Details.Count});await _db.SaveChangesAsync();return Ok(row);
     }
     [HttpPut("{id:long}")] public async Task<IActionResult> Update(long id,[FromBody]PaymentRequestDto dto)
     {
