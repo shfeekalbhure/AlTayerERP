@@ -3,6 +3,14 @@ using System.Windows.Forms;
 
 namespace AlTayerERP.Desktop
 {
+    /*
+     * دليل عربي لشاشة الأدوار:
+     * txtRoleCode = كود الدور، txtRoleName = اسم الدور، txtDescription = وصف الدور،
+     * cmbStatus = حالة الدور، dgvRoles = جدول الأدوار.
+     * btnNew جديد، btnSave حفظ، btnEdit تعديل، btnDelete إيقاف،
+     * btnSearch بحث، btnRefresh تحديث، btnClose إغلاق، btnPermissions صلاحيات الدور.
+     */
+
     public partial class FrmRoles
     {
         private readonly Label _lblRolesFooter = new();
