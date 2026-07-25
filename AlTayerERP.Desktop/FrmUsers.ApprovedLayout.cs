@@ -570,6 +570,7 @@ namespace AlTayerERP.Desktop
         }
 
         // توحيد شكل حقول التدقيق للإنشاء والتعديل والعدادات.
+        // كل تسمية قيمة هي حقل قراءة فقط بحد مستقل حتى يسهل تمييزها بصرياً.
         private static void PrepareAuditLabel(Label label, string text)
         {
             label.Text = text;
@@ -577,7 +578,11 @@ namespace AlTayerERP.Desktop
             label.TextAlign = ContentAlignment.MiddleRight;
             label.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
             label.ForeColor = Color.FromArgb(51, 65, 85);
+            label.BackColor = Color.White;
+            label.BorderStyle = BorderStyle.FixedSingle;
+            label.AutoEllipsis = true;
             label.Padding = new Padding(8, 0, 8, 0);
+            label.Margin = new Padding(4, 2, 4, 2);
         }
 
         private void RefreshBranchFilter()
