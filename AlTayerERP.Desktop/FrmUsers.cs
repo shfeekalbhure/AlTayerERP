@@ -88,6 +88,12 @@ namespace AlTayerERP.Desktop
                 this.btnRefresh.Click += btnRefresh_Click;
             }
             if (this.btnSearch != null) this.btnSearch.Click += btnSearch_Click;
+
+            // الحفاظ على تطابق حقل الحالة ومربع "الحساب نشط" في كل أوضاع الشاشة.
+            chkIsActive.CheckedChanged -= chkIsActive_CheckedChanged;
+            chkIsActive.CheckedChanged += chkIsActive_CheckedChanged;
+            cmbStatus.SelectedIndexChanged -= cmbStatus_SelectedIndexChanged;
+            cmbStatus.SelectedIndexChanged += cmbStatus_SelectedIndexChanged;
         }
 
         /// <summary>
@@ -473,7 +479,7 @@ namespace AlTayerERP.Desktop
             var response = await _client.PostAsJsonAsync($"{_baseUrl}Users", request);
             if (response.IsSuccessStatusCode)
             {
-                await SaveFunctionPermissionsAsync();
+                // صلاحيات الدور تُدار من شاشة الأدوار؛ لا تغيّر هنا عند حفظ مستخدم.
                 MessageBox.Show("تم حفظ المستخدم بنجاح.", "نجاح", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 await LoadUsersAsync();
                 ClearForm();
@@ -539,7 +545,7 @@ namespace AlTayerERP.Desktop
             var response = await _client.PutAsJsonAsync($"{_baseUrl}Users/{_selectedUserId}", request);
             if (response.IsSuccessStatusCode)
             {
-                await SaveFunctionPermissionsAsync();
+                // صلاحيات الدور تُدار من شاشة الأدوار؛ لا تغيّر هنا عند تعديل مستخدم.
                 MessageBox.Show("تم التعديل بنجاح.", "نجاح", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 await LoadUsersAsync();
                 ClearForm();
@@ -594,11 +600,25 @@ namespace AlTayerERP.Desktop
                     var user = System.Text.Json.JsonSerializer.Deserialize<UserDetailModel>(jsonString, options);
                     if (user != null)
                     {
-                        _isBinding = true; // قفل لمنع التفاف أو تكرار استدعاء الكومبوهات أثناء التعبئة
-                        txtFullName.Text = user.Full_Name; txtLoginName.Text = user.Login_Name; txtPhone.Text = user.Phone; txtEmail.Text = user.Email; txtNotes.Text = user.Notes; cmbBranch.SelectedValue = user.Branch_ID; cmbRole.SelectedValue = user.Role_ID; cmbStatus.Text = user.Is_Active ? "نشط" : "موقوف"; chkIsActive.Checked = user.Is_Active; chkChangePassword.Checked = user.Must_Change_Password; txtPassword.Text = string.Empty; txtConfirmPassword.Text = string.Empty;
+                        // تعبئة الحقول القادمة من الخادم فقط؛ لا يعرض النظام كلمة المرور القديمة.
+                        _isBinding = true;
+                        txtUserName.Text = user.User_ID.ToString();
+                        txtFullName.Text = user.Full_Name;
+                        txtLoginName.Text = user.Login_Name;
+                        txtPhone.Text = user.Phone ?? string.Empty;
+                        txtEmail.Text = user.Email ?? string.Empty;
+                        txtNotes.Text = user.Notes ?? string.Empty;
+                        cmbBranch.SelectedValue = user.Branch_ID;
+                        cmbRole.SelectedValue = user.Role_ID;
+                        cmbStatus.Text = user.Is_Active ? "نشط" : "موقوف";
+                        chkIsActive.Checked = user.Is_Active;
+                        chkChangePassword.Checked = user.Must_Change_Password;
+                        txtPassword.Clear();
+                        txtConfirmPassword.Clear();
                         _isBinding = false;
 
-                        // 👈 الاستدعاء الصريح المباشر لتأشير علامات الصلاحيات فور النقر
+                        // تحميل أثر السجل من الخادم: تاريخ/منشئ/معدل/عدادات.
+                        await LoadUserAuditInfoAsync(user.User_ID);
                         await LoadRolePermissionsAsync(user.Role_ID);
                     }
                 }
@@ -626,9 +646,24 @@ namespace AlTayerERP.Desktop
             return true;
         }
 
-        private object BuildUserRequestObject(bool isUpdate)
+        // يجمع حقول الإدخال في طلب صريح مطابق لـ CreateUserDto؛ لا ينقل أي كلمة مرور قديمة.
+        private UserSaveRequest BuildUserRequestObject(bool isUpdate)
         {
-            return new { Company_ID = CurrentSession.Company_ID, Branch_ID = Convert.ToInt32(cmbBranch.SelectedValue), Role_ID = Convert.ToInt32(cmbRole.SelectedValue), User_Code = string.Empty, Full_Name = txtFullName.Text.Trim(), Login_Name = txtLoginName.Text.Trim(), Password = txtPassword.Text.Trim(), Phone = txtPhone.Text.Trim(), Email = txtEmail.Text.Trim(), Notes = txtNotes.Text.Trim(), Must_Change_Password = chkChangePassword.Checked, Is_Active = cmbStatus.Text == "نشط" };
+            return new UserSaveRequest
+            {
+                Company_ID = CurrentSession.Company_ID,
+                Branch_ID = Convert.ToInt32(cmbBranch.SelectedValue),
+                Role_ID = Convert.ToInt32(cmbRole.SelectedValue),
+                User_Code = string.Empty,
+                Full_Name = txtFullName.Text.Trim(),
+                Login_Name = txtLoginName.Text.Trim(),
+                Password = txtPassword.Text.Trim(),
+                Phone = txtPhone.Text.Trim(),
+                Email = txtEmail.Text.Trim(),
+                Notes = txtNotes.Text.Trim(),
+                Must_Change_Password = chkChangePassword.Checked,
+                Is_Active = chkIsActive.Checked
+            };
         }
 
         private void ArrangeToolbarButtons()
@@ -715,7 +750,9 @@ namespace AlTayerERP.Desktop
             x -= 10;
         }
 
-        private void pnlToolbar_Resize(object? sender, EventArgs e) => ArrangeToolbarButtons();
+        // التخطيط المعتمد في FrmUsers.ApprovedLayout هو المالك الوحيد لشريط الأزرار.
+        // إبقاء هذا الحدث فارغاً يمنع ملف Designer القديم من نقل الأزرار وإخفائها.
+        private void pnlToolbar_Resize(object? sender, EventArgs e) { }
         private void pnlPermissionHeader_Resize(object? sender, EventArgs e) => ArrangePermissionFilters();
 
         private void ClearForm()
@@ -723,7 +760,7 @@ namespace AlTayerERP.Desktop
             _isBinding = true;
             try
             {
-                _selectedUserId = 0; txtFullName.Text = string.Empty; txtLoginName.Text = string.Empty; txtPassword.Text = string.Empty; txtConfirmPassword.Text = string.Empty; txtPhone.Text = string.Empty; txtEmail.Text = string.Empty; txtNotes.Text = string.Empty; cmbBranch.SelectedIndex = -1; cmbRole.SelectedIndex = -1; cmbStatus.Text = "نشط"; chkIsActive.Checked = true; chkChangePassword.Checked = true;
+                _selectedUserId = 0; txtUserName.Text = "(جديد)"; ClearUserAuditInfo(); txtFullName.Text = string.Empty; txtLoginName.Text = string.Empty; txtPassword.Text = string.Empty; txtConfirmPassword.Text = string.Empty; txtPhone.Text = string.Empty; txtEmail.Text = string.Empty; txtNotes.Text = string.Empty; cmbBranch.SelectedIndex = -1; cmbRole.SelectedIndex = -1; cmbStatus.Text = "نشط"; chkIsActive.Checked = true; chkChangePassword.Checked = true;
                 if (dgvUsers.SelectedRows.Count > 0) dgvUsers.ClearSelection();
                 foreach (DataGridViewRow row in dgvFunctionPermissions.Rows) { for (int i = 2; i <= 7; i++) row.Cells[i].Value = false; }
                 if (cmbPermissionSearch != null) cmbPermissionSearch.SelectedIndex = -1;
@@ -769,7 +806,7 @@ namespace AlTayerERP.Desktop
         public DateTime? Last_Login_At { get; set; }
         public DateTime? Locked_Until { get; set; }
     }
-    public class UserDetailModel { public int User_ID { get; set; } public string Company_ID { get; set; } = string.Empty; public int Branch_ID { get; set; } public int Role_ID { get; set; } public string User_Code { get; set; } = string.Empty; public string Full_Name { get; set; } = string.Empty; public string Login_Name { get; set; } = string.Empty; public string? Phone { get; set; } public string? Email { get; set; } public string? Notes { get; set; } public bool Must_Change_Password { get; set; } public bool Is_Active { get; set; } }
+    public class UserDetailModel { public int User_ID { get; set; } public string Company_ID { get; set; } = string.Empty; public int Branch_ID { get; set; } public int Role_ID { get; set; } public string User_Code { get; set; } = string.Empty; public string Full_Name { get; set; } = string.Empty; public string Login_Name { get; set; } = string.Empty; public string? Phone { get; set; } public string? Email { get; set; } public string? Notes { get; set; } public bool Must_Change_Password { get; set; } public bool Is_Active { get; set; } public DateTime Created_At { get; set; } public DateTime? Updated_At { get; set; } }
     public class BranchLookupModel { public int Branch_ID { get; set; } public string Branch_Name { get; set; } = string.Empty; }
     public class RoleLookupModel { public int Role_ID { get; set; } public string Role_Name { get; set; } = string.Empty; }
     public class ScreenPermissionModel { public int Screen_ID { get; set; } public string Screen_Code { get; set; } = string.Empty; public string Screen_Name { get; set; } = string.Empty; public string Module_Name { get; set; } = string.Empty; }
