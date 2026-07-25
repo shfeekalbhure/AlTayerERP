@@ -121,10 +121,13 @@ namespace AlTayerERP.Desktop
             InitializeApprovedUserFilters();
             await LoadRolesAsync();
             await LoadUsersAsync();
-            await LoadFunctionPermissionsAsync();
 
-            // ✨ التعديل والفلترة حسب طلبك: تم الإبقاء فقط على دالة جلب صلاحيات البيانات الحقيقية لجدول dgvDataPermissions
-            await LoadDataPermissionsAsync();
+            // صلاحيات الدور تُدار من شاشة الأدوار؛ لا نحمل جداول مخفية أو نعدلها من شاشة المستخدمين.
+            if (grpPermissions.Visible)
+            {
+                await LoadFunctionPermissionsAsync();
+                await LoadDataPermissionsAsync();
+            }
 
             // بناء وفلترة كومبو بوكس البحث العلوي وتنظيف الفورم بالكامل
             SetupSearchAndFilters();
@@ -304,7 +307,7 @@ namespace AlTayerERP.Desktop
         /// </summary>
         private async void cmbRole_SelectedIndexChanged(object sender, EventArgs e)
         {
-            if (_isBinding) return;
+            if (_isBinding || !grpPermissions.Visible) return;
             if (cmbRole.SelectedValue == null) return;
             if (!int.TryParse(cmbRole.SelectedValue.ToString(), out int roleId)) return;
             await LoadRolePermissionsAsync(roleId);
@@ -581,6 +584,7 @@ namespace AlTayerERP.Desktop
                 {
                     _selectedUserId = Convert.ToInt32(currentRow.Cells["User_ID"].Value);
                     await GetUserDetailsAsync(_selectedUserId);
+                    UpdateUserActionButtons();
                 }
             }
         }
@@ -627,10 +631,32 @@ namespace AlTayerERP.Desktop
             finally { _isBinding = false; }
         }
 
+        /// <summary>يفعل أو يعطل الإجراءات التي تتطلب اختيار مستخدم من الجدول.</summary>
+        private void UpdateUserActionButtons()
+        {
+            var selected = _selectedUserId > 0;
+            btnEdit.Enabled = selected;
+            btnDelete.Enabled = selected && chkIsActive.Checked;
+            _btnReactivate.Enabled = selected && !chkIsActive.Checked;
+            _btnResetPassword.Enabled = selected;
+            _btnUnlock.Enabled = selected;
+        }
+
         private bool ValidateInputs(bool isInputsForUpdate)
         {
             if (string.IsNullOrWhiteSpace(txtFullName.Text)) { MessageBox.Show("يرجى إدخال الاسم."); return false; }
             if (string.IsNullOrWhiteSpace(txtLoginName.Text)) { MessageBox.Show("يرجى إدخال اسم الدخول."); return false; }
+            if (txtLoginName.Text.Any(char.IsWhiteSpace))
+            {
+                MessageBox.Show("اسم الدخول لا يقبل مسافات.");
+                return false;
+            }
+            if (!string.IsNullOrWhiteSpace(txtEmail.Text) &&
+                !System.Net.Mail.MailAddress.TryCreate(txtEmail.Text.Trim(), out _))
+            {
+                MessageBox.Show("صيغة البريد الإلكتروني غير صحيحة.");
+                return false;
+            }
             bool passwordProvided = !string.IsNullOrWhiteSpace(txtPassword.Text) || !string.IsNullOrWhiteSpace(txtConfirmPassword.Text);
             if (!isInputsForUpdate && string.IsNullOrWhiteSpace(txtPassword.Text))
             {
@@ -760,7 +786,9 @@ namespace AlTayerERP.Desktop
             _isBinding = true;
             try
             {
-                _selectedUserId = 0; txtUserName.Text = "(جديد)"; ClearUserAuditInfo(); txtFullName.Text = string.Empty; txtLoginName.Text = string.Empty; txtPassword.Text = string.Empty; txtConfirmPassword.Text = string.Empty; txtPhone.Text = string.Empty; txtEmail.Text = string.Empty; txtNotes.Text = string.Empty; cmbBranch.SelectedIndex = -1; cmbRole.SelectedIndex = -1; cmbStatus.Text = "نشط"; chkIsActive.Checked = true; chkChangePassword.Checked = true;
+                _selectedUserId = 0; txtUserName.Text = "(جديد)"; ClearUserAuditInfo();
+                btnEdit.Enabled = false; btnDelete.Enabled = false; _btnReactivate.Enabled = false;
+                _btnResetPassword.Enabled = false; _btnUnlock.Enabled = false; txtFullName.Text = string.Empty; txtLoginName.Text = string.Empty; txtPassword.Text = string.Empty; txtConfirmPassword.Text = string.Empty; txtPhone.Text = string.Empty; txtEmail.Text = string.Empty; txtNotes.Text = string.Empty; cmbBranch.SelectedIndex = -1; cmbRole.SelectedIndex = -1; cmbStatus.Text = "نشط"; chkIsActive.Checked = true; chkChangePassword.Checked = true;
                 if (dgvUsers.SelectedRows.Count > 0) dgvUsers.ClearSelection();
                 foreach (DataGridViewRow row in dgvFunctionPermissions.Rows) { for (int i = 2; i <= 7; i++) row.Cells[i].Value = false; }
                 if (cmbPermissionSearch != null) cmbPermissionSearch.SelectedIndex = -1;
