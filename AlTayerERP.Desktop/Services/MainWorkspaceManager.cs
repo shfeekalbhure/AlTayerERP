@@ -177,10 +177,21 @@ namespace AlTayerERP.Desktop.Services
             form.Padding = Padding.Empty;
             form.Dock = DockStyle.Fill;
 
-            NormalizeRootControls(form);
+            ScaleHostedFormToWorkspace(form, page);
             UnifiedScreenLayoutService.Apply(form);
-            ApplyWorkspaceBounds(form, page);
             form.ResumeLayout(true);
+        }
+
+        /// <summary>
+        /// يوحد حدود الشاشة المستضافة مع مساحة التبويب قبل تطبيق القالب الموحد.
+        /// </summary>
+        private static void ScaleHostedFormToWorkspace(Form form, TabPage page)
+        {
+            if (form.IsDisposed || page.IsDisposed)
+                return;
+
+            NormalizeRootControls(form);
+            ApplyWorkspaceBounds(form, page);
         }
 
         private static void NormalizeRootControls(Form form)
