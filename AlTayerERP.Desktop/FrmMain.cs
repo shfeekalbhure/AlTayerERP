@@ -376,6 +376,9 @@ namespace AlTayerERP.Desktop
         /// يفتح الشاشة في تبويب مركزي؛ الاستدعاء المتكرر لنفس Screen_Code ينشط
         /// التبويب الحالي ولا ينشئ نسخة ثانية.
         /// </summary>
+        internal void OpenWorkspaceScreen(string screenCode, string? recordKey = null) =>
+            OpenScreen(screenCode, recordKey);
+
         private void OpenScreen(string screenCode, string? recordKey = null)
         {
             if (!CanOpenScreen(screenCode))
