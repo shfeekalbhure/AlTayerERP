@@ -215,7 +215,8 @@ namespace AlTayerERP.API.Services.Accounting
         public async Task<JournalEntryInquiryResult?> GetByVoucherNoAsync(
             string voucherNo,
             string? branchId = null,
-            int? voucherTypeId = null)
+            int? voucherTypeId = null,
+            int? fiscalYearId = null)
         {
             if (string.IsNullOrWhiteSpace(voucherNo))
             {
@@ -240,6 +241,12 @@ namespace AlTayerERP.API.Services.Accounting
             {
                 headerQuery = headerQuery.Where(
                     x => x.Voucher_Type_ID == voucherTypeId.Value);
+            }
+
+            if (fiscalYearId.HasValue)
+            {
+                headerQuery = headerQuery.Where(
+                    x => x.Fiscal_Year_ID == fiscalYearId.Value);
             }
 
             var header = await headerQuery
