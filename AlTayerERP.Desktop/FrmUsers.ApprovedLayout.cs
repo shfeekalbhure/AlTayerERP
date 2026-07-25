@@ -7,6 +7,17 @@ using System.Windows.Forms;
 
 namespace AlTayerERP.Desktop
 {
+    /*
+     * دليل عربي لشاشة المستخدمين:
+     * txtUserName = رقم المستخدم، txtLoginName = اسم الدخول، txtFullName = الاسم الكامل،
+     * txtPhone = الهاتف، txtEmail = البريد الإلكتروني، cmbRole = الدور، cmbBranch = الفرع،
+     * cmbStatus = الحالة، txtPassword = كلمة المرور، txtConfirmPassword = تأكيد كلمة المرور،
+     * txtNotes = الملاحظات، dgvUsers = جدول المستخدمين.
+     * الأزرار: btnNew جديد، btnSave حفظ، btnEdit تعديل، btnDelete إيقاف،
+     * btnRefresh تحديث، btnSearch بحث، btnPrint طباعة، btnClose إغلاق.
+     * تبقى الأسماء البرمجية بالإنجليزية لضمان استمرار الربط مع API، والنصوص والتوضيح بالعربية.
+     */
+
     /// <summary>
     /// التصميم المعتمد لشاشة إدارة المستخدمين داخل مساحة العمل الرئيسية.
     /// يمنع قص العناوين، ويستجيب لاختلاف دقة العرض، ويعطي الجدول المساحة الأكبر.
@@ -37,8 +48,10 @@ namespace AlTayerERP.Desktop
             Font = new Font("Segoe UI", 9F);
             BackColor = Color.FromArgb(244, 247, 251);
 
+            // تجهيز شريط الأوامر وحقول المستخدم بالعربية قبل عرض الشاشة.
             ConfigureToolbar();
             ConfigureUserDataArea();
+            ApplyArabicControlDescriptions();
             ConfigureFilters();
             ConfigureUsersGrid();
             ConfigureAudit();
@@ -74,6 +87,29 @@ namespace AlTayerERP.Desktop
             Controls.Add(root);
 
             ResumeLayout(true);
+        }
+
+        /// <summary>يضع وصفاً عربياً لكل أداة لسهولة فهم الكود ودعم قارئات الشاشة.</summary>
+        private void ApplyArabicControlDescriptions()
+        {
+            Describe(txtUserName, "رقم المستخدم", "رقم السجل الداخلي للمستخدم.");
+            Describe(txtLoginName, "اسم الدخول", "الاسم الذي يستخدمه الموظف لتسجيل الدخول.");
+            Describe(txtFullName, "الاسم الكامل", "اسم المستخدم الظاهر في النظام.");
+            Describe(txtPhone, "الهاتف", "رقم هاتف المستخدم.");
+            Describe(txtEmail, "البريد الإلكتروني", "البريد الإلكتروني الرسمي للمستخدم.");
+            Describe(cmbRole, "الدور", "الدور الذي يحدد صلاحيات المستخدم.");
+            Describe(cmbBranch, "الفرع", "الفرع المسموح للمستخدم بالعمل فيه.");
+            Describe(cmbStatus, "الحالة", "حالة الحساب: نشط أو موقوف.");
+            Describe(txtPassword, "كلمة المرور", "كلمة مرور الحساب عند الإنشاء أو إعادة التعيين.");
+            Describe(txtConfirmPassword, "تأكيد كلمة المرور", "إعادة إدخال كلمة المرور للتحقق منها.");
+            Describe(txtNotes, "الملاحظات", "ملاحظات إدارية عن المستخدم.");
+            Describe(dgvUsers, "جدول المستخدمين", "يعرض المستخدمين المسجلين وبياناتهم غير الحساسة.");
+        }
+
+        private static void Describe(Control control, string arabicName, string description)
+        {
+            control.AccessibleName = arabicName;
+            control.AccessibleDescription = description;
         }
 
         private void ConfigureToolbar()
