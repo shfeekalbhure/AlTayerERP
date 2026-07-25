@@ -87,8 +87,8 @@ public sealed class FrmPaymentRequest : BaseForm
         var canSubmit=_id>0&&string.Equals(_status,"DRAFT",StringComparison.OrdinalIgnoreCase);
         var canReview=_id>0&&string.Equals(_status,"PENDING_REVIEW",StringComparison.OrdinalIgnoreCase);
         var canDecide=_id>0&&string.Equals(_status,"PENDING_APPROVAL",StringComparison.OrdinalIgnoreCase);
-        _btnSubmit?.Enabled=canSubmit;
-        _btnReview?.Enabled=canReview;
+        if(_btnSubmit is not null) _btnSubmit.Enabled=canSubmit;
+        if(_btnReview is not null) _btnReview.Enabled=canReview;
         if(_btnApprove is not null) _btnApprove.Enabled=canDecide;
         if(_btnReject is not null) _btnReject.Enabled=canDecide;
         if(_btnReturn is not null) _btnReturn.Enabled=canDecide;
