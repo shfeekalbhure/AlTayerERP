@@ -96,19 +96,22 @@ namespace AlTayerERP.Desktop.Services
             }
 
             var form = factory();
+            var designSize = WorkspaceScreenSizingService.GetDesignSize(form);
             var page = CreatePage(key, caption);
-            PrepareHostedForm(form, page);
+            var viewport = WorkspaceScreenSizingService.CreateViewport();
 
+            PrepareHostedForm(form, viewport, designSize);
             form.FormClosed += (_, _) => RemovePage(key, page);
-            page.Resize += (_, _) => RefreshHostedFormLayout(form, page);
+            viewport.Resize += (_, _) => RefreshHostedFormLayout(form, viewport, designSize);
 
-            page.Controls.Add(form);
+            viewport.Controls.Add(form);
+            page.Controls.Add(viewport);
             _tabs.TabPages.Add(page);
             _pages[key] = page;
             _tabs.SelectedTab = page;
 
             form.Show();
-            RefreshHostedFormLayout(form, page);
+            RefreshHostedFormLayout(form, viewport, designSize);
             return true;
         }
 
@@ -162,36 +165,14 @@ namespace AlTayerERP.Desktop.Services
                 _tabs.SelectedTab = page;
         }
 
-        private static void PrepareHostedForm(Form form, TabPage page)
+        private static void PrepareHostedForm(Form form, Panel viewport, Size designSize)
         {
             form.SuspendLayout();
-            form.TopLevel = false;
-            form.FormBorderStyle = FormBorderStyle.None;
-            form.StartPosition = FormStartPosition.Manual;
-            form.WindowState = FormWindowState.Normal;
-            form.AutoScaleMode = AutoScaleMode.Dpi;
-            form.AutoScroll = false;
-            form.MinimumSize = Size.Empty;
-            form.MaximumSize = Size.Empty;
-            form.Margin = Padding.Empty;
-            form.Padding = Padding.Empty;
-            form.Dock = DockStyle.Fill;
-
-            ScaleHostedFormToWorkspace(form, page);
-            UnifiedScreenLayoutService.Apply(form);
-            form.ResumeLayout(true);
-        }
-
-        /// <summary>
-        /// يوحد حدود الشاشة المستضافة مع مساحة التبويب قبل تطبيق القالب الموحد.
-        /// </summary>
-        private static void ScaleHostedFormToWorkspace(Form form, TabPage page)
-        {
-            if (form.IsDisposed || page.IsDisposed)
-                return;
-
+            WorkspaceScreenSizingService.Prepare(form, viewport, designSize);
             NormalizeRootControls(form);
-            ApplyWorkspaceBounds(form, page);
+            UnifiedScreenLayoutService.Apply(form);
+            WorkspaceScreenSizingService.FitToViewport(form, viewport, designSize);
+            form.ResumeLayout(true);
         }
 
         private static void NormalizeRootControls(Form form)
@@ -220,35 +201,28 @@ namespace AlTayerERP.Desktop.Services
             }
         }
 
-        private static void RefreshHostedFormLayout(Form form, TabPage page)
+        private static void RefreshHostedFormLayout(Form form, Panel viewport, Size designSize)
         {
-            ApplyWorkspaceBounds(form, page);
-            UnifiedScreenLayoutService.Apply(form);
-        }
-
-        private static void ApplyWorkspaceBounds(Form form, TabPage page)
-        {
-            if (form.IsDisposed || page.IsDisposed)
+            if (form.IsDisposed || viewport.IsDisposed)
                 return;
 
-            form.MinimumSize = Size.Empty;
-            form.MaximumSize = Size.Empty;
-            form.Dock = DockStyle.Fill;
-            form.Location = Point.Empty;
-
-            if (page.ClientSize.Width > 0 && page.ClientSize.Height > 0)
-                form.Bounds = page.ClientRectangle;
-
-            form.PerformLayout();
-            form.Invalidate(true);
+            UnifiedScreenLayoutService.Apply(form);
+            WorkspaceScreenSizingService.FitToViewport(form, viewport, designSize);
         }
 
-        private static Form? FindWorkspaceForm(TabPage page)
+        private static Form? FindWorkspaceForm(TabPage page) =>
+            FindForm(page);
+
+        private static Form? FindForm(Control parent)
         {
-            foreach (Control control in page.Controls)
+            foreach (Control control in parent.Controls)
             {
                 if (control is Form form)
                     return form;
+
+                var nested = FindForm(control);
+                if (nested != null)
+                    return nested;
             }
 
             return null;
