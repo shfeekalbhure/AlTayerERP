@@ -107,6 +107,28 @@ namespace AlTayerERP.API.Controllers
         }
 
         /// <summary>
+        /// يسجل طباعة بيانات المستخدم المحدد في سجل التدقيق المركزي.
+        /// </summary>
+        [HttpPost("{id:int}/print")]
+        public async Task<IActionResult> RegisterUserPrint(int id)
+        {
+            var denied = await DenyUnlessAsync(ScreenOperation.Print);
+            if (denied != null) return denied;
+            TryGetSession(out var session);
+
+            var user = await _context.Users.AsNoTracking().FirstOrDefaultAsync(x => x.User_ID == id);
+            if (user == null) return NotFound("المستخدم غير موجود.");
+            if (!session.Is_System_Admin &&
+                (user.Company_ID != session.Company_ID || user.Branch_ID != session.Branch_ID))
+                return Forbid();
+
+            _audit.Add(session, HttpContext, "users", id.ToString(), "PRINT",
+                notes: "فتح معاينة طباعة بيانات المستخدم");
+            await _context.SaveChangesAsync();
+            return Ok(new { message = "تم تسجيل عملية الطباعة." });
+        }
+
+        /// <summary>
         /// يعيد بيانات تدقيق سجل المستخدم من السجل المركزي، دون كشف كلمات المرور أو بيانات حساسة.
         /// </summary>
         [HttpGet("{id:int}/audit-info")]
