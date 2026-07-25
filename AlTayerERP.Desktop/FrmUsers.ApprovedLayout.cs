@@ -56,7 +56,7 @@ namespace AlTayerERP.Desktop
             // عقد ADR-015: شريط أدوات 56، بيانات 240، تصفية 44، تدقيق 34.
             // الصف الرابع يأخذ كل المساحة المتبقية لجدول المستخدمين.
             root.RowStyles.Add(new RowStyle(SizeType.Absolute, 56F));
-            root.RowStyles.Add(new RowStyle(SizeType.Absolute, 240F));
+            root.RowStyles.Add(new RowStyle(SizeType.Absolute, 300F));
             root.RowStyles.Add(new RowStyle(SizeType.Absolute, 44F));
             root.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
             root.RowStyles.Add(new RowStyle(SizeType.Absolute, 34F));
@@ -107,8 +107,8 @@ namespace AlTayerERP.Desktop
             {
                 Dock = DockStyle.Fill,
                 FlowDirection = FlowDirection.RightToLeft,
-                WrapContents = true,
-                AutoScroll = false,
+                WrapContents = false,
+                AutoScroll = true,
                 Padding = new Padding(1),
                 BackColor = Color.Transparent
             };
@@ -155,17 +155,13 @@ namespace AlTayerERP.Desktop
             pnlData.BackColor = Color.Transparent;
             grpPermissions.Visible = false;
 
+            grpUserData.Controls.Clear();
             grpUserData.Dock = DockStyle.Fill;
             grpUserData.Text = "بيانات المستخدم";
             grpUserData.ForeColor = Color.FromArgb(8, 49, 92);
-            grpUserData.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
-            grpUserData.Padding = new Padding(10, 8, 10, 10);
+            grpUserData.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+            grpUserData.Padding = new Padding(12, 24, 12, 10);
             grpUserData.BackColor = Color.White;
-
-            panel1.Controls.Clear();
-            panel1.Dock = DockStyle.Fill;
-            panel1.RightToLeft = RightToLeft.Yes;
-            panel1.BackColor = Color.White;
 
             txtPassword.UseSystemPasswordChar = true;
             txtConfirmPassword.UseSystemPasswordChar = true;
@@ -173,75 +169,109 @@ namespace AlTayerERP.Desktop
             txtUserName.BackColor = Color.FromArgb(241, 245, 249);
             txtUserName.Text = "(جديد)";
             txtNotes.Multiline = true;
+            txtNotes.PlaceholderText = "ملاحظات المستخدم أو سبب الإيقاف";
+            txtNotes.Font = new Font("Segoe UI", 9F);
 
             var fields = new TableLayoutPanel
             {
                 Dock = DockStyle.Fill,
                 RightToLeft = RightToLeft.Yes,
-                ColumnCount = 2,
+                ColumnCount = 4,
                 RowCount = 6,
-                Padding = new Padding(4),
-                Margin = Padding.Empty
+                Padding = new Padding(2),
+                Margin = Padding.Empty,
+                BackColor = Color.White
             };
-            fields.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
-            fields.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
-            fields.RowStyles.Add(new RowStyle(SizeType.Percent, 16F));
-            fields.RowStyles.Add(new RowStyle(SizeType.Percent, 16F));
-            fields.RowStyles.Add(new RowStyle(SizeType.Percent, 16F));
-            fields.RowStyles.Add(new RowStyle(SizeType.Percent, 16F));
-            fields.RowStyles.Add(new RowStyle(SizeType.Percent, 20F));
-            fields.RowStyles.Add(new RowStyle(SizeType.Percent, 16F));
+            fields.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 15F));
+            fields.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 35F));
+            fields.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 15F));
+            fields.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 35F));
+            for (var row = 0; row < 5; row++)
+                fields.RowStyles.Add(new RowStyle(SizeType.Absolute, 35F));
+            fields.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
 
-            fields.Controls.Add(BuildVerticalField("رقم المستخدم", txtUserName), 0, 0);
-            fields.Controls.Add(BuildVerticalField("اسم الدخول", txtLoginName), 1, 0);
-            fields.Controls.Add(BuildVerticalField("الاسم الكامل", txtFullName), 0, 1);
-            fields.Controls.Add(BuildVerticalField("الهاتف", txtPhone), 1, 1);
-            fields.Controls.Add(BuildVerticalField("البريد الإلكتروني", txtEmail), 0, 2);
-            fields.Controls.Add(BuildVerticalField("الدور", cmbRole), 1, 2);
-            fields.Controls.Add(BuildVerticalField("الفرع", cmbBranch), 0, 3);
-            fields.Controls.Add(BuildVerticalField("الحالة", cmbStatus), 1, 3);
-            fields.Controls.Add(BuildVerticalField("كلمة المرور", txtPassword), 0, 4);
-            fields.Controls.Add(BuildVerticalField("تأكيد كلمة المرور", txtConfirmPassword), 1, 4);
+            fields.Controls.Add(CreateInlineUserLabel("رقم المستخدم"), 0, 0);
+            fields.Controls.Add(PrepareInlineUserInput(txtUserName), 1, 0);
+            fields.Controls.Add(CreateInlineUserLabel("اسم الدخول"), 2, 0);
+            fields.Controls.Add(PrepareInlineUserInput(txtLoginName), 3, 0);
 
-            var notesFlags = new TableLayoutPanel
+            fields.Controls.Add(CreateInlineUserLabel("الاسم الكامل"), 0, 1);
+            fields.Controls.Add(PrepareInlineUserInput(txtFullName), 1, 1);
+            fields.Controls.Add(CreateInlineUserLabel("الهاتف"), 2, 1);
+            fields.Controls.Add(PrepareInlineUserInput(txtPhone), 3, 1);
+
+            fields.Controls.Add(CreateInlineUserLabel("البريد الإلكتروني"), 0, 2);
+            fields.Controls.Add(PrepareInlineUserInput(txtEmail), 1, 2);
+            fields.Controls.Add(CreateInlineUserLabel("الدور"), 2, 2);
+            fields.Controls.Add(PrepareInlineUserInput(cmbRole), 3, 2);
+
+            fields.Controls.Add(CreateInlineUserLabel("الفرع"), 0, 3);
+            fields.Controls.Add(PrepareInlineUserInput(cmbBranch), 1, 3);
+            fields.Controls.Add(CreateInlineUserLabel("الحالة"), 2, 3);
+            fields.Controls.Add(PrepareInlineUserInput(cmbStatus), 3, 3);
+
+            fields.Controls.Add(CreateInlineUserLabel("كلمة المرور"), 0, 4);
+            fields.Controls.Add(PrepareInlineUserInput(txtPassword), 1, 4);
+            fields.Controls.Add(CreateInlineUserLabel("تأكيد كلمة المرور"), 2, 4);
+            fields.Controls.Add(PrepareInlineUserInput(txtConfirmPassword), 3, 4);
+
+            chkIsActive.Text = "الحساب نشط";
+            chkChangePassword.Text = "إجبار تغيير كلمة المرور عند أول دخول";
+            chkIsActive.AutoSize = true;
+            chkChangePassword.AutoSize = true;
+            chkIsActive.ForeColor = Color.FromArgb(8, 49, 92);
+            chkChangePassword.ForeColor = Color.FromArgb(8, 49, 92);
+
+            var notesAndFlags = new TableLayoutPanel
             {
                 Dock = DockStyle.Fill,
-                ColumnCount = 2,
-                RowCount = 1,
+                ColumnCount = 3,
                 RightToLeft = RightToLeft.Yes,
-                Margin = new Padding(3)
+                Margin = new Padding(0, 5, 0, 0)
             };
-            notesFlags.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 60F));
-            notesFlags.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 40F));
-
-            txtNotes.Dock = DockStyle.Fill;
-            txtNotes.Margin = new Padding(3);
-            txtNotes.Font = new Font("Segoe UI", 9F);
-            txtNotes.PlaceholderText = "ملاحظات المستخدم أو سبب الإيقاف";
-
-            chkChangePassword.Text = "إجبار تغيير كلمة المرور عند أول دخول";
-            chkChangePassword.AutoSize = true;
-            chkChangePassword.ForeColor = Color.FromArgb(8, 49, 92);
-            chkIsActive.Text = "الحساب نشط";
-            chkIsActive.AutoSize = true;
-            chkIsActive.ForeColor = Color.FromArgb(8, 49, 92);
+            notesAndFlags.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 90F));
+            notesAndFlags.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
+            notesAndFlags.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 275F));
+            notesAndFlags.Controls.Add(CreateInlineUserLabel("الملاحظات"), 0, 0);
+            notesAndFlags.Controls.Add(PrepareInlineUserInput(txtNotes), 1, 0);
 
             var flags = new FlowLayoutPanel
             {
                 Dock = DockStyle.Fill,
-                FlowDirection = FlowDirection.TopDown,
+                FlowDirection = FlowDirection.RightToLeft,
                 WrapContents = false,
-                Padding = new Padding(8, 2, 8, 2)
+                Padding = new Padding(8, 6, 0, 0)
             };
             flags.Controls.Add(chkIsActive);
             flags.Controls.Add(chkChangePassword);
+            notesAndFlags.Controls.Add(flags, 2, 0);
 
-            notesFlags.Controls.Add(BuildLabeledPanel("الملاحظات", txtNotes), 0, 0);
-            notesFlags.Controls.Add(flags, 1, 0);
-            fields.Controls.Add(notesFlags, 0, 5);
-            fields.SetColumnSpan(notesFlags, 2);
+            fields.Controls.Add(notesAndFlags, 0, 5);
+            fields.SetColumnSpan(notesAndFlags, 4);
 
-            panel1.Controls.Add(fields);
+            grpUserData.Controls.Add(fields);
+            pnlData.Controls.Clear();
+            pnlData.Controls.Add(grpUserData);
+        }
+
+        private static Label CreateInlineUserLabel(string text) => new()
+        {
+            Text = text + ":",
+            Dock = DockStyle.Fill,
+            ForeColor = Color.FromArgb(55, 65, 81),
+            Font = new Font("Segoe UI", 8.5F, FontStyle.Bold),
+            TextAlign = ContentAlignment.MiddleRight,
+            Margin = new Padding(4, 0, 2, 0)
+        };
+
+        private static Control PrepareInlineUserInput(Control input)
+        {
+            input.Dock = DockStyle.Fill;
+            input.Margin = new Padding(2, 3, 8, 3);
+            input.Font = new Font("Segoe UI", 9F);
+            if (input is ComboBox combo)
+                combo.DropDownStyle = ComboBoxStyle.DropDownList;
+            return input;
         }
 
         private static Control BuildVerticalField(string caption, Control control)
