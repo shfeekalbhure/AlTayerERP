@@ -178,9 +178,6 @@ namespace AlTayerERP.Desktop.Services
 
         private static void PrepareHostedForm(Form form, TabPage page)
         {
-            // نحفظ قياس الشاشة الذي صُممت عليه قبل استضافتها؛
-            // بعض الشاشات القديمة تستخدم قياسات ثابتة أكبر من مساحة العمل المتاحة.
-            var designedClientSize = form.ClientSize;
             form.SuspendLayout();
 
             form.TopLevel = false;
@@ -197,7 +194,6 @@ namespace AlTayerERP.Desktop.Services
 
             NormalizeRootControls(form);
             ApplyWorkspaceBounds(form, page);
-            ScaleHostedFormToWorkspace(form, page, designedClientSize);
             UnifiedScreenLayoutService.Apply(form);
 
             form.ResumeLayout(true);
@@ -207,32 +203,7 @@ namespace AlTayerERP.Desktop.Services
         /// يصغّر عناصر الشاشة القديمة مرة واحدة عند فتحها إذا كانت أبعاد تصميمها
         /// أكبر من مساحة العمل المتاحة. لا يكبّر الواجهة في الشاشات الواسعة.
         /// </summary>
-        private static void ScaleHostedFormToWorkspace(Form form, TabPage page, Size designedClientSize)
-        {
-            if (designedClientSize.Width <= 0 || designedClientSize.Height <= 0 ||
-                page.ClientSize.Width <= 0 || page.ClientSize.Height <= 0)
-            {
-                return;
-            }
-
-            var widthRatio = page.ClientSize.Width / (float)designedClientSize.Width;
-            var heightRatio = page.ClientSize.Height / (float)designedClientSize.Height;
-            var scaleRatio = Math.Min(1F, Math.Min(widthRatio, heightRatio));
-
-            // نتجنب تحريك العناصر بفروق كسور بسيطة لا يلاحظها المستخدم.
-            if (scaleRatio >= 0.98F)
-                return;
-
-            form.AutoScaleMode = AutoScaleMode.None;
-            form.Scale(new SizeF(scaleRatio, scaleRatio));
-        }
-
-        /// <summary>
-        /// يعالج الشاشات القديمة التي تحتوي عنصراً جذرياً واحداً غير ممدد،
-        /// وهو سبب شائع لظهور فراغات كبيرة رغم أن النموذج نفسه يستخدم Dock.Fill.
-        /// </summary>
-        private static void NormalizeRootControls(Form form)
-        {
+        private static void ScaleHostedFormToWorkspace(Form form, Ta
             var visibleRoots = form.Controls
                 .Cast<Control>()
                 .Where(control => control.Visible && control is not MenuStrip && control is not StatusStrip)
