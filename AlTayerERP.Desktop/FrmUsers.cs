@@ -82,7 +82,11 @@ namespace AlTayerERP.Desktop
             if (this.btnNew != null) this.btnNew.Click += btnNew_Click;
             if (this.btnDelete != null) this.btnDelete.Click += btnDelete_Click;
             if (this.btnClose != null) this.btnClose.Click += btnClose_Click;
-            if (this.btnRefresh != null) this.btnRefresh.Click += btnRefresh_Click;
+            if (this.btnRefresh != null)
+            {
+                this.btnRefresh.Click -= btnRefresh_Click;
+                this.btnRefresh.Click += btnRefresh_Click;
+            }
             if (this.btnSearch != null) this.btnSearch.Click += btnSearch_Click;
         }
 
