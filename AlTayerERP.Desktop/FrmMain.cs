@@ -45,11 +45,27 @@ namespace AlTayerERP.Desktop
             PopulateHeaderFromSession();
             BuildDashboard();
 
-            _statusTimer.Tick += async (_, _) => await RefreshShellStatusAsync();
-            _sessionTimer.Tick += async (_, _) => await RefreshAccessTokenIfNeededAsync();
+            // جميع المهام غير المتزامنة تمر عبر الحارس كي لا يسقط النظام عند تعذر شاشة أو API.
+            _statusTimer.Tick += async (_, _) => await RunShellOperationSafeAsync(RefreshShellStatusAsync, "تحديث حالة الاتصال");
+            _sessionTimer.Tick += async (_, _) => await RunShellOperationSafeAsync(RefreshAccessTokenIfNeededAsync, "تجديد الجلسة");
             _statusTimer.Start();
             _sessionTimer.Start();
-            _ = InitializeShellAsync();
+            _ = RunShellOperationSafeAsync(InitializeShellAsync, "تهيئة الشاشة الرئيسية");
+        }
+
+        /// <summary>
+        /// يشغل مهمة من الغلاف الرئيسي بأمان؛ يمنع الاستثناءات غير المراقبة من إغلاق التطبيق.
+        /// </summary>
+        private static async Task RunShellOperationSafeAsync(Func<Task> operation, string operationName)
+        {
+            try
+            {
+                await operation();
+            }
+            catch (Exception ex)
+            {
+                AppExceptionHandler.HandleUiException(ex, operationName);
+            }
         }
 
         /// <summary>تهيئة الغلاف بعد عرضه دون تعطيل واجهة المستخدم.</summary>
@@ -347,7 +363,15 @@ namespace AlTayerERP.Desktop
                 string.Equals(x.Screen_Code, screenCode, StringComparison.OrdinalIgnoreCase))?.Screen_Name
                 ?? screenCode;
 
-            _workspace.Open(screenCode, caption, factory, recordKey);
+            try
+            {
+                // أي عيب في مشيد شاشة محددة يعرض رسالة ويُبقي الغلاف الرئيسي مفتوحاً.
+                _workspace.Open(screenCode, caption, factory, recordKey);
+            }
+            catch (Exception ex)
+            {
+                AppExceptionHandler.HandleUiException(ex, "فتح شاشة " + caption);
+            }
         }
 
         private static Func<Form>? GetScreenFactory(string screenCode) =>
