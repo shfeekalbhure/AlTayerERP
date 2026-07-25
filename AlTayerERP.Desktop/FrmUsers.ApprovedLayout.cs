@@ -667,8 +667,12 @@ namespace AlTayerERP.Desktop
             await ExecuteUpdateAsync();
         }
 
-        private void PrintUsersGrid()
+        private async void PrintUsersGrid()
         {
+            // يسجل فتح طباعة المستخدم المحدد في سجل التدقيق قبل عرض المعاينة.
+            if (_selectedUserId > 0)
+                await RegisterUserPrintAsync(_selectedUserId);
+
             if (dgvUsers.Rows.Count == 0)
             {
                 MessageBox.Show("لا توجد بيانات مستخدمين للطباعة.", "الطباعة", MessageBoxButtons.OK, MessageBoxIcon.Information);
