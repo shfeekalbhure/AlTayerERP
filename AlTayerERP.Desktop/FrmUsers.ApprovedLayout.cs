@@ -74,10 +74,10 @@ namespace AlTayerERP.Desktop
                 RightToLeft = RightToLeft.Yes
             };
             // تخطيط مضغوط: البيانات واضحة، الجدول قصير، وتذييل التدقيق ثابت أسفل الشاشة.
-            // البحث يأتي مباشرة بعد الأزرار، ثم بيانات المستخدم، فالجدول المختصر والتدقيق.
+            // البيانات أولاً، ثم البحث والتصفية فوق الجدول مباشرة، ثم الجدول والتدقيق.
             root.RowStyles.Add(new RowStyle(SizeType.Absolute, 52F));
-            root.RowStyles.Add(new RowStyle(SizeType.Absolute, 66F));
             root.RowStyles.Add(new RowStyle(SizeType.Absolute, 240F));
+            root.RowStyles.Add(new RowStyle(SizeType.Absolute, 66F));
             root.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
             root.RowStyles.Add(new RowStyle(SizeType.Absolute, 110F));
 
@@ -87,8 +87,8 @@ namespace AlTayerERP.Desktop
             Controls.Clear();
 
             root.Controls.Add(pnlToolbar, 0, 0);
-            root.Controls.Add(_grpUserFilters, 0, 1);
-            root.Controls.Add(pnlData, 0, 2);
+            root.Controls.Add(pnlData, 0, 1);
+            root.Controls.Add(_grpUserFilters, 0, 2);
             root.Controls.Add(pnlGrid, 0, 3);
             root.Controls.Add(_grpUserAudit, 0, 4);
             Controls.Add(root);
@@ -387,7 +387,7 @@ namespace AlTayerERP.Desktop
             _grpUserFilters.ForeColor = Color.FromArgb(8, 49, 92);
             _grpUserFilters.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
             // مساحة داخلية كافية لإظهار التسميات وحقول البحث في صف واحد.
-            _grpUserFilters.Padding = new Padding(10, 22, 10, 6);
+            _grpUserFilters.Padding = new Padding(10, 18, 10, 8);
             _grpUserFilters.BackColor = Color.White;
 
             var layout = new TableLayoutPanel
@@ -396,8 +396,10 @@ namespace AlTayerERP.Desktop
                 RightToLeft = RightToLeft.Yes,
                 ColumnCount = 6,
                 RowCount = 1,
-                Padding = new Padding(2)
+                Padding = new Padding(2, 0, 2, 0)
             };
+            // ارتفاع صريح للصف: يمنع ظهور طرف الحقول فقط عند إعادة التحجيم.
+            layout.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
             layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 30F));
             layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 20F));
             layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 18F));
@@ -449,8 +451,10 @@ namespace AlTayerERP.Desktop
                 ColumnCount = 2,
                 RowCount = 1,
                 RightToLeft = RightToLeft.Yes,
-                Margin = new Padding(3)
+                Margin = new Padding(3, 0, 3, 0)
             };
+            // الصف الوحيد يملأ ارتفاع الجروب بدلاً من التمركز في أسفله.
+            panel.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
             panel.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 48F));
             panel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
             panel.Controls.Add(new Label
