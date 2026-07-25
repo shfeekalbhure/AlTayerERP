@@ -10,7 +10,7 @@ namespace AlTayerERP.Desktop.Services
     public static class ApiService
     {
         /// <summary>رابط API المحلي لبيئة التطوير وينتهي بشرطة مائلة.</summary>
-        public static readonly string BaseUrl = "https://localhost:7021/api/";
+        public static readonly string BaseUrl = "http://localhost:5021/api/";
 
         /// <summary>عميل الاتصال المشترك بجميع الشاشات.</summary>
         public static readonly HttpClient Client = new()
