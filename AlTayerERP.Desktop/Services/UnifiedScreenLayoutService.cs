@@ -43,7 +43,9 @@ namespace AlTayerERP.Desktop.Services
             form.MaximumSize = Size.Empty;
             form.Margin = Padding.Empty;
             form.Padding = Padding.Empty;
-            form.Dock = DockStyle.Fill;
+            form.Dock = WorkspaceScreenSizingService.IsViewport(form.Parent)
+                ? DockStyle.None
+                : DockStyle.Fill;
         }
 
         private static void NormalizeRoot(Form form)
