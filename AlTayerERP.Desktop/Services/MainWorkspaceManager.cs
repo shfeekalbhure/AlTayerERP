@@ -35,7 +35,6 @@ namespace AlTayerERP.Desktop.Services
                 Margin = Padding.Empty
             };
 
-            // زر الإغلاق متاح من القائمة السياقية؛ تبويب الرئيسية لا يغلق.
             var menu = new ContextMenuStrip();
             var closeItem = new ToolStripMenuItem("إغلاق التبويب الحالي");
             closeItem.Click += (_, _) => CloseActivePage();
@@ -61,13 +60,8 @@ namespace AlTayerERP.Desktop.Services
             host.ResumeLayout(true);
         }
 
-        /// <summary>يعرض لوحة الملخص الثابتة ولا يسمح بإغلاقها.</summary>
-        public void ShowHome(Control dashboard)
-        {
-            SetHome(dashboard, activate: true);
-        }
+        public void ShowHome(Control dashboard) => SetHome(dashboard, activate: true);
 
-        /// <summary>يحدث محتوى لوحة الملخص بعد تحميل الصلاحيات، دون إغلاق بقية التبويبات.</summary>
         public void SetHome(Control dashboard, bool activate = false)
         {
             if (!_pages.TryGetValue(HomeKey, out var page))
@@ -88,10 +82,6 @@ namespace AlTayerERP.Desktop.Services
                 _tabs.SelectedTab = page;
         }
 
-        /// <summary>
-        /// يفتح الشاشة بمفتاح ثابت. استخدم recordKey عند فتح محررات سجلات مستقلة
-        /// مستقبلاً؛ يمنع المفتاح نفسه من فتح نسخة ثانية.
-        /// </summary>
         public bool Open(string screenCode, string caption, Func<Form> factory, string? recordKey = null)
         {
             var key = string.IsNullOrWhiteSpace(recordKey)
@@ -107,7 +97,6 @@ namespace AlTayerERP.Desktop.Services
 
             var form = factory();
             var page = CreatePage(key, caption);
-
             PrepareHostedForm(form, page);
 
             form.FormClosed += (_, _) => RemovePage(key, page);
@@ -123,10 +112,8 @@ namespace AlTayerERP.Desktop.Services
             return true;
         }
 
-        /// <summary>ينتقل إلى التبويب الموجود أو يعرض لوحة الملخص.</summary>
         public void ActivateHome() => ShowExistingOrHome();
 
-        /// <summary>يحاول إغلاق التبويب النشط بعد سؤال الشاشة عن التعديلات غير المحفوظة.</summary>
         public bool CloseActivePage()
         {
             var page = _tabs.SelectedTab;
@@ -147,7 +134,6 @@ namespace AlTayerERP.Desktop.Services
             return true;
         }
 
-        /// <summary>يغلق كل التبويبات بعد التحقق من كل شاشة قابلة للتعديل.</summary>
         public bool TryCloseAll()
         {
             var pages = new List<TabPage>(_pages.Values);
@@ -179,7 +165,6 @@ namespace AlTayerERP.Desktop.Services
         private static void PrepareHostedForm(Form form, TabPage page)
         {
             form.SuspendLayout();
-
             form.TopLevel = false;
             form.FormBorderStyle = FormBorderStyle.None;
             form.StartPosition = FormStartPosition.Manual;
@@ -193,17 +178,13 @@ namespace AlTayerERP.Desktop.Services
             form.Dock = DockStyle.Fill;
 
             NormalizeRootControls(form);
-            ApplyWorkspaceBounds(form, page);
             UnifiedScreenLayoutService.Apply(form);
-
+            ApplyWorkspaceBounds(form, page);
             form.ResumeLayout(true);
         }
 
-        /// <summary>
-        /// يصغّر عناصر الشاشة القديمة مرة واحدة عند فتحها إذا كانت أبعاد تصميمها
-        /// أكبر من مساحة العمل المتاحة. لا يكبّر الواجهة في الشاشات الواسعة.
-        /// </summary>
-        private static void ScaleHostedFormToWorkspace(Form form, Ta
+        private static void NormalizeRootControls(Form form)
+        {
             var visibleRoots = form.Controls
                 .Cast<Control>()
                 .Where(control => control.Visible && control is not MenuStrip && control is not StatusStrip)
@@ -211,9 +192,8 @@ namespace AlTayerERP.Desktop.Services
 
             if (visibleRoots.Count == 1)
             {
-                var root = visibleRoots[0];
-                root.Margin = Padding.Empty;
-                root.Dock = DockStyle.Fill;
+                visibleRoots[0].Margin = Padding.Empty;
+                visibleRoots[0].Dock = DockStyle.Fill;
                 return;
             }
 
