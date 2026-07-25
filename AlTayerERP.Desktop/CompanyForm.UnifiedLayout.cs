@@ -1,3 +1,4 @@
+using AlTayerERP.Desktop.Common;
 using System.Drawing;
 using System.Windows.Forms;
 
@@ -66,12 +67,7 @@ public partial class CompanyForm
         shell.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
         shell.RowStyles.Add(new RowStyle(SizeType.Absolute, 26));
 
-        shell.Controls.Add(new Panel
-        {
-            Dock = DockStyle.Fill,
-            BackColor = Color.FromArgb(8, 55, 112),
-            Controls = { new Label { Text = "الشركات", Dock = DockStyle.Fill, TextAlign = ContentAlignment.MiddleCenter, ForeColor = Color.White, Font = new Font("Segoe UI", 14F, FontStyle.Bold) } }
-        }, 0, 0);
+        shell.Controls.Add(new BrandHeaderControl("الشركات"), 0, 0);
 
         var toolbar = new FlowLayoutPanel
         {
