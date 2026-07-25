@@ -6,7 +6,7 @@ namespace AlTayerERP.Desktop.Common;
 
 /// <summary>
 /// القالب المركزي لشاشات المرحلة الأولى. يطبق هوية نظام الطائر السعيد،
-/// والتنسيق الموحد، وبطاقة التدقيق وسياق الجلسة دون التدخل في منطق الأعمال.
+/// والتنسيق المتجاوب، وبطاقة التدقيق وسياق الجلسة دون التدخل في منطق الأعمال.
 /// </summary>
 public abstract class BaseForm : Form
 {
@@ -14,6 +14,7 @@ public abstract class BaseForm : Form
     private readonly Panel _pnlAuditBody = new();
     private readonly Button _btnToggleAudit = new();
     private bool _showPrintAudit;
+    private bool _responsiveApplied;
 
     protected void ApplyBaseFormStyle()
     {
@@ -23,17 +24,36 @@ public abstract class BaseForm : Form
         BackColor = Color.FromArgb(244, 247, 251);
         KeyPreview = true;
         DoubleBuffered = true;
+        AutoScaleMode = AutoScaleMode.Dpi;
+        Resize += (_, _) => ScheduleResponsiveRefresh();
     }
 
-    /// <summary>
-    /// ينتظر اكتمال بناء الشاشة المشتقة ثم يطبق الهوية والتنسيق على جميع عناصرها.
-    /// </summary>
     protected override void OnShown(EventArgs e)
     {
         base.OnShown(e);
+        ScheduleResponsiveRefresh();
+    }
+
+    private void ScheduleResponsiveRefresh()
+    {
+        if (!IsHandleCreated || IsDisposed) return;
         BeginInvoke(new Action(() =>
         {
+            if (IsDisposed) return;
+
+            // الشاشات تفتح داخل تبويبات FrmMain، لذلك لا يسمح للحجم الأدنى
+            // بفرض مساحة أكبر من مساحة العمل المتاحة فعلياً.
+            if (!TopLevel || Parent is TabPage)
+            {
+                MinimumSize = Size.Empty;
+                MaximumSize = Size.Empty;
+                AutoScroll = false;
+                Dock = DockStyle.Fill;
+            }
+
             ApplyPremiumVisualIdentity(this);
+            ApplyResponsiveLayout(this);
+            _responsiveApplied = true;
             Invalidate(true);
         }));
     }
@@ -51,7 +71,7 @@ public abstract class BaseForm : Form
             if (table.RowCount == 0) continue;
             var current = table.GetControlFromPosition(0, 0);
             if (current is BrandHeaderControl) continue;
-            if (current is not Panel panel || panel.Height > 90) continue;
+            if (current is not Panel panel || panel.Height > 100) continue;
 
             var title = panel.Controls.OfType<Label>()
                 .Select(x => x.Text?.Trim())
@@ -59,7 +79,7 @@ public abstract class BaseForm : Form
             if (string.IsNullOrWhiteSpace(title)) continue;
 
             var color = panel.BackColor;
-            var looksLikeHeader = color.B < 180 && color.R < 60 && color.G < 120;
+            var looksLikeHeader = color.B < 190 && color.R < 70 && color.G < 135;
             if (!looksLikeHeader) continue;
 
             table.Controls.Remove(panel);
@@ -67,13 +87,147 @@ public abstract class BaseForm : Form
             var header = new BrandHeaderControl(title)
             {
                 Name = "brandHeader",
-                Margin = new Padding(0, 0, 0, 6)
+                Margin = new Padding(0, 0, 0, 4)
             };
             table.Controls.Add(header, 0, 0);
             table.SetColumnSpan(header, Math.Max(1, table.ColumnCount));
-            if (table.RowStyles.Count > 0) table.RowStyles[0].Height = 76;
+            if (table.RowStyles.Count > 0) table.RowStyles[0].Height = 68;
             break;
         }
+    }
+
+    private void ApplyResponsiveLayout(Control root)
+    {
+        var availableWidth = Math.Max(700, ClientSize.Width);
+        var compact = availableWidth < 1180;
+        var veryCompact = availableWidth < 980;
+
+        Padding = compact ? new Padding(0) : Padding;
+
+        foreach (var table in FindControls<TableLayoutPanel>(root))
+        {
+            if (compact && table.Padding.Left > 10)
+                table.Padding = new Padding(8);
+
+            // جداول الحقول في الشركات والفروع: تصغير عمودي التسميات
+            // حتى تبقى مساحة كافية للمدخلات داخل القائمة الجانبية.
+            if (table.ColumnCount == 4 && !DirectChildrenAreFieldCards(table))
+            {
+                if (table.ColumnStyles.Count >= 4)
+                {
+                    if (table.ColumnStyles[0].SizeType == SizeType.Absolute && table.ColumnStyles[0].Width > 118)
+                        table.ColumnStyles[0].Width = compact ? 105 : 125;
+                    if (table.ColumnStyles[2].SizeType == SizeType.Absolute && table.ColumnStyles[2].Width > 118)
+                        table.ColumnStyles[2].Width = compact ? 105 : 125;
+                }
+            }
+
+            // شاشة الدول والمحافظات والمدن كانت تعرض أربعة حقول في صف واحد،
+            // وهو سبب القص الظاهر في الصور. يعاد توزيعها إلى عمودين فقط.
+            if (compact && table.ColumnCount == 4 && DirectChildrenAreFieldCards(table) && table.Tag?.ToString() != "REFLOWED_2COL")
+                ReflowFieldCardsToTwoColumns(table);
+
+            // بعد إعادة توزيع محرر المراجع يحتاج صف البيانات مساحة ثابتة مناسبة.
+            if (table.RowCount >= 5 && table.GetControlFromPosition(0, 0) is BrandHeaderControl && table.RowStyles.Count > 2)
+            {
+                var editor = table.GetControlFromPosition(0, 2);
+                if (editor is not null && ContainsReflowedTable(editor))
+                    table.RowStyles[2].Height = compact ? 286 : Math.Max(table.RowStyles[2].Height, 260);
+            }
+        }
+
+        foreach (var toolbar in FindControls<FlowLayoutPanel>(root))
+        {
+            var buttons = toolbar.Controls.OfType<Button>().ToList();
+            if (buttons.Count < 3) continue;
+            toolbar.WrapContents = false;
+            toolbar.AutoScroll = veryCompact;
+            foreach (var button in buttons)
+            {
+                button.Tag ??= button.Text;
+                var original = button.Tag?.ToString() ?? button.Text;
+                button.Text = compact ? RemoveShortcut(original) : original;
+                button.Width = veryCompact ? 82 : compact ? 94 : Math.Max(106, button.Width);
+                button.Height = 36;
+                button.Margin = new Padding(3, 4, 3, 4);
+            }
+        }
+
+        foreach (var label in FindControls<Label>(root))
+        {
+            if (compact && label.Font.Size > 10.5F && label is not null)
+                label.AutoEllipsis = true;
+        }
+    }
+
+    private static bool DirectChildrenAreFieldCards(TableLayoutPanel table)
+    {
+        var children = table.Controls.Cast<Control>().ToList();
+        return children.Count >= 4 && children.All(x => x is Panel panel && panel.BorderStyle == BorderStyle.FixedSingle);
+    }
+
+    private static void ReflowFieldCardsToTwoColumns(TableLayoutPanel table)
+    {
+        var items = table.Controls.Cast<Control>()
+            .Select(c => new
+            {
+                Control = c,
+                Position = table.GetPositionFromControl(c),
+                Span = table.GetColumnSpan(c)
+            })
+            .OrderBy(x => x.Position.Row)
+            .ThenBy(x => x.Position.Column)
+            .ToList();
+
+        table.SuspendLayout();
+        table.Controls.Clear();
+        table.ColumnStyles.Clear();
+        table.RowStyles.Clear();
+        table.ColumnCount = 2;
+        table.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
+        table.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
+
+        var row = 0;
+        var col = 0;
+        foreach (var item in items)
+        {
+            var fullWidth = item.Span > 1;
+            if (fullWidth)
+            {
+                if (col != 0) { row++; col = 0; }
+                table.Controls.Add(item.Control, 0, row);
+                table.SetColumnSpan(item.Control, 2);
+                row++;
+                continue;
+            }
+
+            table.Controls.Add(item.Control, col, row);
+            col++;
+            if (col >= 2) { col = 0; row++; }
+        }
+        if (col != 0) row++;
+
+        table.RowCount = Math.Max(1, row);
+        for (var i = 0; i < table.RowCount; i++)
+            table.RowStyles.Add(new RowStyle(SizeType.Absolute, 62));
+
+        table.Tag = "REFLOWED_2COL";
+        table.ResumeLayout(true);
+    }
+
+    private static bool ContainsReflowedTable(Control root) =>
+        root is TableLayoutPanel t && t.Tag?.ToString() == "REFLOWED_2COL" ||
+        root.Controls.Cast<Control>().Any(ContainsReflowedTable);
+
+    private static string RemoveShortcut(string text)
+    {
+        var separators = new[] { "  Ctrl+", " Ctrl+", "  F5", " F5", "  Esc", " Esc" };
+        foreach (var separator in separators)
+        {
+            var index = text.IndexOf(separator, StringComparison.OrdinalIgnoreCase);
+            if (index > 0) return text[..index].Trim();
+        }
+        return text.Trim();
     }
 
     private static void StyleControlTree(Control root)
@@ -88,12 +242,12 @@ public abstract class BaseForm : Form
                 case TextBox textBox:
                     textBox.BorderStyle = BorderStyle.FixedSingle;
                     textBox.BackColor = textBox.ReadOnly ? Color.FromArgb(246, 248, 251) : Color.White;
-                    textBox.Margin = new Padding(5, 7, 5, 7);
+                    textBox.Margin = new Padding(4, 6, 4, 6);
                     break;
                 case ComboBox combo:
                     combo.FlatStyle = FlatStyle.Flat;
                     combo.BackColor = Color.White;
-                    combo.Margin = new Padding(5, 7, 5, 7);
+                    combo.Margin = new Padding(4, 6, 4, 6);
                     break;
                 case NumericUpDown numeric:
                     numeric.BorderStyle = BorderStyle.FixedSingle;
@@ -104,7 +258,7 @@ public abstract class BaseForm : Form
                     break;
                 case Panel panel when panel.BorderStyle == BorderStyle.FixedSingle:
                     panel.BackColor = Color.White;
-                    panel.Padding = new Padding(Math.Max(panel.Padding.Left, 10));
+                    panel.Padding = new Padding(Math.Max(panel.Padding.Left, 8));
                     break;
             }
             StyleControlTree(control);
@@ -119,7 +273,7 @@ public abstract class BaseForm : Form
         button.Cursor = Cursors.Hand;
         button.Font = new Font("Segoe UI", 9.2F, FontStyle.Bold);
         button.Height = Math.Max(34, button.Height);
-        button.Padding = new Padding(8, 0, 8, 0);
+        button.Padding = new Padding(6, 0, 6, 0);
 
         var text = button.Text ?? string.Empty;
         if (text.Contains("حفظ", StringComparison.OrdinalIgnoreCase))
