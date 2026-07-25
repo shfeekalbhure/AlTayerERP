@@ -20,9 +20,6 @@ namespace AlTayerERP.API.Services
             ScreenOperation operation,
             CancellationToken cancellationToken = default)
         {
-            if (session.Is_System_Admin)
-                return true;
-
             var normalizedScreen = screenCode.Trim();
 
             // الاستثناء المباشر للمستخدم أعلى أولوية من الدور؛ الصف ذو القيم false
