@@ -18,21 +18,25 @@ namespace AlTayerERP.Desktop
             _menuSearchPanel = new Panel
             {
                 Dock = DockStyle.Top,
-                Height = 38,
-                Padding = new Padding(6, 5, 6, 5),
-                // شريط بحث مستقل أعلى قالب الشجرة.
-                BackColor = Color.FromArgb(8, 49, 92)
+                Height = 42,
+                Padding = new Padding(6, 6, 6, 6),
+                // شريط منفصل بصرياً، خارج بطاقة الشجرة.
+                BackColor = Color.White,
+                BorderStyle = BorderStyle.FixedSingle
             };
 
             _menuTreeHost = new Panel
             {
                 Dock = DockStyle.Fill,
-                Padding = new Padding(3),
+                // المسافة العلوية تُظهر أن الشريط السابق مستقل عن بطاقة الشجرة.
+                Padding = new Padding(3, 8, 3, 3),
                 BackColor = Color.FromArgb(5, 36, 69),
                 BorderStyle = BorderStyle.FixedSingle
             };
 
             pnlSideMenu.SuspendLayout();
+            pnlSideMenu.BackColor = Color.FromArgb(239, 243, 248);
+            pnlSideMenu.Padding = new Padding(4);
             pnlSideMenu.Controls.Remove(tvMainMenu);
             tvMainMenu.Dock = DockStyle.Fill;
             _menuTreeHost.Controls.Add(tvMainMenu);
