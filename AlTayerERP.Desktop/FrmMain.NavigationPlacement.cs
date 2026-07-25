@@ -9,12 +9,13 @@ public partial class FrmMain
     {
         base.OnShown(e);
 
-        // لا نعكس ترتيب Dock على مستوى النافذة؛ يبقى اتجاه النص عربيًا وتبقى الشجرة يمين الشاشة.
+        // تبقى شجرة النظام في يمين الشاشة مع اتجاه عربي للنصوص.
         RightToLeft = RightToLeft.Yes;
         RightToLeftLayout = false;
         pnlSideMenu.Dock = DockStyle.Right;
         pnlSideMenu.BringToFront();
         pnlTopBar.BringToFront();
         pnlStatusBar.BringToFront();
+        EnsureMenuSearchBox();
     }
 }
