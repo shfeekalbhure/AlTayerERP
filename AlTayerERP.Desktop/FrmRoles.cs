@@ -30,6 +30,7 @@ namespace AlTayerERP.Desktop
         {
             InitializeComponent();
             ConfigureScreen();
+            ApplyApprovedRolesLayout();
             WireEvents();
         }
 
@@ -396,8 +397,15 @@ namespace AlTayerERP.Desktop
         private void OpenRolePermissions()
         {
             if (!EnsureAdministrator()) return;
-            using var form = new FrmRolePermissions();
-            form.ShowDialog(this);
+
+            if (TopLevelControl is FrmMain main)
+            {
+                main.OpenWorkspaceScreen("RolePermissions");
+                return;
+            }
+
+            var form = new FrmRolePermissions();
+            form.Show(this);
         }
 
         private void btnNew_Click(object? sender, EventArgs e) => ClearForm();
