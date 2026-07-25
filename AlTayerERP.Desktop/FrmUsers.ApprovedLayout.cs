@@ -79,7 +79,7 @@ namespace AlTayerERP.Desktop
             // البيانات أولاً، ثم البحث والتصفية فوق الجدول مباشرة، ثم الجدول والتدقيق.
             root.RowStyles.Add(new RowStyle(SizeType.Absolute, 52F));
             root.RowStyles.Add(new RowStyle(SizeType.Absolute, 240F));
-            root.RowStyles.Add(new RowStyle(SizeType.Absolute, 66F));
+            root.RowStyles.Add(new RowStyle(SizeType.Absolute, 76F));
             root.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
             root.RowStyles.Add(new RowStyle(SizeType.Absolute, 110F));
 
@@ -397,14 +397,17 @@ namespace AlTayerERP.Desktop
 
             var layout = new TableLayoutPanel
             {
-                Dock = DockStyle.Fill,
+                // نثبت الحقول أعلى المجموعة وبارتفاع واحد؛ لا نترك Dock.Fill يمدها أو يقصها.
+                Dock = DockStyle.Top,
+                Height = 34,
                 RightToLeft = RightToLeft.Yes,
                 ColumnCount = 6,
                 RowCount = 1,
-                Padding = new Padding(2, 0, 2, 0)
+                Padding = new Padding(2, 0, 2, 0),
+                Margin = new Padding(0)
             };
-            // ارتفاع صريح للصف: يمنع ظهور طرف الحقول فقط عند إعادة التحجيم.
-            layout.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
+            // ارتفاع ثابت للصف يضمن إظهار الحقل كاملاً فوق الجدول مهما تغير حجم النافذة.
+            layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 34F));
             layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 30F));
             layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 20F));
             layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 18F));
@@ -470,8 +473,9 @@ namespace AlTayerERP.Desktop
                 Font = new Font("Segoe UI", 8F, FontStyle.Bold),
                 ForeColor = Color.FromArgb(51, 65, 85)
             }, 0, 0);
+            // هامش رأسي بسيط مع ارتفاع ثابت يمنع قص أسفل TextBox وComboBox.
             control.Dock = DockStyle.Fill;
-            control.Margin = new Padding(1);
+            control.Margin = new Padding(1, 2, 1, 2);
             panel.Controls.Add(control, 1, 0);
             return panel;
         }
