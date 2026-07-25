@@ -106,6 +106,60 @@ namespace AlTayerERP.API.Controllers
             });
         }
 
+        /// <summary>
+        /// يعيد بيانات تدقيق سجل المستخدم من السجل المركزي، دون كشف كلمات المرور أو بيانات حساسة.
+        /// </summary>
+        [HttpGet("{id:int}/audit-info")]
+        public async Task<IActionResult> GetUserAuditInfo(int id)
+        {
+            var denied = await DenyUnlessAsync(ScreenOperation.View);
+            if (denied != null) return denied;
+            TryGetSession(out var session);
+
+            var user = await _context.Users.AsNoTracking().FirstOrDefaultAsync(x => x.User_ID == id);
+            if (user == null) return NotFound("المستخدم غير موجود.");
+            if (!session.Is_System_Admin &&
+                (user.Company_ID != session.Company_ID || user.Branch_ID != session.Branch_ID))
+                return Forbid();
+
+            var logs = await _context.Audit_Logs.AsNoTracking()
+                .Where(x => x.Table_Name == "users" && x.Record_ID == id.ToString())
+                .OrderBy(x => x.Action_At)
+                .Select(x => new { x.Action_Type, x.User_ID, x.Action_At })
+                .ToListAsync();
+
+            var operatorIds = logs
+                .Select(x => int.TryParse(x.User_ID, out var operatorId) ? operatorId : 0)
+                .Where(x => x > 0)
+                .Distinct()
+                .ToList();
+
+            var names = await _context.Users.AsNoTracking()
+                .Where(x => operatorIds.Contains(x.User_ID))
+                .ToDictionaryAsync(x => x.User_ID, x => x.Full_Name);
+
+            string ResolveOperator(string? operatorId)
+            {
+                return int.TryParse(operatorId, out var numericId) && names.TryGetValue(numericId, out var name)
+                    ? name
+                    : "—";
+            }
+
+            var creation = logs.FirstOrDefault(x => x.Action_Type == "INSERT");
+            var updates = logs.Where(x => x.Action_Type == "UPDATE").ToList();
+            var lastUpdate = updates.LastOrDefault();
+
+            return Ok(new
+            {
+                Created_By = ResolveOperator(creation?.User_ID),
+                Created_At = user.Created_At,
+                Updated_By = ResolveOperator(lastUpdate?.User_ID),
+                Updated_At = user.Updated_At ?? lastUpdate?.Action_At,
+                Edit_Count = updates.Count,
+                Print_Count = logs.Count(x => x.Action_Type == "PRINT")
+            });
+        }
+
         [HttpPost]
         public async Task<IActionResult> CreateUser([FromBody] CreateUserDto dto)
         {
@@ -144,7 +198,8 @@ namespace AlTayerERP.API.Controllers
                 Email = dto.Email?.Trim(),
                 Notes = dto.Notes?.Trim(),
                 Must_Change_Password = dto.Must_Change_Password,
-                Is_Active = true,
+                // الحالة التي يحددها المستخدم في واجهة الإدارة بعد التحقق من صلاحية الإضافة.
+                Is_Active = dto.Is_Active,
                 Created_At = DateTime.UtcNow
             };
 
