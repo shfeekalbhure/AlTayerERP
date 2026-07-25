@@ -51,6 +51,7 @@ public abstract class BaseForm : Form
 
             ApplyPremiumVisualIdentity(this);
             ApplyResponsiveLayout(this, insideWorkspace);
+            UnifiedScreenLayoutService.Apply(this);
             Invalidate(true);
         }));
     }
