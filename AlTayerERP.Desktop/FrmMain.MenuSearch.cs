@@ -8,6 +8,7 @@ namespace AlTayerERP.Desktop
     {
         private TextBox? _txtMenuSearch;
         private Panel? _menuSearchPanel;
+        private Panel? _menuTreeHost;
 
         private void EnsureMenuSearchBox()
         {
@@ -19,8 +20,22 @@ namespace AlTayerERP.Desktop
                 Dock = DockStyle.Top,
                 Height = 38,
                 Padding = new Padding(6, 5, 6, 5),
-                BackColor = Color.FromArgb(5, 36, 69)
+                // شريط بحث مستقل أعلى قالب الشجرة.
+                BackColor = Color.FromArgb(8, 49, 92)
             };
+
+            _menuTreeHost = new Panel
+            {
+                Dock = DockStyle.Fill,
+                Padding = new Padding(3),
+                BackColor = Color.FromArgb(5, 36, 69),
+                BorderStyle = BorderStyle.FixedSingle
+            };
+
+            pnlSideMenu.SuspendLayout();
+            pnlSideMenu.Controls.Remove(tvMainMenu);
+            tvMainMenu.Dock = DockStyle.Fill;
+            _menuTreeHost.Controls.Add(tvMainMenu);
 
             _txtMenuSearch = new TextBox
             {
@@ -55,8 +70,12 @@ namespace AlTayerERP.Desktop
             };
 
             _menuSearchPanel.Controls.Add(_txtMenuSearch);
+
+            // البحث فوق قالب الشجرة، والشجرة داخل قالب مستقل أسفله.
+            pnlSideMenu.Controls.Add(_menuTreeHost);
             pnlSideMenu.Controls.Add(_menuSearchPanel);
             _menuSearchPanel.BringToFront();
+            pnlSideMenu.ResumeLayout(true);
         }
     }
 }
