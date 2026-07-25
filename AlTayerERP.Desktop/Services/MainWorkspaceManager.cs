@@ -111,7 +111,7 @@ namespace AlTayerERP.Desktop.Services
             PrepareHostedForm(form, page);
 
             form.FormClosed += (_, _) => RemovePage(key, page);
-            page.Resize += (_, _) => ApplyWorkspaceBounds(form, page);
+            page.Resize += (_, _) => RefreshHostedFormLayout(form, page);
 
             page.Controls.Add(form);
             _tabs.TabPages.Add(page);
@@ -119,7 +119,7 @@ namespace AlTayerERP.Desktop.Services
             _tabs.SelectedTab = page;
 
             form.Show();
-            ApplyWorkspaceBounds(form, page);
+            RefreshHostedFormLayout(form, page);
             return true;
         }
 
@@ -194,6 +194,7 @@ namespace AlTayerERP.Desktop.Services
 
             NormalizeRootControls(form);
             ApplyWorkspaceBounds(form, page);
+            UnifiedScreenLayoutService.Apply(form);
 
             form.ResumeLayout(true);
         }
@@ -227,6 +228,12 @@ namespace AlTayerERP.Desktop.Services
                     control.Dock = DockStyle.Fill;
                 }
             }
+        }
+
+        private static void RefreshHostedFormLayout(Form form, TabPage page)
+        {
+            ApplyWorkspaceBounds(form, page);
+            UnifiedScreenLayoutService.Apply(form);
         }
 
         private static void ApplyWorkspaceBounds(Form form, TabPage page)
