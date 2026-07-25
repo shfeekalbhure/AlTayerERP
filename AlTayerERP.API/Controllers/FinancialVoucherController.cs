@@ -258,7 +258,8 @@ namespace AlTayerERP.API.Controllers
                 await _journalEntryInquiryService.GetByVoucherNoAsync(
                     voucherNo,
                     session.Branch_ID.ToString(),
-                    voucherTypeId);
+                    voucherTypeId,
+                    session.Year_ID);
 
             if (result == null)
             {
