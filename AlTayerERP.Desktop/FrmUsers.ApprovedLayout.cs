@@ -8,8 +8,8 @@ using System.Windows.Forms;
 namespace AlTayerERP.Desktop
 {
     /// <summary>
-    /// ADR-017: التصميم النهائي المغلق لشاشة إدارة المستخدمين.
-    /// ترتيب ثابت RTL، عوامل التصفية فوق النتائج، شريط أدوات مرن، وجدول واضح قابل للطباعة.
+    /// ADR-017: التصميم النهائي المضغوط لشاشة إدارة المستخدمين.
+    /// يعمل داخل مساحة العمل دون فرض عرض أكبر من النافذة، ويمنع قص العناوين والحقول.
     /// </summary>
     public partial class FrmUsers
     {
@@ -32,8 +32,10 @@ namespace AlTayerERP.Desktop
             Text = "إدارة المستخدمين والصلاحيات";
             RightToLeft = RightToLeft.Yes;
             RightToLeftLayout = true;
-            MinimumSize = new Size(1120, 720);
-            Font = new Font("Tahoma", 9.5F);
+            MinimumSize = Size.Empty;
+            AutoScroll = false;
+            AutoScaleMode = AutoScaleMode.Dpi;
+            Font = new Font("Tahoma", 9F);
             BackColor = Color.FromArgb(244, 247, 251);
 
             ConfigureToolbar();
@@ -42,84 +44,42 @@ namespace AlTayerERP.Desktop
             ConfigureUsersGrid();
             ConfigureAudit();
 
-            var header = BuildScreenHeader();
             var root = new TableLayoutPanel
             {
                 Dock = DockStyle.Fill,
                 ColumnCount = 1,
-                RowCount = 6,
+                RowCount = 5,
                 BackColor = Color.FromArgb(244, 247, 251),
-                Padding = new Padding(8),
-                RightToLeft = RightToLeft.Yes
+                Padding = new Padding(6),
+                RightToLeft = RightToLeft.Yes,
+                Margin = Padding.Empty
             };
-            root.RowStyles.Add(new RowStyle(SizeType.Absolute, 54F));
-            root.RowStyles.Add(new RowStyle(SizeType.Absolute, 70F));
-            root.RowStyles.Add(new RowStyle(SizeType.Absolute, 270F));
-            root.RowStyles.Add(new RowStyle(SizeType.Absolute, 82F));
+            root.RowStyles.Add(new RowStyle(SizeType.Absolute, 62F));
+            root.RowStyles.Add(new RowStyle(SizeType.Absolute, 258F));
+            root.RowStyles.Add(new RowStyle(SizeType.Absolute, 76F));
             root.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
-            root.RowStyles.Add(new RowStyle(SizeType.Absolute, 50F));
+            root.RowStyles.Add(new RowStyle(SizeType.Absolute, 44F));
 
             Controls.Remove(pnlToolbar);
             Controls.Remove(pnlData);
             Controls.Remove(pnlGrid);
             Controls.Clear();
 
-            root.Controls.Add(header, 0, 0);
-            root.Controls.Add(pnlToolbar, 0, 1);
-            root.Controls.Add(pnlData, 0, 2);
-            root.Controls.Add(_grpUserFilters, 0, 3);
-            root.Controls.Add(pnlGrid, 0, 4);
-            root.Controls.Add(_grpUserAudit, 0, 5);
+            root.Controls.Add(pnlToolbar, 0, 0);
+            root.Controls.Add(pnlData, 0, 1);
+            root.Controls.Add(_grpUserFilters, 0, 2);
+            root.Controls.Add(pnlGrid, 0, 3);
+            root.Controls.Add(_grpUserAudit, 0, 4);
             Controls.Add(root);
 
             ResumeLayout(true);
-        }
-
-        private Control BuildScreenHeader()
-        {
-            var header = new Panel
-            {
-                Dock = DockStyle.Fill,
-                BackColor = Color.White,
-                Padding = new Padding(16, 7, 16, 7),
-                Margin = new Padding(0, 0, 0, 6)
-            };
-
-            var title = new Label
-            {
-                Dock = DockStyle.Right,
-                Width = 420,
-                Text = "إدارة المستخدمين والصلاحيات",
-                Font = new Font("Tahoma", 15F, FontStyle.Bold),
-                ForeColor = Color.FromArgb(8, 49, 92),
-                TextAlign = ContentAlignment.MiddleRight
-            };
-            var subtitle = new Label
-            {
-                Dock = DockStyle.Fill,
-                Text = "إدارة الحسابات والأدوار ونطاق الفروع وحالة الوصول",
-                Font = new Font("Tahoma", 9F),
-                ForeColor = Color.FromArgb(90, 105, 125),
-                TextAlign = ContentAlignment.MiddleRight
-            };
-            _lblSelectionState.Dock = DockStyle.Left;
-            _lblSelectionState.Width = 210;
-            _lblSelectionState.Text = "الوضع: مستخدم جديد";
-            _lblSelectionState.Font = new Font("Tahoma", 9F, FontStyle.Bold);
-            _lblSelectionState.ForeColor = Color.FromArgb(37, 99, 235);
-            _lblSelectionState.TextAlign = ContentAlignment.MiddleLeft;
-
-            header.Controls.Add(subtitle);
-            header.Controls.Add(title);
-            header.Controls.Add(_lblSelectionState);
-            return header;
         }
 
         private void ConfigureToolbar()
         {
             pnlToolbar.Controls.Clear();
             pnlToolbar.Dock = DockStyle.Fill;
-            pnlToolbar.Padding = new Padding(10, 7, 10, 7);
+            pnlToolbar.Padding = new Padding(8, 6, 8, 6);
             pnlToolbar.BackColor = Color.White;
             pnlToolbar.BorderStyle = BorderStyle.FixedSingle;
             pnlToolbar.RightToLeft = RightToLeft.Yes;
@@ -140,6 +100,7 @@ namespace AlTayerERP.Desktop
             btnSearch.Click -= btnSearch_Click;
             btnSearch.Click += (_, _) => { _txtUserSearch.Focus(); ApplyUsersFilter(); };
             btnPrint.Click += (_, _) => PrintUsersGrid();
+            btnNew.Click += (_, _) => SetNewUserVisualState();
 
             var strip = new FlowLayoutPanel
             {
@@ -147,20 +108,20 @@ namespace AlTayerERP.Desktop
                 FlowDirection = FlowDirection.RightToLeft,
                 WrapContents = false,
                 AutoScroll = true,
-                Padding = new Padding(2),
+                Padding = new Padding(1),
                 BackColor = Color.Transparent
             };
 
-            ConfigureActionButton(btnNew, Color.FromArgb(37, 99, 235), Color.White, 92);
-            ConfigureActionButton(btnSave, Color.FromArgb(22, 163, 74), Color.White, 92);
-            ConfigureActionButton(btnEdit, Color.FromArgb(245, 158, 11), Color.White, 92);
-            ConfigureActionButton(btnDelete, Color.FromArgb(220, 38, 38), Color.White, 92);
-            ConfigureActionButton(_btnReactivate, Color.FromArgb(13, 148, 136), Color.White, 112);
-            ConfigureActionButton(_btnResetPassword, Color.FromArgb(109, 40, 217), Color.White, 158);
-            ConfigureActionButton(btnRefresh, Color.White, Color.FromArgb(8, 49, 92), 92);
-            ConfigureActionButton(btnSearch, Color.White, Color.FromArgb(8, 49, 92), 92);
-            ConfigureActionButton(btnPrint, Color.White, Color.FromArgb(8, 49, 92), 92);
-            ConfigureActionButton(btnClose, Color.FromArgb(71, 85, 105), Color.White, 92);
+            ConfigureActionButton(btnNew, Color.FromArgb(37, 99, 235), Color.White, 86);
+            ConfigureActionButton(btnSave, Color.FromArgb(22, 163, 74), Color.White, 86);
+            ConfigureActionButton(btnEdit, Color.FromArgb(245, 158, 11), Color.White, 86);
+            ConfigureActionButton(btnDelete, Color.FromArgb(220, 38, 38), Color.White, 86);
+            ConfigureActionButton(_btnReactivate, Color.FromArgb(13, 148, 136), Color.White, 104);
+            ConfigureActionButton(_btnResetPassword, Color.FromArgb(109, 40, 217), Color.White, 144);
+            ConfigureActionButton(btnRefresh, Color.White, Color.FromArgb(8, 49, 92), 86);
+            ConfigureActionButton(btnSearch, Color.White, Color.FromArgb(8, 49, 92), 86);
+            ConfigureActionButton(btnPrint, Color.White, Color.FromArgb(8, 49, 92), 86);
+            ConfigureActionButton(btnClose, Color.FromArgb(71, 85, 105), Color.White, 86);
 
             foreach (var button in new[]
                      {
@@ -174,8 +135,8 @@ namespace AlTayerERP.Desktop
 
         private static void ConfigureActionButton(Button button, Color backColor, Color foreColor, int width)
         {
-            button.Size = new Size(width, 46);
-            button.Margin = new Padding(4);
+            button.Size = new Size(width, 42);
+            button.Margin = new Padding(3);
             button.FlatStyle = FlatStyle.Flat;
             button.FlatAppearance.BorderSize = backColor == Color.White ? 1 : 0;
             button.FlatAppearance.BorderColor = Color.FromArgb(185, 200, 218);
@@ -184,7 +145,7 @@ namespace AlTayerERP.Desktop
                 : ControlPaint.Light(backColor, 0.08F);
             button.BackColor = backColor;
             button.ForeColor = foreColor;
-            button.Font = new Font("Tahoma", 9F, FontStyle.Bold);
+            button.Font = new Font("Tahoma", 8.5F, FontStyle.Bold);
             button.TextAlign = ContentAlignment.MiddleCenter;
             button.Cursor = Cursors.Hand;
         }
@@ -192,15 +153,15 @@ namespace AlTayerERP.Desktop
         private void ConfigureUserDataArea()
         {
             pnlData.Dock = DockStyle.Fill;
-            pnlData.Padding = new Padding(3);
+            pnlData.Padding = new Padding(2);
             pnlData.BackColor = Color.Transparent;
             grpPermissions.Visible = false;
 
             grpUserData.Dock = DockStyle.Fill;
             grpUserData.Text = "بيانات المستخدم";
             grpUserData.ForeColor = Color.FromArgb(8, 49, 92);
-            grpUserData.Font = new Font("Tahoma", 10.5F, FontStyle.Bold);
-            grpUserData.Padding = new Padding(12, 8, 12, 10);
+            grpUserData.Font = new Font("Tahoma", 10F, FontStyle.Bold);
+            grpUserData.Padding = new Padding(8, 6, 8, 7);
             grpUserData.BackColor = Color.White;
 
             panel1.Controls.Clear();
@@ -219,28 +180,29 @@ namespace AlTayerERP.Desktop
             {
                 Dock = DockStyle.Fill,
                 RightToLeft = RightToLeft.Yes,
-                ColumnCount = 4,
+                ColumnCount = 2,
                 RowCount = 7,
-                Padding = new Padding(6)
+                Padding = new Padding(4)
             };
-            fields.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 16F));
-            fields.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 34F));
-            fields.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 16F));
-            fields.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 34F));
+            fields.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
+            fields.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
             for (var row = 0; row < 7; row++) fields.RowStyles.Add(new RowStyle(SizeType.Percent, 14.285F));
 
-            AddField(fields, 0, 0, "رقم المستخدم", txtUserName);
-            AddField(fields, 2, 0, "اسم الدخول", txtLoginName);
-            AddField(fields, 0, 1, "الاسم الكامل", txtFullName);
-            AddField(fields, 2, 1, "الهاتف", txtPhone);
-            AddField(fields, 0, 2, "البريد الإلكتروني", txtEmail);
-            AddField(fields, 2, 2, "الدور", cmbRole);
-            AddField(fields, 0, 3, "نطاق الفرع", cmbBranch);
-            AddField(fields, 2, 3, "الحالة", cmbStatus);
-            AddField(fields, 0, 4, "الملاحظات / سبب القفل", txtNotes);
-            fields.SetColumnSpan(txtNotes, 3);
-            AddField(fields, 0, 5, "كلمة المرور", txtPassword);
-            AddField(fields, 2, 5, "تأكيد كلمة المرور", txtConfirmPassword);
+            fields.Controls.Add(BuildFieldCell("رقم المستخدم", txtUserName), 0, 0);
+            fields.Controls.Add(BuildFieldCell("اسم الدخول", txtLoginName), 1, 0);
+            fields.Controls.Add(BuildFieldCell("الاسم الكامل", txtFullName), 0, 1);
+            fields.Controls.Add(BuildFieldCell("الهاتف", txtPhone), 1, 1);
+            fields.Controls.Add(BuildFieldCell("البريد الإلكتروني", txtEmail), 0, 2);
+            fields.Controls.Add(BuildFieldCell("الدور", cmbRole), 1, 2);
+            fields.Controls.Add(BuildFieldCell("نطاق الفرع", cmbBranch), 0, 3);
+            fields.Controls.Add(BuildFieldCell("الحالة", cmbStatus), 1, 3);
+
+            var notesCell = BuildFieldCell("الملاحظات / سبب القفل", txtNotes);
+            fields.Controls.Add(notesCell, 0, 4);
+            fields.SetColumnSpan(notesCell, 2);
+
+            fields.Controls.Add(BuildFieldCell("كلمة المرور", txtPassword), 0, 5);
+            fields.Controls.Add(BuildFieldCell("تأكيد كلمة المرور", txtConfirmPassword), 1, 5);
 
             chkChangePassword.Text = "إجبار المستخدم على تغيير كلمة المرور عند أول دخول";
             chkChangePassword.AutoSize = true;
@@ -254,32 +216,45 @@ namespace AlTayerERP.Desktop
                 Dock = DockStyle.Fill,
                 FlowDirection = FlowDirection.RightToLeft,
                 WrapContents = false,
-                Padding = new Padding(4)
+                Padding = new Padding(3)
             };
             accountFlags.Controls.Add(chkChangePassword);
             accountFlags.Controls.Add(chkIsActive);
             fields.Controls.Add(accountFlags, 0, 6);
-            fields.SetColumnSpan(accountFlags, 4);
+            fields.SetColumnSpan(accountFlags, 2);
             panel1.Controls.Add(fields);
         }
 
-        private static void AddField(TableLayoutPanel table, int column, int row, string caption, Control control)
+        private static Control BuildFieldCell(string caption, Control control)
         {
+            var cell = new TableLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                ColumnCount = 2,
+                RowCount = 1,
+                RightToLeft = RightToLeft.Yes,
+                Margin = new Padding(3)
+            };
+            cell.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 132F));
+            cell.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
+
             var label = new Label
             {
                 Text = caption + ":",
                 Dock = DockStyle.Fill,
                 TextAlign = ContentAlignment.MiddleRight,
-                Font = new Font("Tahoma", 9.5F),
+                Font = new Font("Tahoma", 9F),
                 ForeColor = Color.FromArgb(30, 41, 59),
-                Margin = new Padding(4)
+                AutoEllipsis = true,
+                Margin = new Padding(2)
             };
             control.Dock = DockStyle.Fill;
-            control.Margin = new Padding(5, 3, 5, 3);
-            control.Font = new Font("Tahoma", 9.5F);
+            control.Margin = new Padding(3, 2, 3, 2);
+            control.Font = new Font("Tahoma", 9F);
             if (control is ComboBox combo) combo.DropDownStyle = ComboBoxStyle.DropDownList;
-            table.Controls.Add(label, column, row);
-            table.Controls.Add(control, column + 1, row);
+            cell.Controls.Add(label, 0, 0);
+            cell.Controls.Add(control, 1, 0);
+            return cell;
         }
 
         private void ConfigureFilters()
@@ -288,49 +263,38 @@ namespace AlTayerERP.Desktop
             _grpUserFilters.Dock = DockStyle.Fill;
             _grpUserFilters.Text = "عوامل التصفية";
             _grpUserFilters.ForeColor = Color.FromArgb(8, 49, 92);
-            _grpUserFilters.Font = new Font("Tahoma", 9.5F, FontStyle.Bold);
-            _grpUserFilters.Padding = new Padding(10, 6, 10, 8);
+            _grpUserFilters.Font = new Font("Tahoma", 9F, FontStyle.Bold);
+            _grpUserFilters.Padding = new Padding(8, 5, 8, 6);
             _grpUserFilters.BackColor = Color.White;
 
-            var panel = new TableLayoutPanel
+            var strip = new FlowLayoutPanel
             {
                 Dock = DockStyle.Fill,
                 RightToLeft = RightToLeft.Yes,
-                ColumnCount = 10,
-                RowCount = 1,
+                FlowDirection = FlowDirection.RightToLeft,
+                WrapContents = false,
+                AutoScroll = true,
                 Padding = new Padding(2)
             };
-            panel.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
-            panel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 32F));
-            panel.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
-            panel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 18F));
-            panel.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
-            panel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 18F));
-            panel.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
-            panel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 16F));
-            panel.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 104F));
-            panel.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 120F));
 
-            AddFilter(panel, 0, "بحث", _txtUserSearch);
-            AddFilter(panel, 2, "الفرع", _cmbFilterBranch);
-            AddFilter(panel, 4, "الدور", _cmbFilterRole);
-            AddFilter(panel, 6, "الحالة", _cmbFilterStatus);
+            strip.Controls.Add(BuildFilterCell("بحث", _txtUserSearch, 270));
+            strip.Controls.Add(BuildFilterCell("الفرع", _cmbFilterBranch, 190));
+            strip.Controls.Add(BuildFilterCell("الدور", _cmbFilterRole, 190));
+            strip.Controls.Add(BuildFilterCell("الحالة", _cmbFilterStatus, 145));
 
             _btnClearFilters.Text = "مسح التصفية";
-            ConfigureActionButton(_btnClearFilters, Color.White, Color.FromArgb(8, 49, 92), 100);
-            _btnClearFilters.Dock = DockStyle.Fill;
-            _btnClearFilters.Margin = new Padding(4, 2, 4, 2);
+            ConfigureActionButton(_btnClearFilters, Color.White, Color.FromArgb(8, 49, 92), 98);
             _btnClearFilters.Click += (_, _) => ClearUserFilters();
-            panel.Controls.Add(_btnClearFilters, 8, 0);
+            strip.Controls.Add(_btnClearFilters);
 
-            _lblResultCount.Dock = DockStyle.Fill;
+            _lblResultCount.Size = new Size(90, 42);
             _lblResultCount.Text = "النتائج: 0";
             _lblResultCount.TextAlign = ContentAlignment.MiddleCenter;
-            _lblResultCount.Font = new Font("Tahoma", 9F, FontStyle.Bold);
+            _lblResultCount.Font = new Font("Tahoma", 8.5F, FontStyle.Bold);
             _lblResultCount.ForeColor = Color.FromArgb(51, 65, 85);
-            panel.Controls.Add(_lblResultCount, 9, 0);
+            strip.Controls.Add(_lblResultCount);
 
-            _txtUserSearch.PlaceholderText = "الاسم أو اسم الدخول أو الرقم";
+            _txtUserSearch.PlaceholderText = "الاسم أو الدخول أو الرقم";
             _cmbFilterBranch.DropDownStyle = ComboBoxStyle.DropDownList;
             _cmbFilterRole.DropDownStyle = ComboBoxStyle.DropDownList;
             _cmbFilterStatus.DropDownStyle = ComboBoxStyle.DropDownList;
@@ -341,30 +305,43 @@ namespace AlTayerERP.Desktop
             _cmbFilterStatus.SelectedIndexChanged += (_, _) => ApplyUsersFilter();
             _cmbFilterBranch.SelectedIndexChanged += (_, _) => ApplyUsersFilter();
             _cmbFilterRole.SelectedIndexChanged += (_, _) => ApplyUsersFilter();
+            cmbBranch.DataSourceChanged += (_, _) => RefreshBranchFilter();
+            cmbRole.DataSourceChanged += (_, _) => RefreshRoleFilter();
 
-            _grpUserFilters.Controls.Add(panel);
+            _grpUserFilters.Controls.Add(strip);
         }
 
-        private static void AddFilter(TableLayoutPanel table, int column, string caption, Control control)
+        private static Control BuildFilterCell(string caption, Control control, int width)
         {
-            var label = new Label
+            var panel = new TableLayoutPanel
+            {
+                Width = width,
+                Height = 42,
+                ColumnCount = 2,
+                RowCount = 1,
+                RightToLeft = RightToLeft.Yes,
+                Margin = new Padding(3)
+            };
+            panel.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 54F));
+            panel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
+            panel.Controls.Add(new Label
             {
                 Text = caption + ":",
-                AutoSize = true,
-                Anchor = AnchorStyles.Right,
-                Font = new Font("Tahoma", 9F),
+                Dock = DockStyle.Fill,
+                TextAlign = ContentAlignment.MiddleRight,
+                Font = new Font("Tahoma", 8.5F),
                 ForeColor = Color.FromArgb(51, 65, 85)
-            };
+            }, 0, 0);
             control.Dock = DockStyle.Fill;
-            control.Margin = new Padding(5, 3, 10, 3);
-            table.Controls.Add(label, column, 0);
-            table.Controls.Add(control, column + 1, 0);
+            control.Margin = new Padding(2, 5, 2, 5);
+            panel.Controls.Add(control, 1, 0);
+            return panel;
         }
 
         private void ConfigureUsersGrid()
         {
             pnlGrid.Dock = DockStyle.Fill;
-            pnlGrid.Padding = new Padding(3);
+            pnlGrid.Padding = new Padding(2);
             pnlGrid.BackColor = Color.White;
             dgvUsers.Dock = DockStyle.Fill;
             dgvUsers.RightToLeft = RightToLeft.Yes;
@@ -373,15 +350,15 @@ namespace AlTayerERP.Desktop
             dgvUsers.EnableHeadersVisualStyles = false;
             dgvUsers.ColumnHeadersDefaultCellStyle.BackColor = Color.FromArgb(8, 49, 92);
             dgvUsers.ColumnHeadersDefaultCellStyle.ForeColor = Color.White;
-            dgvUsers.ColumnHeadersDefaultCellStyle.Font = new Font("Tahoma", 9F, FontStyle.Bold);
+            dgvUsers.ColumnHeadersDefaultCellStyle.Font = new Font("Tahoma", 8.5F, FontStyle.Bold);
             dgvUsers.ColumnHeadersDefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleCenter;
             dgvUsers.DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleRight;
             dgvUsers.DefaultCellStyle.SelectionBackColor = Color.FromArgb(219, 234, 254);
             dgvUsers.DefaultCellStyle.SelectionForeColor = Color.Black;
             dgvUsers.AlternatingRowsDefaultCellStyle.BackColor = Color.FromArgb(248, 250, 252);
             dgvUsers.GridColor = Color.FromArgb(220, 228, 238);
-            dgvUsers.ColumnHeadersHeight = 38;
-            dgvUsers.RowTemplate.Height = 31;
+            dgvUsers.ColumnHeadersHeight = 36;
+            dgvUsers.RowTemplate.Height = 29;
             dgvUsers.MultiSelect = false;
             dgvUsers.AllowUserToResizeRows = false;
             dgvUsers.RowsAdded += (_, _) => UpdateResultCount();
@@ -395,42 +372,42 @@ namespace AlTayerERP.Desktop
             _grpUserAudit.Dock = DockStyle.Fill;
             _grpUserAudit.Text = "حالة السجل";
             _grpUserAudit.ForeColor = Color.FromArgb(8, 49, 92);
-            _grpUserAudit.Font = new Font("Tahoma", 9F, FontStyle.Bold);
+            _grpUserAudit.Font = new Font("Tahoma", 8.5F, FontStyle.Bold);
             _grpUserAudit.BackColor = Color.White;
-            var text = new Label
-            {
-                Dock = DockStyle.Fill,
-                Text = "حدد مستخدماً من الجدول لعرض بياناته. جميع عمليات الحفظ والتعديل والإيقاف مسجلة في سجل التدقيق.",
-                TextAlign = ContentAlignment.MiddleCenter,
-                Font = new Font("Tahoma", 8.5F),
-                ForeColor = Color.FromArgb(71, 85, 105)
-            };
-            _grpUserAudit.Controls.Add(text);
+            _lblSelectionState.Dock = DockStyle.Fill;
+            _lblSelectionState.Text = "الوضع: مستخدم جديد";
+            _lblSelectionState.TextAlign = ContentAlignment.MiddleCenter;
+            _lblSelectionState.Font = new Font("Tahoma", 8.5F, FontStyle.Bold);
+            _lblSelectionState.ForeColor = Color.FromArgb(37, 99, 235);
+            _grpUserAudit.Controls.Add(_lblSelectionState);
+        }
+
+        private void RefreshBranchFilter()
+        {
+            if (cmbBranch.DataSource is not IEnumerable<BranchLookupModel> branches) return;
+            var choices = branches.ToList();
+            choices.Insert(0, new BranchLookupModel { Branch_ID = 0, Branch_Name = "الكل" });
+            _cmbFilterBranch.DataSource = choices;
+            _cmbFilterBranch.DisplayMember = "Branch_Name";
+            _cmbFilterBranch.ValueMember = "Branch_ID";
+            _cmbFilterBranch.SelectedIndex = 0;
+        }
+
+        private void RefreshRoleFilter()
+        {
+            if (cmbRole.DataSource is not IEnumerable<RoleLookupModel> roles) return;
+            var choices = roles.ToList();
+            choices.Insert(0, new RoleLookupModel { Role_ID = 0, Role_Name = "الكل" });
+            _cmbFilterRole.DataSource = choices;
+            _cmbFilterRole.DisplayMember = "Role_Name";
+            _cmbFilterRole.ValueMember = "Role_ID";
+            _cmbFilterRole.SelectedIndex = 0;
         }
 
         private void InitializeApprovedUserFilters()
         {
-            var branches = cmbBranch.DataSource as IEnumerable<BranchLookupModel>;
-            if (branches != null)
-            {
-                var choices = branches.ToList();
-                choices.Insert(0, new BranchLookupModel { Branch_ID = 0, Branch_Name = "الكل" });
-                _cmbFilterBranch.DataSource = choices;
-                _cmbFilterBranch.DisplayMember = "Branch_Name";
-                _cmbFilterBranch.ValueMember = "Branch_ID";
-                _cmbFilterBranch.SelectedIndex = 0;
-            }
-
-            var roles = cmbRole.DataSource as IEnumerable<RoleLookupModel>;
-            if (roles != null)
-            {
-                var roleChoices = roles.ToList();
-                roleChoices.Insert(0, new RoleLookupModel { Role_ID = 0, Role_Name = "الكل" });
-                _cmbFilterRole.DataSource = roleChoices;
-                _cmbFilterRole.DisplayMember = "Role_Name";
-                _cmbFilterRole.ValueMember = "Role_ID";
-                _cmbFilterRole.SelectedIndex = 0;
-            }
+            RefreshBranchFilter();
+            RefreshRoleFilter();
         }
 
         private void ApplyUsersFilter()
@@ -471,18 +448,28 @@ namespace AlTayerERP.Desktop
 
         private void UpdateResultCount() => _lblResultCount.Text = $"النتائج: {dgvUsers.Rows.Count}";
 
+        private void SetNewUserVisualState()
+        {
+            txtUserName.Text = "(جديد)";
+            _lblSelectionState.Text = "الوضع: مستخدم جديد";
+            _lblSelectionState.ForeColor = Color.FromArgb(37, 99, 235);
+            btnDelete.Enabled = false;
+            _btnReactivate.Enabled = false;
+        }
+
         private void UpdateSelectionVisualState()
         {
             if (dgvUsers.SelectedRows.Count == 0)
             {
-                _lblSelectionState.Text = "الوضع: مستخدم جديد";
-                _lblSelectionState.ForeColor = Color.FromArgb(37, 99, 235);
+                SetNewUserVisualState();
                 return;
             }
 
             var row = dgvUsers.SelectedRows[0];
+            var id = row.Cells["User_ID"].Value?.ToString() ?? string.Empty;
             var name = row.Cells["Full_Name"].Value?.ToString() ?? "مستخدم";
             var active = string.Equals(row.Cells["Is_Active"].Value?.ToString(), "نشط", StringComparison.OrdinalIgnoreCase);
+            txtUserName.Text = id;
             _lblSelectionState.Text = $"المحدد: {name} — {(active ? "نشط" : "موقوف")}";
             _lblSelectionState.ForeColor = active ? Color.FromArgb(22, 163, 74) : Color.FromArgb(220, 38, 38);
             btnDelete.Enabled = active;
