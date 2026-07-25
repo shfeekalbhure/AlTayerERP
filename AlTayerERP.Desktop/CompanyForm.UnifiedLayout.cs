@@ -5,13 +5,14 @@ using System.Windows.Forms;
 namespace AlTayerERP.Desktop;
 
 /// <summary>
-/// ضبط الاستجابة النهائية لشاشة الشركات المبنية داخل CompanyForm.Designer.cs.
-/// لا يعاد إنشاء عناصر الشاشة وقت التشغيل حتى لا يختفي الرأس المؤسسي
-/// أو القائمة الجانبية أو لوحة التدقيق المعتمدة.
+/// الضبط النهائي لتخطيط شاشة الشركات داخل مساحة العمل الفعلية.
+/// الهدف منع ظهور القائمة ضيقة جداً، وتقليل الفراغات، وتثبيت الحقول والجدول
+/// بشكل واضح على أجهزة العرض الصغيرة والمتوسطة.
 /// </summary>
 public partial class CompanyForm
 {
     private bool _approvedLayoutApplied;
+    private bool _layoutReflowed;
 
     protected override void OnShown(EventArgs e)
     {
@@ -27,7 +28,7 @@ public partial class CompanyForm
     }
 
     /// <summary>
-    /// يثبت إعدادات العناصر الحالية فقط دون Controls.Clear أو إنشاء تخطيط بديل.
+    /// يثبت إعدادات العناصر الحالية ويعيد توزيع الشاشة لتناسب مساحة العمل داخل الشاشة الرئيسية.
     /// </summary>
     private void ApplyApprovedCompanyLayout()
     {
@@ -42,10 +43,15 @@ public partial class CompanyForm
         btnDelete.Text = "إيقاف";
         btnApprove.Text = "إعادة تفعيل";
         btnUnApprove.Visible = false;
+        btnImport.Visible = false;
+        btnExport.Visible = false;
+        btnPreview.Visible = false;
 
         cmbGroups.DropDownStyle = ComboBoxStyle.DropDownList;
         chkIsActive.Enabled = false;
         chkIsActive.TabStop = false;
+
+        ReflowMainAreaForWorkspace();
 
         pnlHeader.BringToFront();
         pnlToolbar.BringToFront();
@@ -56,7 +62,53 @@ public partial class CompanyForm
     }
 
     /// <summary>
-    /// يحافظ على القائمة الجانبية والحقول والتدقيق في العرض العادي والمضغوط.
+    /// يحول توزيع القائمة من عمود جانبي ضيق إلى جدول سفلي عريض،
+    /// مع بقاء تفاصيل الشركة في الأعلى، لأن هذا أوضح داخل شاشة ERP الرئيسية.
+    /// </summary>
+    private void ReflowMainAreaForWorkspace()
+    {
+        if (_layoutReflowed)
+            return;
+
+        _layoutReflowed = true;
+
+        splitMain.SuspendLayout();
+        splitMain.Panel1.SuspendLayout();
+        splitMain.Panel2.SuspendLayout();
+
+        pnlDetails.Parent?.Controls.Remove(pnlDetails);
+        pnlListHeader.Parent?.Controls.Remove(pnlListHeader);
+        dgvCompanies.Parent?.Controls.Remove(dgvCompanies);
+
+        splitMain.Orientation = Orientation.Horizontal;
+        splitMain.FixedPanel = FixedPanel.Panel2;
+        splitMain.Panel1.Padding = new Padding(8);
+        splitMain.Panel2.Padding = new Padding(8);
+        splitMain.Panel1.Controls.Add(pnlDetails);
+        splitMain.Panel2.Controls.Add(dgvCompanies);
+        splitMain.Panel2.Controls.Add(pnlListHeader);
+
+        pnlDetails.Dock = DockStyle.Fill;
+        pnlListHeader.Dock = DockStyle.Top;
+        dgvCompanies.Dock = DockStyle.Fill;
+
+        pnlListHeader.Height = 58;
+        lblListTitle.Dock = DockStyle.Right;
+        lblListTitle.TextAlign = ContentAlignment.MiddleRight;
+        lblListTitle.Width = 160;
+
+        dgvCompanies.RowHeadersVisible = false;
+        dgvCompanies.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
+        dgvCompanies.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
+        dgvCompanies.MultiSelect = false;
+
+        splitMain.Panel2.ResumeLayout(true);
+        splitMain.Panel1.ResumeLayout(true);
+        splitMain.ResumeLayout(true);
+    }
+
+    /// <summary>
+    /// يحافظ على الحقول والتدقيق والجدول في العرض العادي والمضغوط.
     /// </summary>
     private void ApplyCompanyResponsiveSizing()
     {
@@ -73,28 +125,42 @@ public partial class CompanyForm
             Dock = DockStyle.Fill;
         }
 
-        splitMain.SplitterDistance = compact
-            ? Math.Max(320, Math.Min(390, ClientSize.Width / 3))
-            : Math.Max(400, Math.Min(460, ClientSize.Width / 3));
-
-        pnlHeader.Height = compact ? 66 : 74;
-        pnlToolbar.Height = compact ? 52 : 58;
+        pnlHeader.Height = compact ? 62 : 70;
+        pnlToolbar.Height = compact ? 46 : 52;
 
         foreach (Control control in pnlToolbar.Controls)
         {
             if (control is not Button button)
                 continue;
 
-            button.Width = compact ? 80 : 88;
-            button.Height = compact ? 34 : 40;
+            button.Width = compact ? 76 : 88;
+            button.Height = compact ? 32 : 36;
             button.Margin = new Padding(3, 0, 3, 0);
         }
 
-        grpBasic.Height = compact ? 210 : 228;
-        grpContact.Height = compact ? 150 : 165;
-        grpLogo.Height = compact ? 170 : 190;
-        pnlAudit.Height = 50;
+        int availableHeight = Math.Max(520, splitMain.Height);
+        int tableHeight = compact ? 210 : 240;
+        splitMain.SplitterDistance = Math.Max(300, availableHeight - tableHeight);
 
+        grpBasic.Height = compact ? 168 : 178;
+        grpContact.Height = compact ? 118 : 128;
+        grpLogo.Height = compact ? 136 : 150;
+        pnlAudit.Height = 48;
+        pnlListHeader.Height = compact ? 48 : 54;
+
+        AdjustLogoArea(compact);
         Invalidate(true);
+    }
+
+    private void AdjustLogoArea(bool compact)
+    {
+        picCompanyLogo.SizeMode = PictureBoxSizeMode.Zoom;
+        picCompanyLogo.Width = compact ? 120 : 145;
+        picCompanyLogo.Height = compact ? 80 : 95;
+
+        btnBrowseLogo.Width = compact ? 100 : 118;
+        btnRemoveLogo.Width = compact ? 100 : 118;
+        btnBrowseLogo.Height = 30;
+        btnRemoveLogo.Height = 30;
     }
 }
