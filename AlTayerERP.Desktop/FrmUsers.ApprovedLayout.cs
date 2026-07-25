@@ -35,6 +35,13 @@ namespace AlTayerERP.Desktop
         private readonly Button _btnReactivate = new();
         private readonly Label _lblResultCount = new();
         private readonly Label _lblSelectionState = new();
+        // حقول بطاقة التدقيق تُملأ من API عند اختيار مستخدم، ولا تُؤخذ من الواجهة.
+        private readonly Label _lblCreatedBy = new();
+        private readonly Label _lblCreatedAt = new();
+        private readonly Label _lblUpdatedBy = new();
+        private readonly Label _lblUpdatedAt = new();
+        private readonly Label _lblEditCount = new();
+        private readonly Label _lblPrintCount = new();
 
         private void ApplyApprovedUsersLayout()
         {
@@ -513,24 +520,31 @@ namespace AlTayerERP.Desktop
             audit.RowStyles.Add(new RowStyle(SizeType.Percent, 50F));
             audit.RowStyles.Add(new RowStyle(SizeType.Percent, 50F));
 
-            audit.Controls.Add(CreateAuditLabel("أنشئ بواسطة: —"), 0, 0);
-            audit.Controls.Add(CreateAuditLabel("تاريخ الإنشاء: —"), 0, 1);
-            audit.Controls.Add(CreateAuditLabel("عُدّل بواسطة: —"), 1, 0);
-            audit.Controls.Add(CreateAuditLabel("تاريخ التعديل: —"), 1, 1);
-            audit.Controls.Add(CreateAuditLabel("عدد مرات التعديل: —"), 2, 0);
-            audit.Controls.Add(CreateAuditLabel("عدد مرات الطباعة: —"), 2, 1);
+            PrepareAuditLabel(_lblCreatedBy, "أنشئ بواسطة: —");
+            PrepareAuditLabel(_lblCreatedAt, "تاريخ الإنشاء: —");
+            PrepareAuditLabel(_lblUpdatedBy, "عُدّل بواسطة: —");
+            PrepareAuditLabel(_lblUpdatedAt, "تاريخ التعديل: —");
+            PrepareAuditLabel(_lblEditCount, "عدد مرات التعديل: —");
+            PrepareAuditLabel(_lblPrintCount, "عدد مرات الطباعة: —");
+            audit.Controls.Add(_lblCreatedBy, 0, 0);
+            audit.Controls.Add(_lblCreatedAt, 0, 1);
+            audit.Controls.Add(_lblUpdatedBy, 1, 0);
+            audit.Controls.Add(_lblUpdatedAt, 1, 1);
+            audit.Controls.Add(_lblEditCount, 2, 0);
+            audit.Controls.Add(_lblPrintCount, 2, 1);
             _grpUserAudit.Controls.Add(audit);
         }
 
-        private static Label CreateAuditLabel(string text) => new()
+        // توحيد شكل حقول التدقيق للإنشاء والتعديل والعدادات.
+        private static void PrepareAuditLabel(Label label, string text)
         {
-            Text = text,
-            Dock = DockStyle.Fill,
-            TextAlign = ContentAlignment.MiddleRight,
-            Font = new Font("Segoe UI", 9F, FontStyle.Bold),
-            ForeColor = Color.FromArgb(51, 65, 85),
-            Padding = new Padding(8, 0, 8, 0)
-        };
+            label.Text = text;
+            label.Dock = DockStyle.Fill;
+            label.TextAlign = ContentAlignment.MiddleRight;
+            label.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+            label.ForeColor = Color.FromArgb(51, 65, 85);
+            label.Padding = new Padding(8, 0, 8, 0);
+        }
 
         private void RefreshBranchFilter()
         {
