@@ -48,6 +48,23 @@ namespace AlTayerERP.Desktop
             }
         }
 
+        /// <summary>
+        /// يسجل عملية طباعة بيانات المستخدم المحدد ثم ينعش عداد الطباعة في التذييل.
+        /// </summary>
+        private async Task RegisterUserPrintAsync(int userId)
+        {
+            try
+            {
+                var response = await _client.PostAsync($"{_baseUrl}Users/{userId}/print", null);
+                if (response.IsSuccessStatusCode)
+                    await LoadUserAuditInfoAsync(userId);
+            }
+            catch
+            {
+                // فشل التسجيل لا يمنع المستخدم من فتح معاينة الطباعة.
+            }
+        }
+
         /// <summary>يعيد بطاقة التدقيق إلى القيم المحايدة عند إنشاء سجل جديد.</summary>
         private void ClearUserAuditInfo()
         {
