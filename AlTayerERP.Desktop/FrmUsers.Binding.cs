@@ -72,8 +72,9 @@ namespace AlTayerERP.Desktop
             _lblCreatedAt.Text = "تاريخ الإنشاء: —";
             _lblUpdatedBy.Text = "عُدّل بواسطة: —";
             _lblUpdatedAt.Text = "تاريخ التعديل: —";
-            _lblEditCount.Text = "عدد مرات التعديل: —";
-            _lblPrintCount.Text = "عدد مرات الطباعة: —";
+            // السجل الجديد لم يُعدّل أو يُطبع بعد، لذلك تظهر العدادات صفراً.
+            _lblEditCount.Text = "عدد مرات التعديل: 0";
+            _lblPrintCount.Text = "عدد مرات الطباعة: 0";
         }
 
         /// <summary>صياغة موحدة للتواريخ العربية داخل بطاقة التدقيق.</summary>
