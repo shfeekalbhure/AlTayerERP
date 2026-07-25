@@ -21,6 +21,8 @@ namespace AlTayerERP.Desktop
         private readonly System.Windows.Forms.Timer _statusTimer = new() { Interval = 30_000 };
         private readonly System.Windows.Forms.Timer _sessionTimer = new() { Interval = 60_000 };
         private readonly List<ScreenAccessRow> _allowedScreens = new();
+        private readonly TextBox _txtMenuSearch = new();
+        private readonly Button _btnClearMenuSearch = new();
         // لا تفتح أي شاشة حتى ينجح API في تحميل تفويض العرض الخاص بالجلسة الحالية.
         private bool _permissionsLoaded;
         private bool _allowClose;
@@ -78,6 +80,9 @@ namespace AlTayerERP.Desktop
             btnAboutSystem.Click += (_, _) => ShowAbout();
             tvMainMenu.NodeMouseDoubleClick += tvMainMenu_NodeMouseDoubleClick;
             tvMainMenu.KeyDown += tvMainMenu_KeyDown;
+            _txtMenuSearch.TextChanged += (_, _) => BuildMainMenu();
+            _txtMenuSearch.KeyDown += MenuSearch_KeyDown;
+            _btnClearMenuSearch.Click += (_, _) => _txtMenuSearch.Clear();
             FormClosing += FrmMain_FormClosing;
             FormClosed += (_, _) =>
             {
@@ -105,6 +110,8 @@ namespace AlTayerERP.Desktop
             pnlStatusBar.BorderStyle = BorderStyle.FixedSingle;
             pnlSideMenu.Dock = DockStyle.Right;
             pnlSideMenu.Width = 250;
+
+            ConfigureMenuSearch();
 
             foreach (var label in new[] { lblCompanyName, lblCurrentBranch, lblFiscalYear, lblCurrentUser })
             {
@@ -145,6 +152,43 @@ namespace AlTayerERP.Desktop
             lblStatusLicense.ForeColor = navy;
             lblVersion.ForeColor = navy;
             lblStatusTime.ForeColor = Color.FromArgb(70, 80, 90);
+        }
+
+        /// <summary>يضيف بحثاً مباشراً داخل شجرة النظام دون توسيع صلاحيات الجلسة.</summary>
+        private void ConfigureMenuSearch()
+        {
+            var searchPanel = new Panel
+            {
+                Dock = DockStyle.Top,
+                Height = 46,
+                Padding = new Padding(8, 7, 8, 7),
+                BackColor = Color.FromArgb(5, 36, 69)
+            };
+
+            _btnClearMenuSearch.Dock = DockStyle.Left;
+            _btnClearMenuSearch.Width = 30;
+            _btnClearMenuSearch.Text = "×";
+            _btnClearMenuSearch.Cursor = Cursors.Hand;
+            _btnClearMenuSearch.FlatStyle = FlatStyle.Flat;
+            _btnClearMenuSearch.FlatAppearance.BorderSize = 0;
+            _btnClearMenuSearch.BackColor = Color.FromArgb(35, 78, 119);
+            _btnClearMenuSearch.ForeColor = Color.White;
+            _btnClearMenuSearch.Font = new Font("Segoe UI", 12F, FontStyle.Bold);
+            _btnClearMenuSearch.AccessibleName = "مسح بحث شجرة النظام";
+
+            _txtMenuSearch.Dock = DockStyle.Fill;
+            _txtMenuSearch.BorderStyle = BorderStyle.FixedSingle;
+            _txtMenuSearch.PlaceholderText = "بحث في شجرة النظام...";
+            _txtMenuSearch.TextAlign = HorizontalAlignment.Right;
+            _txtMenuSearch.RightToLeft = RightToLeft.Yes;
+            _txtMenuSearch.Font = new Font("Segoe UI", 9.5F);
+            _txtMenuSearch.BackColor = Color.White;
+            _txtMenuSearch.AccessibleName = "بحث شجرة النظام";
+
+            searchPanel.Controls.Add(_txtMenuSearch);
+            searchPanel.Controls.Add(_btnClearMenuSearch);
+            pnlSideMenu.Controls.Add(searchPanel);
+            searchPanel.BringToFront();
         }
 
         /// <summary>يعرض سياق الدخول الذاكري مؤقتاً إلى أن يعيد API أسماءه الرسمية.</summary>
@@ -255,6 +299,7 @@ namespace AlTayerERP.Desktop
             try
             {
                 tvMainMenu.Nodes.Clear();
+                var query = _txtMenuSearch.Text.Trim();
                 var rows = _allowedScreens
                     .Where(x => IsSupportedScreen(x.Screen_Code))
                     .OrderBy(x => x.Module_Name)
@@ -265,12 +310,22 @@ namespace AlTayerERP.Desktop
                 foreach (var module in rows.GroupBy(x => string.IsNullOrWhiteSpace(x.Module_Name)
                              ? "شاشات النظام" : x.Module_Name))
                 {
+                    // عند مطابقة اسم المجموعة تظهر كل شاشاتها؛ وإلا تظهر الشاشات المطابقة فقط.
+                    var moduleMatches = string.IsNullOrWhiteSpace(query) || ContainsMenuText(module.Key, query);
+                    var screens = moduleMatches
+                        ? module
+                        : module.Where(x => ContainsMenuText(x.Screen_Name, query)
+                                            || ContainsMenuText(x.Screen_Code, query));
+
+                    var matchedScreens = screens.ToList();
+                    if (matchedScreens.Count == 0)
+                        continue;
+
                     var root = new TreeNode(module.Key);
-                    foreach (var screen in module)
+                    foreach (var screen in matchedScreens)
                         root.Nodes.Add(screen.Screen_Code, screen.Screen_Name);
 
-                    if (root.Nodes.Count > 0)
-                        tvMainMenu.Nodes.Add(root);
+                    tvMainMenu.Nodes.Add(root);
                 }
 
                 foreach (TreeNode node in tvMainMenu.Nodes)
@@ -280,6 +335,21 @@ namespace AlTayerERP.Desktop
             {
                 tvMainMenu.EndUpdate();
             }
+        }
+
+        private static bool ContainsMenuText(string? value, string query) =>
+            !string.IsNullOrWhiteSpace(value)
+            && value.IndexOf(query, StringComparison.CurrentCultureIgnoreCase) >= 0;
+
+        private void MenuSearch_KeyDown(object? sender, KeyEventArgs e)
+        {
+            if (e.KeyCode != Keys.Escape)
+                return;
+
+            _txtMenuSearch.Clear();
+            tvMainMenu.Focus();
+            e.SuppressKeyPress = true;
+            e.Handled = true;
         }
 
         private void tvMainMenu_NodeMouseDoubleClick(object? sender, TreeNodeMouseClickEventArgs e)
