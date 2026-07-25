@@ -225,8 +225,12 @@ namespace AlTayerERP.API.Controllers
                 Created_At = DateTime.UtcNow
             };
 
+            // نحفظ أولاً للحصول على رقم المستخدم الحقيقي قبل كتابة سجل التدقيق.
             _context.Users.Add(user);
-            _audit.Add(session, HttpContext, "users", "new", "INSERT", newValues: new
+            await _context.SaveChangesAsync();
+
+            // ربط سجل الإنشاء برقم المستخدم الفعلي، وليس بالقيمة المؤقتة "new".
+            _audit.Add(session, HttpContext, "users", user.User_ID.ToString(), "INSERT", newValues: new
             {
                 user.Company_ID, user.Branch_ID, user.Role_ID, user.User_Code, user.Login_Name, user.Is_Active
             });
