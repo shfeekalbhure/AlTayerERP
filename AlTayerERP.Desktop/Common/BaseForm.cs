@@ -15,6 +15,11 @@ public abstract class BaseForm : Form
     private readonly Button _btnToggleAudit = new();
     private bool _showPrintAudit;
 
+    // يمنع حلقة Resize → إعادة تنسيق → Resize التي كانت تسبب اهتزاز وتعليق بعض الشاشات.
+    private bool _baseStyleApplied;
+    private bool _responsiveRefreshQueued;
+    private bool _applyingResponsiveLayout;
+
     protected void ApplyBaseFormStyle()
     {
         RightToLeft = RightToLeft.Yes;
@@ -24,6 +29,12 @@ public abstract class BaseForm : Form
         KeyPreview = true;
         DoubleBuffered = true;
         AutoScaleMode = AutoScaleMode.Dpi;
+
+        // بعض الشاشات تستدعي القالب أكثر من مرة؛ نربط Resize مرة واحدة فقط.
+        if (_baseStyleApplied)
+            return;
+
+        _baseStyleApplied = true;
         Resize += (_, _) => ScheduleResponsiveRefresh();
     }
 
@@ -35,24 +46,39 @@ public abstract class BaseForm : Form
 
     private void ScheduleResponsiveRefresh()
     {
-        if (!IsHandleCreated || IsDisposed) return;
+        if (!IsHandleCreated || IsDisposed || _applyingResponsiveLayout || _responsiveRefreshQueued)
+            return;
+
+        // نؤجل دورة واحدة فقط بعد اكتمال Resize؛ لا ننشئ عشرات BeginInvoke عند سحب النافذة.
+        _responsiveRefreshQueued = true;
         BeginInvoke(new Action(() =>
         {
-            if (IsDisposed) return;
+            _responsiveRefreshQueued = false;
+            if (IsDisposed || _applyingResponsiveLayout)
+                return;
 
-            var insideWorkspace = !TopLevel || Parent is TabPage;
-            if (insideWorkspace)
+            _applyingResponsiveLayout = true;
+            try
             {
-                MinimumSize = Size.Empty;
-                MaximumSize = Size.Empty;
-                AutoScroll = false;
-                Dock = DockStyle.Fill;
-            }
+                var insideWorkspace = !TopLevel || Parent is TabPage;
+                if (insideWorkspace)
+                {
+                    MinimumSize = Size.Empty;
+                    MaximumSize = Size.Empty;
+                    AutoScroll = false;
+                    Dock = DockStyle.Fill;
+                }
 
-            ApplyPremiumVisualIdentity(this);
-            ApplyResponsiveLayout(this, insideWorkspace);
-            UnifiedScreenLayoutService.Apply(this);
-            Invalidate(true);
+                ApplyPremiumVisualIdentity(this);
+                ApplyResponsiveLayout(this, insideWorkspace);
+                UnifiedScreenLayoutService.Apply(this);
+                Invalidate(true);
+            }
+            finally
+            {
+                // أي Resize ناتج أثناء التنسيق يتجاهل، فتتوقف حلقة الاهتزاز.
+                _applyingResponsiveLayout = false;
+            }
         }));
     }
 
