@@ -593,6 +593,174 @@ namespace AlTayerERP.Desktop
             return new { Company_ID = CurrentSession.Company_ID, Branch_ID = Convert.ToInt32(cmbBranch.SelectedValue), Role_ID = Convert.ToInt32(cmbRole.SelectedValue), User_Code = string.Empty, Full_Name = txtFullName.Text.Trim(), Login_Name = txtLoginName.Text.Trim(), Password = txtPassword.Text.Trim(), Phone = txtPhone.Text.Trim(), Email = txtEmail.Text.Trim(), Notes = txtNotes.Text.Trim(), Must_Change_Password = chkChangePassword.Checked, Is_Active = cmbStatus.Text == "نشط" };
         }
 
+        /// <summary>
+        /// يطبّق التصميم العربي الموحد للشاشة ويمنع قص الحقول عند تغيير مقاس النافذة.
+        /// </summary>
+        private void ApplyApprovedUsersLayout()
+        {
+            SuspendLayout();
+            try
+            {
+                RightToLeft = RightToLeft.Yes;
+                RightToLeftLayout = true;
+                Font = new Font("Tahoma", 10F, FontStyle.Regular);
+                MinimumSize = new Size(1150, 720);
+                StartPosition = FormStartPosition.CenterScreen;
+                BackColor = Color.FromArgb(245, 247, 250);
+
+                pnlToolbar.Height = 74;
+                pnlToolbar.Padding = new Padding(12, 12, 12, 10);
+                pnlToolbar.BackColor = Color.White;
+                pnlToolbar.BorderStyle = BorderStyle.FixedSingle;
+
+                ArrangeToolbarButtons();
+                pnlToolbar.Resize -= pnlToolbar_Resize;
+                pnlToolbar.Resize += pnlToolbar_Resize;
+
+                pnlGrid.Height = 250;
+                pnlGrid.Padding = new Padding(10, 8, 10, 10);
+                pnlGrid.BackColor = Color.White;
+                pnlGrid.BorderStyle = BorderStyle.None;
+
+                dgvUsers.RightToLeft = RightToLeft.Yes;
+                dgvUsers.BackgroundColor = Color.White;
+                dgvUsers.BorderStyle = BorderStyle.None;
+                dgvUsers.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
+                dgvUsers.RowTemplate.Height = 32;
+                dgvUsers.ColumnHeadersHeight = 36;
+                dgvUsers.ColumnHeadersDefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleCenter;
+                dgvUsers.ColumnHeadersDefaultCellStyle.BackColor = Color.FromArgb(30, 64, 112);
+                dgvUsers.ColumnHeadersDefaultCellStyle.ForeColor = Color.White;
+                dgvUsers.DefaultCellStyle.SelectionBackColor = Color.FromArgb(219, 234, 254);
+                dgvUsers.DefaultCellStyle.SelectionForeColor = Color.FromArgb(17, 24, 39);
+                dgvUsers.EnableHeadersVisualStyles = false;
+
+                grpUserData.Width = 500;
+                grpUserData.Padding = new Padding(10, 12, 10, 10);
+                grpUserData.BackColor = Color.FromArgb(245, 247, 250);
+                grpUserData.ForeColor = Color.FromArgb(30, 64, 112);
+                grpUserData.Font = new Font("Tahoma", 11F, FontStyle.Bold);
+
+                panel1.BackColor = Color.White;
+                panel1.Padding = new Padding(16, 12, 16, 12);
+                panel1.Font = new Font("Tahoma", 10F);
+                ArrangeUserFields();
+
+                grpPermissions.Padding = new Padding(10, 12, 10, 10);
+                grpPermissions.BackColor = Color.FromArgb(245, 247, 250);
+                grpPermissions.ForeColor = Color.FromArgb(30, 64, 112);
+                grpPermissions.Font = new Font("Tahoma", 11F, FontStyle.Bold);
+                pnlPermissionHeader.Height = 94;
+                pnlPermissionHeader.BackColor = Color.White;
+                pnlPermissionHeader.Padding = new Padding(12, 10, 12, 10);
+                ArrangePermissionFilters();
+                pnlPermissionHeader.Resize -= pnlPermissionHeader_Resize;
+                pnlPermissionHeader.Resize += pnlPermissionHeader_Resize;
+
+                foreach (var grid in new[] { dgvFunctionPermissions, dgvDataPermissions, dataGridView1, dataGridView2 })
+                {
+                    grid.RightToLeft = RightToLeft.Yes;
+                    grid.RowTemplate.Height = 30;
+                    grid.ColumnHeadersHeight = 34;
+                    grid.EnableHeadersVisualStyles = false;
+                    grid.ColumnHeadersDefaultCellStyle.BackColor = Color.FromArgb(30, 64, 112);
+                    grid.ColumnHeadersDefaultCellStyle.ForeColor = Color.White;
+                    grid.ColumnHeadersDefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleCenter;
+                }
+            }
+            finally
+            {
+                ResumeLayout(true);
+            }
+        }
+
+        private void ArrangeToolbarButtons()
+        {
+            var buttons = new[] { btnNew, btnSave, btnEdit, btnDelete, btnPrint, btnSearch, btnRefresh, btnClose };
+            int x = pnlToolbar.ClientSize.Width - 12;
+            foreach (var button in buttons)
+            {
+                button.Size = new Size(102, 42);
+                button.Location = new Point(x - button.Width, 14);
+                button.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+                button.RightToLeft = RightToLeft.Yes;
+                button.FlatStyle = FlatStyle.Flat;
+                button.FlatAppearance.BorderColor = Color.FromArgb(191, 219, 254);
+                button.BackColor = button == btnSave
+                    ? Color.FromArgb(30, 64, 112)
+                    : button == btnClose ? Color.FromArgb(254, 242, 242) : Color.FromArgb(239, 246, 255);
+                button.ForeColor = button == btnSave ? Color.White : Color.FromArgb(30, 64, 112);
+                x -= button.Width + 8;
+            }
+        }
+
+        private void ArrangeUserFields()
+        {
+            int labelRight = panel1.ClientSize.Width - 22;
+            int fieldWidth = Math.Max(230, panel1.ClientSize.Width - 190);
+            int fieldLeft = 20;
+            int y = 12;
+
+            ArrangeField(label11, txtFullName, labelRight, fieldLeft, fieldWidth, ref y);
+            ArrangeField(label1, txtUserName, labelRight, fieldLeft, fieldWidth, ref y);
+            ArrangeField(label2, txtLoginName, labelRight, fieldLeft, fieldWidth, ref y);
+            ArrangeField(label3, txtPassword, labelRight, fieldLeft, fieldWidth, ref y);
+            ArrangeField(label4, txtConfirmPassword, labelRight, fieldLeft, fieldWidth, ref y);
+            ArrangeField(label7, cmbBranch, labelRight, fieldLeft, fieldWidth, ref y);
+            ArrangeField(label6, cmbRole, labelRight, fieldLeft, fieldWidth, ref y);
+            ArrangeField(label5, cmbStatus, labelRight, fieldLeft, fieldWidth, ref y);
+            ArrangeField(label10, txtPhone, labelRight, fieldLeft, fieldWidth, ref y);
+            ArrangeField(label9, txtEmail, labelRight, fieldLeft, fieldWidth, ref y);
+            ArrangeField(label8, txtNotes, labelRight, fieldLeft, fieldWidth, ref y);
+
+            chkChangePassword.Location = new Point(fieldLeft, y + 2);
+            chkChangePassword.AutoSize = true;
+            chkIsActive.Location = new Point(fieldLeft + 245, y + 2);
+            chkIsActive.AutoSize = true;
+        }
+
+        private static void ArrangeField(Label label, Control input, int labelRight, int fieldLeft, int fieldWidth, ref int y)
+        {
+            label.AutoSize = false;
+            label.TextAlign = ContentAlignment.MiddleRight;
+            label.Location = new Point(labelRight - 140, y + 4);
+            label.Size = new Size(140, 28);
+            input.Location = new Point(fieldLeft, y);
+            input.Size = new Size(fieldWidth, 32);
+            input.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
+            y += 38;
+        }
+
+        private void ArrangePermissionFilters()
+        {
+            int x = pnlPermissionHeader.ClientSize.Width - 12;
+            ArrangePermissionFilter(label14, cmbPermissionSearch, ref x);
+            ArrangePermissionFilter(label12, cmbPermissionRole, ref x);
+            ArrangePermissionFilter(label13, cmbPermissionModule, ref x);
+            ArrangePermissionFilter(label15, cmbPermissionScreen, ref x);
+            ArrangePermissionFilter(label16, cmbPermissionType, ref x);
+            chkSelectAll.Location = new Point(18, 56);
+            chkSelectAll.AutoSize = true;
+        }
+
+        private static void ArrangePermissionFilter(Label label, ComboBox combo, ref int x)
+        {
+            const int width = 155;
+            x -= width;
+            combo.Location = new Point(x, 42);
+            combo.Size = new Size(width, 31);
+            combo.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+            label.AutoSize = false;
+            label.TextAlign = ContentAlignment.MiddleRight;
+            label.Location = new Point(x, 12);
+            label.Size = new Size(width, 24);
+            label.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+            x -= 10;
+        }
+
+        private void pnlToolbar_Resize(object? sender, EventArgs e) => ArrangeToolbarButtons();
+        private void pnlPermissionHeader_Resize(object? sender, EventArgs e) => ArrangePermissionFilters();
+
         private void ClearForm()
         {
             _isBinding = true;
