@@ -53,11 +53,13 @@ namespace AlTayerERP.Desktop
                 BackColor = Color.FromArgb(244, 247, 251),
                 RightToLeft = RightToLeft.Yes
             };
-            root.RowStyles.Add(new RowStyle(SizeType.Absolute, 58F));
-            root.RowStyles.Add(new RowStyle(SizeType.Absolute, 292F));
-            root.RowStyles.Add(new RowStyle(SizeType.Absolute, 70F));
+            // عقد ADR-015: شريط أدوات 56، بيانات 240، تصفية 44، تدقيق 34.
+            // الصف الرابع يأخذ كل المساحة المتبقية لجدول المستخدمين.
+            root.RowStyles.Add(new RowStyle(SizeType.Absolute, 56F));
+            root.RowStyles.Add(new RowStyle(SizeType.Absolute, 240F));
+            root.RowStyles.Add(new RowStyle(SizeType.Absolute, 44F));
             root.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
-            root.RowStyles.Add(new RowStyle(SizeType.Absolute, 42F));
+            root.RowStyles.Add(new RowStyle(SizeType.Absolute, 34F));
 
             Controls.Remove(pnlToolbar);
             Controls.Remove(pnlData);
