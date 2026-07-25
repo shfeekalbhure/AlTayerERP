@@ -74,11 +74,12 @@ namespace AlTayerERP.Desktop
                 RightToLeft = RightToLeft.Yes
             };
             // تخطيط مضغوط: البيانات واضحة، الجدول قصير، وتذييل التدقيق ثابت أسفل الشاشة.
+            // البحث يأتي مباشرة بعد الأزرار، ثم بيانات المستخدم، فالجدول المختصر والتدقيق.
             root.RowStyles.Add(new RowStyle(SizeType.Absolute, 52F));
-            root.RowStyles.Add(new RowStyle(SizeType.Absolute, 250F));
-            root.RowStyles.Add(new RowStyle(SizeType.Absolute, 64F));
+            root.RowStyles.Add(new RowStyle(SizeType.Absolute, 66F));
+            root.RowStyles.Add(new RowStyle(SizeType.Absolute, 240F));
             root.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
-            root.RowStyles.Add(new RowStyle(SizeType.Absolute, 92F));
+            root.RowStyles.Add(new RowStyle(SizeType.Absolute, 110F));
 
             Controls.Remove(pnlToolbar);
             Controls.Remove(pnlData);
@@ -86,8 +87,8 @@ namespace AlTayerERP.Desktop
             Controls.Clear();
 
             root.Controls.Add(pnlToolbar, 0, 0);
-            root.Controls.Add(pnlData, 0, 1);
-            root.Controls.Add(_grpUserFilters, 0, 2);
+            root.Controls.Add(_grpUserFilters, 0, 1);
+            root.Controls.Add(pnlData, 0, 2);
             root.Controls.Add(pnlGrid, 0, 3);
             root.Controls.Add(_grpUserAudit, 0, 4);
             Controls.Add(root);
@@ -385,7 +386,8 @@ namespace AlTayerERP.Desktop
             _grpUserFilters.Text = "البحث والتصفية";
             _grpUserFilters.ForeColor = Color.FromArgb(8, 49, 92);
             _grpUserFilters.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
-            _grpUserFilters.Padding = new Padding(8, 20, 8, 5);
+            // مساحة داخلية كافية لإظهار التسميات وحقول البحث في صف واحد.
+            _grpUserFilters.Padding = new Padding(10, 22, 10, 6);
             _grpUserFilters.BackColor = Color.White;
 
             var layout = new TableLayoutPanel
@@ -472,8 +474,8 @@ namespace AlTayerERP.Desktop
             pnlGrid.BackColor = Color.Transparent;
             // لا تمدد الشبكة على كامل المساحة الفارغة عندما تكون النتائج قليلة.
             dgvUsers.Dock = DockStyle.Top;
-            dgvUsers.Height = 104;
-            dgvUsers.MinimumSize = new Size(0, 104);
+            dgvUsers.Height = 96;
+            dgvUsers.MinimumSize = new Size(0, 96);
             dgvUsers.RightToLeft = RightToLeft.Yes;
             dgvUsers.BackgroundColor = Color.White;
             dgvUsers.BorderStyle = BorderStyle.FixedSingle;
@@ -505,34 +507,62 @@ namespace AlTayerERP.Desktop
             _grpUserAudit.ForeColor = Color.FromArgb(8, 49, 92);
             _grpUserAudit.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
             _grpUserAudit.BackColor = Color.White;
-            _grpUserAudit.Padding = new Padding(12, 20, 12, 6);
+            _grpUserAudit.Padding = new Padding(10, 20, 10, 6);
 
-            // ثلاث كتل متقابلة: الإنشاء، التعديل، ثم عدادات العمليات.
+            // بطاقات مستقلة بحدود واضحة: الإنشاء، التعديل، ثم عدادات التعديل والطباعة.
             var audit = new TableLayoutPanel
             {
                 Dock = DockStyle.Fill,
                 ColumnCount = 3,
-                RowCount = 2,
-                RightToLeft = RightToLeft.Yes
+                RowCount = 1,
+                RightToLeft = RightToLeft.Yes,
+                Padding = new Padding(2)
             };
             for (var i = 0; i < 3; i++)
                 audit.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F / 3F));
-            audit.RowStyles.Add(new RowStyle(SizeType.Percent, 50F));
-            audit.RowStyles.Add(new RowStyle(SizeType.Percent, 50F));
 
             PrepareAuditLabel(_lblCreatedBy, "أنشئ بواسطة: —");
             PrepareAuditLabel(_lblCreatedAt, "تاريخ الإنشاء: —");
             PrepareAuditLabel(_lblUpdatedBy, "عُدّل بواسطة: —");
             PrepareAuditLabel(_lblUpdatedAt, "تاريخ التعديل: —");
-            PrepareAuditLabel(_lblEditCount, "عدد مرات التعديل: —");
-            PrepareAuditLabel(_lblPrintCount, "عدد مرات الطباعة: —");
-            audit.Controls.Add(_lblCreatedBy, 0, 0);
-            audit.Controls.Add(_lblCreatedAt, 0, 1);
-            audit.Controls.Add(_lblUpdatedBy, 1, 0);
-            audit.Controls.Add(_lblUpdatedAt, 1, 1);
-            audit.Controls.Add(_lblEditCount, 2, 0);
-            audit.Controls.Add(_lblPrintCount, 2, 1);
+            PrepareAuditLabel(_lblEditCount, "عدد مرات التعديل: 0");
+            PrepareAuditLabel(_lblPrintCount, "عدد مرات الطباعة: 0");
+
+            audit.Controls.Add(CreateAuditCard("بيانات الإنشاء", _lblCreatedBy, _lblCreatedAt), 0, 0);
+            audit.Controls.Add(CreateAuditCard("بيانات التعديل", _lblUpdatedBy, _lblUpdatedAt), 1, 0);
+            audit.Controls.Add(CreateAuditCard("عدادات السجل", _lblEditCount, _lblPrintCount), 2, 0);
             _grpUserAudit.Controls.Add(audit);
+        }
+
+        /// <summary>ينشئ بطاقة تدقيق بحدود لعرض حقلين متقابلين ومقروءين.</summary>
+        private static TableLayoutPanel CreateAuditCard(string title, Label first, Label second)
+        {
+            var card = new TableLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                ColumnCount = 1,
+                RowCount = 3,
+                RightToLeft = RightToLeft.Yes,
+                BorderStyle = BorderStyle.FixedSingle,
+                BackColor = Color.FromArgb(248, 250, 252),
+                Margin = new Padding(4, 1, 4, 1),
+                Padding = new Padding(5, 2, 5, 2)
+            };
+            card.RowStyles.Add(new RowStyle(SizeType.Absolute, 20F));
+            card.RowStyles.Add(new RowStyle(SizeType.Percent, 50F));
+            card.RowStyles.Add(new RowStyle(SizeType.Percent, 50F));
+            card.Controls.Add(new Label
+            {
+                Text = title,
+                Dock = DockStyle.Fill,
+                TextAlign = ContentAlignment.MiddleCenter,
+                Font = new Font("Segoe UI", 8.5F, FontStyle.Bold),
+                ForeColor = Color.FromArgb(8, 49, 92),
+                BackColor = Color.FromArgb(219, 234, 254)
+            }, 0, 0);
+            card.Controls.Add(first, 0, 1);
+            card.Controls.Add(second, 0, 2);
+            return card;
         }
 
         // توحيد شكل حقول التدقيق للإنشاء والتعديل والعدادات.
