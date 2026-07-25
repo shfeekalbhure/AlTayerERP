@@ -715,6 +715,44 @@ namespace AlTayerERP.Desktop
             await ExecuteUpdateAsync();
         }
 
+        /// <summary>
+        /// يلغي القفل المؤقت للمستخدم المحدد من خلال API مع بقاء كلمة المرور والصلاحيات كما هي.
+        /// </summary>
+        private async System.Threading.Tasks.Task UnlockSelectedUserAsync()
+        {
+            if (_selectedUserId == 0)
+            {
+                MessageBox.Show("اختر مستخدماً أولاً لإلغاء قفل حسابه.", "إدارة المستخدمين",
+                    MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
+
+            var confirmation = MessageBox.Show(
+                "هل تريد إلغاء قفل حساب المستخدم المحدد؟\nلن تتغير كلمة المرور أو الصلاحيات.",
+                "تأكيد إلغاء القفل", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+            if (confirmation != DialogResult.Yes) return;
+
+            _btnUnlock.Enabled = false;
+            try
+            {
+                var response = await _client.PostAsync($"{_baseUrl}Users/{_selectedUserId}/unlock", null);
+                if (!response.IsSuccessStatusCode)
+                {
+                    MessageBox.Show(await response.Content.ReadAsStringAsync(), "فشل إلغاء القفل",
+                        MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+
+                MessageBox.Show("تم إلغاء قفل الحساب بنجاح.", "إدارة المستخدمين",
+                    MessageBoxButtons.OK, MessageBoxIcon.Information);
+                await LoadUsersAsync();
+            }
+            finally
+            {
+                _btnUnlock.Enabled = true;
+            }
+        }
+
         private async void PrintUsersGrid()
         {
             // يسجل فتح طباعة المستخدم المحدد في سجل التدقيق قبل عرض المعاينة.
