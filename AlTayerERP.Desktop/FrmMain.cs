@@ -398,6 +398,7 @@ namespace AlTayerERP.Desktop
                 "VoucherTypes" => () => new FrmVoucherTypes(),
                 "VoucherStatuses" => () => new FrmVoucherStatuses(),
                 "ApprovalPolicies" => () => new FrmApprovalPolicies(),
+                "ApprovalRequests" => () => new FrmApprovalRequests(),
                 "ChartOfAccounts" => () => new FrmChartOfAccounts(),
                 "Currencies" => () => new FrmCurrencies(),
                 "CostCenters" => () => new FrmCostCenters(),
