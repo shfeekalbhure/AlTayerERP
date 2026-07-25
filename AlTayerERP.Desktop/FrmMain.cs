@@ -104,7 +104,8 @@ namespace AlTayerERP.Desktop
             pnlStatusBar.BackColor = Color.White;
             pnlStatusBar.BorderStyle = BorderStyle.FixedSingle;
             pnlSideMenu.Dock = DockStyle.Right;
-            pnlSideMenu.Width = 250;
+            // عرض مدمج يمنع ابتلاع مساحة الشاشة عند تحجيم Windows DPI.
+            pnlSideMenu.Width = 230;
 
             foreach (var label in new[] { lblCompanyName, lblCurrentBranch, lblFiscalYear, lblCurrentUser })
             {
@@ -130,14 +131,15 @@ namespace AlTayerERP.Desktop
             tvMainMenu.BackColor = navyDark;
             tvMainMenu.ForeColor = Color.White;
             tvMainMenu.BorderStyle = BorderStyle.None;
-            tvMainMenu.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
+            tvMainMenu.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
             tvMainMenu.LineColor = Color.FromArgb(96, 144, 186);
             tvMainMenu.FullRowSelect = true;
             tvMainMenu.HideSelection = false;
             tvMainMenu.ShowLines = true;
             tvMainMenu.ShowPlusMinus = true;
             tvMainMenu.ShowRootLines = true;
-            tvMainMenu.ItemHeight = 34;
+            tvMainMenu.ItemHeight = 28;
+            tvMainMenu.Indent = 16;
             tvMainMenu.HotTracking = true;
 
             lblStatusApi.ForeColor = Color.FromArgb(0, 132, 78);
