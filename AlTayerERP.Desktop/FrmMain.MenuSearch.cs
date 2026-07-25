@@ -17,8 +17,8 @@ namespace AlTayerERP.Desktop
             _menuSearchPanel = new Panel
             {
                 Dock = DockStyle.Top,
-                Height = 48,
-                Padding = new Padding(8, 7, 8, 7),
+                Height = 38,
+                Padding = new Padding(6, 5, 6, 5),
                 BackColor = Color.FromArgb(5, 36, 69)
             };
 
@@ -26,7 +26,7 @@ namespace AlTayerERP.Desktop
             {
                 Dock = DockStyle.Fill,
                 BorderStyle = BorderStyle.FixedSingle,
-                Font = new Font("Segoe UI", 9.5F),
+                Font = new Font("Segoe UI", 9F),
                 PlaceholderText = "ابحث في شجرة النظام...",
                 TextAlign = HorizontalAlignment.Right,
                 RightToLeft = RightToLeft.Yes,
