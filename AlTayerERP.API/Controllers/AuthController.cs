@@ -1,6 +1,5 @@
 using AlTayerERP.API.Services;
 using AlTayerERP.API.Security;
-using AlTayerERP.API.DTOs;
 using AlTayerERP.Core.Entities;
 using AlTayerERP.Infrastructure.Data;
 using Microsoft.AspNetCore.Authorization;
@@ -222,52 +221,6 @@ namespace AlTayerERP.API.Controllers
             return Ok(new { message = "تم إنهاء الجلسة." });
         }
 
-        /// <summary>
-        /// يغير كلمة مرور المستخدم صاحب الجلسة فقط. لا يستقبل معرف مستخدم ولا يسجل
-        /// أي كلمة مرور في سجل التدقيق أو في الاستجابة.
-        /// </summary>
-        [Authorize]
-        [HttpPost("change-password")]
-        public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordDto request, CancellationToken cancellationToken)
-        {
-            if (HttpContext.Items["ServerSession"] is not ServerSession session)
-                return Unauthorized();
-
-            if (request is null || string.IsNullOrWhiteSpace(request.Current_Password) ||
-                string.IsNullOrWhiteSpace(request.New_Password) || string.IsNullOrWhiteSpace(request.Confirm_New_Password))
-                return BadRequest("كلمات المرور الحالية والجديدة والتأكيد مطلوبة.");
-
-            if (!string.Equals(request.New_Password, request.Confirm_New_Password, StringComparison.Ordinal))
-                return BadRequest("تأكيد كلمة المرور الجديدة غير مطابق.");
-
-            var passwordRuleError = ValidateNewPassword(request.New_Password);
-            if (passwordRuleError is not null)
-                return BadRequest(passwordRuleError);
-
-            var user = await _context.Users.FirstOrDefaultAsync(
-                x => x.User_ID == session.User_ID && x.Is_Active, cancellationToken);
-            if (user is null)
-                return Unauthorized();
-
-            if (!PasswordProtector.Verify(user.Password_Hash, request.Current_Password, out _))
-                return BadRequest("كلمة المرور الحالية غير صحيحة.");
-
-            if (PasswordProtector.Verify(user.Password_Hash, request.New_Password, out _))
-                return BadRequest("يجب أن تختلف كلمة المرور الجديدة عن كلمة المرور الحالية.");
-
-            user.Password_Hash = PasswordProtector.Hash(request.New_Password);
-            user.Must_Change_Password = false;
-            user.Updated_At = DateTime.UtcNow;
-
-            var audit = HttpContext.RequestServices.GetRequiredService<AuditTrailService>();
-            audit.Add(session, HttpContext, "users", user.User_ID.ToString(), "PASSWORD_CHANGE",
-                newValues: new { PasswordChanged = true, user.Must_Change_Password },
-                notes: "تغيير ذاتي لكلمة المرور");
-
-            await _context.SaveChangesAsync(cancellationToken);
-            return Ok(new { message = "تم تغيير كلمة المرور بنجاح." });
-        }
-
         /// <summary>يعرض سياق الجلسة الموثوق للعميل؛ لا يقبل سياقاً من الجسم.</summary>
         [Authorize]
         [HttpGet("CurrentSession")]
@@ -359,15 +312,6 @@ namespace AlTayerERP.API.Controllers
 
         private string? GetClientIpAddress() =>
             HttpContext.Connection.RemoteIpAddress?.ToString();
-
-        private static string? ValidateNewPassword(string password)
-        {
-            if (password.Length < 8)
-                return "كلمة المرور الجديدة يجب ألا تقل عن 8 أحرف.";
-            if (!password.Any(char.IsLetter) || !password.Any(char.IsDigit))
-                return "كلمة المرور الجديدة يجب أن تحتوي حرفاً واحداً ورقماً واحداً على الأقل.";
-            return null;
-        }
 
         private static string NormalizeDeviceId(string? deviceId) =>
             string.IsNullOrWhiteSpace(deviceId) ? "desktop-unknown" : deviceId.Trim()[..Math.Min(deviceId.Trim().Length, 128)];

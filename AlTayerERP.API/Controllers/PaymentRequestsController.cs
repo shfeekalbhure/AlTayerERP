@@ -54,13 +54,105 @@ public sealed class PaymentRequestsController : ControllerBase
     }
     [HttpPost("{id:long}/reject")] public Task<IActionResult> Reject(long id,[FromBody]ReasonDto dto)=>Close(id,"REJECTED",dto,"REJECT");
     [HttpPost("{id:long}/return")] public Task<IActionResult> Return(long id,[FromBody]ReasonDto dto)=>Close(id,"RETURNED",dto,"RETURN");
-    [HttpPost("{id:long}/create-payment-voucher")] public async Task<IActionResult> CreatePaymentVoucher(long id,[FromBody]CreateVoucherDto dto)
+    [HttpPost("{id:long}/create-payment-voucher")]
+    public async Task<IActionResult> CreatePaymentVoucher(long id, [FromBody] CreateVoucherDto dto)
     {
-        var denial=await Allow(ScreenOperation.Add);if(denial!=null)return denial;var row=await Scoped().SingleOrDefaultAsync(x=>x.Payment_Request_ID==id);if(row==null)return NotFound();if(row.Status!="APPROVED"||row.Payment_Voucher_ID.HasValue)return Conflict(new{message="لا ينشأ سند الصرف إلا مرة واحدة من طلب معتمد."});if(string.IsNullOrWhiteSpace(dto.Cash_Account_ID))return BadRequest(new{message="الصندوق/البنك الدائن مطلوب."});
-        var limit=await _db.Financial_Policies.Where(x=>x.Company_ID==Session().Company_ID&&x.Is_Active&&x.Limit_Type=="PAYMENT"&&(x.Entity_ID==row.Party_ID||x.Entity_ID==Session().Branch_ID.ToString())).OrderBy(x=>x.Limit_Amount).FirstOrDefaultAsync();if(limit!=null&&row.Details.Sum(x=>x.Local_Amount)>limit.Limit_Amount-limit.Used_Amount)return Conflict(new{message="السقف المالي لم يعد متاحاً لإنشاء سند الصرف."});
-        var type=await _db.Voucher_Types.Where(x=>x.Is_Active&&x.Voucher_Type_Code=="PAYMENT").Select(x=>x.Voucher_Type_ID).SingleAsync();var draft=await _db.Voucher_Statuses.Where(x=>x.Is_Active&&x.Voucher_Status_Code=="DRAFT").Select(x=>x.Voucher_Status_ID).SingleAsync();var local=row.Details.Sum(x=>x.Local_Amount);if(local>row.Approved_Local_Total)return Conflict(new{message="تجاوز المبلغ المعتمد ممنوع."});
-        var headerCurrency=await _db.Currencies.Where(x=>x.Company_ID==Session().Company_ID&&x.Is_Active&&x.Is_Local_Currency).Select(x=>x.Currency_ID).SingleAsync();var now=DateTime.UtcNow;var request=new AlTayerERP.API.DTOs.Accounting.CreateFinancialVoucherDto{Voucher_Type_ID=type,Voucher_Status_ID=draft,Branch_ID=Session().Branch_ID.ToString(),Fiscal_Year_ID=Session().Year_ID,Voucher_Date=now,Transaction_Date=now,Cash_Account_ID=dto.Cash_Account_ID,Party_ID=row.Party_ID,Received_From_Name=row.Beneficiary_Name,Payment_Method_ID=row.Payment_Method_ID,Currency_ID=headerCurrency,Exchange_Rate=1m,Amount=local,Foreign_Total=0m,Local_Total=local,Reference_No=row.Request_No,Against_Text=row.Description,Description=row.Description,Source_Document_No=row.Request_No,Requires_Approval=true,Created_By=Session().User_ID.ToString(),Updated_By=Session().User_ID.ToString(),Details=row.Details.Select((x,i)=>new AlTayerERP.API.DTOs.Accounting.CreateFinancialVoucherDetailDto{Line_No=i+2,Account_ID=x.Account_ID,Cost_Center_ID=x.Cost_Center_ID,Currency_ID=x.Currency_ID,Exchange_Rate=x.Exchange_Rate,Foreign_Amount=x.Foreign_Amount,Local_Amount=x.Local_Amount,Debit_Amount=x.Local_Amount,Credit_Amount=0m,Reference_No=x.Reference_No,Description=x.Description,Line_Type=2}).Prepend(new AlTayerERP.API.DTOs.Accounting.CreateFinancialVoucherDetailDto{Line_No=1,Account_ID=dto.Cash_Account_ID,Currency_ID=headerCurrency,Exchange_Rate=1m,Foreign_Amount=0m,Local_Amount=local,Debit_Amount=0m,Credit_Amount=local,Description=row.Description,Line_Type=1}).ToList()};
-        var result=await _vouchers.CreateAsync(request);if(!result.Success)return BadRequest(new{message=result.Message});row.Payment_Voucher_ID=result.VoucherId;if(limit!=null){limit.Used_Amount+=local;limit.Updated_At=DateTime.UtcNow;}_audit.Add(Session(),HttpContext,"payment_requests",id.ToString(),"CREATE_PAYMENT_VOUCHER",null,new{result.VoucherId,result.VoucherNo});await _db.SaveChangesAsync();return Ok(new{result.VoucherId,result.VoucherNo});
+        var denial = await Allow(ScreenOperation.Add);
+        if (denial != null) return denial;
+        if (string.IsNullOrWhiteSpace(dto.Cash_Account_ID))
+            return BadRequest(new { message = "الصندوق/البنك الدائن مطلوب." });
+
+        // يقفل الطلب والسقف أثناء العملية كي لا ينشئ طلبان متزامنان سندين لنفس الطلب.
+        await using var transaction = await _db.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable);
+        try
+        {
+            var session = Session();
+            var row = await Scoped().SingleOrDefaultAsync(x => x.Payment_Request_ID == id);
+            if (row == null) return NotFound();
+            if (row.Status != "APPROVED" || row.Payment_Voucher_ID.HasValue)
+                return Conflict(new { message = "لا ينشأ سند الصرف إلا مرة واحدة من طلب معتمد." });
+
+            var local = row.Details.Sum(x => x.Local_Amount);
+            if (local <= 0 || local > row.Approved_Local_Total)
+                return Conflict(new { message = "مبلغ السند يجب أن يكون موجباً وألا يتجاوز المبلغ المعتمد." });
+
+            var limit = await _db.Financial_Policies
+                .Where(x => x.Company_ID == session.Company_ID && x.Is_Active && x.Limit_Type == "PAYMENT" &&
+                    (x.Entity_ID == row.Party_ID || x.Entity_ID == session.Branch_ID.ToString()))
+                .OrderBy(x => x.Limit_Amount)
+                .FirstOrDefaultAsync();
+            if (limit != null && local > limit.Limit_Amount - limit.Used_Amount)
+                return Conflict(new { message = "السقف المالي لم يعد متاحاً لإنشاء سند الصرف." });
+
+            var type = await _db.Voucher_Types.Where(x => x.Is_Active && x.Voucher_Type_Code == "PAYMENT")
+                .Select(x => x.Voucher_Type_ID).SingleAsync();
+            var draft = await _db.Voucher_Statuses.Where(x => x.Is_Active && x.Voucher_Status_Code == "DRAFT")
+                .Select(x => x.Voucher_Status_ID).SingleAsync();
+            var headerCurrency = await _db.Currencies
+                .Where(x => x.Company_ID == session.Company_ID && x.Is_Active && x.Is_Local_Currency)
+                .Select(x => x.Currency_ID).SingleAsync();
+            var now = DateTime.UtcNow;
+            var request = new AlTayerERP.API.DTOs.Accounting.CreateFinancialVoucherDto
+            {
+                Voucher_Type_ID = type, Voucher_Status_ID = draft, Branch_ID = session.Branch_ID.ToString(),
+                Fiscal_Year_ID = session.Year_ID, Voucher_Date = now, Transaction_Date = now,
+                Cash_Account_ID = dto.Cash_Account_ID.Trim(), Party_ID = row.Party_ID,
+                Received_From_Name = row.Beneficiary_Name, Payment_Method_ID = row.Payment_Method_ID,
+                Currency_ID = headerCurrency, Exchange_Rate = 1m, Amount = local, Foreign_Total = 0m,
+                Local_Total = local, Reference_No = row.Request_No, Against_Text = row.Description,
+                Description = row.Description, Source_Document_No = row.Request_No, Requires_Approval = true,
+                Created_By = session.User_ID.ToString(), Updated_By = session.User_ID.ToString(),
+                Details = row.Details.Select((x, i) => new AlTayerERP.API.DTOs.Accounting.CreateFinancialVoucherDetailDto
+                {
+                    Line_No = i + 2, Account_ID = x.Account_ID, Cost_Center_ID = x.Cost_Center_ID,
+                    Currency_ID = x.Currency_ID, Exchange_Rate = x.Exchange_Rate, Foreign_Amount = x.Foreign_Amount,
+                    Local_Amount = x.Local_Amount, Debit_Amount = x.Local_Amount, Credit_Amount = 0m,
+                    Reference_No = x.Reference_No, Description = x.Description, Line_Type = 2
+                }).Prepend(new AlTayerERP.API.DTOs.Accounting.CreateFinancialVoucherDetailDto
+                {
+                    Line_No = 1, Account_ID = dto.Cash_Account_ID.Trim(), Currency_ID = headerCurrency,
+                    Exchange_Rate = 1m, Foreign_Amount = 0m, Local_Amount = local,
+                    Debit_Amount = 0m, Credit_Amount = local, Description = row.Description, Line_Type = 1
+                }).ToList()
+            };
+
+            // FinancialVoucherService يشارك المعاملة الحالية ولا يلتزمها بنفسه.
+            var result = await _vouchers.CreateAsync(request);
+            if (!result.Success)
+            {
+                await transaction.RollbackAsync();
+                return BadRequest(new { message = result.Message });
+            }
+
+            row.Payment_Voucher_ID = result.VoucherId;
+            row.Updated_By = session.User_ID.ToString();
+            row.Updated_At = now;
+            if (limit != null)
+            {
+                limit.Used_Amount += local;
+                limit.Updated_At = now;
+                _db.Financial_Policy_Movements.Add(new FinancialPolicyMovement
+                {
+                    Limit_ID = limit.Limit_ID, Company_ID = session.Company_ID, Movement_Date = now,
+                    Movement_Type = "PAYMENT_VOUCHER", Reference_Type = "PAYMENT_REQUEST",
+                    Reference_ID = row.Payment_Request_ID.ToString(), Currency_Code = limit.Currency_Code,
+                    Amount = local, Balance_After = limit.Limit_Amount - limit.Used_Amount,
+                    Notes = $"طلب الصرف {row.Request_No} / سند الصرف {result.VoucherNo}",
+                    Created_By = session.User_ID.ToString(), Created_At = now
+                });
+            }
+
+            _audit.Add(session, HttpContext, "payment_requests", id.ToString(), "CREATE_PAYMENT_VOUCHER", null,
+                new { result.VoucherId, result.VoucherNo, local, FinancialLimitId = limit?.Limit_ID });
+            await _db.SaveChangesAsync();
+            await transaction.CommitAsync();
+            return Ok(new { result.VoucherId, result.VoucherNo });
+        }
+        catch (Exception)
+        {
+            await transaction.RollbackAsync();
+            return Problem("تعذر إنشاء سند الصرف؛ لم يتم تسجيل أي تعديل.", statusCode: StatusCodes.Status500InternalServerError);
+        }
     }
     private async Task<IActionResult> Transition(long id,string from,string to,ScreenOperation op,string? reason,string action){var d=await Allow(op);if(d!=null)return d;var row=await Scoped().SingleOrDefaultAsync(x=>x.Payment_Request_ID==id);if(row==null)return NotFound();if(row.Status!=from)return Conflict(new{message="الحالة الحالية لا تسمح بهذه العملية."});row.Status=to;row.Review_Reason=Text(reason);row.Updated_By=Session().User_ID.ToString();row.Updated_At=DateTime.UtcNow;_audit.Add(Session(),HttpContext,"payment_requests",id.ToString(),action,null,new{row.Status},reason);await _db.SaveChangesAsync();return Ok(row);}
     private Task<IActionResult> Close(long id,string to,ReasonDto dto,string action)=>string.IsNullOrWhiteSpace(dto?.Reason)?Task.FromResult<IActionResult>(BadRequest(new{message="السبب إلزامي."})):Transition(id,"PENDING_APPROVAL",to,ScreenOperation.Unapprove,dto.Reason,action);

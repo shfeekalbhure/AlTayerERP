@@ -20,6 +20,8 @@ namespace AlTayerERP.Desktop
 
         private int _selectedBranchId = 0;
         private List<BranchListModel> _branchesList = new List<BranchListModel>();
+        private List<BranchTypeLookupModel> _branchTypes = new List<BranchTypeLookupModel>();
+        private int _defaultCurrencyId;
         // يمنع إعادة تحميل الجدول أثناء تعبئة قائمة الشركات عند فتح الشاشة.
         private bool _isLoadingCompanies;
 
@@ -44,7 +46,7 @@ this.Load -= BranchForm_Load;
         private async void BranchForm_Load(object sender, EventArgs e)
         {
             SetupBranchesGrid();
-            FillBranchTypes();
+            ClearBranchTypes();
             InitializeStatusComboBox();
             await LoadCompaniesAsync();
             await LoadBranchesAsync();
@@ -62,11 +64,46 @@ this.Load -= BranchForm_Load;
             cmbStatus.SelectedItem = "نشط";
         }
 
-        private void FillBranchTypes()
+        private void ClearBranchTypes()
         {
+            cmbBranchType.DataSource = null;
             cmbBranchType.Items.Clear();
-            cmbBranchType.Items.AddRange(new string[] { "رئيسي", "فرعي", "نقطة توزيع", "مستودع" });
             cmbBranchType.SelectedIndex = -1;
+        }
+
+        /// <summary>
+        /// قوائم النوع والعملة تؤخذ من الخادم للشركة المحددة؛ لا تستخدم قيماً ثابتة
+        /// لأن Currency_ID = 1 لا يصلح في الشركات متعددة العملات.
+        /// </summary>
+        private async Task LoadBranchReferenceDataAsync(string? companyId)
+        {
+            ClearBranchTypes();
+            _defaultCurrencyId = 0;
+            if (string.IsNullOrWhiteSpace(companyId)) return;
+
+            try
+            {
+                var url = $"{_baseUrl}branch-reference-lookups?companyId={Uri.EscapeDataString(companyId)}";
+                var lookup = await _client.GetFromJsonAsync<BranchReferenceLookupResponse>(url);
+                _branchTypes = lookup?.BranchTypes ?? new List<BranchTypeLookupModel>();
+                cmbBranchType.DataSource = _branchTypes;
+                cmbBranchType.DisplayMember = nameof(BranchTypeLookupModel.Branch_Type_Name_AR);
+                cmbBranchType.ValueMember = nameof(BranchTypeLookupModel.Branch_Type_Code);
+                cmbBranchType.SelectedIndex = -1;
+
+                var currency = lookup?.Currencies.FirstOrDefault(x => x.Is_Default)
+                    ?? lookup?.Currencies.FirstOrDefault(x => x.Is_Local_Currency)
+                    ?? lookup?.Currencies.FirstOrDefault();
+                _defaultCurrencyId = currency?.Currency_ID ?? 0;
+            }
+            catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+            {
+                MessageBox.Show("خدمة أنواع الفروع والعملات غير موجودة في API المشغّل. حدّث مشروع API ثم أعد تشغيله.", "الفروع", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("تعذر تحميل أنواع الفروع والعملات:\n" + ex.Message, "الفروع", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
         }
 
         private async Task LoadCompaniesAsync()
@@ -81,6 +118,7 @@ this.Load -= BranchForm_Load;
 
                 // سياق الجلسة هو الاختيار الابتدائي فقط؛ مدير النظام يستطيع اختيار شركة أخرى من القائمة.
                 cmbCompanies.SelectedValue = CurrentSession.Company_ID;
+                await LoadBranchReferenceDataAsync(cmbCompanies.SelectedValue?.ToString());
             }
             catch (Exception ex)
             {
@@ -122,7 +160,9 @@ this.Load -= BranchForm_Load;
             if (_isLoadingCompanies || cmbCompanies.SelectedValue is null)
                 return;
 
-            await LoadBranchesAsync(cmbCompanies.SelectedValue.ToString());
+            var companyId = cmbCompanies.SelectedValue.ToString();
+            await LoadBranchReferenceDataAsync(companyId);
+            await LoadBranchesAsync(companyId);
             _selectedBranchId = 0;
         }
 
@@ -248,6 +288,18 @@ this.Load -= BranchForm_Load;
                 return false;
             }
 
+            if (cmbBranchType.SelectedValue is null)
+            {
+                MessageBox.Show("يرجى اختيار نوع الفرع.");
+                return false;
+            }
+
+            if (_defaultCurrencyId <= 0)
+            {
+                MessageBox.Show("لا توجد عملة نشطة للشركة المختارة. أضف عملة افتراضية ثم أعد المحاولة.");
+                return false;
+            }
+
             return true;
         }
 
@@ -274,7 +326,7 @@ this.Load -= BranchForm_Load;
                 // [تصحيح الثغرة لحماية الحفظ]: فحص مزدوج قوي يمنع خطأ الـ Null النصي
                 Is_Active = cmbStatus.SelectedItem?.ToString() == "نشط" || cmbStatus.Text.Trim() == "نشط",
 
-                Currency_ID = 1
+                Currency_ID = _defaultCurrencyId
             };
         }
 
@@ -619,5 +671,26 @@ this.Load -= BranchForm_Load;
         public bool Allow_Percentage { get; set; }
         public bool Is_Active { get; set; }
         public int Currency_ID { get; set; }
+
+    }
+
+    internal sealed class BranchReferenceLookupResponse
+    {
+        public List<BranchTypeLookupModel> BranchTypes { get; set; } = new List<BranchTypeLookupModel>();
+        public List<CurrencyLookupModel> Currencies { get; set; } = new List<CurrencyLookupModel>();
+    }
+
+    internal sealed class BranchTypeLookupModel
+    {
+        public int Branch_Type_ID { get; set; }
+        public string Branch_Type_Code { get; set; } = string.Empty;
+        public string Branch_Type_Name_AR { get; set; } = string.Empty;
+    }
+
+    internal sealed class CurrencyLookupModel
+    {
+        public int Currency_ID { get; set; }
+        public bool Is_Local_Currency { get; set; }
+        public bool Is_Default { get; set; }
     }
 }

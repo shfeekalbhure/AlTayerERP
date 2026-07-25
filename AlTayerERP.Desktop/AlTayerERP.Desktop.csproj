@@ -36,11 +36,6 @@
 		</EmbeddedResource>
 	</ItemGroup>
 
-	<!-- أيقونات شريط أوامر شاشات المرحلة الأولى (Font Awesome Free). -->
-	<ItemGroup>
-		<EmbeddedResource Include="Assets\Toolbar\*.png" />
-	</ItemGroup>
-
 	<!-- الشاشة الرئيسية لسند القبض -->
 	<ItemGroup>
 		<Compile Update="Accounting\ReceiptVoucher\FrmReceiptVoucher.cs" />
@@ -103,6 +98,16 @@
 		</Compile>
 		<Compile Update="FrmJournalVoucher.cs">
 			<SubType>Form</SubType>
+		</Compile>
+	</ItemGroup>
+	<ItemGroup>
+		<Compile Update="CountriesForm.cs">
+			<SubType>Form</SubType>
+		</Compile>
+		<Compile Update="CountriesForm.Designer.cs">
+			<DependentUpon>CountriesForm.cs</DependentUpon>
+			<AutoGen>True</AutoGen>
+			<DesignTime>True</DesignTime>
 		</Compile>
 	</ItemGroup>
 	<ItemGroup>

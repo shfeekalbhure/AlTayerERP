@@ -38,8 +38,13 @@ namespace AlTayerERP.API.Services.Accounting
                 return (false, validation.ErrorMessage, null, null);
             }
 
-            // 2) بدء معاملة قاعدة بيانات لضمان حفظ الرأس والتفاصيل والتوزيعات معًا
-            await using var transaction = await _context.Database.BeginTransactionAsync();
+            // 2) بدء معاملة قاعدة بيانات عند عدم وجود معاملة خارجية. تسمح هذه
+            // الصيغة لطلب الصرف بضم إنشاء السند وتحديث السقف وربط الطلب في معاملة
+            // واحدة، من دون بدء معاملة متداخلة على نفس DbContext.
+            var ownsTransaction = _context.Database.CurrentTransaction is null;
+            var transaction = ownsTransaction
+                ? await _context.Database.BeginTransactionAsync()
+                : null;
 
             try
             {
@@ -49,7 +54,7 @@ namespace AlTayerERP.API.Services.Accounting
 
                 if (totalDebit != totalCredit)
                 {
-                    await transaction.RollbackAsync();
+                    if (ownsTransaction) await transaction!.RollbackAsync();
 
                     return (false, "إجمالي المدين لا يساوي إجمالي الدائن.", null, null);
                 }
@@ -147,7 +152,7 @@ namespace AlTayerERP.API.Services.Accounting
 
                     if (remainingBalance < 0)
                     {
-                        await transaction.RollbackAsync();
+                        if (ownsTransaction) await transaction!.RollbackAsync();
                         return (false, $"المبلغ المحصل للمستند {allocationDto.Document_No} أكبر من رصيده المتبقي.", null, null);
                     }
 
@@ -187,7 +192,7 @@ namespace AlTayerERP.API.Services.Accounting
                 // 9) حفظ جميع البيانات
                 await _context.Financial_Voucher_Headers.AddAsync(voucher);
                 await _context.SaveChangesAsync();
-                await transaction.CommitAsync();
+                if (ownsTransaction) await transaction!.CommitAsync();
 
                 return (
                     true,
@@ -198,7 +203,7 @@ namespace AlTayerERP.API.Services.Accounting
             }
             catch (DbUpdateException ex)
             {
-                await transaction.RollbackAsync();
+                if (ownsTransaction) await transaction!.RollbackAsync();
 
                 string error = ex.InnerException?.Message ?? ex.Message;
 
@@ -206,9 +211,14 @@ namespace AlTayerERP.API.Services.Accounting
             }
             catch (Exception ex)
             {
-                await transaction.RollbackAsync();
+                if (ownsTransaction) await transaction!.RollbackAsync();
 
                 return (false, $"حدث خطأ أثناء حفظ السند المالي: {ex.Message}", null, null);
+            }
+            finally
+            {
+                if (transaction != null)
+                    await transaction.DisposeAsync();
             }
         }
 
