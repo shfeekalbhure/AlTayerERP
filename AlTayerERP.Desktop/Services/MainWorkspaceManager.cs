@@ -1,13 +1,14 @@
 using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.Linq;
 using System.Windows.Forms;
 
 namespace AlTayerERP.Desktop.Services
 {
     /// <summary>
     /// مدير تبويبات مساحة العمل في FrmMain. يمنع فتح نفس الشاشة أو نفس السجل
-    /// مرتين، ويجعل جميع النوافذ الفرعية داخل pnlWorkspace.
+    /// مرتين، ويجعل جميع النوافذ الفرعية داخل pnlWorkspace وفق عقد عرض موحد.
     /// </summary>
     public sealed class MainWorkspaceManager : IDisposable
     {
@@ -18,6 +19,10 @@ namespace AlTayerERP.Desktop.Services
 
         public MainWorkspaceManager(Panel host)
         {
+            host.SuspendLayout();
+            host.AutoScroll = false;
+            host.Padding = Padding.Empty;
+
             _tabs = new TabControl
             {
                 Dock = DockStyle.Fill,
@@ -26,7 +31,8 @@ namespace AlTayerERP.Desktop.Services
                 RightToLeftLayout = true,
                 DrawMode = TabDrawMode.Normal,
                 Font = new Font("Segoe UI", 9.5F, FontStyle.Bold),
-                Padding = new Point(18, 6)
+                Padding = new Point(18, 6),
+                Margin = Padding.Empty
             };
 
             // زر الإغلاق متاح من القائمة السياقية؛ تبويب الرئيسية لا يغلق.
@@ -52,6 +58,7 @@ namespace AlTayerERP.Desktop.Services
 
             host.Controls.Clear();
             host.Controls.Add(_tabs);
+            host.ResumeLayout(true);
         }
 
         /// <summary>يعرض لوحة الملخص الثابتة ولا يسمح بإغلاقها.</summary>
@@ -74,6 +81,7 @@ namespace AlTayerERP.Desktop.Services
                 control.Dispose();
             page.Controls.Clear();
 
+            dashboard.Margin = Padding.Empty;
             dashboard.Dock = DockStyle.Fill;
             page.Controls.Add(dashboard);
             if (activate)
@@ -99,17 +107,19 @@ namespace AlTayerERP.Desktop.Services
 
             var form = factory();
             var page = CreatePage(key, caption);
-            form.TopLevel = false;
-            form.FormBorderStyle = FormBorderStyle.None;
-            form.Dock = DockStyle.Fill;
-            form.Visible = true;
+
+            PrepareHostedForm(form, page);
+
             form.FormClosed += (_, _) => RemovePage(key, page);
+            page.Resize += (_, _) => ApplyWorkspaceBounds(form, page);
 
             page.Controls.Add(form);
             _tabs.TabPages.Add(page);
             _pages[key] = page;
             _tabs.SelectedTab = page;
+
             form.Show();
+            ApplyWorkspaceBounds(form, page);
             return true;
         }
 
@@ -166,6 +176,76 @@ namespace AlTayerERP.Desktop.Services
                 _tabs.SelectedTab = page;
         }
 
+        private static void PrepareHostedForm(Form form, TabPage page)
+        {
+            form.SuspendLayout();
+
+            form.TopLevel = false;
+            form.FormBorderStyle = FormBorderStyle.None;
+            form.StartPosition = FormStartPosition.Manual;
+            form.WindowState = FormWindowState.Normal;
+            form.AutoScaleMode = AutoScaleMode.Dpi;
+            form.AutoScroll = false;
+            form.MinimumSize = Size.Empty;
+            form.MaximumSize = Size.Empty;
+            form.Margin = Padding.Empty;
+            form.Padding = Padding.Empty;
+            form.Dock = DockStyle.Fill;
+
+            NormalizeRootControls(form);
+            ApplyWorkspaceBounds(form, page);
+
+            form.ResumeLayout(true);
+        }
+
+        /// <summary>
+        /// يعالج الشاشات القديمة التي تحتوي عنصراً جذرياً واحداً غير ممدد،
+        /// وهو سبب شائع لظهور فراغات كبيرة رغم أن النموذج نفسه يستخدم Dock.Fill.
+        /// </summary>
+        private static void NormalizeRootControls(Form form)
+        {
+            var visibleRoots = form.Controls
+                .Cast<Control>()
+                .Where(control => control.Visible && control is not MenuStrip && control is not StatusStrip)
+                .ToList();
+
+            if (visibleRoots.Count == 1)
+            {
+                var root = visibleRoots[0];
+                root.Margin = Padding.Empty;
+                root.Dock = DockStyle.Fill;
+                return;
+            }
+
+            foreach (var control in visibleRoots)
+            {
+                if (control.Dock == DockStyle.None && control.Anchor == AnchorStyles.Top &&
+                    control.Width >= form.ClientSize.Width * 0.85 &&
+                    control.Height >= form.ClientSize.Height * 0.75)
+                {
+                    control.Margin = Padding.Empty;
+                    control.Dock = DockStyle.Fill;
+                }
+            }
+        }
+
+        private static void ApplyWorkspaceBounds(Form form, TabPage page)
+        {
+            if (form.IsDisposed || page.IsDisposed)
+                return;
+
+            form.MinimumSize = Size.Empty;
+            form.MaximumSize = Size.Empty;
+            form.Dock = DockStyle.Fill;
+            form.Location = Point.Empty;
+
+            if (page.ClientSize.Width > 0 && page.ClientSize.Height > 0)
+                form.Bounds = page.ClientRectangle;
+
+            form.PerformLayout();
+            form.Invalidate(true);
+        }
+
         private static Form? FindWorkspaceForm(TabPage page)
         {
             foreach (Control control in page.Controls)
@@ -183,7 +263,9 @@ namespace AlTayerERP.Desktop.Services
                 Name = key,
                 Text = caption,
                 BackColor = Color.FromArgb(249, 250, 252),
-                Padding = new Padding(0)
+                Padding = Padding.Empty,
+                Margin = Padding.Empty,
+                AutoScroll = false
             };
 
         private void RemovePage(string key, TabPage page)
