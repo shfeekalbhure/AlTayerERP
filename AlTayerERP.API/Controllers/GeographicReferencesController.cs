@@ -136,6 +136,15 @@ public sealed class GeographicReferencesController : ControllerBase
         if (dto.Country_ID <= 0 || string.IsNullOrWhiteSpace(dto.Governorate_Code) || string.IsNullOrWhiteSpace(dto.Governorate_Name_AR))
             return BadRequest("الدولة وكود المحافظة واسمها العربي مطلوبة.");
 
+        if (await ScalarAsync<int>("SELECT COUNT(*) FROM countries WHERE Country_ID=@Country AND Is_Active=1", ("@Country", dto.Country_ID)) == 0)
+            return Conflict("الدولة المختارة غير موجودة أو موقوفة.");
+
+        var duplicate = await ScalarAsync<int>(
+            "SELECT COUNT(*) FROM governorates WHERE Country_ID=@Country AND Governorate_Code=@Code AND Governorate_ID<>@ID",
+            ("@Country", dto.Country_ID), ("@Code", dto.Governorate_Code.Trim().ToUpperInvariant()), ("@ID", dto.Governorate_ID));
+        if (duplicate > 0)
+            return Conflict("كود المحافظة مستخدم مسبقاً داخل الدولة المختارة.");
+
         if (dto.Governorate_ID > 0)
         {
             await ExecuteAsync("UPDATE governorates SET Country_ID=@Country, Governorate_Code=@Code, Governorate_Name_AR=@NameAR, Governorate_Name_EN=@NameEN, Sort_Order=@Sort, Notes=@Notes, Updated_At=UTC_TIMESTAMP() WHERE Governorate_ID=@ID",
@@ -157,6 +166,18 @@ public sealed class GeographicReferencesController : ControllerBase
         if (access != null) return access;
         if (dto.Country_ID <= 0 || dto.Governorate_ID <= 0 || string.IsNullOrWhiteSpace(dto.City_Code) || string.IsNullOrWhiteSpace(dto.City_Name_AR))
             return BadRequest("الدولة والمحافظة وكود المدينة واسمها العربي مطلوبة.");
+
+        var relationIsValid = await ScalarAsync<int>(
+            "SELECT COUNT(*) FROM governorates g INNER JOIN countries c ON c.Country_ID=g.Country_ID WHERE g.Governorate_ID=@Governorate AND g.Country_ID=@Country AND g.Is_Active=1 AND c.Is_Active=1",
+            ("@Governorate", dto.Governorate_ID), ("@Country", dto.Country_ID));
+        if (relationIsValid == 0)
+            return Conflict("المحافظة المختارة لا تتبع الدولة المختارة أو أن أحدهما موقوف.");
+
+        var duplicate = await ScalarAsync<int>(
+            "SELECT COUNT(*) FROM cities WHERE Governorate_ID=@Governorate AND City_Code=@Code AND City_ID<>@ID",
+            ("@Governorate", dto.Governorate_ID), ("@Code", dto.City_Code.Trim().ToUpperInvariant()), ("@ID", dto.City_ID));
+        if (duplicate > 0)
+            return Conflict("كود المدينة مستخدم مسبقاً داخل المحافظة المختارة.");
 
         if (dto.City_ID > 0)
         {
