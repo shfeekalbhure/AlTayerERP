@@ -59,27 +59,24 @@ namespace AlTayerERP.API.Controllers
                 });
             }
 
+            // القائمة لا تعرض إلا الشاشات النشطة التي يحمل المستخدم، بمن فيهم
+            // مدير النظام، تفويض View صريحاً لها. لا يجوز لشجرة النظام أن تكون
+            // أوسع من تفويض API؛ هذه سياسة Default Deny / Fail-Closed.
             var candidates = await _context.SystemScreens.AsNoTracking()
-                .Where(x => session.Is_System_Admin || x.Is_Active)
+                .Where(x => x.Is_Active)
                 .OrderBy(screen => screen.Module_Name)
                 .ThenBy(screen => screen.Sort_Order)
                 .ThenBy(screen => screen.Screen_Name)
                 .ToListAsync();
 
-            // تمر كل شاشة عبر محرك التفويض نفسه حتى تنعكس استثناءات المستخدم
-            // في القائمة، لا في الـ API فقط.
-            if (!session.Is_System_Admin)
+            var allowed = new List<SystemScreen>();
+            foreach (var screen in candidates)
             {
-                var allowed = new List<SystemScreen>();
-                foreach (var screen in candidates)
-                {
-                    if (await _authorization.IsAllowedAsync(session, screen.Screen_Code, ScreenOperation.View))
-                        allowed.Add(screen);
-                }
-                candidates = allowed;
+                if (await _authorization.IsAllowedAsync(session, screen.Screen_Code, ScreenOperation.View))
+                    allowed.Add(screen);
             }
 
-            return Ok(candidates);
+            return Ok(allowed);
         }
 
         /// <summary>
