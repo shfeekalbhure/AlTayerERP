@@ -2,6 +2,7 @@ using AlTayerERP.Desktop.Common;
 using AlTayerERP.Desktop.Services;
 using System.Net.Http.Json;
 using System.Text.Json;
+using System.Drawing.Printing;
 
 namespace AlTayerERP.Desktop;
 
@@ -19,7 +20,12 @@ public class FrmGeographicReference : BaseForm
     private readonly NumericUpDown _sort = new() { Maximum = 99999, TextAlign = HorizontalAlignment.Right };
     private readonly CheckBox _active = new() { Text = "نشط", Checked = true, AutoSize = true, Enabled = false };
     private readonly TextBox _search = new() { PlaceholderText = "ابحث بالكود أو الاسم…" };
+    private readonly ComboBox _statusFilter = Combo();
     private readonly Label _count = new() { AutoSize = true };
+    // حقول التدقيق للعرض فقط؛ تملأ من API عند اختيار دولة.
+    private readonly Label _auditCreatedBy = AuditValue(), _auditCreatedAt = AuditValue();
+    private readonly Label _auditUpdatedBy = AuditValue(), _auditUpdatedAt = AuditValue();
+    private readonly Label _auditEditCount = AuditValue(), _auditPrintCount = AuditValue();
     private readonly Button _save, _deactivate, _reactivate;
     private readonly Dictionary<int, Dictionary<string, JsonElement>> _rows = new();
     private int _selectedId;
@@ -62,19 +68,16 @@ public class FrmGeographicReference : BaseForm
         shell.RowStyles.Add(new RowStyle(SizeType.Absolute, 72));
         shell.RowStyles.Add(new RowStyle(SizeType.Absolute, 48));
         shell.RowStyles.Add(new RowStyle(SizeType.Absolute, _type == GeographicReferenceType.Country ? 285 : 225));
-        shell.RowStyles.Add(new RowStyle(SizeType.Absolute, 40));
+        shell.RowStyles.Add(new RowStyle(SizeType.Absolute, 48));
         shell.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
-        shell.RowStyles.Add(new RowStyle(SizeType.Absolute, 30));
+        shell.RowStyles.Add(new RowStyle(SizeType.Absolute, 78));
         shell.RowStyles.Add(new RowStyle(SizeType.Absolute, 26));
 
         shell.Controls.Add(new BrandHeaderControl(ScreenTitle), 0, 0);
         shell.Controls.Add(BuildToolbar(), 0, 1);
         shell.Controls.Add(BuildEditor(), 0, 2);
 
-        _search.Dock = DockStyle.Fill;
-        _search.Margin = new Padding(0, 5, 0, 5);
-        _search.TextChanged += (_, _) => Filter();
-        shell.Controls.Add(_search, 0, 3);
+        shell.Controls.Add(BuildSearchPanel(), 0, 3);
 
         shell.Controls.Add(BuildGridCard(), 0, 4);
         shell.Controls.Add(BuildFooter(), 0, 5);
@@ -101,8 +104,9 @@ public class FrmGeographicReference : BaseForm
             ActionButton("تعديل", async (_, _) => await SaveAsync()),
             _deactivate,
             _reactivate,
-            ActionButton("تحديث", async (_, _) => await LoadRowsAsync()),
+            ActionButton("طباعة", async (_, _) => await PrintSelectedCountryAsync()),
             ActionButton("بحث", (_, _) => _search.Focus()),
+            ActionButton("تحديث", async (_, _) => await LoadRowsAsync()),
             ActionButton("إغلاق", (_, _) => Close())
         });
         return bar;
@@ -178,6 +182,46 @@ public class FrmGeographicReference : BaseForm
         return table;
     }
 
+    private Control BuildSearchPanel()
+    {
+        var panel = new TableLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            ColumnCount = 6,
+            Padding = new Padding(10, 6, 10, 6),
+            BackColor = Color.White,
+            RightToLeft = RightToLeft.Yes
+        };
+        panel.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 84));
+        panel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 58));
+        panel.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 58));
+        panel.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 150));
+        panel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 42));
+        panel.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 128));
+
+        _search.Dock = DockStyle.Fill;
+        _search.Margin = new Padding(3, 0, 8, 0);
+        _search.TextChanged += (_, _) => Filter();
+
+        _statusFilter.Items.Clear();
+        _statusFilter.Items.AddRange(new object[] { "الكل", "نشط", "موقوف" });
+        _statusFilter.SelectedIndex = 0;
+        _statusFilter.Dock = DockStyle.Fill;
+        _statusFilter.Margin = new Padding(3, 0, 8, 0);
+        _statusFilter.SelectedIndexChanged += (_, _) => Filter();
+
+        _count.Dock = DockStyle.Fill;
+        _count.TextAlign = ContentAlignment.MiddleLeft;
+        _count.ForeColor = Color.FromArgb(75, 85, 99);
+
+        panel.Controls.Add(Caption("البحث:"), 0, 0);
+        panel.Controls.Add(_search, 1, 0);
+        panel.Controls.Add(Caption("الحالة:"), 2, 0);
+        panel.Controls.Add(_statusFilter, 3, 0);
+        panel.Controls.Add(_count, 5, 0);
+        return Card("البحث والتصفية", panel);
+    }
+
     private Control BuildGridCard()
     {
         _grid.Dock = DockStyle.Fill;
@@ -194,19 +238,40 @@ public class FrmGeographicReference : BaseForm
 
     private Control BuildFooter()
     {
-        var panel = new Panel { Dock = DockStyle.Fill };
-        _count.Dock = DockStyle.Left;
-        _count.Padding = new Padding(5, 5, 0, 0);
-        panel.Controls.Add(_count);
-        panel.Controls.Add(new Label
+        var panel = new TableLayoutPanel
         {
-            Text = "الترابط المعتمد: الدولة ← المحافظة ← المدينة. الإيقاف وإعادة التفعيل يتطلبان سبباً ويسجلان في التدقيق.",
             Dock = DockStyle.Fill,
-            TextAlign = ContentAlignment.MiddleRight,
-            ForeColor = Color.FromArgb(75, 85, 99),
-            AutoEllipsis = true
-        });
+            ColumnCount = 3,
+            Padding = new Padding(0, 4, 0, 0),
+            RightToLeft = RightToLeft.Yes
+        };
+        panel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 33.34F));
+        panel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 33.33F));
+        panel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 33.33F));
+
+        panel.Controls.Add(CreateAuditCard("بيانات الإنشاء", "أنشئ بواسطة:", _auditCreatedBy, "تاريخ الإنشاء:", _auditCreatedAt), 0, 0);
+        panel.Controls.Add(CreateAuditCard("بيانات التعديل", "عُدّل بواسطة:", _auditUpdatedBy, "تاريخ التعديل:", _auditUpdatedAt), 1, 0);
+        panel.Controls.Add(CreateAuditCard("العدادات", "عدد مرات التعديل:", _auditEditCount, "عدد مرات الطباعة:", _auditPrintCount), 2, 0);
         return panel;
+    }
+
+    // ينشئ بطاقة تدقيق قراءة فقط بحدود واضحة للحفاظ على اتساق واجهات النظام.
+    private static Control CreateAuditCard(string title, string firstCaption, Label firstValue, string secondCaption, Label secondValue)
+    {
+        var table = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, RowCount = 3, Padding = new Padding(7, 2, 7, 2), BackColor = Color.White, BorderStyle = BorderStyle.FixedSingle };
+        table.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 112));
+        table.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+        table.RowStyles.Add(new RowStyle(SizeType.Absolute, 21));
+        table.RowStyles.Add(new RowStyle(SizeType.Absolute, 22));
+        table.RowStyles.Add(new RowStyle(SizeType.Absolute, 22));
+        var header = new Label { Text = title, Dock = DockStyle.Fill, TextAlign = ContentAlignment.MiddleRight, Font = new Font("Segoe UI", 8.8F, FontStyle.Bold), ForeColor = Color.FromArgb(8, 55, 112) };
+        table.Controls.Add(header, 0, 0);
+        table.SetColumnSpan(header, 2);
+        table.Controls.Add(AuditCaption(firstCaption), 0, 1);
+        table.Controls.Add(firstValue, 1, 1);
+        table.Controls.Add(AuditCaption(secondCaption), 0, 2);
+        table.Controls.Add(secondValue, 1, 2);
+        return table;
     }
 
     private async Task InitializeAsync()
@@ -318,6 +383,8 @@ public class FrmGeographicReference : BaseForm
             finally { _loadingLookups = false; }
         }
         UpdateButtons();
+        if (_type == GeographicReferenceType.Country)
+            await LoadCountryAuditAsync(_selectedId);
     }
 
     private async Task SaveAsync()
@@ -439,9 +506,15 @@ public class FrmGeographicReference : BaseForm
     private void Filter()
     {
         var query = _search.Text.Trim();
+        var status = _statusFilter.SelectedItem?.ToString() ?? "الكل";
         foreach (DataGridViewRow row in _grid.Rows)
-            row.Visible = string.IsNullOrWhiteSpace(query) || row.Cells.Cast<DataGridViewCell>()
+        {
+            var matchesText = string.IsNullOrWhiteSpace(query) || row.Cells.Cast<DataGridViewCell>()
                 .Any(c => (c.Value?.ToString() ?? string.Empty).Contains(query, StringComparison.CurrentCultureIgnoreCase));
+            var matchesStatus = status == "الكل" ||
+                (row.Cells["الحالة"].Value?.ToString() ?? string.Empty) == status;
+            row.Visible = matchesText && matchesStatus;
+        }
     }
 
     private void ClearForm()
@@ -454,6 +527,7 @@ public class FrmGeographicReference : BaseForm
         _grid.ClearSelection();
         if (_type != GeographicReferenceType.Country) _country.SelectedIndex = -1;
         if (_type == GeographicReferenceType.City) _governorate.SelectedIndex = -1;
+        ClearAuditInfo();
         UpdateButtons();
         _code.Focus();
     }
@@ -473,8 +547,68 @@ public class FrmGeographicReference : BaseForm
         else if (e.KeyCode == Keys.Escape) { Close(); e.SuppressKeyPress = true; }
     }
 
-    private static TextBox Input() => new();
+    // يستدعي API لتحميل حقول التدقيق الخاصة بالدولة المحددة.
+    private async Task LoadCountryAuditAsync(int countryId)
+    {
+        try
+        {
+            var audit = await ApiService.Client.GetFromJsonAsync<CountryAuditInfo>($"GeographicReferences/countries/{countryId}/audit-info");
+            if (audit is null) { ClearAuditInfo(); return; }
+            _auditCreatedBy.Text = audit.CreatedBy ?? "غير متاح";
+            _auditCreatedAt.Text = FormatAuditDate(audit.CreatedAt);
+            _auditUpdatedBy.Text = audit.UpdatedBy ?? "غير متاح";
+            _auditUpdatedAt.Text = FormatAuditDate(audit.UpdatedAt);
+            _auditEditCount.Text = audit.EditCount.ToString();
+            _auditPrintCount.Text = audit.PrintCount.ToString();
+        }
+        catch
+        {
+            // لا نمنع عرض الدولة عندما لا يكون سجل التدقيق متاحاً.
+            ClearAuditInfo();
+        }
+    }
+
+    // تسجل الطباعة في API ثم تفتح معاينة بسيطة لبيانات الدولة.
+    private async Task PrintSelectedCountryAsync()
+    {
+        if (_type != GeographicReferenceType.Country || _selectedId <= 0)
+        {
+            MessageBox.Show("اختر دولة أولاً.");
+            return;
+        }
+
+        var response = await ApiService.Client.PostAsync($"GeographicReferences/countries/{_selectedId}/print", null);
+        if (!response.IsSuccessStatusCode)
+        {
+            MessageBox.Show(await response.Content.ReadAsStringAsync(), "تعذر تسجيل الطباعة", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            return;
+        }
+
+        using var document = new PrintDocument();
+        document.DocumentName = $"بيانات الدولة - {_nameAr.Text}";
+        document.PrintPage += (_, e) =>
+        {
+            using var titleFont = new Font("Segoe UI", 16, FontStyle.Bold);
+            using var bodyFont = new Font("Segoe UI", 11);
+            e.Graphics.DrawString("بيانات الدولة", titleFont, Brushes.Navy, 80, 80);
+            e.Graphics.DrawString($"الكود: {_code.Text}\nالاسم بالعربية: {_nameAr.Text}\nالاسم بالإنجليزية: {_nameEn.Text}\nISO2: {_iso2.Text}\nISO3: {_iso3.Text}\nرمز العملة: {_currencyCode.Text}", bodyFont, Brushes.Black, new RectangleF(80, 135, 650, 300));
+        };
+        using var preview = new PrintPreviewDialog { Document = document, Width = 900, Height = 700, RightToLeft = RightToLeft.Yes };
+        preview.ShowDialog(this);
+        await LoadCountryAuditAsync(_selectedId);
+    }
+
+    private void ClearAuditInfo()
+    {
+        foreach (var value in new[] { _auditCreatedBy, _auditCreatedAt, _auditUpdatedBy, _auditUpdatedAt, _auditEditCount, _auditPrintCount })
+            value.Text = "غير متاح";
+    }
+
+    private static string FormatAuditDate(DateTime? value) => value?.ToString("yyyy/MM/dd HH:mm") ?? "غير متاح";
+    private static TextBox Input() => new() { BorderStyle = BorderStyle.FixedSingle };
     private static ComboBox Combo() => new() { DropDownStyle = ComboBoxStyle.DropDownList };
+    private static Label AuditValue() => new() { Dock = DockStyle.Fill, Text = "غير متاح", TextAlign = ContentAlignment.MiddleRight, BorderStyle = BorderStyle.FixedSingle, Padding = new Padding(4, 0, 4, 0), ForeColor = Color.FromArgb(55, 65, 81) };
+    private static Label AuditCaption(string text) => new() { Text = text, Dock = DockStyle.Fill, TextAlign = ContentAlignment.MiddleRight, Font = new Font("Segoe UI", 8F, FontStyle.Bold), ForeColor = Color.FromArgb(75, 85, 99) };
     private static bool IsTrue(string value) => value == "1" || value.Equals("true", StringComparison.OrdinalIgnoreCase);
     private static string? CleanText(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 
@@ -543,6 +677,16 @@ public class FrmGeographicReference : BaseForm
         input.Dock = DockStyle.Fill;
         table.Controls.Add(input, 1, row);
         table.SetColumnSpan(input, 3);
+    }
+
+    private sealed class CountryAuditInfo
+    {
+        public string? CreatedBy { get; set; }
+        public DateTime? CreatedAt { get; set; }
+        public string? UpdatedBy { get; set; }
+        public DateTime? UpdatedAt { get; set; }
+        public int EditCount { get; set; }
+        public int PrintCount { get; set; }
     }
 
     private sealed class CountryLookup
