@@ -39,8 +39,10 @@ public class FrmGeographicReference : BaseForm
     {
         _type = type;
         base.Text = ScreenTitle;
-        Width = 1180;
-        Height = 760;
+        // تمنع هذه الحدود ضغط الحقول عند فتح الشاشة داخل مساحة العمل الرئيسية.
+        Width = 1280;
+        Height = 820;
+        MinimumSize = new Size(1060, 700);
         StartPosition = FormStartPosition.CenterParent;
         ApplyBaseFormStyle();
 
@@ -65,12 +67,13 @@ public class FrmGeographicReference : BaseForm
             Padding = new Padding(10),
             BackColor = Color.FromArgb(244, 247, 251)
         };
-        shell.RowStyles.Add(new RowStyle(SizeType.Absolute, 72));
-        shell.RowStyles.Add(new RowStyle(SizeType.Absolute, 48));
-        shell.RowStyles.Add(new RowStyle(SizeType.Absolute, _type == GeographicReferenceType.Country ? 285 : 225));
-        shell.RowStyles.Add(new RowStyle(SizeType.Absolute, 48));
-        shell.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+        shell.RowStyles.Add(new RowStyle(SizeType.Absolute, 64));
+        shell.RowStyles.Add(new RowStyle(SizeType.Absolute, 46));
+        shell.RowStyles.Add(new RowStyle(SizeType.Absolute, _type == GeographicReferenceType.Country ? 292 : 238));
+        // بطاقة البحث تحتوي عنواناً داخلياً؛ الارتفاع السابق كان يقص الحقول.
         shell.RowStyles.Add(new RowStyle(SizeType.Absolute, 78));
+        shell.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+        shell.RowStyles.Add(new RowStyle(SizeType.Absolute, 70));
         shell.RowStyles.Add(new RowStyle(SizeType.Absolute, 26));
 
         shell.Controls.Add(new BrandHeaderControl(ScreenTitle), 0, 0);
@@ -93,7 +96,7 @@ public class FrmGeographicReference : BaseForm
             FlowDirection = FlowDirection.RightToLeft,
             WrapContents = false,
             AutoScroll = true,
-            Padding = new Padding(3, 5, 3, 3),
+            Padding = new Padding(8, 4, 8, 4),
             BackColor = Color.White
         };
 
@@ -119,14 +122,15 @@ public class FrmGeographicReference : BaseForm
             Dock = DockStyle.Fill,
             ColumnCount = 4,
             RowCount = _type == GeographicReferenceType.Country ? 5 : 4,
-            Padding = new Padding(12)
+            Padding = new Padding(12, 8, 12, 8),
+            RightToLeft = RightToLeft.Yes
         };
         body.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 145));
         body.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
         body.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 145));
         body.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
         for (var i = 0; i < body.RowCount; i++)
-            body.RowStyles.Add(new RowStyle(SizeType.Absolute, 50));
+            body.RowStyles.Add(new RowStyle(SizeType.Absolute, 46));
 
         AddRow(body, 0, $"كود {Singular} *", _code, $"اسم {Singular} بالعربية *", _nameAr);
         AddRow(body, 1, $"اسم {Singular} بالإنجليزية", _nameEn, "ترتيب الظهور", _sort);
@@ -152,7 +156,7 @@ public class FrmGeographicReference : BaseForm
         {
             var wrapper = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 2 };
             wrapper.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
-            wrapper.RowStyles.Add(new RowStyle(SizeType.Absolute, 58));
+            wrapper.RowStyles.Add(new RowStyle(SizeType.Absolute, 52));
             wrapper.Controls.Add(body, 0, 0);
             wrapper.Controls.Add(BuildNotesRow(), 0, 1);
             return Card("بيانات " + Singular, wrapper);
@@ -162,7 +166,7 @@ public class FrmGeographicReference : BaseForm
         {
             var wrapper = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 2 };
             wrapper.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
-            wrapper.RowStyles.Add(new RowStyle(SizeType.Absolute, 58));
+            wrapper.RowStyles.Add(new RowStyle(SizeType.Absolute, 52));
             wrapper.Controls.Add(body, 0, 0);
             wrapper.Controls.Add(BuildNotesRow(), 0, 1);
             return Card("بيانات " + Singular, wrapper);
@@ -173,7 +177,7 @@ public class FrmGeographicReference : BaseForm
 
     private Control BuildNotesRow()
     {
-        var table = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, Padding = new Padding(12, 2, 12, 4) };
+        var table = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, Padding = new Padding(12, 0, 12, 2) };
         table.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 145));
         table.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
         table.Controls.Add(Caption("ملاحظات"), 0, 0);
@@ -188,7 +192,7 @@ public class FrmGeographicReference : BaseForm
         {
             Dock = DockStyle.Fill,
             ColumnCount = 6,
-            Padding = new Padding(10, 6, 10, 6),
+            Padding = new Padding(12, 5, 12, 6),
             BackColor = Color.White,
             RightToLeft = RightToLeft.Yes
         };
@@ -200,18 +204,19 @@ public class FrmGeographicReference : BaseForm
         panel.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 128));
 
         _search.Dock = DockStyle.Fill;
-        _search.Margin = new Padding(3, 0, 8, 0);
+        _search.Margin = new Padding(5, 2, 10, 2);
         _search.TextChanged += (_, _) => Filter();
 
         _statusFilter.Items.Clear();
         _statusFilter.Items.AddRange(new object[] { "الكل", "نشط", "موقوف" });
         _statusFilter.SelectedIndex = 0;
         _statusFilter.Dock = DockStyle.Fill;
-        _statusFilter.Margin = new Padding(3, 0, 8, 0);
+        _statusFilter.Margin = new Padding(5, 2, 10, 2);
         _statusFilter.SelectedIndexChanged += (_, _) => Filter();
 
         _count.Dock = DockStyle.Fill;
-        _count.TextAlign = ContentAlignment.MiddleLeft;
+        _count.TextAlign = ContentAlignment.MiddleRight;
+        _count.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
         _count.ForeColor = Color.FromArgb(75, 85, 99);
 
         panel.Controls.Add(Caption("البحث:"), 0, 0);
@@ -232,6 +237,8 @@ public class FrmGeographicReference : BaseForm
         _grid.MultiSelect = false;
         _grid.RowHeadersVisible = false;
         _grid.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
+        _grid.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.DisableResizing;
+        _grid.RowTemplate.MinimumHeight = 34;
         _grid.SelectionChanged += async (_, _) => await SelectCurrentAsync();
         return Card("قائمة " + ScreenTitle, _grid);
     }
@@ -242,7 +249,7 @@ public class FrmGeographicReference : BaseForm
         {
             Dock = DockStyle.Fill,
             ColumnCount = 3,
-            Padding = new Padding(0, 4, 0, 0),
+            Padding = new Padding(0, 2, 0, 0),
             RightToLeft = RightToLeft.Yes
         };
         panel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 33.34F));
@@ -258,7 +265,7 @@ public class FrmGeographicReference : BaseForm
     // ينشئ بطاقة تدقيق قراءة فقط بحدود واضحة للحفاظ على اتساق واجهات النظام.
     private static Control CreateAuditCard(string title, string firstCaption, Label firstValue, string secondCaption, Label secondValue)
     {
-        var table = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, RowCount = 3, Padding = new Padding(7, 2, 7, 2), BackColor = Color.White, BorderStyle = BorderStyle.FixedSingle };
+        var table = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, RowCount = 3, Padding = new Padding(7, 2, 7, 2), BackColor = Color.White, BorderStyle = BorderStyle.FixedSingle, Margin = new Padding(2) };
         table.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 112));
         table.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
         table.RowStyles.Add(new RowStyle(SizeType.Absolute, 21));
@@ -636,7 +643,7 @@ public class FrmGeographicReference : BaseForm
             Dock = DockStyle.Fill,
             BackColor = Color.White,
             BorderStyle = BorderStyle.FixedSingle,
-            Padding = new Padding(8)
+            Padding = new Padding(10, 7, 10, 7)
         };
         body.Dock = DockStyle.Fill;
         panel.Controls.Add(body);
@@ -644,7 +651,7 @@ public class FrmGeographicReference : BaseForm
         {
             Text = title,
             Dock = DockStyle.Top,
-            Height = 30,
+            Height = 28,
             TextAlign = ContentAlignment.MiddleRight,
             Font = new Font("Segoe UI", 10.5F, FontStyle.Bold),
             ForeColor = Color.FromArgb(8, 55, 112)
