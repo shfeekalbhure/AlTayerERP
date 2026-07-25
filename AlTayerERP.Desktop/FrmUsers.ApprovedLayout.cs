@@ -68,7 +68,7 @@ namespace AlTayerERP.Desktop
             };
             // تخطيط مضغوط: البيانات واضحة، الجدول قصير، وتذييل التدقيق ثابت أسفل الشاشة.
             root.RowStyles.Add(new RowStyle(SizeType.Absolute, 52F));
-            root.RowStyles.Add(new RowStyle(SizeType.Absolute, 262F));
+            root.RowStyles.Add(new RowStyle(SizeType.Absolute, 274F));
             root.RowStyles.Add(new RowStyle(SizeType.Absolute, 54F));
             root.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
             root.RowStyles.Add(new RowStyle(SizeType.Absolute, 70F));
@@ -200,85 +200,53 @@ namespace AlTayerERP.Desktop
             txtUserName.Text = "(جديد)";
             txtPassword.UseSystemPasswordChar = true;
             txtConfirmPassword.UseSystemPasswordChar = true;
-            txtNotes.Multiline = true;
+            txtNotes.Multiline = false;
             txtNotes.PlaceholderText = "ملاحظات إدارية أو سبب الإيقاف";
-            txtNotes.ScrollBars = ScrollBars.Vertical;
+            txtNotes.ScrollBars = ScrollBars.None;
 
             chkIsActive.Text = "الحساب نشط";
             chkChangePassword.Text = "إجبار تغيير كلمة المرور عند أول دخول";
             foreach (var check in new[] { chkIsActive, chkChangePassword })
             {
                 check.AutoSize = true;
-                check.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+                check.Font = new Font("Segoe UI", 8.5F, FontStyle.Bold);
                 check.ForeColor = Color.FromArgb(8, 49, 92);
-                check.Margin = new Padding(8, 4, 16, 4);
+                check.Margin = new Padding(10, 2, 18, 2);
             }
 
-            var dataRoot = new TableLayoutPanel
-            {
-                Dock = DockStyle.Fill,
-                RowCount = 3,
-                ColumnCount = 1,
-                Padding = new Padding(2),
-                BackColor = Color.Transparent
-            };
-            dataRoot.RowStyles.Add(new RowStyle(SizeType.Absolute, 120F));
-            dataRoot.RowStyles.Add(new RowStyle(SizeType.Absolute, 92F));
-            dataRoot.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
+            // جروب واحد فقط: صفوف متقابلة في اليمين واليسار، بلا تداخل أو قص.
+            var userAndSecurity = CreateUsersSection("بيانات وأمان المستخدم");
+            var fields = CreateUsersFieldsTable(7);
+            AddUserField(fields, "رقم المستخدم", txtUserName, 0, 0);
+            AddUserField(fields, "اسم الدخول", txtLoginName, 2, 0);
+            AddUserField(fields, "الاسم الكامل", txtFullName, 0, 1);
+            AddUserField(fields, "الجوال", txtPhone, 2, 1);
+            AddUserField(fields, "الدور", cmbRole, 0, 2);
+            AddUserField(fields, "الفرع", cmbBranch, 2, 2);
+            AddUserField(fields, "كلمة المرور", txtPassword, 0, 3);
+            AddUserField(fields, "إعادة كلمة المرور", txtConfirmPassword, 2, 3);
+            AddUserField(fields, "البريد الإلكتروني", txtEmail, 0, 4);
+            AddUserField(fields, "الحالة", cmbStatus, 2, 4);
 
-            var identity = CreateUsersSection("بيانات المستخدم والارتباط التنظيمي");
-            var identityFields = CreateUsersFieldsTable(4);
-            AddUserField(identityFields, "رقم المستخدم", txtUserName, 0, 0);
-            AddUserField(identityFields, "اسم الدخول", txtLoginName, 2, 0);
-            AddUserField(identityFields, "الاسم الكامل", txtFullName, 0, 1);
-            AddUserField(identityFields, "الهاتف", txtPhone, 2, 1);
-            AddUserField(identityFields, "البريد الإلكتروني", txtEmail, 0, 2);
-            AddUserField(identityFields, "الدور", cmbRole, 2, 2);
-            AddUserField(identityFields, "الفرع", cmbBranch, 0, 3);
-            AddUserField(identityFields, "الحالة", cmbStatus, 2, 3);
-            identity.Controls.Add(identityFields);
+            fields.Controls.Add(CreateInlineUserLabel("الملاحظات"), 0, 5);
+            fields.Controls.Add(PrepareInlineUserInput(txtNotes), 1, 5);
+            fields.SetColumnSpan(txtNotes, 3);
 
-            var security = CreateUsersSection("أمان الحساب");
-            var securityLayout = new TableLayoutPanel
-            {
-                Dock = DockStyle.Fill,
-                ColumnCount = 4,
-                RowCount = 2,
-                RightToLeft = RightToLeft.Yes,
-                Padding = new Padding(4, 1, 4, 1)
-            };
-            securityLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 15F));
-            securityLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 35F));
-            securityLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 18F));
-            securityLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 32F));
-            securityLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 34F));
-            securityLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
-            securityLayout.Controls.Add(CreateInlineUserLabel("كلمة المرور"), 0, 0);
-            securityLayout.Controls.Add(PrepareInlineUserInput(txtPassword), 1, 0);
-            securityLayout.Controls.Add(CreateInlineUserLabel("تأكيد كلمة المرور"), 2, 0);
-            securityLayout.Controls.Add(PrepareInlineUserInput(txtConfirmPassword), 3, 0);
             var flags = new FlowLayoutPanel
             {
                 Dock = DockStyle.Fill,
                 FlowDirection = FlowDirection.RightToLeft,
-                WrapContents = true,
-                Padding = new Padding(6, 2, 0, 0)
+                RightToLeft = RightToLeft.No,
+                WrapContents = false,
+                Padding = new Padding(6, 1, 0, 0)
             };
             flags.Controls.Add(chkIsActive);
             flags.Controls.Add(chkChangePassword);
-            securityLayout.Controls.Add(flags, 0, 1);
-            securityLayout.SetColumnSpan(flags, 4);
-            security.Controls.Add(securityLayout);
+            fields.Controls.Add(flags, 0, 6);
+            fields.SetColumnSpan(flags, 4);
 
-            var notes = CreateUsersSection("ملاحظات المستخدم");
-            txtNotes.Dock = DockStyle.Fill;
-            txtNotes.Margin = new Padding(6, 2, 6, 4);
-            notes.Controls.Add(txtNotes);
-
-            dataRoot.Controls.Add(identity, 0, 0);
-            dataRoot.Controls.Add(security, 0, 1);
-            dataRoot.Controls.Add(notes, 0, 2);
-            pnlData.Controls.Add(dataRoot);
+            userAndSecurity.Controls.Add(fields);
+            pnlData.Controls.Add(userAndSecurity);
         }
 
         private static GroupBox CreateUsersSection(string title) => new()
@@ -436,7 +404,7 @@ namespace AlTayerERP.Desktop
             _lblResultCount.ForeColor = Color.FromArgb(51, 65, 85);
             layout.Controls.Add(_lblResultCount, 5, 0);
 
-            _txtUserSearch.PlaceholderText = "الاسم أو اسم الدخول أو الرقم";
+            _txtUserSearch.PlaceholderText = "بحث بالرقم أو الاسم أو اسم الدخول";
             _cmbFilterBranch.DropDownStyle = ComboBoxStyle.DropDownList;
             _cmbFilterRole.DropDownStyle = ComboBoxStyle.DropDownList;
             _cmbFilterStatus.DropDownStyle = ComboBoxStyle.DropDownList;
