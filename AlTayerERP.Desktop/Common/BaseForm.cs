@@ -14,7 +14,6 @@ public abstract class BaseForm : Form
     private readonly Panel _pnlAuditBody = new();
     private readonly Button _btnToggleAudit = new();
     private bool _showPrintAudit;
-    private bool _responsiveApplied;
 
     protected void ApplyBaseFormStyle()
     {
@@ -41,9 +40,8 @@ public abstract class BaseForm : Form
         {
             if (IsDisposed) return;
 
-            // الشاشات تفتح داخل تبويبات FrmMain، لذلك لا يسمح للحجم الأدنى
-            // بفرض مساحة أكبر من مساحة العمل المتاحة فعلياً.
-            if (!TopLevel || Parent is TabPage)
+            var insideWorkspace = !TopLevel || Parent is TabPage;
+            if (insideWorkspace)
             {
                 MinimumSize = Size.Empty;
                 MaximumSize = Size.Empty;
@@ -52,8 +50,7 @@ public abstract class BaseForm : Form
             }
 
             ApplyPremiumVisualIdentity(this);
-            ApplyResponsiveLayout(this);
-            _responsiveApplied = true;
+            ApplyResponsiveLayout(this, insideWorkspace);
             Invalidate(true);
         }));
     }
@@ -96,43 +93,41 @@ public abstract class BaseForm : Form
         }
     }
 
-    private void ApplyResponsiveLayout(Control root)
+    private void ApplyResponsiveLayout(Control root, bool insideWorkspace)
     {
         var availableWidth = Math.Max(700, ClientSize.Width);
-        var compact = availableWidth < 1180;
-        var veryCompact = availableWidth < 980;
+        var compact = insideWorkspace || availableWidth < 1450;
+        var veryCompact = availableWidth < 1080;
+        var geographicScreen = GetType().Name is "FrmCountries" or "FrmGovernorates" or "FrmCities";
 
-        Padding = compact ? new Padding(0) : Padding;
+        if (compact) Padding = new Padding(0);
 
         foreach (var table in FindControls<TableLayoutPanel>(root))
         {
-            if (compact && table.Padding.Left > 10)
-                table.Padding = new Padding(8);
+            if (compact && table.Padding.Left > 8)
+                table.Padding = new Padding(6);
 
-            // جداول الحقول في الشركات والفروع: تصغير عمودي التسميات
-            // حتى تبقى مساحة كافية للمدخلات داخل القائمة الجانبية.
-            if (table.ColumnCount == 4 && !DirectChildrenAreFieldCards(table))
+            if (table.ColumnCount == 4 && !DirectChildrenAreFieldCards(table) && table.ColumnStyles.Count >= 4)
             {
-                if (table.ColumnStyles.Count >= 4)
-                {
-                    if (table.ColumnStyles[0].SizeType == SizeType.Absolute && table.ColumnStyles[0].Width > 118)
-                        table.ColumnStyles[0].Width = compact ? 105 : 125;
-                    if (table.ColumnStyles[2].SizeType == SizeType.Absolute && table.ColumnStyles[2].Width > 118)
-                        table.ColumnStyles[2].Width = compact ? 105 : 125;
-                }
+                if (table.ColumnStyles[0].SizeType == SizeType.Absolute && table.ColumnStyles[0].Width > 108)
+                    table.ColumnStyles[0].Width = compact ? 96 : 120;
+                if (table.ColumnStyles[2].SizeType == SizeType.Absolute && table.ColumnStyles[2].Width > 108)
+                    table.ColumnStyles[2].Width = compact ? 96 : 120;
             }
 
-            // شاشة الدول والمحافظات والمدن كانت تعرض أربعة حقول في صف واحد،
-            // وهو سبب القص الظاهر في الصور. يعاد توزيعها إلى عمودين فقط.
-            if (compact && table.ColumnCount == 4 && DirectChildrenAreFieldCards(table) && table.Tag?.ToString() != "REFLOWED_2COL")
+            // المراجع الجغرافية تعتمد عمودين دائماً داخل النظام؛ التخطيط السابق
+            // بأربعة أعمدة هو سبب قص العناوين والحقول الظاهر في صور التشغيل.
+            if ((compact || geographicScreen) && table.ColumnCount == 4 &&
+                DirectChildrenAreFieldCards(table) && table.Tag?.ToString() != "REFLOWED_2COL")
+            {
                 ReflowFieldCardsToTwoColumns(table);
+            }
 
-            // بعد إعادة توزيع محرر المراجع يحتاج صف البيانات مساحة ثابتة مناسبة.
             if (table.RowCount >= 5 && table.GetControlFromPosition(0, 0) is BrandHeaderControl && table.RowStyles.Count > 2)
             {
                 var editor = table.GetControlFromPosition(0, 2);
                 if (editor is not null && ContainsReflowedTable(editor))
-                    table.RowStyles[2].Height = compact ? 286 : Math.Max(table.RowStyles[2].Height, 260);
+                    table.RowStyles[2].Height = compact ? 292 : 270;
             }
         }
 
@@ -147,7 +142,7 @@ public abstract class BaseForm : Form
                 button.Tag ??= button.Text;
                 var original = button.Tag?.ToString() ?? button.Text;
                 button.Text = compact ? RemoveShortcut(original) : original;
-                button.Width = veryCompact ? 82 : compact ? 94 : Math.Max(106, button.Width);
+                button.Width = veryCompact ? 78 : compact ? 90 : Math.Max(106, button.Width);
                 button.Height = 36;
                 button.Margin = new Padding(3, 4, 3, 4);
             }
@@ -155,7 +150,7 @@ public abstract class BaseForm : Form
 
         foreach (var label in FindControls<Label>(root))
         {
-            if (compact && label.Font.Size > 10.5F && label is not null)
+            if (compact && label.Font.Size > 10.5F)
                 label.AutoEllipsis = true;
         }
     }
