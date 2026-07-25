@@ -68,10 +68,10 @@ namespace AlTayerERP.Desktop
             };
             // تخطيط مضغوط: البيانات واضحة، الجدول قصير، وتذييل التدقيق ثابت أسفل الشاشة.
             root.RowStyles.Add(new RowStyle(SizeType.Absolute, 52F));
-            root.RowStyles.Add(new RowStyle(SizeType.Absolute, 274F));
-            root.RowStyles.Add(new RowStyle(SizeType.Absolute, 54F));
+            root.RowStyles.Add(new RowStyle(SizeType.Absolute, 250F));
+            root.RowStyles.Add(new RowStyle(SizeType.Absolute, 64F));
             root.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
-            root.RowStyles.Add(new RowStyle(SizeType.Absolute, 70F));
+            root.RowStyles.Add(new RowStyle(SizeType.Absolute, 92F));
 
             Controls.Remove(pnlToolbar);
             Controls.Remove(pnlData);
@@ -138,20 +138,6 @@ namespace AlTayerERP.Desktop
             btnPrint.Click += (_, _) => PrintUsersGrid();
             btnNew.Click += (_, _) => SetNewUserVisualState();
 
-            // Dock.Right مع اتجاه صريح: أول زر مضاف يظهر في أقصى اليمين دائماً.
-            var strip = new FlowLayoutPanel
-            {
-                Dock = DockStyle.Right,
-                AutoSize = true,
-                AutoSizeMode = AutoSizeMode.GrowAndShrink,
-                FlowDirection = FlowDirection.RightToLeft,
-                RightToLeft = RightToLeft.No,
-                WrapContents = false,
-                AutoScroll = false,
-                Padding = new Padding(1),
-                BackColor = Color.Transparent
-            };
-
             ConfigureActionButton(btnNew, Color.FromArgb(37, 99, 235), Color.White, 70);
             ConfigureActionButton(btnSave, Color.FromArgb(22, 163, 74), Color.White, 70);
             ConfigureActionButton(btnEdit, Color.FromArgb(245, 158, 11), Color.White, 70);
@@ -163,19 +149,43 @@ namespace AlTayerERP.Desktop
             ConfigureActionButton(btnRefresh, Color.White, Color.FromArgb(8, 49, 92), 70);
             ConfigureActionButton(btnClose, Color.FromArgb(51, 65, 85), Color.White, 70);
 
-            foreach (var button in new[]
-                     {
-                         btnNew, btnSave, btnEdit, btnDelete, _btnReactivate,
-                         _btnResetPassword, btnPrint, btnSearch, btnRefresh, btnClose
-                     })
-                strip.Controls.Add(button);
+            var buttons = new[]
+            {
+                btnNew, btnSave, btnEdit, btnDelete, _btnReactivate,
+                _btnResetPassword, btnPrint, btnSearch, btnRefresh, btnClose
+            };
 
+            // ترتيب صريح من اليمين إلى اليسار؛ لا يعتمد على انعكاس FlowLayoutPanel.
+            var strip = new Panel
+            {
+                Dock = DockStyle.Fill,
+                BackColor = Color.Transparent
+            };
+            foreach (var button in buttons)
+            {
+                button.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+                strip.Controls.Add(button);
+            }
+
+            void ArrangeToolbarButtons()
+            {
+                var x = strip.ClientSize.Width - 5;
+                foreach (var button in buttons)
+                {
+                    x -= button.Width;
+                    button.Location = new Point(Math.Max(3, x), 3);
+                    x -= 6;
+                }
+            }
+
+            strip.SizeChanged += (_, _) => ArrangeToolbarButtons();
+            strip.Layout += (_, _) => ArrangeToolbarButtons();
             pnlToolbar.Controls.Add(strip);
         }
 
         private static void ConfigureActionButton(Button button, Color backColor, Color foreColor, int width)
         {
-            button.Size = new Size(width, 38);
+            button.Size = new Size(width, 34);
             button.Margin = new Padding(3);
             button.FlatStyle = FlatStyle.Flat;
             button.FlatAppearance.BorderSize = backColor == Color.White ? 1 : 0;
@@ -368,7 +378,7 @@ namespace AlTayerERP.Desktop
             _grpUserFilters.Text = "البحث والتصفية";
             _grpUserFilters.ForeColor = Color.FromArgb(8, 49, 92);
             _grpUserFilters.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
-            _grpUserFilters.Padding = new Padding(8, 18, 8, 4);
+            _grpUserFilters.Padding = new Padding(8, 20, 8, 5);
             _grpUserFilters.BackColor = Color.White;
 
             var layout = new TableLayoutPanel
@@ -455,8 +465,8 @@ namespace AlTayerERP.Desktop
             pnlGrid.BackColor = Color.Transparent;
             // لا تمدد الشبكة على كامل المساحة الفارغة عندما تكون النتائج قليلة.
             dgvUsers.Dock = DockStyle.Top;
-            dgvUsers.Height = 190;
-            dgvUsers.MinimumSize = new Size(0, 190);
+            dgvUsers.Height = 104;
+            dgvUsers.MinimumSize = new Size(0, 104);
             dgvUsers.RightToLeft = RightToLeft.Yes;
             dgvUsers.BackgroundColor = Color.White;
             dgvUsers.BorderStyle = BorderStyle.FixedSingle;
@@ -486,36 +496,29 @@ namespace AlTayerERP.Desktop
             _grpUserAudit.Dock = DockStyle.Fill;
             _grpUserAudit.Text = "بيانات الإنشاء والتعديل";
             _grpUserAudit.ForeColor = Color.FromArgb(8, 49, 92);
-            _grpUserAudit.Font = new Font("Segoe UI", 8.5F, FontStyle.Bold);
+            _grpUserAudit.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
             _grpUserAudit.BackColor = Color.White;
-            _grpUserAudit.Padding = new Padding(8, 18, 8, 4);
+            _grpUserAudit.Padding = new Padding(12, 20, 12, 6);
 
-            // صفّان قصيران بدلاً من سبعة أعمدة ضيقة، حتى تبقى بيانات التدقيق مقروءة.
+            // ثلاث كتل متقابلة: الإنشاء، التعديل، ثم عدادات العمليات.
             var audit = new TableLayoutPanel
             {
                 Dock = DockStyle.Fill,
-                ColumnCount = 4,
+                ColumnCount = 3,
                 RowCount = 2,
                 RightToLeft = RightToLeft.Yes
             };
-            for (var i = 0; i < 4; i++)
-                audit.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 25F));
+            for (var i = 0; i < 3; i++)
+                audit.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F / 3F));
             audit.RowStyles.Add(new RowStyle(SizeType.Percent, 50F));
             audit.RowStyles.Add(new RowStyle(SizeType.Percent, 50F));
 
-            _lblSelectionState.Dock = DockStyle.Fill;
-            _lblSelectionState.Text = "الوضع: مستخدم جديد";
-            _lblSelectionState.TextAlign = ContentAlignment.MiddleRight;
-            _lblSelectionState.Font = new Font("Segoe UI", 8.5F, FontStyle.Bold);
-            _lblSelectionState.ForeColor = Color.FromArgb(37, 99, 235);
-            audit.Controls.Add(_lblSelectionState, 0, 0);
-            audit.Controls.Add(CreateAuditLabel("أنشئ بواسطة: —"), 1, 0);
-            audit.Controls.Add(CreateAuditLabel("تاريخ الإنشاء: —"), 2, 0);
-            audit.Controls.Add(CreateAuditLabel("عدّل بواسطة: —"), 3, 0);
-            audit.Controls.Add(CreateAuditLabel("تاريخ التعديل: —"), 0, 1);
-            audit.Controls.Add(CreateAuditLabel("عدد التعديلات: —"), 1, 1);
-            audit.Controls.Add(CreateAuditLabel("عدد الطباعة: —"), 2, 1);
-            audit.Controls.Add(CreateAuditLabel("آخر طباعة: —"), 3, 1);
+            audit.Controls.Add(CreateAuditLabel("أنشئ بواسطة: —"), 0, 0);
+            audit.Controls.Add(CreateAuditLabel("تاريخ الإنشاء: —"), 0, 1);
+            audit.Controls.Add(CreateAuditLabel("عُدّل بواسطة: —"), 1, 0);
+            audit.Controls.Add(CreateAuditLabel("تاريخ التعديل: —"), 1, 1);
+            audit.Controls.Add(CreateAuditLabel("عدد مرات التعديل: —"), 2, 0);
+            audit.Controls.Add(CreateAuditLabel("عدد مرات الطباعة: —"), 2, 1);
             _grpUserAudit.Controls.Add(audit);
         }
 
@@ -523,9 +526,10 @@ namespace AlTayerERP.Desktop
         {
             Text = text,
             Dock = DockStyle.Fill,
-            TextAlign = ContentAlignment.MiddleCenter,
-            Font = new Font("Segoe UI", 8F),
-            ForeColor = Color.FromArgb(71, 85, 105)
+            TextAlign = ContentAlignment.MiddleRight,
+            Font = new Font("Segoe UI", 9F, FontStyle.Bold),
+            ForeColor = Color.FromArgb(51, 65, 85),
+            Padding = new Padding(8, 0, 8, 0)
         };
 
         private void RefreshBranchFilter()
