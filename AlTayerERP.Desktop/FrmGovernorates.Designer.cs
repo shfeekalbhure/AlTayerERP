@@ -365,4 +365,7 @@ partial class FrmGovernorates
     private TableLayoutPanel tblAuditSummary = null!;
     private GroupBox grpCreationData = null!, grpModificationData = null!, grpCounters = null!;
     private Label lblCreatedBy = null!, lblCreatedAt = null!, lblModifiedBy = null!, lblModifiedAt = null!, lblEditCount = null!, lblPrintCount = null!;
+
+    #endregion
+
 }
