@@ -1,17 +1,22 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+namespace AlTayerERP.Mobile.Office;
 
-namespace AlTayerERP.Mobile.Office
+public partial class App : Application
 {
-    public partial class App : Application
-    {
-        public App()
-        {
-            InitializeComponent();
-        }
+    private readonly MainPage _mainPage;
 
-        protected override Window CreateWindow(IActivationState? activationState)
+    public App(MainPage mainPage)
+    {
+        InitializeComponent();
+        _mainPage = mainPage;
+    }
+
+    protected override Window CreateWindow(IActivationState? activationState)
+    {
+        return new Window(new NavigationPage(_mainPage)
         {
-            return new Window(new AppShell());
-        }
+            FlowDirection = FlowDirection.RightToLeft,
+            BarBackgroundColor = Color.FromArgb("#17324D"),
+            BarTextColor = Colors.White
+        });
     }
 }
