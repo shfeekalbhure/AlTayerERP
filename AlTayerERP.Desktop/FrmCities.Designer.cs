@@ -1,6 +1,8 @@
+using AlTayerERP.Desktop.Common;
+
 namespace AlTayerERP.Desktop;
 
-partial class FrmCities
+partial class FrmCities : BaseForm
 {
     private System.ComponentModel.IContainer? components = null;
     protected override void Dispose(bool disposing) { if (disposing) components?.Dispose(); base.Dispose(disposing); }
