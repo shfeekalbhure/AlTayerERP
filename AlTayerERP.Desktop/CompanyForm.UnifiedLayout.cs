@@ -74,6 +74,7 @@ public partial class CompanyForm
         ApplyRequestedCardStyle();
 
         ReflowMainAreaForWorkspace();
+        ArrangePrimaryCompanyFields();
         ArrangeCompanyEntryLikeReference();
 
         pnlHeader.BringToFront();
@@ -82,6 +83,64 @@ public partial class CompanyForm
         pnlAudit.BringToFront();
 
         ResumeLayout(true);
+    }
+
+    /// <summary>
+    /// يجعل حقول تعريف الشركة في بطاقة واحدة، كما في النموذج المعتمد: المجموعة
+    /// والاسم والرمز والاسم الإنجليزي والنشاط والرقم الضريبي. أما التواصل فيبقى
+    /// بطاقة ثانوية مستقلة كي لا يزاحم بيانات التعريف.
+    /// </summary>
+    private void ArrangePrimaryCompanyFields()
+    {
+        tblBasic.SuspendLayout();
+        tblContact.SuspendLayout();
+
+        tblBasic.Controls.Clear();
+        tblBasic.RowStyles.Clear();
+        tblBasic.RowCount = 4;
+        for (var row = 0; row < 4; row++)
+            tblBasic.RowStyles.Add(new RowStyle(SizeType.Percent, 25F));
+
+        AddCompanyFieldRow(tblBasic, 0, label1, cmbGroups, label2, txtCompanyNameAr);
+        AddCompanyFieldRow(tblBasic, 1, label3, txtCompanyNameEn, label4, txtCompanyPrefix);
+        AddCompanyFieldRow(tblBasic, 2, label11, txtActivityType, label8, txtTaxNumber);
+        tblBasic.Controls.Add(chkIsActive, 3, 3);
+        tblBasic.SetColumnSpan(chkIsActive, 1);
+        chkIsActive.Margin = new Padding(5, 9, 5, 9);
+
+        tblContact.Controls.Clear();
+        tblContact.RowStyles.Clear();
+        tblContact.RowCount = 2;
+        for (var row = 0; row < 2; row++)
+            tblContact.RowStyles.Add(new RowStyle(SizeType.Percent, 50F));
+
+        AddCompanyFieldRow(tblContact, 0, label5, txtPhone, label10, txtMobile);
+        AddCompanyFieldRow(tblContact, 1, label6, txtEmail, label7, txtAddress);
+        tblContact.SetColumnSpan(txtAddress, 1);
+
+        ApplyReferenceInputStyle(cmbGroups, txtCompanyNameAr, txtCompanyNameEn,
+            txtCompanyPrefix, txtActivityType, txtTaxNumber);
+
+        tblContact.ResumeLayout(true);
+        tblBasic.ResumeLayout(true);
+    }
+
+    private static void AddCompanyFieldRow(TableLayoutPanel table, int row,
+        Label firstCaption, Control firstField, Label secondCaption, Control secondField)
+    {
+        table.Controls.Add(firstCaption, 0, row);
+        table.Controls.Add(firstField, 1, row);
+        table.Controls.Add(secondCaption, 2, row);
+        table.Controls.Add(secondField, 3, row);
+    }
+
+    private static void ApplyReferenceInputStyle(params Control[] controls)
+    {
+        foreach (Control control in controls)
+        {
+            control.BackColor = Color.FromArgb(255, 253, 231);
+            control.ForeColor = Color.FromArgb(25, 45, 65);
+        }
     }
 
     /// <summary>
@@ -112,7 +171,7 @@ public partial class CompanyForm
         };
         _companyEntryLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 72F));
         _companyEntryLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 28F));
-        _companyEntryLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 168F));
+        _companyEntryLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 214F));
         _companyEntryLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
 
         foreach (GroupBox card in new[] { grpBasic, grpContact, grpLogo })
@@ -227,7 +286,7 @@ public partial class CompanyForm
         splitMain.SplitterDistance = Math.Max(300, availableHeight - tableHeight);
 
         if (_companyEntryLayout is not null)
-            _companyEntryLayout.RowStyles[0].Height = compact ? 154 : 168;
+            _companyEntryLayout.RowStyles[0].Height = compact ? 190 : 214;
         pnlAudit.Height = 48;
         pnlListHeader.Height = compact ? 48 : 54;
 
