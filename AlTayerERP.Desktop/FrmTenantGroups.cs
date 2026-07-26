@@ -157,8 +157,10 @@ public sealed class FrmTenantGroups : BaseForm, IWorkspaceDirtyAware
 
     private async Task LoadCompaniesAsync()
     {
-        var data = await ApiService.Client.GetFromJsonAsync<List<CompanyLookup>>("Companies") ?? new();
-        _mainCompany.DataSource = data.Where(x => x.Is_Active).ToList(); _mainCompany.DisplayMember = nameof(CompanyLookup.Company_Name_AR); _mainCompany.ValueMember = nameof(CompanyLookup.Company_ID); _mainCompany.SelectedIndex = -1;
+        // هذه الشاشة تحتاج قائمة اختيار فقط؛ لا تطلب سجل الشركة كاملاً وما فيه من أعمدة تدقيق.
+        // نقطة النهاية تعيد الشركات النشطة فقط وتستخدم في شاشة الدخول أيضاً.
+        var data = await ApiService.Client.GetFromJsonAsync<List<CompanyLookup>>("Branches/GetCompaniesLookup") ?? new();
+        _mainCompany.DataSource = data; _mainCompany.DisplayMember = nameof(CompanyLookup.Company_Name_AR); _mainCompany.ValueMember = nameof(CompanyLookup.Company_ID); _mainCompany.SelectedIndex = -1;
     }
 
     private async Task SaveAsync()
@@ -283,6 +285,6 @@ public sealed class FrmTenantGroups : BaseForm, IWorkspaceDirtyAware
     private sealed class CountryLookup { public int Country_ID { get; set; } public string Country_Name_AR { get; set; } = string.Empty; }
     private sealed class CityLookup { public int City_ID { get; set; } public string City_Name_AR { get; set; } = string.Empty; }
     private sealed class CurrencyLookup { public int Currency_ID { get; set; } public string Currency_Code { get; set; } = string.Empty; public string Currency_Name_AR { get; set; } = string.Empty; public bool Is_Active { get; set; } public string Display_Name => $"{Currency_Code} - {Currency_Name_AR}"; }
-    private sealed class CompanyLookup { public string Company_ID { get; set; } = string.Empty; public string Company_Name_AR { get; set; } = string.Empty; public bool Is_Active { get; set; } }
+    private sealed class CompanyLookup { public string Company_ID { get; set; } = string.Empty; public string Company_Name_AR { get; set; } = string.Empty; }
     private sealed class GroupAudit { public string? Created_By { get; set; } public DateTime? Created_At { get; set; } public string? Updated_By { get; set; } public DateTime? Updated_At { get; set; } public int Edit_Count { get; set; } public int Print_Count { get; set; } }
 }
