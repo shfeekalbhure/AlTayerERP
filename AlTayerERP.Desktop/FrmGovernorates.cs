@@ -42,7 +42,7 @@ public partial class FrmGovernorates : BaseForm
             else BeginEdit();
         };
         btnCancel.Click += async (_, _) => await CancelChangesAsync();
-        btnReset.Click += (_, _) => ResetCurrentInput();
+        btnReset.Click += async (_, _) => await ResetCurrentInputAsync();
         btnRefresh.Click += async (_, _) => await LoadRowsAsync();
         btnSearch.Click += (_, _) => txtSearch.Focus();
         btnPrint.Click += async (_, _) => await PrintSelectedAsync();
@@ -194,7 +194,11 @@ public partial class FrmGovernorates : BaseForm
     private async Task CancelChangesAsync()
     {
         if (_editorMode == EditorMode.New) { ClearEditor(); return; }
-        if (_editorMode == EditorMode.Edit && dgvGovernorates.CurrentRow?.DataBoundItem is GovernorateRow) { LoadSelected(); return; }
+        if (_editorMode == EditorMode.Edit && dgvGovernorates.CurrentRow?.DataBoundItem is GovernorateRow)
+        {
+            await LoadSelectedAsync();
+            return;
+        }
         await Task.CompletedTask;
         ClearEditor();
     }
@@ -209,10 +213,10 @@ public partial class FrmGovernorates : BaseForm
         txtGovCode.Focus();
     }
 
-    private void ResetCurrentInput()
+    private async Task ResetCurrentInputAsync()
     {
         if (_editorMode == EditorMode.New) StartNew();
-        else if (_editorMode == EditorMode.Edit) LoadSelected();
+        else if (_editorMode == EditorMode.Edit) await LoadSelectedAsync();
     }
 
     private void ClearEditor()
