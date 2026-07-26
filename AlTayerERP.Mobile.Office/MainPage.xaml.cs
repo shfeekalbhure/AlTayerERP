@@ -9,6 +9,7 @@ public partial class MainPage : ContentPage
     private readonly MobileHomeService _mobileHomeService;
     private LoginOptionsResponseDto? _loginOptions;
     private bool _companiesLoaded;
+    private bool _sessionChecked;
 
     public MainPage(AuthenticationService authentication, MobileHomeService mobileHomeService)
     {
@@ -21,10 +22,34 @@ public partial class MainPage : ContentPage
     {
         base.OnAppearing();
 
-        if (_companiesLoaded)
-            return;
+        if (!_sessionChecked)
+        {
+            _sessionChecked = true;
+            SetBusy(true);
+            CompaniesStatusLabel.Text = "جاري التحقق من الجلسة...";
+            CompaniesStatusLabel.IsVisible = true;
 
-        await LoadCompaniesAsync();
+            try
+            {
+                var stored = await _authentication.RestoreSessionAsync();
+                if (stored != null)
+                {
+                    OpenHome(stored.FullName, stored.CompanyId, stored.BranchId, stored.YearId);
+                    return;
+                }
+            }
+            catch
+            {
+                // عند تعذر الاستعادة نعرض شاشة الدخول المعتادة دون كشف تفاصيل تقنية.
+            }
+            finally
+            {
+                SetBusy(false);
+            }
+        }
+
+        if (!_companiesLoaded)
+            await LoadCompaniesAsync();
     }
 
     private async Task LoadCompaniesAsync()
@@ -160,12 +185,26 @@ public partial class MainPage : ContentPage
         });
 
         PasswordEntry.Text = string.Empty;
-        await Navigation.PushAsync(new HomePage(
+        OpenHome(result.Full_Name, result.Company_ID, result.Branch_ID, result.Year_ID);
+    }
+
+    private void OpenHome(string fullName, string companyId, int branchId, int yearId)
+    {
+        if (Application.Current?.Windows.FirstOrDefault() is not Window window)
+            return;
+
+        window.Page = new NavigationPage(new HomePage(
             _mobileHomeService,
-            result.Full_Name,
-            result.Company_ID,
-            result.Branch_ID,
-            result.Year_ID));
+            _authentication,
+            fullName,
+            companyId,
+            branchId,
+            yearId))
+        {
+            FlowDirection = FlowDirection.RightToLeft,
+            BarBackgroundColor = Color.FromArgb("#17324D"),
+            BarTextColor = Colors.White
+        };
     }
 
     private void OnBackClicked(object? sender, EventArgs e)
