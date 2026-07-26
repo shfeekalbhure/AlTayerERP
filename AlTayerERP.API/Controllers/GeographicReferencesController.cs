@@ -78,6 +78,10 @@ public sealed class GeographicReferencesController : ControllerBase
     public Task<IActionResult> GetGovernorateAuditInfo(int id) =>
         GetAuditInfoAsync("Governorates", "governorates", id);
 
+    [HttpGet("cities/{id:int}/audit-info")]
+    public Task<IActionResult> GetCityAuditInfo(int id) =>
+        GetAuditInfoAsync("Cities", "cities", id);
+
 
     /// <summary>يسجل معاينة طباعة قائمة أو بطاقة دولة في سجل التدقيق.</summary>
     [HttpPost("countries/{id:int}/print")]
@@ -105,6 +109,20 @@ public sealed class GeographicReferencesController : ControllerBase
             return NotFound("المحافظة غير موجودة.");
 
         AddAudit("governorates", id, "PRINT", "معاينة طباعة بيانات المحافظة.");
+        await _context.SaveChangesAsync();
+        return Ok(new { message = "تم تسجيل عملية الطباعة." });
+    }
+
+    /// <summary>يسجل معاينة طباعة بطاقة مدينة في سجل التدقيق.</summary>
+    [HttpPost("cities/{id:int}/print")]
+    public async Task<IActionResult> RegisterCityPrint(int id)
+    {
+        var access = await RequireAsync("Cities", ScreenOperation.Print);
+        if (access != null) return access;
+        if (await ScalarAsync<int>("SELECT COUNT(*) FROM cities WHERE City_ID=@ID", ("@ID", id)) == 0)
+            return NotFound("المدينة غير موجودة.");
+
+        AddAudit("cities", id, "PRINT", "معاينة طباعة بيانات المدينة.");
         await _context.SaveChangesAsync();
         return Ok(new { message = "تم تسجيل عملية الطباعة." });
     }
