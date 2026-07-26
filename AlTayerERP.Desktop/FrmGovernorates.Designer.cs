@@ -121,7 +121,9 @@ partial class FrmGovernorates
         // [تنسيق لوحة الأزرار العلوية - Top Action Buttons]
         // -------------------------------------------------------------------------
         panelButtons.Dock = DockStyle.Fill;
-        panelButtons.RightToLeft = RightToLeft.Yes;
+        // FlowDirection وحده يحدد موضع العناصر من أقصى اليمين؛
+        // تفعيل RTL هنا يعكس ترتيب FlowLayout مرة أخرى عند العرض.
+        panelButtons.RightToLeft = RightToLeft.No;
         panelButtons.FlowDirection = FlowDirection.RightToLeft;
         panelButtons.Padding = new Padding(8, 6, 8, 4);
         panelButtons.WrapContents = false;
