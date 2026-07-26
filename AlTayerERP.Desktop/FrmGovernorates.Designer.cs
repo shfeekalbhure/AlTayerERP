@@ -111,11 +111,11 @@ partial class FrmGovernorates
         mainTableLayout.ColumnCount = 1;
         mainTableLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
         mainTableLayout.RowCount = 5;
-        mainTableLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 48F));  // شريط الأزرار العلوية
-        mainTableLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 245F)); // بطاقة البيانات الأساسية (+1سم)
-        mainTableLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 85F));  // إطار البحث والتصفية (+1سم)
+        mainTableLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 56F));  // شريط الأزرار العلوية
+        mainTableLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 252F)); // بطاقة البيانات الأساسية
+        mainTableLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 74F));  // إطار البحث والتصفية
         mainTableLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 100F)); // جدول البيانات المتمدد (-2سم)
-        mainTableLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 75F));  // بطاقات التذييل والتدقيق
+        mainTableLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 96F));  // بطاقات التذييل والتدقيق
 
         // -------------------------------------------------------------------------
         // [تنسيق لوحة الأزرار العلوية - Top Action Buttons]
@@ -123,7 +123,7 @@ partial class FrmGovernorates
         panelButtons.Dock = DockStyle.Fill;
         panelButtons.RightToLeft = RightToLeft.Yes;
         panelButtons.FlowDirection = FlowDirection.RightToLeft;
-        panelButtons.Padding = new Padding(4);
+        panelButtons.Padding = new Padding(8, 6, 8, 4);
         panelButtons.WrapContents = false;
 
         // الأزرار التسعة بالهوية الموحدة
@@ -131,26 +131,26 @@ partial class FrmGovernorates
         btnCancel = new Button(); btnReset = new Button(); btnRefresh = new Button();
         btnSearch = new Button(); btnPrint = new Button(); btnClose = new Button();
 
-        Button[] buttons = { btnNew, btnSave, btnEdit, btnDeactivate, btnCancel, btnReset, btnRefresh, btnSearch, btnPrint, btnClose };
-        string[] titles = { "+ جديد", "✔ حفظ", "✎ تعديل", "⏸ إيقاف", "✖ إلغاء", "↺ إعادة", "↻ تحديث", "🔍 بحث", "🖨 طباعة", "🚪 إغلاق" };
+        Button[] buttons = { btnNew, btnSave, btnEdit, btnDeactivate, btnPrint, btnSearch, btnRefresh, btnCancel, btnReset, btnClose };
+        string[] titles = { "+ جديد", "✔ حفظ", "✎ تعديل", "⏸ إيقاف", "🖨 طباعة", "🔍 بحث", "↻ تحديث", "✖ إلغاء", "↺ إعادة", "🚪 إغلاق" };
         Color[] colors = {
             Color.FromArgb(13, 148, 136),  // جديد (تركوازي)
             Color.FromArgb(37, 99, 235),   // حفظ (أزرق)
             Color.FromArgb(217, 119, 6),   // تعديل (برتقالي)
             Color.FromArgb(220, 38, 38),   // إيقاف / إعادة تفعيل
+            Color.FromArgb(124, 58, 237),  // طباعة (بنفسجي غامق)
+            Color.FromArgb(5, 150, 105),   // بحث (أخضر)
+            Color.FromArgb(2, 132, 199),   // تحديث (أزرق سماوي)
             Color.FromArgb(100, 116, 139), // إلغاء (رمادي)
             Color.FromArgb(79, 70, 229),   // إعادة (بنفسجي)
-            Color.FromArgb(2, 132, 199),   // تحديث (أزرق سماوي)
-            Color.FromArgb(5, 150, 105),   // بحث (أخضر)
-            Color.FromArgb(124, 58, 237),  // طباعة (بنفسجي غامق)
             Color.FromArgb(71, 85, 105)     // إغلاق (رمادي داكن)
         };
 
         for (var i = 0; i < buttons.Length; i++)
         {
             buttons[i].Text = titles[i];
-            buttons[i].Size = new Size(90, 35);
-            buttons[i].Margin = new Padding(3);
+            buttons[i].Size = new Size(102, 38);
+            buttons[i].Margin = new Padding(3, 0, 3, 0);
             buttons[i].FlatStyle = FlatStyle.Flat;
             buttons[i].FlatAppearance.BorderSize = 0;
             buttons[i].BackColor = colors[i];
@@ -169,18 +169,18 @@ partial class FrmGovernorates
         grpDataCard.Controls.Add(tblDataCard);
 
         tblDataCard.Dock = DockStyle.Fill;
-        tblDataCard.Padding = new Padding(8);
+        tblDataCard.Padding = new Padding(12, 10, 12, 8);
         tblDataCard.ColumnCount = 5;
-        tblDataCard.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 125F)); // عناوين العمود 1
+        tblDataCard.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 138F)); // عناوين العمود 1
         tblDataCard.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));  // حقول العمود 1
-        tblDataCard.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 35F));  // 🟢 عمود فاصل مجوف لمنع التداخل
-        tblDataCard.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 125F)); // عناوين العمود 2
+        tblDataCard.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 28F));  // عمود فاصل
+        tblDataCard.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 138F)); // عناوين العمود 2
         tblDataCard.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));  // حقول العمود 2
         tblDataCard.RowCount = 5;
 
         // توسعة ارتفاع الصفوف إلى 42px لتوفير مساحة مريحة للحقول
         for (var i = 0; i < 5; i++)
-            tblDataCard.RowStyles.Add(new RowStyle(SizeType.Absolute, 42F));
+            tblDataCard.RowStyles.Add(new RowStyle(SizeType.Absolute, 46F));
 
         // عناوين عريضة وبارزة (Bold Labels)
         Label[] labels = { lblGovCode, lblGovNameAr, lblGovNameEn, lblCountry, lblDisplayOrder, lblStatus, lblNotes };
@@ -188,15 +188,15 @@ partial class FrmGovernorates
         {
             label.Dock = DockStyle.Fill;
             label.TextAlign = ContentAlignment.MiddleRight;
-            label.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+            label.Font = new Font("Segoe UI", 9.5F, FontStyle.Bold);
         }
 
         // ضبط الهوامش والخطوط الموحدة للمدخلات
         Control[] inputs = { txtGovCode, txtGovNameAr, txtGovNameEn, cmbCountry, numDisplayOrder, chkIsActive, txtNotes };
         foreach (var input in inputs)
         {
-            input.Margin = new Padding(4, 4, 12, 4);
-            input.Font = new Font("Segoe UI", 9F);
+            input.Margin = new Padding(8, 6, 8, 6);
+            input.Font = new Font("Segoe UI", 9.5F);
         }
 
         // ضبط نصوص الحقول وتخصيص الملاحظات
@@ -240,7 +240,7 @@ partial class FrmGovernorates
         pnlSearchFilter.Dock = DockStyle.Fill;
         pnlSearchFilter.RightToLeft = RightToLeft.Yes;
         pnlSearchFilter.FlowDirection = FlowDirection.RightToLeft;
-        pnlSearchFilter.Padding = new Padding(10, 10, 10, 6);
+        pnlSearchFilter.Padding = new Padding(14, 12, 14, 8);
 
         lblSearch.Text = "بحث سريع:";
         lblFilterCountry.Text = "الدولة:";
@@ -253,12 +253,12 @@ partial class FrmGovernorates
             label.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
         }
 
-        txtSearch.Size = new Size(180, 28);
-        cmbFilterCountry.Size = new Size(150, 28);
-        cmbFilterStatus.Size = new Size(110, 28);
+        txtSearch.Size = new Size(230, 32);
+        cmbFilterCountry.Size = new Size(180, 32);
+        cmbFilterStatus.Size = new Size(130, 32);
 
         btnApplyFilter.Text = "تطبيق التصفية";
-        btnApplyFilter.Size = new Size(110, 30);
+        btnApplyFilter.Size = new Size(124, 32);
         btnApplyFilter.BackColor = Color.FromArgb(37, 99, 235);
         btnApplyFilter.ForeColor = Color.White;
         btnApplyFilter.FlatStyle = FlatStyle.Flat;
@@ -288,6 +288,7 @@ partial class FrmGovernorates
         // [بطاقات التدقيق والتذييل السفلي - Audit Summary]
         // -------------------------------------------------------------------------
         tblAuditSummary.Dock = DockStyle.Fill;
+        tblAuditSummary.Padding = new Padding(8, 4, 8, 4);
         tblAuditSummary.ColumnCount = 3;
         tblAuditSummary.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 33.33F));
         tblAuditSummary.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 33.33F));
@@ -334,11 +335,16 @@ partial class FrmGovernorates
     {
         group.Text = title;
         group.Dock = DockStyle.Fill;
-        group.Font = new Font("Segoe UI", 8F);
+        group.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+        group.Padding = new Padding(8, 4, 8, 4);
         first.Text = firstText;
         first.Dock = DockStyle.Top;
+        first.Height = 30;
+        first.TextAlign = ContentAlignment.MiddleRight;
         second.Text = secondText;
         second.Dock = DockStyle.Top;
+        second.Height = 30;
+        second.TextAlign = ContentAlignment.MiddleRight;
         group.Controls.Add(second);
         group.Controls.Add(first);
     }

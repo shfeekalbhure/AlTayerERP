@@ -113,6 +113,7 @@ public partial class FrmGovernorates : BaseForm
 
     private void ConfigureGrid()
     {
+        EnsureGridColumns();
         foreach (DataGridViewColumn column in dgvGovernorates.Columns)
             column.Visible = column.Name is nameof(GovernorateRow.Governorate_ID) or nameof(GovernorateRow.Country_Name_AR) or nameof(GovernorateRow.Governorate_Code) or nameof(GovernorateRow.Governorate_Name_AR) or nameof(GovernorateRow.Governorate_Name_EN) or nameof(GovernorateRow.Status);
         SetHeader(nameof(GovernorateRow.Governorate_ID), "المعرف");
@@ -122,6 +123,34 @@ public partial class FrmGovernorates : BaseForm
         SetHeader(nameof(GovernorateRow.Governorate_Name_EN), "الاسم بالإنجليزية");
         SetHeader(nameof(GovernorateRow.Status), "الحالة");
     }
+
+    /// <summary>
+    /// تعرض عناوين الجدول حتى عند عدم وجود بيانات بعد التصفية أو في قاعدة جديدة؛
+    /// وبذلك لا تظهر للمستخدم مساحة بيضاء توحي بتعطل الشاشة.
+    /// </summary>
+    private void EnsureGridColumns()
+    {
+        if (dgvGovernorates.Columns.Count > 0)
+            return;
+
+        dgvGovernorates.AutoGenerateColumns = false;
+        AddGridColumn(nameof(GovernorateRow.Governorate_ID), "المعرف", 14);
+        AddGridColumn(nameof(GovernorateRow.Country_Name_AR), "الدولة", 22);
+        AddGridColumn(nameof(GovernorateRow.Governorate_Code), "كود المحافظة", 18);
+        AddGridColumn(nameof(GovernorateRow.Governorate_Name_AR), "الاسم بالعربية", 26);
+        AddGridColumn(nameof(GovernorateRow.Governorate_Name_EN), "الاسم بالإنجليزية", 24);
+        AddGridColumn(nameof(GovernorateRow.Status), "الحالة", 14);
+    }
+
+    private void AddGridColumn(string property, string caption, float fillWeight) =>
+        dgvGovernorates.Columns.Add(new DataGridViewTextBoxColumn
+        {
+            Name = property,
+            DataPropertyName = property,
+            HeaderText = caption,
+            FillWeight = fillWeight,
+            SortMode = DataGridViewColumnSortMode.Automatic
+        });
 
     private void SetHeader(string property, string caption)
     {
