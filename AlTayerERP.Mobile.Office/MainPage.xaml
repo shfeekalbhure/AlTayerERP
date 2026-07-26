@@ -7,7 +7,7 @@
              Title="تسجيل الدخول">
     <ScrollView>
         <VerticalStackLayout Padding="24" Spacing="16" VerticalOptions="Center">
-            <Label Text="منظومة الطائر"
+            <Label Text="الطائر للبرمجيات"
                    FontSize="30"
                    FontAttributes="Bold"
                    HorizontalTextAlignment="Center"
