@@ -117,24 +117,24 @@ public sealed class GeographicReferencesController : ControllerBase
 
         if (dto.Country_ID > 0)
         {
-            await using var transaction = await _context.Database.BeginTransactionAsync();
+            await using var updateTransaction = await _context.Database.BeginTransactionAsync();
             try
             {
                 await ExecuteAsync("UPDATE countries SET Country_Code=@Code, Country_Name_AR=@NameAR, Country_Name_EN=@NameEN, ISO2=@ISO2, ISO3=@ISO3, Phone_Code=@Phone, Currency_Code=@Currency, Nationality_Name_AR=@Nationality, Sort_Order=@Sort, Notes=@Notes, Updated_At=UTC_TIMESTAMP() WHERE Country_ID=@ID",
                     ("@Code", dto.Country_Code.Trim().ToUpperInvariant()), ("@NameAR", dto.Country_Name_AR.Trim()), ("@NameEN", dto.Country_Name_EN), ("@ISO2", dto.ISO2), ("@ISO3", dto.ISO3), ("@Phone", dto.Phone_Code), ("@Currency", dto.Currency_Code), ("@Nationality", dto.Nationality_Name_AR), ("@Sort", dto.Sort_Order), ("@Notes", dto.Notes), ("@ID", dto.Country_ID));
                 AddAudit("countries", dto.Country_ID, "UPDATE", "تعديل بيانات الدولة.");
                 await _context.SaveChangesAsync();
-                await transaction.CommitAsync();
+                await updateTransaction.CommitAsync();
                 return Ok(new { message = "تم تعديل الدولة." });
             }
             catch
             {
-                await transaction.RollbackAsync();
+                await updateTransaction.RollbackAsync();
                 throw;
             }
         }
 
-        await using var transaction = await _context.Database.BeginTransactionAsync();
+        await using var createTransaction = await _context.Database.BeginTransactionAsync();
         try
         {
             await ExecuteAsync("INSERT INTO countries (Country_Code, Country_Name_AR, Country_Name_EN, ISO2, ISO3, Phone_Code, Currency_Code, Nationality_Name_AR, Sort_Order, Is_Active, Notes) VALUES (@Code,@NameAR,@NameEN,@ISO2,@ISO3,@Phone,@Currency,@Nationality,@Sort,1,@Notes)",
@@ -142,12 +142,12 @@ public sealed class GeographicReferencesController : ControllerBase
             var countryId = await ScalarAsync<int>("SELECT LAST_INSERT_ID()");
             AddAudit("countries", countryId, "INSERT", "إضافة دولة.");
             await _context.SaveChangesAsync();
-            await transaction.CommitAsync();
+            await createTransaction.CommitAsync();
             return Ok(new { message = "تم حفظ الدولة." });
         }
         catch
         {
-            await transaction.RollbackAsync();
+            await createTransaction.RollbackAsync();
             throw;
         }
     }
