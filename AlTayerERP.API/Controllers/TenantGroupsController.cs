@@ -33,8 +33,32 @@ namespace AlTayerERP.API.Controllers
         {
             if (!TryGetAdminSession(out _)) return Forbid();
 
+            // شاشة القائمة لا تحتاج أعمدة الإيقاف والتدقيق؛ اختيار الأعمدة اللازمة فقط
+            // يبقي العرض متوافقاً مع قواعد البيانات القديمة التي لم تضف أعمدة التدقيق بعد.
             var groups = await _context.Tenant_Groups.AsNoTracking()
                 .OrderBy(x => x.Sort_Order).ThenBy(x => x.Group_Name_AR)
+                .Select(x => new TenantGroup
+                {
+                    Group_ID = x.Group_ID,
+                    Group_Code = x.Group_Code,
+                    Group_Name_AR = x.Group_Name_AR,
+                    Group_Name_EN = x.Group_Name_EN,
+                    Short_Name = x.Short_Name,
+                    Group_Type = x.Group_Type,
+                    Parent_Group_ID = x.Parent_Group_ID,
+                    Main_Company_ID = x.Main_Company_ID,
+                    Default_Currency_Code = x.Default_Currency_Code,
+                    Country_Name = x.Country_Name,
+                    City_Name = x.City_Name,
+                    Short_Address = x.Short_Address,
+                    Phone = x.Phone,
+                    Email = x.Email,
+                    Manager_Name = x.Manager_Name,
+                    Show_In_Login = x.Show_In_Login,
+                    Sort_Order = x.Sort_Order,
+                    Notes = x.Notes,
+                    Is_Active = x.Is_Active
+                })
                 .ToListAsync();
             var groupIds = groups.Select(x => x.Group_ID).ToList();
             var companyCounts = await _context.Companies.AsNoTracking()
@@ -63,8 +87,30 @@ namespace AlTayerERP.API.Controllers
         {
             if (!TryGetAdminSession(out _)) return Forbid();
 
-            var group = await _context.Tenant_Groups.AsNoTracking()
-                .FirstOrDefaultAsync(x => x.Group_ID == id);
+            var group = await _context.Tenant_Groups.AsNoTracking().Where(x => x.Group_ID == id)
+                .Select(x => new TenantGroup
+                {
+                    Group_ID = x.Group_ID,
+                    Group_Code = x.Group_Code,
+                    Group_Name_AR = x.Group_Name_AR,
+                    Group_Name_EN = x.Group_Name_EN,
+                    Short_Name = x.Short_Name,
+                    Group_Type = x.Group_Type,
+                    Parent_Group_ID = x.Parent_Group_ID,
+                    Main_Company_ID = x.Main_Company_ID,
+                    Default_Currency_Code = x.Default_Currency_Code,
+                    Country_Name = x.Country_Name,
+                    City_Name = x.City_Name,
+                    Short_Address = x.Short_Address,
+                    Phone = x.Phone,
+                    Email = x.Email,
+                    Manager_Name = x.Manager_Name,
+                    Show_In_Login = x.Show_In_Login,
+                    Sort_Order = x.Sort_Order,
+                    Notes = x.Notes,
+                    Is_Active = x.Is_Active
+                })
+                .FirstOrDefaultAsync();
             return group is null ? NotFound("المجموعة التجارية غير موجودة.") : Ok(group);
         }
 
