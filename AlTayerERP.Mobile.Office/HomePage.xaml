@@ -10,43 +10,20 @@
             <Border BackgroundColor="#17324D" StrokeThickness="0" Padding="18" StrokeShape="RoundRectangle 18">
                 <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
                     <VerticalStackLayout Grid.Column="0" Spacing="6">
-                        <Label x:Name="WelcomeLabel"
-                               FontSize="22"
-                               FontAttributes="Bold"
-                               TextColor="White" />
-                        <Label x:Name="ContextLabel"
-                               FontSize="13"
-                               TextColor="#D9EAF7" />
+                        <Label x:Name="WelcomeLabel" FontSize="22" FontAttributes="Bold" TextColor="White" />
+                        <Label x:Name="ContextLabel" FontSize="13" TextColor="#D9EAF7" />
                     </VerticalStackLayout>
-                    <Button Grid.Column="1"
-                            Text="خروج"
-                            BackgroundColor="#B42318"
-                            TextColor="White"
-                            CornerRadius="10"
-                            HeightRequest="42"
-                            Clicked="OnLogoutClicked" />
+                    <Button Grid.Column="1" Text="خروج" BackgroundColor="#B42318" TextColor="White" CornerRadius="10" HeightRequest="42" Clicked="OnLogoutClicked" />
                 </Grid>
             </Border>
 
-            <Label Text="الخدمات المتاحة"
-                   FontSize="19"
-                   FontAttributes="Bold"
-                   TextColor="#17324D" />
-
-            <ActivityIndicator x:Name="PermissionsBusy"
-                               Color="#0B6B87"
-                               IsVisible="True"
-                               IsRunning="True" />
-
-            <Label x:Name="PermissionsStatusLabel"
-                   Text="جاري تحميل الصلاحيات..."
-                   FontSize="12"
-                   HorizontalTextAlignment="Center"
-                   TextColor="#7A8896" />
+            <Label Text="الخدمات المتاحة" FontSize="19" FontAttributes="Bold" TextColor="#17324D" />
+            <ActivityIndicator x:Name="PermissionsBusy" Color="#0B6B87" IsVisible="True" IsRunning="True" />
+            <Label x:Name="PermissionsStatusLabel" Text="جاري تحميل الصلاحيات..." FontSize="12" HorizontalTextAlignment="Center" TextColor="#7A8896" />
 
             <VerticalStackLayout x:Name="ServicesPanel" Spacing="12" IsVisible="False">
                 <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto,Auto" ColumnSpacing="12" RowSpacing="12">
-                    <Button x:Name="PaymentRequestButton" Grid.Row="0" Grid.Column="0" Text="طلب صرف" HeightRequest="90" BackgroundColor="White" TextColor="#17324D" BorderColor="#D9E2EC" BorderWidth="1" CornerRadius="14" IsVisible="False" />
+                    <Button x:Name="PaymentRequestButton" Grid.Row="0" Grid.Column="0" Text="طلب صرف" HeightRequest="90" BackgroundColor="White" TextColor="#17324D" BorderColor="#D9E2EC" BorderWidth="1" CornerRadius="14" IsVisible="False" Clicked="OnPaymentRequestsClicked" />
                     <Button x:Name="ReceiptVoucherButton" Grid.Row="0" Grid.Column="1" Text="سند قبض" HeightRequest="90" BackgroundColor="White" TextColor="#17324D" BorderColor="#D9E2EC" BorderWidth="1" CornerRadius="14" IsVisible="False" />
                     <Button x:Name="PaymentVoucherButton" Grid.Row="1" Grid.Column="0" Text="سند صرف" HeightRequest="90" BackgroundColor="White" TextColor="#17324D" BorderColor="#D9E2EC" BorderWidth="1" CornerRadius="14" IsVisible="False" />
                     <Button x:Name="JournalVoucherButton" Grid.Row="1" Grid.Column="1" Text="قيد يومي" HeightRequest="90" BackgroundColor="White" TextColor="#17324D" BorderColor="#D9E2EC" BorderWidth="1" CornerRadius="14" IsVisible="False" />
@@ -57,12 +34,7 @@
                 </Grid>
             </VerticalStackLayout>
 
-            <Label x:Name="NoPermissionsLabel"
-                   Text="لا توجد خدمات مسموحة لهذا المستخدم."
-                   FontSize="13"
-                   HorizontalTextAlignment="Center"
-                   TextColor="#B42318"
-                   IsVisible="False" />
+            <Label x:Name="NoPermissionsLabel" Text="لا توجد خدمات مسموحة لهذا المستخدم." FontSize="13" HorizontalTextAlignment="Center" TextColor="#B42318" IsVisible="False" />
         </VerticalStackLayout>
     </ScrollView>
 </ContentPage>
