@@ -97,8 +97,10 @@ partial class FrmGovernorates
         // -------------------------------------------------------------------------
         RightToLeft = RightToLeft.Yes;
         RightToLeftLayout = true;
-        ClientSize = new Size(1080, 720);
-        MinimumSize = new Size(900, 620);
+        ClientSize = new Size(1020, 680);
+        // يجب أن تدخل الشاشة داخل مساحة العمل عند تكبير عرض Windows؛
+        // الحد السابق كان يولد شريط تمرير أفقي داخل FrmMain على الشاشات الصغيرة.
+        MinimumSize = new Size(760, 520);
         Text = "نظام الطائر السعيد - إدارة المحافظات";
         BackColor = Color.FromArgb(248, 250, 252);
         Font = new Font("Segoe UI", 9F);
@@ -113,9 +115,9 @@ partial class FrmGovernorates
         mainTableLayout.RowCount = 5;
         mainTableLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 56F));  // شريط الأزرار العلوية
         mainTableLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 252F)); // بطاقة البيانات الأساسية
-        mainTableLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 74F));  // إطار البحث والتصفية
+        mainTableLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 62F));  // إطار البحث والتصفية
         mainTableLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 100F)); // جدول البيانات المتمدد (-2سم)
-        mainTableLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 96F));  // بطاقات التذييل والتدقيق
+        mainTableLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 108F)); // بطاقات التذييل والتدقيق
 
         // -------------------------------------------------------------------------
         // [تنسيق لوحة الأزرار العلوية - Top Action Buttons]
@@ -240,9 +242,12 @@ partial class FrmGovernorates
         grpSearchContainer.Controls.Add(pnlSearchFilter);
 
         pnlSearchFilter.Dock = DockStyle.Fill;
-        pnlSearchFilter.RightToLeft = RightToLeft.Yes;
+        // FlowDirection هو المسؤول عن موضع العناصر من أقصى اليمين.
+        // لا نفعّل RTL للحاوية كي لا ينعكس ترتيب عناصر FlowLayout مرة ثانية.
+        pnlSearchFilter.RightToLeft = RightToLeft.No;
         pnlSearchFilter.FlowDirection = FlowDirection.RightToLeft;
-        pnlSearchFilter.Padding = new Padding(14, 12, 14, 8);
+        pnlSearchFilter.Padding = new Padding(14, 0, 14, 2);
+        pnlSearchFilter.WrapContents = false;
 
         lblSearch.Text = "بحث سريع:";
         lblFilterCountry.Text = "الدولة:";
@@ -251,13 +256,16 @@ partial class FrmGovernorates
         foreach (var label in new[] { lblSearch, lblFilterCountry, lblFilterStatus })
         {
             label.AutoSize = true;
-            label.Margin = new Padding(6, 6, 4, 0);
+            label.Margin = new Padding(8, 7, 4, 0);
             label.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
         }
 
         txtSearch.Size = new Size(230, 32);
         cmbFilterCountry.Size = new Size(180, 32);
         cmbFilterStatus.Size = new Size(130, 32);
+        txtSearch.Margin = new Padding(3, 0, 12, 0);
+        cmbFilterCountry.Margin = new Padding(3, 0, 12, 0);
+        cmbFilterStatus.Margin = new Padding(3, 0, 12, 0);
 
         btnApplyFilter.Text = "تطبيق التصفية";
         btnApplyFilter.Size = new Size(124, 32);
@@ -265,9 +273,11 @@ partial class FrmGovernorates
         btnApplyFilter.ForeColor = Color.White;
         btnApplyFilter.FlatStyle = FlatStyle.Flat;
         btnApplyFilter.FlatAppearance.BorderSize = 0;
+        btnApplyFilter.Margin = new Padding(8, 0, 0, 0);
 
         pnlSearchFilter.Controls.AddRange(new Control[] {
-            lblSearch, txtSearch, lblFilterCountry, cmbFilterCountry, lblFilterStatus, cmbFilterStatus, btnApplyFilter
+            // من اليمين: الحالة، الدولة، البحث السريع، ثم تطبيق التصفية.
+            lblFilterStatus, cmbFilterStatus, lblFilterCountry, cmbFilterCountry, lblSearch, txtSearch, btnApplyFilter
         });
 
         // -------------------------------------------------------------------------
@@ -290,7 +300,8 @@ partial class FrmGovernorates
         // [بطاقات التدقيق والتذييل السفلي - Audit Summary]
         // -------------------------------------------------------------------------
         tblAuditSummary.Dock = DockStyle.Fill;
-        tblAuditSummary.Padding = new Padding(8, 4, 8, 4);
+        tblAuditSummary.Padding = new Padding(8, 2, 8, 2);
+        tblAuditSummary.RightToLeft = RightToLeft.Yes;
         tblAuditSummary.ColumnCount = 3;
         tblAuditSummary.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 33.33F));
         tblAuditSummary.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 33.33F));
@@ -337,16 +348,19 @@ partial class FrmGovernorates
     {
         group.Text = title;
         group.Dock = DockStyle.Fill;
+        group.RightToLeft = RightToLeft.Yes;
         group.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
-        group.Padding = new Padding(8, 4, 8, 4);
+        group.Padding = new Padding(10, 6, 10, 4);
         first.Text = firstText;
         first.Dock = DockStyle.Top;
-        first.Height = 30;
+        first.Height = 34;
         first.TextAlign = ContentAlignment.MiddleRight;
+        first.AutoEllipsis = true;
         second.Text = secondText;
         second.Dock = DockStyle.Top;
-        second.Height = 30;
+        second.Height = 34;
         second.TextAlign = ContentAlignment.MiddleRight;
+        second.AutoEllipsis = true;
         group.Controls.Add(second);
         group.Controls.Add(first);
     }
