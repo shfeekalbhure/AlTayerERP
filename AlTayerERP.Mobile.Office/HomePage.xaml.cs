@@ -5,10 +5,12 @@ namespace AlTayerERP.Mobile.Office;
 public partial class HomePage : ContentPage
 {
     private readonly MobileHomeService _mobileHomeService;
+    private readonly AuthenticationService _authenticationService;
     private bool _permissionsLoaded;
 
     public HomePage(
         MobileHomeService mobileHomeService,
+        AuthenticationService authenticationService,
         string fullName,
         string companyId,
         int branchId,
@@ -16,6 +18,7 @@ public partial class HomePage : ContentPage
     {
         InitializeComponent();
         _mobileHomeService = mobileHomeService;
+        _authenticationService = authenticationService;
         WelcomeLabel.Text = $"مرحباً {fullName}";
         ContextLabel.Text = $"الشركة: {companyId} | الفرع: {branchId} | السنة: {yearId}";
     }
@@ -68,6 +71,30 @@ public partial class HomePage : ContentPage
         {
             PermissionsBusy.IsRunning = false;
             PermissionsBusy.IsVisible = false;
+        }
+    }
+
+    private async void OnLogoutClicked(object? sender, EventArgs e)
+    {
+        var confirmed = await DisplayAlert("تسجيل الخروج", "هل تريد إنهاء الجلسة؟", "نعم", "لا");
+        if (!confirmed)
+            return;
+
+        try
+        {
+            await _authenticationService.LogoutAsync();
+        }
+        finally
+        {
+            if (Application.Current?.Windows.FirstOrDefault() is Window window)
+            {
+                window.Page = new NavigationPage(new MainPage(_authenticationService, _mobileHomeService))
+                {
+                    FlowDirection = FlowDirection.RightToLeft,
+                    BarBackgroundColor = Color.FromArgb("#17324D"),
+                    BarTextColor = Colors.White
+                };
+            }
         }
     }
 }
