@@ -222,6 +222,7 @@ public partial class FrmGovernorates : BaseForm
         dgvGovernorates.ClearSelection();
         ClearAudit();
         SetEditorMode(EditorMode.View);
+        UpdateStatusAction();
     }
 
     private void ClearInputFields()
