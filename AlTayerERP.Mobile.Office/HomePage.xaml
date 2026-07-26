@@ -24,19 +24,36 @@
                    FontAttributes="Bold"
                    TextColor="#17324D" />
 
-            <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="12" RowSpacing="12">
-                <Button Grid.Row="0" Grid.Column="0" Text="طلب صرف" HeightRequest="90" BackgroundColor="White" TextColor="#17324D" BorderColor="#D9E2EC" BorderWidth="1" CornerRadius="14" />
-                <Button Grid.Row="0" Grid.Column="1" Text="سند قبض" HeightRequest="90" BackgroundColor="White" TextColor="#17324D" BorderColor="#D9E2EC" BorderWidth="1" CornerRadius="14" />
-                <Button Grid.Row="1" Grid.Column="0" Text="سند صرف" HeightRequest="90" BackgroundColor="White" TextColor="#17324D" BorderColor="#D9E2EC" BorderWidth="1" CornerRadius="14" />
-                <Button Grid.Row="1" Grid.Column="1" Text="قيد يومي" HeightRequest="90" BackgroundColor="White" TextColor="#17324D" BorderColor="#D9E2EC" BorderWidth="1" CornerRadius="14" />
-                <Button Grid.Row="2" Grid.Column="0" Text="التقارير" HeightRequest="90" BackgroundColor="White" TextColor="#17324D" BorderColor="#D9E2EC" BorderWidth="1" CornerRadius="14" />
-                <Button Grid.Row="2" Grid.Column="1" Text="الإشعارات" HeightRequest="90" BackgroundColor="White" TextColor="#17324D" BorderColor="#D9E2EC" BorderWidth="1" CornerRadius="14" />
-            </Grid>
+            <ActivityIndicator x:Name="PermissionsBusy"
+                               Color="#0B6B87"
+                               IsVisible="True"
+                               IsRunning="True" />
 
-            <Label Text="سيتم تفعيل كل خدمة حسب صلاحيات المستخدم عند استكمال الحزمة التالية."
+            <Label x:Name="PermissionsStatusLabel"
+                   Text="جاري تحميل الصلاحيات..."
                    FontSize="12"
                    HorizontalTextAlignment="Center"
                    TextColor="#7A8896" />
+
+            <VerticalStackLayout x:Name="ServicesPanel" Spacing="12" IsVisible="False">
+                <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto,Auto" ColumnSpacing="12" RowSpacing="12">
+                    <Button x:Name="PaymentRequestButton" Grid.Row="0" Grid.Column="0" Text="طلب صرف" HeightRequest="90" BackgroundColor="White" TextColor="#17324D" BorderColor="#D9E2EC" BorderWidth="1" CornerRadius="14" IsVisible="False" />
+                    <Button x:Name="ReceiptVoucherButton" Grid.Row="0" Grid.Column="1" Text="سند قبض" HeightRequest="90" BackgroundColor="White" TextColor="#17324D" BorderColor="#D9E2EC" BorderWidth="1" CornerRadius="14" IsVisible="False" />
+                    <Button x:Name="PaymentVoucherButton" Grid.Row="1" Grid.Column="0" Text="سند صرف" HeightRequest="90" BackgroundColor="White" TextColor="#17324D" BorderColor="#D9E2EC" BorderWidth="1" CornerRadius="14" IsVisible="False" />
+                    <Button x:Name="JournalVoucherButton" Grid.Row="1" Grid.Column="1" Text="قيد يومي" HeightRequest="90" BackgroundColor="White" TextColor="#17324D" BorderColor="#D9E2EC" BorderWidth="1" CornerRadius="14" IsVisible="False" />
+                    <Button x:Name="DocumentSearchButton" Grid.Row="2" Grid.Column="0" Text="بحث المستندات" HeightRequest="90" BackgroundColor="White" TextColor="#17324D" BorderColor="#D9E2EC" BorderWidth="1" CornerRadius="14" IsVisible="False" />
+                    <Button x:Name="ApprovalRequestsButton" Grid.Row="2" Grid.Column="1" Text="طلبات الاعتماد" HeightRequest="90" BackgroundColor="White" TextColor="#17324D" BorderColor="#D9E2EC" BorderWidth="1" CornerRadius="14" IsVisible="False" />
+                    <Button x:Name="TrialBalanceButton" Grid.Row="3" Grid.Column="0" Text="ميزان المراجعة" HeightRequest="90" BackgroundColor="White" TextColor="#17324D" BorderColor="#D9E2EC" BorderWidth="1" CornerRadius="14" IsVisible="False" />
+                    <Button x:Name="GeneralLedgerButton" Grid.Row="3" Grid.Column="1" Text="الأستاذ العام" HeightRequest="90" BackgroundColor="White" TextColor="#17324D" BorderColor="#D9E2EC" BorderWidth="1" CornerRadius="14" IsVisible="False" />
+                </Grid>
+            </VerticalStackLayout>
+
+            <Label x:Name="NoPermissionsLabel"
+                   Text="لا توجد خدمات مسموحة لهذا المستخدم."
+                   FontSize="13"
+                   HorizontalTextAlignment="Center"
+                   TextColor="#B42318"
+                   IsVisible="False" />
         </VerticalStackLayout>
     </ScrollView>
 </ContentPage>
