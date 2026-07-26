@@ -1,3 +1,4 @@
+using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using AlTayerERP.Mobile.Office.DTOs;
 
@@ -49,6 +50,46 @@ public sealed class AuthenticationService(HttpClient httpClient, SessionStorageS
 
         await sessionStorage.SaveAsync(result);
         return result;
+    }
+
+    public async Task<StoredSessionDto?> RestoreSessionAsync(CancellationToken cancellationToken = default)
+    {
+        var stored = await sessionStorage.GetAsync();
+        if (stored == null || stored.AccessTokenExpiresAt <= DateTimeOffset.UtcNow)
+        {
+            sessionStorage.Clear();
+            return null;
+        }
+
+        using var request = new HttpRequestMessage(HttpMethod.Get, "api/Auth/CurrentSession");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", stored.AccessToken);
+        using var response = await httpClient.SendAsync(request, cancellationToken);
+
+        if (!response.IsSuccessStatusCode)
+        {
+            sessionStorage.Clear();
+            return null;
+        }
+
+        return stored;
+    }
+
+    public async Task LogoutAsync(CancellationToken cancellationToken = default)
+    {
+        var stored = await sessionStorage.GetAsync();
+        try
+        {
+            if (stored != null)
+            {
+                using var request = new HttpRequestMessage(HttpMethod.Post, "api/Auth/Logout");
+                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", stored.AccessToken);
+                using var _ = await httpClient.SendAsync(request, cancellationToken);
+            }
+        }
+        finally
+        {
+            sessionStorage.Clear();
+        }
     }
 
     private static string NormalizeError(string? raw, string fallback)
