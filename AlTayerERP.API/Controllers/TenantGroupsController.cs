@@ -36,6 +36,14 @@ namespace AlTayerERP.API.Controllers
             var groups = await _context.Tenant_Groups.AsNoTracking()
                 .OrderBy(x => x.Sort_Order).ThenBy(x => x.Group_Name_AR)
                 .ToListAsync();
+            var groupIds = groups.Select(x => x.Group_ID).ToList();
+            var companyCounts = await _context.Companies.AsNoTracking()
+                .Where(x => groupIds.Contains(x.Group_ID))
+                .GroupBy(x => x.Group_ID)
+                .Select(x => new { Group_ID = x.Key, Count = x.Count() })
+                .ToDictionaryAsync(x => x.Group_ID, x => x.Count);
+            foreach (var group in groups)
+                group.Companies_Count = companyCounts.GetValueOrDefault(group.Group_ID);
             return Ok(groups);
         }
 
@@ -68,7 +76,8 @@ namespace AlTayerERP.API.Controllers
             };
             Map(dto, group);
             _context.Tenant_Groups.Add(group);
-            AddAuditLog(session, group, "CREATE", null, BuildSnapshot(group));
+            // INSERT متوافق مع قيد سجلات التدقيق في قواعد البيانات السابقة.
+            AddAuditLog(session, group, "INSERT", null, BuildSnapshot(group));
             await _context.SaveChangesAsync();
 
             return CreatedAtAction(nameof(GetGroup), new { id = group.Group_ID }, group);
@@ -110,6 +119,9 @@ namespace AlTayerERP.API.Controllers
             var group = await _context.Tenant_Groups.FirstOrDefaultAsync(x => x.Group_ID == id);
             if (group is null) return NotFound("المجموعة التجارية غير موجودة.");
 
+            if (await _context.Companies.AnyAsync(x => x.Group_ID == id && x.Is_Active))
+                return Conflict("لا يمكن إيقاف المجموعة لوجود شركات نشطة مرتبطة بها.");
+
             var oldValues = BuildSnapshot(group);
             group.Is_Active = false;
             group.Show_In_Login = false;
@@ -150,6 +162,37 @@ namespace AlTayerERP.API.Controllers
             await _context.SaveChangesAsync();
             return Ok(group);
         }
+
+        /// <summary>ملخص تدقيق موثوق للعرض فقط في تذييل الشاشة.</summary>
+        [HttpGet("{id}/audit-info")]
+        public async Task<IActionResult> GetAuditInfo(string id)
+        {
+            if (!TryGetAdminSession(out _)) return Forbid();
+            if (!await _context.Tenant_Groups.AnyAsync(x => x.Group_ID == id)) return NotFound();
+
+            var logs = await _context.Audit_Logs.AsNoTracking()
+                .Where(x => x.Table_Name == "tenant_groups" && x.Record_ID == id)
+                .OrderBy(x => x.Action_At)
+                .ToListAsync();
+            var ids = logs.Select(x => int.TryParse(x.User_ID, out var userId) ? userId : 0).Where(x => x > 0).Distinct().ToList();
+            var names = await _context.Users.AsNoTracking().Where(x => ids.Contains(x.User_ID)).ToDictionaryAsync(x => x.User_ID, x => x.Full_Name);
+            string NameOf(string? userId) => int.TryParse(userId, out var parsed) && names.TryGetValue(parsed, out var name) ? name : "غير متاح";
+            var created = logs.FirstOrDefault(x => x.Action_Type is "CREATE" or "INSERT");
+            var lastUpdate = logs.LastOrDefault(x => x.Action_Type == "UPDATE");
+            return Ok(new { Created_By = NameOf(created?.User_ID), Created_At = created?.Action_At, Updated_By = NameOf(lastUpdate?.User_ID), Updated_At = lastUpdate?.Action_At, Edit_Count = logs.Count(x => x.Action_Type == "UPDATE"), Print_Count = logs.Count(x => x.Action_Type == "PRINT") });
+        }
+
+        /// <summary>يسجل معاينة طباعة بطاقة المجموعة ضمن التدقيق المركزي.</summary>
+        [HttpPost("{id}/print")]
+        public async Task<IActionResult> RegisterPrint(string id)
+        {
+            if (!TryGetAdminSession(out var session)) return Forbid();
+            var group = await _context.Tenant_Groups.AsNoTracking().FirstOrDefaultAsync(x => x.Group_ID == id);
+            if (group is null) return NotFound("المجموعة التجارية غير موجودة.");
+            AddAuditLog(session, group, "PRINT", null, BuildSnapshot(group));
+            await _context.SaveChangesAsync();
+            return Ok();
+        }
         /// <summary>يتحقق من الحقول الفريدة وصحة المجموعة الأم قبل الحفظ.</summary>
         private async Task<string?> ValidateAsync(CreateTenantGroupDto dto, string? excludeId = null)
         {
@@ -172,6 +215,27 @@ namespace AlTayerERP.API.Controllers
                     x.Group_ID == dto.Parent_Group_ID && x.Is_Active);
                 if (!parentExists)
                     return "المجموعة الأم غير موجودة أو موقوفة.";
+
+                // يمنع تكوين دورة: أ ← ب ثم ب ← أ، أو أي مستوى أعمق منها.
+                var visited = new HashSet<string>(StringComparer.Ordinal) { excludeId ?? string.Empty };
+                var parentId = dto.Parent_Group_ID;
+                while (!string.IsNullOrWhiteSpace(parentId))
+                {
+                    if (!visited.Add(parentId))
+                        return "لا يمكن ربط المجموعة الأم لأنه سينشئ دورة هرمية.";
+                    parentId = await _context.Tenant_Groups.AsNoTracking()
+                        .Where(x => x.Group_ID == parentId)
+                        .Select(x => x.Parent_Group_ID)
+                        .FirstOrDefaultAsync();
+                }
+            }
+
+            if (!string.IsNullOrWhiteSpace(dto.Main_Company_ID))
+            {
+                if (string.IsNullOrWhiteSpace(excludeId))
+                    return "احفظ المجموعة أولاً ثم اختر الشركة الرئيسية المرتبطة بها.";
+                var companyValid = await _context.Companies.AsNoTracking().AnyAsync(x => x.Company_ID == dto.Main_Company_ID && x.Group_ID == excludeId && x.Is_Active);
+                if (!companyValid) return "الشركة الرئيسية يجب أن تكون نشطة ومرتبطة بهذه المجموعة.";
             }
             return null;
         }

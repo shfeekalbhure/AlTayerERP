@@ -39,7 +39,14 @@ public partial class CompanyForm
         RightToLeftLayout = true;
         MinimumSize = new Size(1180, 700);
 
-        btnSaveCompany.Text = "حفظ";
+        // الهوية الموحدة للشاشات: شريط أزرار ملون يبدأ من اليمين بـ «جديد».
+        pnlHeader.Visible = false;
+        pnlToolbar.BackColor = Color.FromArgb(248, 250, 252);
+        pnlToolbar.Padding = new Padding(6, 5, 6, 5);
+        pnlToolbar.FlowDirection = FlowDirection.RightToLeft;
+        btnNew.Text = "+ جديد";
+        btnSaveCompany.Text = "✔ حفظ";
+        btnEdit.Text = "✎ تعديل";
         btnDelete.Text = "إيقاف";
         btnApprove.Text = "إعادة تفعيل";
         btnUnApprove.Visible = false;
@@ -50,6 +57,20 @@ public partial class CompanyForm
         cmbGroups.DropDownStyle = ComboBoxStyle.DropDownList;
         chkIsActive.Enabled = false;
         chkIsActive.TabStop = false;
+
+        grpBasic.Text = "بيانات الشركة الأساسية";
+        grpContact.Text = "بيانات التواصل والعنوان";
+        grpLogo.Text = "شعار الشركة";
+        label1.Text = "المجموعة التجارية *";
+        label2.Text = "اسم الشركة بالعربية *";
+        label3.Text = "اسم الشركة بالإنجليزية";
+        label4.Text = "كود الشركة *";
+        label8.Text = "الرقم الضريبي";
+        label5.Text = "الهاتف";
+        label6.Text = "البريد الإلكتروني";
+        label7.Text = "العنوان";
+        ApplyRequestedToolbarColors();
+        ApplyRequestedCardStyle();
 
         ReflowMainAreaForWorkspace();
 
@@ -125,7 +146,6 @@ public partial class CompanyForm
             Dock = DockStyle.Fill;
         }
 
-        pnlHeader.Height = compact ? 62 : 70;
         pnlToolbar.Height = compact ? 46 : 52;
 
         foreach (Control control in pnlToolbar.Controls)
@@ -150,6 +170,43 @@ public partial class CompanyForm
 
         AdjustLogoArea(compact);
         Invalidate(true);
+    }
+
+    private void ApplyRequestedToolbarColors()
+    {
+        var buttons = new[] { btnNew, btnSaveCompany, btnEdit, btnDelete, btnApprove, btnSearch, btnRefresh, btnPrint, btnClose };
+        var colors = new[]
+        {
+            Color.FromArgb(13, 148, 136), Color.FromArgb(37, 99, 235), Color.FromArgb(217, 119, 6),
+            Color.FromArgb(220, 38, 38), Color.FromArgb(5, 150, 105), Color.FromArgb(5, 150, 105),
+            Color.FromArgb(2, 132, 199), Color.FromArgb(124, 58, 237), Color.FromArgb(100, 116, 139)
+        };
+        for (var index = 0; index < buttons.Length; index++)
+        {
+            var button = buttons[index];
+            button.BackColor = colors[index];
+            button.ForeColor = Color.White;
+            button.FlatStyle = FlatStyle.Flat;
+            button.FlatAppearance.BorderSize = 0;
+            button.Cursor = Cursors.Hand;
+        }
+    }
+
+    private void ApplyRequestedCardStyle()
+    {
+        pnlDetails.BackColor = Color.FromArgb(248, 250, 252);
+        foreach (var card in new[] { grpBasic, grpContact, grpLogo })
+        {
+            card.BackColor = Color.White;
+            card.ForeColor = Color.FromArgb(15, 23, 42);
+            card.Font = new Font("Segoe UI", 9.5F, FontStyle.Bold);
+        }
+        pnlAudit.BackColor = Color.FromArgb(241, 245, 249);
+        dgvCompanies.BackgroundColor = Color.White;
+        dgvCompanies.BorderStyle = BorderStyle.Fixed3D;
+        dgvCompanies.AlternatingRowsDefaultCellStyle.BackColor = Color.FromArgb(241, 245, 249);
+        dgvCompanies.DefaultCellStyle.SelectionBackColor = Color.FromArgb(37, 99, 235);
+        dgvCompanies.DefaultCellStyle.SelectionForeColor = Color.White;
     }
 
     private void AdjustLogoArea(bool compact)

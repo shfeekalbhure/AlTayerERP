@@ -44,19 +44,17 @@ public sealed class FrmFinancialLimits : BaseForm
 
     private void Build()
     {
-        var shell = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 6, Padding = new Padding(10), BackColor = Color.FromArgb(244, 247, 251) };
+        var shell = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 5, Padding = new Padding(10), BackColor = Color.FromArgb(244, 247, 251) };
         shell.RowStyles.Add(new RowStyle(SizeType.Absolute, 68));
         shell.RowStyles.Add(new RowStyle(SizeType.Absolute, 48));
         shell.RowStyles.Add(new RowStyle(SizeType.Absolute, 158));
         shell.RowStyles.Add(new RowStyle(SizeType.Absolute, 46));
         shell.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
-        shell.RowStyles.Add(new RowStyle(SizeType.Absolute, 26));
         shell.Controls.Add(new BrandHeaderControl(Text), 0, 0);
         shell.Controls.Add(BuildToolbar(), 0, 1);
         shell.Controls.Add(BuildEditor(), 0, 2);
         shell.Controls.Add(BuildSearch(), 0, 3);
         shell.Controls.Add(BuildGrid(), 0, 4);
-        shell.Controls.Add(CreateSessionStatusStrip(), 0, 5);
         Controls.Add(shell);
     }
 

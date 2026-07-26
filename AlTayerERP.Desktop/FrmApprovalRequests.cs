@@ -42,7 +42,7 @@ public sealed class FrmApprovalRequests : BaseForm
         {
             Dock = DockStyle.Fill,
             ColumnCount = 1,
-            RowCount = 5,
+            RowCount = 4,
             Padding = new Padding(10),
             BackColor = Color.FromArgb(244, 247, 251)
         };
@@ -50,13 +50,11 @@ public sealed class FrmApprovalRequests : BaseForm
         shell.RowStyles.Add(new RowStyle(SizeType.Absolute, 48));
         shell.RowStyles.Add(new RowStyle(SizeType.Absolute, 92));
         shell.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
-        shell.RowStyles.Add(new RowStyle(SizeType.Absolute, 26));
 
         shell.Controls.Add(new BrandHeaderControl(Text), 0, 0);
         shell.Controls.Add(BuildToolbar(), 0, 1);
         shell.Controls.Add(BuildDecisionCard(), 0, 2);
         shell.Controls.Add(BuildGridCard(), 0, 3);
-        shell.Controls.Add(CreateSessionStatusStrip(), 0, 4);
         Controls.Add(shell);
 
         _status.Items.AddRange(new object[] { "الكل", "Pending", "UnderReview", "Approved", "Rejected", "Returned" });

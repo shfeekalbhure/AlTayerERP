@@ -40,7 +40,7 @@ public sealed class FrmPaymentVoucher : BaseForm
     {
         var root = new TableLayoutPanel
         {
-            Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 6,
+            Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 5,
             Padding = new Padding(12), BackColor = Color.FromArgb(244, 247, 251)
         };
         root.RowStyles.Add(new RowStyle(SizeType.Absolute, 68));
@@ -48,14 +48,12 @@ public sealed class FrmPaymentVoucher : BaseForm
         root.RowStyles.Add(new RowStyle(SizeType.Absolute, 214));
         root.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
         root.RowStyles.Add(new RowStyle(SizeType.Absolute, 118));
-        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 26));
 
         root.Controls.Add(new BrandHeaderControl("سند الصرف (Payment Voucher)"), 0, 0);
         root.Controls.Add(BuildCommandBar(), 0, 1);
         root.Controls.Add(BuildHeaderCard(), 0, 2);
         root.Controls.Add(BuildDetailsCard(), 0, 3);
         root.Controls.Add(CreateAuditInfoPanel(), 0, 4);
-        root.Controls.Add(CreateSessionStatusStrip(), 0, 5);
 
         _lines.Columns.AddRange(new DataGridViewColumn[] { C("Account","الحساب"), C("CostCenter","مركز التكلفة"), C("Currency","العملة"), C("Rate","سعر الصرف"), C("Foreign","أجنبي"), C("Local","محلي"), C("Debit","مدين"), C("Credit","دائن"), C("Description","الوصف", 220), C("Notes","ملاحظات", 180) });
         _lines.RightToLeft = RightToLeft.Yes;

@@ -111,6 +111,24 @@
 		</Compile>
 	</ItemGroup>
 	<ItemGroup>
+		<Compile Update="FrmGovernorates.cs">
+			<SubType>Form</SubType>
+		</Compile>
+		<Compile Update="FrmGovernorates.Designer.cs">
+			<DependentUpon>FrmGovernorates.cs</DependentUpon>
+			<AutoGen>True</AutoGen>
+			<DesignTime>True</DesignTime>
+		</Compile>
+		<Compile Update="FrmCities.cs">
+			<SubType>Form</SubType>
+		</Compile>
+		<Compile Update="FrmCities.Designer.cs">
+			<DependentUpon>FrmCities.cs</DependentUpon>
+			<AutoGen>True</AutoGen>
+			<DesignTime>True</DesignTime>
+		</Compile>
+	</ItemGroup>
+	<ItemGroup>
 	  <Folder Include="Common\AccountLookup\" />
 	</ItemGroup>
 

@@ -55,5 +55,9 @@ namespace AlTayerERP.Core.Entities
         public DateTime? Reactivated_At { get; set; }
         /// <summary>سبب إعادة التفعيل Reactivate_Reason.</summary>
         public string? Reactivate_Reason { get; set; }
+
+        /// <summary>عدد الشركات التابعة للعرض في شاشة المجموعات؛ لا يُخزن في الجدول.</summary>
+        [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+        public int Companies_Count { get; set; }
     }
 }
