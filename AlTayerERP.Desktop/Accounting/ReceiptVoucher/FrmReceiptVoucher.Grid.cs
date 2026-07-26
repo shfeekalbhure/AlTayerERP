@@ -56,6 +56,8 @@ namespace AlTayerERP.Desktop
             colForeignAmount.ReadOnly = true;
             colLocalAmount.ReadOnly = true;
 
+            ConfigureDistributionColumns();
+
             // إلغاء التسجيل أولاً ثم إعادة التسجيل لمنع التكرار في الأحداث
             dgvVoucherDetails.CurrentCellDirtyStateChanged -= dgvVoucherDetails_CurrentCellDirtyStateChanged;
             dgvVoucherDetails.CellEndEdit -= dgvVoucherDetails_CellEndEdit;
@@ -84,6 +86,41 @@ namespace AlTayerERP.Desktop
             dgvVoucherDetails.KeyDown -= dgvVoucherDetails_KeyDown;
             dgvVoucherDetails.KeyDown += dgvVoucherDetails_KeyDown;
 
+        }
+
+        /// <summary>
+        /// يضبط حجم أعمدة التوزيع المحاسبي لتظهر الحقول المهمة أولاً،
+        /// وتبقى بقية الأعمدة متاحة عبر شريط التمرير الأفقي.
+        /// </summary>
+        private void ConfigureDistributionColumns()
+        {
+            dgvVoucherDetails.RowTemplate.Height = 31;
+            dgvVoucherDetails.DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleRight;
+            dgvVoucherDetails.ColumnHeadersDefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleCenter;
+            dgvVoucherDetails.DefaultCellStyle.WrapMode = DataGridViewTriState.False;
+            dgvVoucherDetails.AllowUserToResizeColumns = true;
+
+            colNo.Width = 48;
+            colAccountCode.Width = 125;
+            colAccountName.Width = 190;
+            colDescription.Width = 190;
+            colCostCenter.Width = 145;
+            colReferenceNo.Width = 120;
+            colReferenceType.Width = 110;
+            colReferenceName.Width = 150;
+            colReferenceDate.Width = 105;
+            colAmount.Width = 105;
+            colCurrency.Width = 125;
+            colExchangeRate.Width = 95;
+            colForeignAmount.Width = 110;
+            colLocalAmount.Width = 110;
+            colNotes.Width = 160;
+
+            colNo.DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleCenter;
+            colAmount.DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleRight;
+            colExchangeRate.DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleRight;
+            colForeignAmount.DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleRight;
+            colLocalAmount.DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleRight;
         }
 
         #endregion
