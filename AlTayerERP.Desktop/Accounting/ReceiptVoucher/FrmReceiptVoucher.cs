@@ -246,7 +246,7 @@ namespace AlTayerERP.Desktop
             }
         }
 
-        private static System.Drawing.Color GetReceiptToolbarColor(Button button)
+        private System.Drawing.Color GetReceiptToolbarColor(Button button)
         {
             if (button == btnNew) return System.Drawing.Color.FromArgb(37, 99, 235);
             if (button == btnSave) return System.Drawing.Color.FromArgb(22, 135, 79);
