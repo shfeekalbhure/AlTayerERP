@@ -114,9 +114,10 @@ partial class FrmGovernorates
         mainTableLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
         mainTableLayout.RowCount = 5;
         mainTableLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 56F));  // شريط الأزرار العلوية
-        mainTableLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 252F)); // بطاقة البيانات الأساسية
-        mainTableLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 62F));  // إطار البحث والتصفية
-        mainTableLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 100F)); // جدول البيانات المتمدد (-2سم)
+        // زيادة 0.5 سم تقريباً لبيانات المحافظة وللبحث؛ تخصم 1 سم من مساحة الجدول.
+        mainTableLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 271F)); // بطاقة البيانات الأساسية (+0.5 سم)
+        mainTableLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 81F));  // إطار البحث والتصفية (+0.5 سم)
+        mainTableLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));  // جدول البيانات بعد التصغير 1 سم
         mainTableLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 108F)); // بطاقات التذييل والتدقيق
 
         // -------------------------------------------------------------------------
@@ -280,6 +281,10 @@ partial class FrmGovernorates
         txtSearch.Dock = DockStyle.Fill;
         cmbFilterCountry.Dock = DockStyle.Fill;
         cmbFilterStatus.Dock = DockStyle.Fill;
+        txtSearch.RightToLeft = RightToLeft.Yes;
+        txtSearch.TextAlign = HorizontalAlignment.Right;
+        cmbFilterCountry.RightToLeft = RightToLeft.Yes;
+        cmbFilterStatus.RightToLeft = RightToLeft.Yes;
 
         btnApplyFilter.Text = "تطبيق التصفية";
         btnApplyFilter.Size = new Size(124, 32);
@@ -289,6 +294,7 @@ partial class FrmGovernorates
         btnApplyFilter.FlatAppearance.BorderSize = 0;
         btnApplyFilter.Margin = new Padding(2, 1, 8, 1);
         btnApplyFilter.Dock = DockStyle.Fill;
+        btnApplyFilter.TextAlign = ContentAlignment.MiddleCenter;
 
         // من اليمين: الحالة، الدولة، البحث السريع، ثم تطبيق التصفية.
         pnlSearchFilter.Controls.Add(lblFilterStatus, 0, 0);
