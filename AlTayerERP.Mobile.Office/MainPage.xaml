@@ -22,9 +22,12 @@
                 <VerticalStackLayout Spacing="14">
                     <VerticalStackLayout x:Name="CredentialsPanel" Spacing="12">
                         <Label Text="الشركة" TextColor="#35566F" />
-                        <Border Stroke="#D9E2EC" Padding="4" StrokeShape="RoundRectangle 10">
+                        <Border Stroke="#D9E2EC" BackgroundColor="White" Padding="4" StrokeShape="RoundRectangle 10">
                             <Picker x:Name="CompanyPicker"
                                     Title="اختر الشركة"
+                                    TextColor="#17324D"
+                                    TitleColor="#7A8896"
+                                    BackgroundColor="White"
                                     ItemDisplayBinding="{Binding DisplayName}" />
                         </Border>
                         <Label x:Name="CompaniesStatusLabel"
@@ -35,14 +38,22 @@
 
                         <Entry x:Name="LoginNameEntry"
                                Placeholder="اسم المستخدم"
+                               TextColor="#17324D"
+                               PlaceholderColor="#7A8896"
+                               BackgroundColor="White"
                                ReturnType="Next"
                                ClearButtonVisibility="WhileEditing" />
                         <Entry x:Name="PasswordEntry"
                                Placeholder="كلمة المرور"
+                               TextColor="#17324D"
+                               PlaceholderColor="#7A8896"
+                               BackgroundColor="White"
                                IsPassword="True"
                                ReturnType="Done" />
                         <Button x:Name="LoadOptionsButton"
                                 Text="متابعة واختيار الفرع والسنة"
+                                TextColor="White"
+                                BackgroundColor="#0B6B87"
                                 HeightRequest="52"
                                 CornerRadius="12"
                                 IsEnabled="False"
@@ -56,20 +67,28 @@
                                HorizontalTextAlignment="Center"
                                TextColor="#17324D" />
 
-                        <Border Stroke="#D9E2EC" Padding="4" StrokeShape="RoundRectangle 10">
+                        <Border Stroke="#D9E2EC" BackgroundColor="White" Padding="4" StrokeShape="RoundRectangle 10">
                             <Picker x:Name="BranchPicker"
                                     Title="اختر الفرع"
+                                    TextColor="#17324D"
+                                    TitleColor="#7A8896"
+                                    BackgroundColor="White"
                                     ItemDisplayBinding="{Binding DisplayName}" />
                         </Border>
 
-                        <Border Stroke="#D9E2EC" Padding="4" StrokeShape="RoundRectangle 10">
+                        <Border Stroke="#D9E2EC" BackgroundColor="White" Padding="4" StrokeShape="RoundRectangle 10">
                             <Picker x:Name="YearPicker"
                                     Title="اختر السنة المالية"
+                                    TextColor="#17324D"
+                                    TitleColor="#7A8896"
+                                    BackgroundColor="White"
                                     ItemDisplayBinding="{Binding DisplayName}" />
                         </Border>
 
                         <Button x:Name="LoginButton"
                                 Text="دخول"
+                                TextColor="White"
+                                BackgroundColor="#0B6B87"
                                 HeightRequest="52"
                                 CornerRadius="12"
                                 Clicked="OnLoginClicked" />
@@ -84,6 +103,7 @@
                            HorizontalTextAlignment="Center"
                            IsVisible="False" />
                     <ActivityIndicator x:Name="BusyIndicator"
+                                       Color="#0B6B87"
                                        IsVisible="False"
                                        IsRunning="False" />
                 </VerticalStackLayout>
