@@ -118,7 +118,7 @@ partial class FrmGovernorates
         mainTableLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 271F)); // بطاقة البيانات الأساسية (+0.5 سم)
         mainTableLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 81F));  // إطار البحث والتصفية (+0.5 سم)
         mainTableLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));  // جدول البيانات بعد التصغير 1 سم
-        mainTableLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 108F)); // بطاقات التذييل والتدقيق
+        mainTableLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 116F)); // بطاقات التذييل والتدقيق
 
         // -------------------------------------------------------------------------
         // [تنسيق لوحة الأزرار العلوية - Top Action Buttons]
@@ -333,12 +333,14 @@ partial class FrmGovernorates
         // [بطاقات التدقيق والتذييل السفلي - Audit Summary]
         // -------------------------------------------------------------------------
         tblAuditSummary.Dock = DockStyle.Fill;
-        tblAuditSummary.Padding = new Padding(8, 2, 8, 2);
+        tblAuditSummary.Padding = new Padding(8, 4, 8, 4);
         tblAuditSummary.RightToLeft = RightToLeft.Yes;
         tblAuditSummary.ColumnCount = 3;
+        tblAuditSummary.RowCount = 1;
         tblAuditSummary.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 33.33F));
         tblAuditSummary.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 33.33F));
         tblAuditSummary.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 33.33F));
+        tblAuditSummary.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
 
         ConfigureAuditGroup(grpCreationData, "بيانات الإنشاء", lblCreatedBy, "أنشئ بواسطة: -", lblCreatedAt, "تاريخ الإنشاء: -");
         ConfigureAuditGroup(grpModificationData, "بيانات التعديل", lblModifiedBy, "عدل بواسطة: -", lblModifiedAt, "تاريخ التعديل: -");
@@ -379,23 +381,44 @@ partial class FrmGovernorates
     /// </summary>
     private static void ConfigureAuditGroup(GroupBox group, string title, Label first, string firstText, Label second, string secondText)
     {
+        // كل بطاقة لها جدول داخلي مستقل؛ Dock.Top كان يجعل النصوص تظهر
+        // خارج بطاقة الإنشاء/التعديل عند تغير مقياس العرض في Windows.
+        var content = new TableLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            RightToLeft = RightToLeft.Yes,
+            ColumnCount = 1,
+            RowCount = 2,
+            Padding = new Padding(2)
+        };
+        content.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
+        content.RowStyles.Add(new RowStyle(SizeType.Percent, 50F));
+        content.RowStyles.Add(new RowStyle(SizeType.Percent, 50F));
+
         group.Text = title;
         group.Dock = DockStyle.Fill;
         group.RightToLeft = RightToLeft.Yes;
         group.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
-        group.Padding = new Padding(10, 6, 10, 4);
+        group.Padding = new Padding(10, 22, 10, 6);
+        group.Margin = new Padding(5, 0, 5, 0);
+        group.Controls.Clear();
+
         first.Text = firstText;
-        first.Dock = DockStyle.Top;
-        first.Height = 34;
+        first.Dock = DockStyle.Fill;
+        first.Margin = new Padding(0);
         first.TextAlign = ContentAlignment.MiddleRight;
         first.AutoEllipsis = true;
+        first.Font = new Font("Segoe UI", 9F, FontStyle.Regular);
         second.Text = secondText;
-        second.Dock = DockStyle.Top;
-        second.Height = 34;
+        second.Dock = DockStyle.Fill;
+        second.Margin = new Padding(0);
         second.TextAlign = ContentAlignment.MiddleRight;
         second.AutoEllipsis = true;
-        group.Controls.Add(second);
-        group.Controls.Add(first);
+        second.Font = new Font("Segoe UI", 9F, FontStyle.Regular);
+
+        content.Controls.Add(first, 0, 0);
+        content.Controls.Add(second, 0, 1);
+        group.Controls.Add(content);
     }
 
     // =========================================================================
