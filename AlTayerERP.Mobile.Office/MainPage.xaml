@@ -12,25 +12,71 @@
                    FontAttributes="Bold"
                    HorizontalTextAlignment="Center"
                    TextColor="#17324D" />
-            <Label Text="تسجيل الدخول الآمن"
+            <Label x:Name="StepTitleLabel"
+                   Text="أدخل بيانات الحساب أولاً"
                    FontSize="17"
                    HorizontalTextAlignment="Center"
                    TextColor="#5B6B7A" />
 
             <Border Stroke="#D9E2EC" BackgroundColor="White" Padding="18" StrokeShape="RoundRectangle 18">
-                <VerticalStackLayout Spacing="12">
-                    <Entry x:Name="CompanyEntry" Placeholder="رمز الشركة" ReturnType="Next" />
-                    <Entry x:Name="BranchEntry" Placeholder="رقم الفرع" Keyboard="Numeric" ReturnType="Next" />
-                    <Entry x:Name="YearEntry" Placeholder="رقم السنة المالية" Keyboard="Numeric" ReturnType="Next" />
-                    <Entry x:Name="LoginNameEntry" Placeholder="اسم المستخدم" ReturnType="Next" />
-                    <Entry x:Name="PasswordEntry" Placeholder="كلمة المرور" IsPassword="True" ReturnType="Done" />
-                    <Label x:Name="StatusLabel" TextColor="#B42318" IsVisible="False" />
-                    <ActivityIndicator x:Name="BusyIndicator" IsVisible="False" IsRunning="False" />
-                    <Button x:Name="LoginButton"
-                            Text="دخول"
-                            HeightRequest="50"
-                            CornerRadius="12"
-                            Clicked="OnLoginClicked" />
+                <VerticalStackLayout Spacing="14">
+                    <VerticalStackLayout x:Name="CredentialsPanel" Spacing="12">
+                        <Entry x:Name="CompanyEntry"
+                               Placeholder="رمز الشركة"
+                               ReturnType="Next"
+                               ClearButtonVisibility="WhileEditing" />
+                        <Entry x:Name="LoginNameEntry"
+                               Placeholder="اسم المستخدم"
+                               ReturnType="Next"
+                               ClearButtonVisibility="WhileEditing" />
+                        <Entry x:Name="PasswordEntry"
+                               Placeholder="كلمة المرور"
+                               IsPassword="True"
+                               ReturnType="Done" />
+                        <Button x:Name="LoadOptionsButton"
+                                Text="متابعة واختيار الفرع والسنة"
+                                HeightRequest="52"
+                                CornerRadius="12"
+                                Clicked="OnLoadOptionsClicked" />
+                    </VerticalStackLayout>
+
+                    <VerticalStackLayout x:Name="ContextPanel" Spacing="12" IsVisible="False">
+                        <Label x:Name="UserWelcomeLabel"
+                               FontSize="15"
+                               FontAttributes="Bold"
+                               HorizontalTextAlignment="Center"
+                               TextColor="#17324D" />
+
+                        <Border Stroke="#D9E2EC" Padding="4" StrokeShape="RoundRectangle 10">
+                            <Picker x:Name="BranchPicker"
+                                    Title="اختر الفرع"
+                                    ItemDisplayBinding="{Binding DisplayName}" />
+                        </Border>
+
+                        <Border Stroke="#D9E2EC" Padding="4" StrokeShape="RoundRectangle 10">
+                            <Picker x:Name="YearPicker"
+                                    Title="اختر السنة المالية"
+                                    ItemDisplayBinding="{Binding DisplayName}" />
+                        </Border>
+
+                        <Button x:Name="LoginButton"
+                                Text="دخول"
+                                HeightRequest="52"
+                                CornerRadius="12"
+                                Clicked="OnLoginClicked" />
+                        <Button Text="رجوع لتعديل بيانات الحساب"
+                                BackgroundColor="Transparent"
+                                TextColor="#35566F"
+                                Clicked="OnBackClicked" />
+                    </VerticalStackLayout>
+
+                    <Label x:Name="StatusLabel"
+                           TextColor="#B42318"
+                           HorizontalTextAlignment="Center"
+                           IsVisible="False" />
+                    <ActivityIndicator x:Name="BusyIndicator"
+                                       IsVisible="False"
+                                       IsRunning="False" />
                 </VerticalStackLayout>
             </Border>
 
