@@ -47,20 +47,10 @@ public partial class CountriesForm : BaseForm
 
     private async Task InitializeAsync()
     {
-        SetSessionStatus();
         await LoadCurrenciesAsync();
         await LoadRowsAsync();
     }
 
-    private void SetSessionStatus()
-    {
-        lblCompanyStatus.Text = $"الشركة: {CurrentSession.Company_ID}";
-        lblBranchStatus.Text = $" | الفرع: {CurrentSession.Branch_ID}";
-        lblYearStatus.Text = $" | السنة: {CurrentSession.Year_ID}";
-        lblUserStatus.Text = $" | المستخدم: {CurrentSession.Username}";
-        lblApiStatus.Text = " | API: متصل";
-        lblDbStatus.Text = " | قاعدة البيانات: عبر API";
-    }
 
     private async Task LoadCurrenciesAsync()
     {
