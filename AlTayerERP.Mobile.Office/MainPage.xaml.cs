@@ -7,6 +7,7 @@ public partial class MainPage : ContentPage
 {
     private readonly AuthenticationService _authentication;
     private LoginOptionsResponseDto? _loginOptions;
+    private bool _companiesLoaded;
 
     public MainPage(AuthenticationService authentication)
     {
@@ -14,15 +15,56 @@ public partial class MainPage : ContentPage
         _authentication = authentication;
     }
 
+    protected override async void OnAppearing()
+    {
+        base.OnAppearing();
+
+        if (_companiesLoaded)
+            return;
+
+        await LoadCompaniesAsync();
+    }
+
+    private async Task LoadCompaniesAsync()
+    {
+        HideError();
+        CompaniesStatusLabel.IsVisible = true;
+        CompaniesStatusLabel.Text = "جاري تحميل الشركات...";
+        LoadOptionsButton.IsEnabled = false;
+
+        try
+        {
+            var companies = await _authentication.GetLoginCompaniesAsync();
+            CompanyPicker.ItemsSource = companies;
+
+            if (companies.Count == 1)
+                CompanyPicker.SelectedItem = companies[0];
+
+            CompaniesStatusLabel.Text = companies.Count == 0
+                ? "لا توجد شركات نشطة متاحة."
+                : companies.Count == 1
+                    ? "تم تحديد الشركة تلقائياً."
+                    : "اختر الشركة من القائمة.";
+
+            LoadOptionsButton.IsEnabled = companies.Count > 0;
+            _companiesLoaded = true;
+        }
+        catch (Exception ex)
+        {
+            CompaniesStatusLabel.Text = "تعذر تحميل الشركات.";
+            ShowError(ex.Message);
+        }
+    }
+
     private async void OnLoadOptionsClicked(object? sender, EventArgs e)
     {
         HideError();
 
-        if (string.IsNullOrWhiteSpace(CompanyEntry.Text) ||
+        if (CompanyPicker.SelectedItem is not LoginCompanyOptionDto company ||
             string.IsNullOrWhiteSpace(LoginNameEntry.Text) ||
             string.IsNullOrWhiteSpace(PasswordEntry.Text))
         {
-            ShowError("أدخل رمز الشركة واسم المستخدم وكلمة المرور.");
+            ShowError("اختر الشركة وأدخل اسم المستخدم وكلمة المرور.");
             return;
         }
 
@@ -31,7 +73,7 @@ public partial class MainPage : ContentPage
         {
             _loginOptions = await _authentication.GetLoginOptionsAsync(new LoginOptionsRequestDto
             {
-                Company_ID = CompanyEntry.Text.Trim(),
+                Company_ID = company.Company_ID,
                 Login_Name = LoginNameEntry.Text.Trim(),
                 Password = PasswordEntry.Text,
                 Device_ID = GetDeviceId()
@@ -114,8 +156,11 @@ public partial class MainPage : ContentPage
     {
         BusyIndicator.IsVisible = isBusy;
         BusyIndicator.IsRunning = isBusy;
-        LoadOptionsButton.IsEnabled = !isBusy;
+        LoadOptionsButton.IsEnabled = !isBusy && CompanyPicker.ItemsSource != null;
         LoginButton.IsEnabled = !isBusy;
+        CompanyPicker.IsEnabled = !isBusy;
+        LoginNameEntry.IsEnabled = !isBusy;
+        PasswordEntry.IsEnabled = !isBusy;
     }
 
     private void ShowError(string message)
