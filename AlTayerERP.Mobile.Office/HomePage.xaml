@@ -8,15 +8,24 @@
     <ScrollView>
         <VerticalStackLayout Padding="20" Spacing="16">
             <Border BackgroundColor="#17324D" StrokeThickness="0" Padding="18" StrokeShape="RoundRectangle 18">
-                <VerticalStackLayout Spacing="6">
-                    <Label x:Name="WelcomeLabel"
-                           FontSize="22"
-                           FontAttributes="Bold"
-                           TextColor="White" />
-                    <Label x:Name="ContextLabel"
-                           FontSize="13"
-                           TextColor="#D9EAF7" />
-                </VerticalStackLayout>
+                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                    <VerticalStackLayout Grid.Column="0" Spacing="6">
+                        <Label x:Name="WelcomeLabel"
+                               FontSize="22"
+                               FontAttributes="Bold"
+                               TextColor="White" />
+                        <Label x:Name="ContextLabel"
+                               FontSize="13"
+                               TextColor="#D9EAF7" />
+                    </VerticalStackLayout>
+                    <Button Grid.Column="1"
+                            Text="خروج"
+                            BackgroundColor="#B42318"
+                            TextColor="White"
+                            CornerRadius="10"
+                            HeightRequest="42"
+                            Clicked="OnLogoutClicked" />
+                </Grid>
             </Border>
 
             <Label Text="الخدمات المتاحة"
