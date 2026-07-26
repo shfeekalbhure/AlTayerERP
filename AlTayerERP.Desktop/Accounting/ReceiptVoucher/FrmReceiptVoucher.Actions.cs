@@ -1,5 +1,4 @@
 ﻿using AlTayerERP.Desktop.Services;
-using AlTayerERP.Desktop.Accounting.ReceiptVoucher;
 using System;
 using System.Drawing;
 using System.Drawing.Printing;
@@ -46,8 +45,6 @@ namespace AlTayerERP.Desktop
             btnAttachments.Click -= btnAttachments_Click;
             btnAttachments.Click += btnAttachments_Click;
 
-            btnViewJournalEntry.Click -= btnViewJournalEntry_Click;
-            btnViewJournalEntry.Click += btnViewJournalEntry_Click;
             // للتراجع
             btnUndo.Click -= btnUndo_Click;
             btnUndo.Click += btnUndo_Click;
@@ -112,20 +109,6 @@ namespace AlTayerERP.Desktop
             }
 
             using var form = new FrmVoucherAttachments(_selectedVoucherId);
-            form.ShowDialog(this);
-        }
-
-        private void btnViewJournalEntry_Click(object? sender, EventArgs e)
-        {
-            string voucherNo = txtVoucherNo.Text.Trim();
-            if (_selectedVoucherId <= 0 || string.IsNullOrWhiteSpace(voucherNo))
-            {
-                MessageBox.Show("احفظ أو ابحث عن سند القبض أولاً.", "استعراض القيد",
-                    MessageBoxButtons.OK, MessageBoxIcon.Information);
-                return;
-            }
-
-            using var form = new FrmJournalEntryInquiry(voucherNo);
             form.ShowDialog(this);
         }
 
