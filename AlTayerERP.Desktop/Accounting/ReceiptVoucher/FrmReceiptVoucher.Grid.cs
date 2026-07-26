@@ -38,6 +38,8 @@ namespace AlTayerERP.Desktop
             dgvVoucherDetails.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.None;
             // إيقاف ضبط الحجم التلقائي للأسطر
             dgvVoucherDetails.AutoSizeRowsMode = DataGridViewAutoSizeRowsMode.None;
+            // إظهار شريطي تمرير واضحين عند زيادة أسطر أو أعمدة التوزيع المحاسبي.
+            dgvVoucherDetails.ScrollBars = ScrollBars.Both;
             // منع المستخدم من تغيير ارتفاع ترويسة الأعمدة
             dgvVoucherDetails.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.DisableResizing;
             // تحديد ارتفاع ترويسة الأعمدة بـ 35 بكسل
