@@ -169,6 +169,7 @@ namespace AlTayerERP.Desktop
             button1.Visible = false;
 
             ConfigureReceiptToolbar();
+            ConfigureReceiptVisualLayout();
 
             _lblReviewStatus.AutoSize = true;
             _lblReviewStatus.Location = new System.Drawing.Point(1278, 12);
@@ -183,14 +184,129 @@ namespace AlTayerERP.Desktop
         }
 
         /// <summary>
-        /// يوحد شريط أوامر سند القبض: مقاسات وألوان وأيقونات ومحاذاة RTL.
-        /// يعاد ترتيبه تلقائياً عند تغيير حجم نافذة الشاشة.
+        /// يضبط شكل الشاشة لتلائم مساحة العمل، ويمنع تمرير نافذة الـ MDI الخارجي.
+        /// </summary>
+        private void ConfigureReceiptVisualLayout()
+        {
+            AutoScroll = false;
+            MinimumSize = new System.Drawing.Size(1100, 680);
+
+            pnlToolbar.Height = 84;
+            grpVoucherInfo.Height = 88;
+            groupBox1.Height = 170;
+            pnlUserInfo.Height = 72;
+            pnlTotals.Height = 50;
+
+            grpVoucherInfo.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Bold);
+            groupBox1.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Bold);
+            grpDistribution.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Bold);
+
+            pnlTotals.BackColor = System.Drawing.Color.FromArgb(248, 250, 252);
+            pnlUserInfo.BackColor = System.Drawing.Color.FromArgb(239, 246, 255);
+            pnlUserInfo.Padding = new Padding(10, 4, 10, 4);
+
+            StyleReadOnlyField(txtVoucherNo);
+            StyleReadOnlyField(txtTotalAmount);
+            StyleReadOnlyField(txtTotalForeignAmount);
+            StyleReadOnlyField(txtDifference);
+            StyleReadOnlyField(txtJournalNo);
+            StyleReadOnlyField(txtCreatedBy);
+            StyleReadOnlyField(txtCreatedDate);
+            StyleReadOnlyField(txtUpdatedBy);
+            StyleReadOnlyField(txtUpdatedDate);
+            StyleReadOnlyField(txtEditCount);
+            StyleReadOnlyField(txtPrintCount);
+            StyleReadOnlyField(txtLastPrintedBy);
+            StyleReadOnlyField(txtLastPrintDate);
+
+            Resize -= FrmReceiptVoucher_Resize;
+            Resize += FrmReceiptVoucher_Resize;
+            ApplyReceiptVisualLayout();
+        }
+
+        private void FrmReceiptVoucher_Resize(object? sender, EventArgs e) =>
+            ApplyReceiptVisualLayout();
+
+        private void ApplyReceiptVisualLayout()
+        {
+            // يمنع تجاوز النموذج لمساحة نافذة النظام عند فتحه داخل MDI.
+            if (MdiParent != null && WindowState == FormWindowState.Normal &&
+                ClientSize.Width > MdiParent.ClientSize.Width)
+            {
+                Width = Math.Max(MinimumSize.Width, MdiParent.ClientSize.Width);
+            }
+
+            LayoutAuditFields();
+        }
+
+        private void LayoutAuditFields()
+        {
+            if (pnlUserInfo.ClientSize.Width < 900)
+            {
+                return;
+            }
+
+            var fields = new[]
+            {
+                (label7, txtCreatedBy), (label1, txtCreatedDate), (label3, txtUpdatedBy),
+                (label2, txtUpdatedDate), (label29, txtEditCount), (label28, txtPrintCount),
+                (label31, txtLastPrintedBy), (label30, txtLastPrintDate)
+            };
+
+            const int rightMargin = 14;
+            const int labelWidth = 86;
+            const int fieldWidth = 132;
+            const int columnWidth = 270;
+            const int firstRowY = 7;
+            const int secondRowY = 39;
+            int right = pnlUserInfo.ClientSize.Width - rightMargin;
+
+            pnlUserInfo.SuspendLayout();
+            try
+            {
+                for (int index = 0; index < fields.Length; index++)
+                {
+                    int row = index / 4;
+                    int column = index % 4;
+                    int x = right - ((column + 1) * columnWidth);
+                    int y = row == 0 ? firstRowY : secondRowY;
+                    Label label = fields[index].Item1;
+                    TextBox field = fields[index].Item2;
+
+                    label.AutoSize = false;
+                    label.Size = new System.Drawing.Size(labelWidth, 24);
+                    label.Location = new System.Drawing.Point(x + fieldWidth, y + 2);
+                    label.TextAlign = System.Drawing.ContentAlignment.MiddleRight;
+                    label.Font = new System.Drawing.Font("Segoe UI", 8F, System.Drawing.FontStyle.Bold);
+
+                    field.Size = new System.Drawing.Size(fieldWidth, 25);
+                    field.Location = new System.Drawing.Point(x, y);
+                    field.Font = new System.Drawing.Font("Segoe UI", 8F);
+                }
+            }
+            finally
+            {
+                pnlUserInfo.ResumeLayout();
+            }
+        }
+
+        private static void StyleReadOnlyField(TextBox field)
+        {
+            field.ReadOnly = true;
+            field.BackColor = System.Drawing.Color.FromArgb(248, 250, 252);
+            field.ForeColor = System.Drawing.Color.FromArgb(51, 65, 85);
+            field.BorderStyle = BorderStyle.FixedSingle;
+        }
+
+        /// <summary>
+        /// يوحد شريط أوامر سند القبض: أزرار مقروءة في صفين ومرتبة من اليمين إلى اليسار.
         /// </summary>
         private void ConfigureReceiptToolbar()
         {
             pnlToolbar.BackColor = System.Drawing.Color.FromArgb(245, 248, 252);
-            pnlToolbar.Padding = new Padding(12, 8, 12, 8);
+            pnlToolbar.Padding = new Padding(12, 6, 12, 6);
             pnlToolbar.RightToLeft = RightToLeft.Yes;
+            pnlToolbar.Height = 84;
             pnlToolbar.Resize -= pnlToolbar_Resize;
             pnlToolbar.Resize += pnlToolbar_Resize;
 
@@ -200,13 +316,14 @@ namespace AlTayerERP.Desktop
 
         private void ConfigureReceiptToolbarCaptions()
         {
-            btnNew.Text = "✚ جديد";
-            btnSave.Text = "▣ حفظ";
+            btnNew.Text = "＋ جديد";
+            btnSave.Text = "✓ حفظ";
             btnEdit.Text = "✎ تعديل";
-            btnDelete.Text = "✖ حذف";
-            btnPrint.Text = "▤ طباعة";
+            btnDelete.Text = "× حذف";
+            btnPrint.Text = "▣ طباعة";
             btnSearch.Text = "⌕ بحث";
             btnRefresh.Text = "↻ تحديث";
+            btnAttachments.Text = "⌁ مرفقات";
             btnImport.Text = "✓ تمت المراجعة";
             btnExport.Text = "↩ إعادة للتصحيح";
             btnApprove.Text = "✓ اعتماد";
@@ -214,7 +331,6 @@ namespace AlTayerERP.Desktop
             btnPost.Text = "▲ ترحيل";
             btnUnPost.Text = "↶ إلغاء ترحيل";
             btnViewJournalEntry.Text = "☷ استعراض القيد";
-            btnAttachments.Text = "⌁ مرفقات";
             btnUndo.Text = "↩ تراجع";
         }
 
@@ -228,39 +344,31 @@ namespace AlTayerERP.Desktop
                 return;
             }
 
-            var orderedButtons = new[]
+            Button[][] rows =
             {
-                btnNew, btnSave, btnEdit, btnDelete, btnPrint, btnSearch, btnRefresh,
-                btnImport, btnExport, btnApprove, btnCancelApprove, btnPost, btnUnPost,
-                btnViewJournalEntry, btnAttachments, btnUndo
+                new[] { btnNew, btnSave, btnEdit, btnDelete, btnPrint, btnSearch, btnRefresh, btnAttachments },
+                new[] { btnImport, btnExport, btnApprove, btnCancelApprove, btnPost, btnUnPost, btnViewJournalEntry, btnUndo }
             };
 
             const int margin = 12;
-            const int firstRowTop = 8;
-            const int rowHeight = 34;
-            const int rowGap = 5;
-            const int columnGap = 4;
-            int right = pnlToolbar.ClientSize.Width - margin;
-            int top = firstRowTop;
+            const int rowHeight = 32;
+            const int gap = 6;
+            int[] topPositions = { 7, 44 };
 
             pnlToolbar.SuspendLayout();
             try
             {
-                foreach (Button button in orderedButtons)
+                for (int row = 0; row < rows.Length; row++)
                 {
-                    int width = IsReceiptToolbarWideButton(button) ? 98 : 78;
-
-                    // عند ضيق النافذة يبدأ صف ثانٍ بمحاذاة RTL بدلاً من خروج الأزرار خارج الشريط.
-                    if (right - width < margin && right < pnlToolbar.ClientSize.Width - margin)
+                    int right = pnlToolbar.ClientSize.Width - margin;
+                    foreach (Button button in rows[row])
                     {
-                        right = pnlToolbar.ClientSize.Width - margin;
-                        top += rowHeight + rowGap;
+                        int width = IsReceiptToolbarWideButton(button) ? 120 : 100;
+                        right -= width;
+                        ConfigureReceiptToolbarButton(button, width, rowHeight);
+                        button.Location = new System.Drawing.Point(right, topPositions[row]);
+                        right -= gap;
                     }
-
-                    right -= width;
-                    ConfigureReceiptToolbarButton(button, width, rowHeight);
-                    button.Location = new System.Drawing.Point(right, top);
-                    right -= columnGap;
                 }
             }
             finally
@@ -290,12 +398,12 @@ namespace AlTayerERP.Desktop
                 Math.Max(color.B - 18, 0));
             button.BackColor = color;
             button.ForeColor = System.Drawing.Color.White;
-            button.Font = new System.Drawing.Font("Segoe UI Symbol", 8.25F, System.Drawing.FontStyle.Bold);
+            button.Font = new System.Drawing.Font("Segoe UI", 8.5F, System.Drawing.FontStyle.Bold);
             button.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
-            button.ImageAlign = System.Drawing.ContentAlignment.MiddleLeft;
-            button.Padding = new Padding(3, 0, 3, 0);
+            button.Padding = new Padding(4, 0, 4, 0);
             button.Cursor = Cursors.Hand;
             button.UseVisualStyleBackColor = false;
+            _workflowToolTip.SetToolTip(button, button.Text);
         }
 
         private System.Drawing.Color GetReceiptToolbarColor(Button button)
