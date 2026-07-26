@@ -6,11 +6,13 @@ public partial class HomePage : ContentPage
 {
     private readonly MobileHomeService _mobileHomeService;
     private readonly AuthenticationService _authenticationService;
+    private readonly PaymentRequestService _paymentRequestService;
     private bool _permissionsLoaded;
 
     public HomePage(
         MobileHomeService mobileHomeService,
         AuthenticationService authenticationService,
+        PaymentRequestService paymentRequestService,
         string fullName,
         string companyId,
         int branchId,
@@ -19,6 +21,7 @@ public partial class HomePage : ContentPage
         InitializeComponent();
         _mobileHomeService = mobileHomeService;
         _authenticationService = authenticationService;
+        _paymentRequestService = paymentRequestService;
         WelcomeLabel.Text = $"مرحباً {fullName}";
         ContextLabel.Text = $"الشركة: {companyId} | الفرع: {branchId} | السنة: {yearId}";
     }
@@ -74,6 +77,11 @@ public partial class HomePage : ContentPage
         }
     }
 
+    private async void OnPaymentRequestsClicked(object? sender, EventArgs e)
+    {
+        await Navigation.PushAsync(new PaymentRequestsPage(_paymentRequestService));
+    }
+
     private async void OnLogoutClicked(object? sender, EventArgs e)
     {
         var confirmed = await DisplayAlert("تسجيل الخروج", "هل تريد إنهاء الجلسة؟", "نعم", "لا");
@@ -88,7 +96,7 @@ public partial class HomePage : ContentPage
         {
             if (Application.Current?.Windows.FirstOrDefault() is Window window)
             {
-                window.Page = new NavigationPage(new MainPage(_authenticationService, _mobileHomeService))
+                window.Page = new NavigationPage(new MainPage(_authenticationService, _mobileHomeService, _paymentRequestService))
                 {
                     FlowDirection = FlowDirection.RightToLeft,
                     BarBackgroundColor = Color.FromArgb("#17324D"),
