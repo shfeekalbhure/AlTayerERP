@@ -13,6 +13,7 @@ public partial class CompanyForm
 {
     private bool _approvedLayoutApplied;
     private bool _layoutReflowed;
+    private TableLayoutPanel? _companyEntryLayout;
 
     protected override void OnShown(EventArgs e)
     {
@@ -73,6 +74,7 @@ public partial class CompanyForm
         ApplyRequestedCardStyle();
 
         ReflowMainAreaForWorkspace();
+        ArrangeCompanyEntryLikeReference();
 
         pnlHeader.BringToFront();
         pnlToolbar.BringToFront();
@@ -80,6 +82,68 @@ public partial class CompanyForm
         pnlAudit.BringToFront();
 
         ResumeLayout(true);
+    }
+
+    /// <summary>
+    /// يعيد توزيع بطاقة الإدخال على نمط شاشة الشركات المرجعية: البيانات المهمة
+    /// في الجانب الأيمن، والشعار في الجانب الأيسر، ثم بيانات التواصل أسفلها.
+    /// تبقى قائمة الشركات والتدقيق موجودين لأنهما جزء من متطلبات نظام الطائر.
+    /// </summary>
+    private void ArrangeCompanyEntryLikeReference()
+    {
+        if (_companyEntryLayout is not null)
+            return;
+
+        pnlDetails.SuspendLayout();
+
+        pnlDetails.Controls.Remove(grpBasic);
+        pnlDetails.Controls.Remove(grpContact);
+        pnlDetails.Controls.Remove(grpLogo);
+
+        _companyEntryLayout = new TableLayoutPanel
+        {
+            Name = "tblCompanyEntry",
+            Dock = DockStyle.Fill,
+            BackColor = Color.White,
+            Padding = new Padding(8),
+            ColumnCount = 2,
+            RowCount = 2,
+            RightToLeft = RightToLeft.Yes
+        };
+        _companyEntryLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 72F));
+        _companyEntryLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 28F));
+        _companyEntryLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 168F));
+        _companyEntryLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
+
+        foreach (GroupBox card in new[] { grpBasic, grpContact, grpLogo })
+        {
+            card.Dock = DockStyle.Fill;
+            card.Margin = new Padding(5);
+            card.Padding = new Padding(12, 12, 12, 10);
+        }
+
+        grpContact.Text = "بيانات التواصل والإدارة (اختيارية)";
+        grpLogo.Text = "شعار الشركة";
+
+        _companyEntryLayout.Controls.Add(grpBasic, 0, 0);
+        _companyEntryLayout.Controls.Add(grpContact, 0, 1);
+        _companyEntryLayout.Controls.Add(grpLogo, 1, 0);
+        _companyEntryLayout.SetRowSpan(grpLogo, 2);
+
+        // الشعار منفصل وواضح مثل المرجع، مع أزرار صغيرة تحته.
+        picCompanyLogo.Anchor = AnchorStyles.Top;
+        picCompanyLogo.Location = new Point(42, 34);
+        picCompanyLogo.Size = new Size(170, 118);
+        label9.Visible = false;
+        pnlLogoButtons.Anchor = AnchorStyles.Top;
+        pnlLogoButtons.FlowDirection = FlowDirection.RightToLeft;
+        pnlLogoButtons.Location = new Point(22, 164);
+        pnlLogoButtons.Size = new Size(210, 42);
+
+        pnlDetails.Controls.Add(_companyEntryLayout);
+        _companyEntryLayout.BringToFront();
+        pnlAudit.BringToFront();
+        pnlDetails.ResumeLayout(true);
     }
 
     /// <summary>
@@ -162,9 +226,8 @@ public partial class CompanyForm
         int tableHeight = compact ? 210 : 240;
         splitMain.SplitterDistance = Math.Max(300, availableHeight - tableHeight);
 
-        grpBasic.Height = compact ? 168 : 178;
-        grpContact.Height = compact ? 118 : 128;
-        grpLogo.Height = compact ? 136 : 150;
+        if (_companyEntryLayout is not null)
+            _companyEntryLayout.RowStyles[0].Height = compact ? 154 : 168;
         pnlAudit.Height = 48;
         pnlListHeader.Height = compact ? 48 : 54;
 
@@ -212,11 +275,12 @@ public partial class CompanyForm
     private void AdjustLogoArea(bool compact)
     {
         picCompanyLogo.SizeMode = PictureBoxSizeMode.Zoom;
-        picCompanyLogo.Width = compact ? 120 : 145;
-        picCompanyLogo.Height = compact ? 80 : 95;
+        picCompanyLogo.Width = compact ? 120 : 170;
+        picCompanyLogo.Height = compact ? 84 : 118;
+        picCompanyLogo.Left = Math.Max(12, (grpLogo.ClientSize.Width - picCompanyLogo.Width) / 2);
 
-        btnBrowseLogo.Width = compact ? 100 : 118;
-        btnRemoveLogo.Width = compact ? 100 : 118;
+        btnBrowseLogo.Width = compact ? 92 : 100;
+        btnRemoveLogo.Width = compact ? 92 : 100;
         btnBrowseLogo.Height = 30;
         btnRemoveLogo.Height = 30;
     }
