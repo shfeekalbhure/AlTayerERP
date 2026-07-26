@@ -27,8 +27,7 @@ public partial class PaymentRequestsPage : ContentPage
     protected override async void OnAppearing()
     {
         base.OnAppearing();
-        if (RequestsList.ItemsSource == null)
-            await LoadAsync();
+        await LoadAsync();
     }
 
     private async Task LoadAsync()
@@ -49,6 +48,9 @@ public partial class PaymentRequestsPage : ContentPage
             RequestsRefresh.IsRefreshing = false;
         }
     }
+
+    private async void OnNewClicked(object? sender, EventArgs e) =>
+        await Navigation.PushAsync(new NewPaymentRequestPage(_service));
 
     private async void OnSearchClicked(object? sender, EventArgs e) => await LoadAsync();
     private async void OnStatusChanged(object? sender, EventArgs e) => await LoadAsync();
