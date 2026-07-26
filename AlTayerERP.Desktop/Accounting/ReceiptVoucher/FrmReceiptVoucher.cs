@@ -183,17 +183,39 @@ namespace AlTayerERP.Desktop
         }
 
         /// <summary>
-        /// يوحد شريط أوامر سند القبض: مقاسات وألوان ومحاذاة RTL ثابتة.
+        /// يوحد شريط أوامر سند القبض: مقاسات وألوان وأيقونات ومحاذاة RTL.
         /// يعاد ترتيبه تلقائياً عند تغيير حجم نافذة الشاشة.
         /// </summary>
         private void ConfigureReceiptToolbar()
         {
             pnlToolbar.BackColor = System.Drawing.Color.FromArgb(245, 248, 252);
             pnlToolbar.Padding = new Padding(12, 8, 12, 8);
+            pnlToolbar.RightToLeft = RightToLeft.Yes;
             pnlToolbar.Resize -= pnlToolbar_Resize;
             pnlToolbar.Resize += pnlToolbar_Resize;
 
+            ConfigureReceiptToolbarCaptions();
             ApplyReceiptToolbarLayout();
+        }
+
+        private void ConfigureReceiptToolbarCaptions()
+        {
+            btnNew.Text = "✚ جديد";
+            btnSave.Text = "▣ حفظ";
+            btnEdit.Text = "✎ تعديل";
+            btnDelete.Text = "✖ حذف";
+            btnPrint.Text = "▤ طباعة";
+            btnSearch.Text = "⌕ بحث";
+            btnRefresh.Text = "↻ تحديث";
+            btnImport.Text = "✓ تمت المراجعة";
+            btnExport.Text = "↩ إعادة للتصحيح";
+            btnApprove.Text = "✓ اعتماد";
+            btnCancelApprove.Text = "↶ إلغاء اعتماد";
+            btnPost.Text = "▲ ترحيل";
+            btnUnPost.Text = "↶ إلغاء ترحيل";
+            btnViewJournalEntry.Text = "☷ استعراض القيد";
+            btnAttachments.Text = "⌁ مرفقات";
+            btnUndo.Text = "↩ تراجع";
         }
 
         private void pnlToolbar_Resize(object? sender, EventArgs e) =>
@@ -213,37 +235,67 @@ namespace AlTayerERP.Desktop
                 btnViewJournalEntry, btnAttachments, btnUndo
             };
 
-            int right = pnlToolbar.ClientSize.Width - 12;
-            const int top = 8;
-            const int height = 34;
-            const int gap = 4;
+            const int margin = 12;
+            const int firstRowTop = 8;
+            const int rowHeight = 34;
+            const int rowGap = 5;
+            const int columnGap = 4;
+            int right = pnlToolbar.ClientSize.Width - margin;
+            int top = firstRowTop;
 
             pnlToolbar.SuspendLayout();
             try
             {
                 foreach (Button button in orderedButtons)
                 {
-                    bool wideButton = button == btnExport || button == btnCancelApprove ||
-                        button == btnUnPost || button == btnViewJournalEntry;
-                    int width = wideButton ? 98 : 78;
+                    int width = IsReceiptToolbarWideButton(button) ? 98 : 78;
+
+                    // عند ضيق النافذة يبدأ صف ثانٍ بمحاذاة RTL بدلاً من خروج الأزرار خارج الشريط.
+                    if (right - width < margin && right < pnlToolbar.ClientSize.Width - margin)
+                    {
+                        right = pnlToolbar.ClientSize.Width - margin;
+                        top += rowHeight + rowGap;
+                    }
 
                     right -= width;
+                    ConfigureReceiptToolbarButton(button, width, rowHeight);
                     button.Location = new System.Drawing.Point(right, top);
-                    button.Size = new System.Drawing.Size(width, height);
-                    button.FlatStyle = FlatStyle.Flat;
-                    button.FlatAppearance.BorderSize = 0;
-                    button.ForeColor = System.Drawing.Color.White;
-                    button.Font = new System.Drawing.Font("Segoe UI", 8.5F, System.Drawing.FontStyle.Bold);
-                    button.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
-                    button.UseVisualStyleBackColor = false;
-                    button.BackColor = GetReceiptToolbarColor(button);
-                    right -= gap;
+                    right -= columnGap;
                 }
             }
             finally
             {
                 pnlToolbar.ResumeLayout();
             }
+        }
+
+        private bool IsReceiptToolbarWideButton(Button button) =>
+            button == btnImport || button == btnExport || button == btnCancelApprove ||
+            button == btnUnPost || button == btnViewJournalEntry;
+
+        private void ConfigureReceiptToolbarButton(Button button, int width, int height)
+        {
+            System.Drawing.Color color = GetReceiptToolbarColor(button);
+
+            button.Size = new System.Drawing.Size(width, height);
+            button.FlatStyle = FlatStyle.Flat;
+            button.FlatAppearance.BorderSize = 0;
+            button.FlatAppearance.MouseOverBackColor = System.Drawing.Color.FromArgb(
+                Math.Min(color.R + 18, 255),
+                Math.Min(color.G + 18, 255),
+                Math.Min(color.B + 18, 255));
+            button.FlatAppearance.MouseDownBackColor = System.Drawing.Color.FromArgb(
+                Math.Max(color.R - 18, 0),
+                Math.Max(color.G - 18, 0),
+                Math.Max(color.B - 18, 0));
+            button.BackColor = color;
+            button.ForeColor = System.Drawing.Color.White;
+            button.Font = new System.Drawing.Font("Segoe UI Symbol", 8.25F, System.Drawing.FontStyle.Bold);
+            button.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
+            button.ImageAlign = System.Drawing.ContentAlignment.MiddleLeft;
+            button.Padding = new Padding(3, 0, 3, 0);
+            button.Cursor = Cursors.Hand;
+            button.UseVisualStyleBackColor = false;
         }
 
         private System.Drawing.Color GetReceiptToolbarColor(Button button)
