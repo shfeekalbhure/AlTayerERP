@@ -38,8 +38,17 @@ namespace AlTayerERP.Desktop
             dgvVoucherDetails.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.None;
             // إيقاف ضبط الحجم التلقائي للأسطر
             dgvVoucherDetails.AutoSizeRowsMode = DataGridViewAutoSizeRowsMode.None;
-            // إظهار شريطي تمرير واضحين عند زيادة أسطر أو أعمدة التوزيع المحاسبي.
+            // التمرير ينتمي للجدول نفسه، وليس لنافذة السند أو مساحة العمل.
             dgvVoucherDetails.ScrollBars = ScrollBars.Both;
+            dgvVoucherDetails.RightToLeft = RightToLeft.Yes;
+            dgvVoucherDetails.BorderStyle = BorderStyle.FixedSingle;
+            dgvVoucherDetails.EnableHeadersVisualStyles = false;
+            dgvVoucherDetails.BackgroundColor = System.Drawing.Color.White;
+            dgvVoucherDetails.GridColor = System.Drawing.Color.FromArgb(203, 213, 225);
+            dgvVoucherDetails.ColumnHeadersDefaultCellStyle.BackColor = System.Drawing.Color.FromArgb(226, 232, 240);
+            dgvVoucherDetails.ColumnHeadersDefaultCellStyle.ForeColor = System.Drawing.Color.FromArgb(30, 41, 59);
+            dgvVoucherDetails.ColumnHeadersDefaultCellStyle.Font =
+                new System.Drawing.Font("Segoe UI", 8.5F, System.Drawing.FontStyle.Bold);
             // منع المستخدم من تغيير ارتفاع ترويسة الأعمدة
             dgvVoucherDetails.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.DisableResizing;
             // تحديد ارتفاع ترويسة الأعمدة بـ 35 بكسل
@@ -100,21 +109,38 @@ namespace AlTayerERP.Desktop
             dgvVoucherDetails.DefaultCellStyle.WrapMode = DataGridViewTriState.False;
             dgvVoucherDetails.AllowUserToResizeColumns = true;
 
+            // إجمالي العرض يتجاوز مساحة الجدول عمداً؛ لذلك يظهر شريط التمرير الأفقي داخله.
             colNo.Width = 48;
             colAccountCode.Width = 125;
             colAccountName.Width = 190;
-            colDescription.Width = 190;
+            colDescription.Width = 180;
             colCostCenter.Width = 145;
-            colReferenceNo.Width = 120;
-            colReferenceType.Width = 110;
-            colReferenceName.Width = 150;
-            colReferenceDate.Width = 105;
-            colAmount.Width = 105;
+            colReferenceNo.Width = 125;
+            colReferenceType.Width = 115;
+            colReferenceName.Width = 155;
+            colReferenceDate.Width = 115;
+            colAmount.Width = 110;
             colCurrency.Width = 125;
-            colExchangeRate.Width = 95;
-            colForeignAmount.Width = 110;
-            colLocalAmount.Width = 110;
-            colNotes.Width = 160;
+            colExchangeRate.Width = 105;
+            colForeignAmount.Width = 120;
+            colLocalAmount.Width = 120;
+            colNotes.Width = 170;
+
+            colNo.HeaderText = "م";
+            colAccountCode.HeaderText = "رقم الحساب";
+            colAccountName.HeaderText = "اسم الحساب";
+            colDescription.HeaderText = "البيان";
+            colCostCenter.HeaderText = "مركز التكلفة";
+            colReferenceNo.HeaderText = "رقم المرجع";
+            colReferenceType.HeaderText = "نوع المرجع";
+            colReferenceName.HeaderText = "اسم المرجع";
+            colReferenceDate.HeaderText = "تاريخ المرجع";
+            colAmount.HeaderText = "المبلغ";
+            colCurrency.HeaderText = "العملة";
+            colExchangeRate.HeaderText = "سعر الصرف";
+            colForeignAmount.HeaderText = "المبلغ الأجنبي";
+            colLocalAmount.HeaderText = "المبلغ المحلي";
+            colNotes.HeaderText = "ملاحظات";
 
             colNo.DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleCenter;
             colAmount.DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleRight;
