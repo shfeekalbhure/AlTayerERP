@@ -2,7 +2,7 @@ using AlTayerERP.Desktop.Common;
 
 namespace AlTayerERP.Desktop;
 
-partial class FrmGovernorates : BaseForm
+partial class FrmGovernorates
 {
     private System.ComponentModel.IContainer? components = null;
 
