@@ -53,7 +53,7 @@ partial class FrmGovernorates
 
         // أدوات شريط البحث والتصفية السريعة
         grpSearchContainer = new GroupBox();
-        pnlSearchFilter = new FlowLayoutPanel();
+        pnlSearchFilter = new TableLayoutPanel();
         lblSearch = new Label();
         txtSearch = new TextBox();
         lblFilterCountry = new Label();
@@ -242,12 +242,21 @@ partial class FrmGovernorates
         grpSearchContainer.Controls.Add(pnlSearchFilter);
 
         pnlSearchFilter.Dock = DockStyle.Fill;
-        // FlowDirection هو المسؤول عن موضع العناصر من أقصى اليمين.
-        // لا نفعّل RTL للحاوية كي لا ينعكس ترتيب عناصر FlowLayout مرة ثانية.
-        pnlSearchFilter.RightToLeft = RightToLeft.No;
-        pnlSearchFilter.FlowDirection = FlowDirection.RightToLeft;
-        pnlSearchFilter.Padding = new Padding(14, 0, 14, 2);
-        pnlSearchFilter.WrapContents = false;
+        // التخطيط الجدولي يثبت مواضع حقول التصفية داخل FrmMain؛
+        // FlowLayout كان يدفع بعض الحقول خارج الجهة اليسرى عند تغيير الحجم.
+        pnlSearchFilter.RightToLeft = RightToLeft.Yes;
+        pnlSearchFilter.Padding = new Padding(14, 2, 14, 2);
+        pnlSearchFilter.ColumnCount = 8;
+        pnlSearchFilter.RowCount = 1;
+        pnlSearchFilter.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 58F));  // الحالة
+        pnlSearchFilter.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 130F)); // قيمتها
+        pnlSearchFilter.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 54F));  // الدولة
+        pnlSearchFilter.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 180F)); // قيمتها
+        pnlSearchFilter.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 68F));  // البحث
+        pnlSearchFilter.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 230F)); // نص البحث
+        pnlSearchFilter.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 124F)); // التطبيق
+        pnlSearchFilter.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));  // المساحة المتبقية
+        pnlSearchFilter.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
 
         lblSearch.Text = "بحث سريع:";
         lblFilterCountry.Text = "الدولة:";
@@ -255,17 +264,22 @@ partial class FrmGovernorates
 
         foreach (var label in new[] { lblSearch, lblFilterCountry, lblFilterStatus })
         {
-            label.AutoSize = true;
-            label.Margin = new Padding(8, 7, 4, 0);
+            label.AutoSize = false;
+            label.Dock = DockStyle.Fill;
+            label.Margin = new Padding(2, 0, 2, 0);
+            label.TextAlign = ContentAlignment.MiddleRight;
             label.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
         }
 
         txtSearch.Size = new Size(230, 32);
         cmbFilterCountry.Size = new Size(180, 32);
         cmbFilterStatus.Size = new Size(130, 32);
-        txtSearch.Margin = new Padding(3, 0, 12, 0);
-        cmbFilterCountry.Margin = new Padding(3, 0, 12, 0);
-        cmbFilterStatus.Margin = new Padding(3, 0, 12, 0);
+        txtSearch.Margin = new Padding(2, 1, 8, 1);
+        cmbFilterCountry.Margin = new Padding(2, 1, 8, 1);
+        cmbFilterStatus.Margin = new Padding(2, 1, 8, 1);
+        txtSearch.Dock = DockStyle.Fill;
+        cmbFilterCountry.Dock = DockStyle.Fill;
+        cmbFilterStatus.Dock = DockStyle.Fill;
 
         btnApplyFilter.Text = "تطبيق التصفية";
         btnApplyFilter.Size = new Size(124, 32);
@@ -273,12 +287,17 @@ partial class FrmGovernorates
         btnApplyFilter.ForeColor = Color.White;
         btnApplyFilter.FlatStyle = FlatStyle.Flat;
         btnApplyFilter.FlatAppearance.BorderSize = 0;
-        btnApplyFilter.Margin = new Padding(8, 0, 0, 0);
+        btnApplyFilter.Margin = new Padding(2, 1, 8, 1);
+        btnApplyFilter.Dock = DockStyle.Fill;
 
-        pnlSearchFilter.Controls.AddRange(new Control[] {
-            // من اليمين: الحالة، الدولة، البحث السريع، ثم تطبيق التصفية.
-            lblFilterStatus, cmbFilterStatus, lblFilterCountry, cmbFilterCountry, lblSearch, txtSearch, btnApplyFilter
-        });
+        // من اليمين: الحالة، الدولة، البحث السريع، ثم تطبيق التصفية.
+        pnlSearchFilter.Controls.Add(lblFilterStatus, 0, 0);
+        pnlSearchFilter.Controls.Add(cmbFilterStatus, 1, 0);
+        pnlSearchFilter.Controls.Add(lblFilterCountry, 2, 0);
+        pnlSearchFilter.Controls.Add(cmbFilterCountry, 3, 0);
+        pnlSearchFilter.Controls.Add(lblSearch, 4, 0);
+        pnlSearchFilter.Controls.Add(txtSearch, 5, 0);
+        pnlSearchFilter.Controls.Add(btnApplyFilter, 6, 0);
 
         // -------------------------------------------------------------------------
         // [جدول عرض البيانات - DataGridView dgvGovernorates]
@@ -379,7 +398,7 @@ partial class FrmGovernorates
     private NumericUpDown numDisplayOrder = null!;
     private CheckBox chkIsActive = null!;
     private GroupBox grpSearchContainer = null!;
-    private FlowLayoutPanel pnlSearchFilter = null!;
+    private TableLayoutPanel pnlSearchFilter = null!;
     private Label lblSearch = null!, lblFilterCountry = null!, lblFilterStatus = null!;
     private TextBox txtSearch = null!;
     private ComboBox cmbFilterCountry = null!, cmbFilterStatus = null!;
