@@ -1,6 +1,8 @@
+using AlTayerERP.Desktop.Common;
+
 namespace AlTayerERP.Desktop;
 
-partial class FrmGovernorates
+partial class FrmGovernorates : BaseForm
 {
     private System.ComponentModel.IContainer? components = null;
 
