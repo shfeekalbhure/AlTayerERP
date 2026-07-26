@@ -97,10 +97,10 @@ partial class FrmGovernorates
         // -------------------------------------------------------------------------
         RightToLeft = RightToLeft.Yes;
         RightToLeftLayout = true;
-        ClientSize = new Size(1020, 680);
+        ClientSize = new Size(1001, 661);
         // يجب أن تدخل الشاشة داخل مساحة العمل عند تكبير عرض Windows؛
         // الحد السابق كان يولد شريط تمرير أفقي داخل FrmMain على الشاشات الصغيرة.
-        MinimumSize = new Size(760, 520);
+        MinimumSize = new Size(741, 501);
         Text = "نظام الطائر السعيد - إدارة المحافظات";
         BackColor = Color.FromArgb(248, 250, 252);
         Font = new Font("Segoe UI", 9F);
@@ -118,7 +118,7 @@ partial class FrmGovernorates
         mainTableLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 271F)); // بطاقة البيانات الأساسية (+0.5 سم)
         mainTableLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 81F));  // إطار البحث والتصفية (+0.5 سم)
         mainTableLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));  // جدول البيانات بعد التصغير 1 سم
-        mainTableLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 116F)); // بطاقات التذييل والتدقيق
+        mainTableLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 97F));  // بطاقات التذييل والتدقيق (-0.5 سم)
 
         // -------------------------------------------------------------------------
         // [تنسيق لوحة الأزرار العلوية - Top Action Buttons]
@@ -385,21 +385,22 @@ partial class FrmGovernorates
         // خارج بطاقة الإنشاء/التعديل عند تغير مقياس العرض في Windows.
         var content = new TableLayoutPanel
         {
-            Dock = DockStyle.Fill,
+            Dock = DockStyle.Top,
             RightToLeft = RightToLeft.Yes,
             ColumnCount = 1,
             RowCount = 2,
-            Padding = new Padding(2)
+            Height = 50,
+            Padding = new Padding(2, 0, 2, 0)
         };
         content.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
-        content.RowStyles.Add(new RowStyle(SizeType.Percent, 50F));
-        content.RowStyles.Add(new RowStyle(SizeType.Percent, 50F));
+        content.RowStyles.Add(new RowStyle(SizeType.Absolute, 25F));
+        content.RowStyles.Add(new RowStyle(SizeType.Absolute, 25F));
 
         group.Text = title;
         group.Dock = DockStyle.Fill;
         group.RightToLeft = RightToLeft.Yes;
-        group.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
-        group.Padding = new Padding(10, 22, 10, 6);
+        group.Font = new Font("Segoe UI", 8.5F, FontStyle.Bold);
+        group.Padding = new Padding(10, 18, 10, 3);
         group.Margin = new Padding(5, 0, 5, 0);
         group.Controls.Clear();
 
@@ -408,13 +409,13 @@ partial class FrmGovernorates
         first.Margin = new Padding(0);
         first.TextAlign = ContentAlignment.MiddleRight;
         first.AutoEllipsis = true;
-        first.Font = new Font("Segoe UI", 9F, FontStyle.Regular);
+        first.Font = new Font("Segoe UI", 8.5F, FontStyle.Regular);
         second.Text = secondText;
         second.Dock = DockStyle.Fill;
         second.Margin = new Padding(0);
         second.TextAlign = ContentAlignment.MiddleRight;
         second.AutoEllipsis = true;
-        second.Font = new Font("Segoe UI", 9F, FontStyle.Regular);
+        second.Font = new Font("Segoe UI", 8.5F, FontStyle.Regular);
 
         content.Controls.Add(first, 0, 0);
         content.Controls.Add(second, 0, 1);
