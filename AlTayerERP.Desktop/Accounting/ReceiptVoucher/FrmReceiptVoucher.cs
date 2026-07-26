@@ -221,21 +221,25 @@ namespace AlTayerERP.Desktop
 
             Resize -= FrmReceiptVoucher_Resize;
             Resize += FrmReceiptVoucher_Resize;
+            Shown -= FrmReceiptVoucher_Shown;
+            Shown += FrmReceiptVoucher_Shown;
             ApplyReceiptVisualLayout();
         }
 
         private void FrmReceiptVoucher_Resize(object? sender, EventArgs e) =>
             ApplyReceiptVisualLayout();
 
+        private void FrmReceiptVoucher_Shown(object? sender, EventArgs e)
+        {
+            // داخل مساحة النظام الرئيسية نُكبّر السند داخل مساحة العمل حتى لا يظهر تمرير خارجي.
+            if (MdiParent != null)
+            {
+                WindowState = FormWindowState.Maximized;
+            }
+        }
+
         private void ApplyReceiptVisualLayout()
         {
-            // يمنع تجاوز النموذج لمساحة نافذة النظام عند فتحه داخل MDI.
-            if (MdiParent != null && WindowState == FormWindowState.Normal &&
-                ClientSize.Width > MdiParent.ClientSize.Width)
-            {
-                Width = Math.Max(MinimumSize.Width, MdiParent.ClientSize.Width);
-            }
-
             LayoutAuditFields();
         }
 
