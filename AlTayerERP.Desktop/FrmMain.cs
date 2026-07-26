@@ -385,6 +385,7 @@ namespace AlTayerERP.Desktop
                 "Cities" => () => new FrmCities(),
                 "FiscalYears" => () => new FiscalYearForm(),
                 "Users" => () => new FrmUsers(),
+                "PasswordChange" => () => new FrmChangePassword(),
                 "Roles" => () => new FrmRoles(),
                 "RolePermissions" => () => new FrmRolePermissions(),
                 "AuditLogs" => () => new FrmAuditLogs(),

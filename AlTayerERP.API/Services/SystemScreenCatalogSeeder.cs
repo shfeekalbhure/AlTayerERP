@@ -26,6 +26,7 @@ namespace AlTayerERP.API.Services
                 new ScreenSeed("Cities", "المدن", "الإدارة العامة", 27),
                 new ScreenSeed("FiscalYears", "السنوات المالية", "الإدارة العامة", 30),
                 new ScreenSeed("Users", "المستخدمون", "الإدارة العامة", 40),
+                new ScreenSeed("PasswordChange", "تغيير كلمة المرور", "الإدارة العامة", 45),
                 new ScreenSeed("Roles", "الأدوار", "الإدارة العامة", 50),
                 new ScreenSeed("RolePermissions", "صلاحيات الأدوار", "الإدارة العامة", 60),
                 new ScreenSeed("AuditLogs", "سجل التدقيق والرقابة", "الإدارة العامة", 70),

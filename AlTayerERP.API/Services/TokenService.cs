@@ -183,6 +183,32 @@ namespace AlTayerERP.API.Services
                 await _context.SaveChangesAsync(cancellationToken);
         }
 
+        /// <summary>
+        /// يعلّم رموز تجديد الجلسات الأخرى للمستخدم كملغاة داخل وحدة عمل تغيير
+        /// كلمة المرور. لا ينفذ SaveChanges كي يبقى مع تعديل كلمة المرور والتدقيق
+        /// في عملية حفظ واحدة.
+        /// </summary>
+        public async Task<int> RevokeOtherUserRefreshTokensAsync(
+            int userId,
+            string currentSessionId,
+            string reason,
+            CancellationToken cancellationToken = default)
+        {
+            var tokens = await _context.Refresh_Tokens
+                .Where(x => x.User_ID == userId &&
+                            x.Session_ID != currentSessionId &&
+                            x.Revoked_At == null)
+                .ToListAsync(cancellationToken);
+
+            foreach (var token in tokens)
+            {
+                token.Revoked_At = DateTime.UtcNow;
+                token.Revoked_Reason = reason;
+            }
+
+            return tokens.Count;
+        }
+
         /// <summary>تطابق البصمة دون إعادة كشف قيمة الرمز الأصلية.</summary>
         public static string Hash(string value) =>
             Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(value)));

@@ -19,6 +19,8 @@ namespace AlTayerERP.API.Controllers
         private readonly ServerSessionService _sessions;
         private readonly TokenService _tokens;
         private readonly LoginSecurityService _loginSecurity;
+        private readonly ScreenAuthorizationService _authorization;
+        private readonly AuditTrailService _audit;
         private readonly ILogger<AuthController> _logger;
 
         public AuthController(
@@ -26,12 +28,16 @@ namespace AlTayerERP.API.Controllers
             ServerSessionService sessions,
             TokenService tokens,
             LoginSecurityService loginSecurity,
+            ScreenAuthorizationService authorization,
+            AuditTrailService audit,
             ILogger<AuthController> logger)
         {
             _context = context;
             _sessions = sessions;
             _tokens = tokens;
             _loginSecurity = loginSecurity;
+            _authorization = authorization;
+            _audit = audit;
             _logger = logger;
         }
 
@@ -221,6 +227,80 @@ namespace AlTayerERP.API.Controllers
             return Ok(new { message = "تم إنهاء الجلسة." });
         }
 
+        /// <summary>
+        /// يغير المستخدم الحالي كلمة مروره بعد التحقق من كلمة المرور الحالية.
+        /// لا تسجل أي قيمة كلمة مرور في التدقيق، وتبطل جميع الجلسات الأخرى للمستخدم.
+        /// </summary>
+        [Authorize]
+        [HttpPost("ChangePassword")]
+        public async Task<IActionResult> ChangePassword(
+            [FromBody] ChangePasswordRequestDto request,
+            CancellationToken cancellationToken)
+        {
+            if (HttpContext.Items["ServerSession"] is not ServerSession session)
+                return Unauthorized(new { message = "انتهت الجلسة أو أنها غير صالحة. سجل الدخول من جديد." });
+
+            if (!await _authorization.IsAllowedAsync(session, "PasswordChange", ScreenOperation.Edit, cancellationToken))
+                return Forbid();
+
+            if (request == null || string.IsNullOrWhiteSpace(request.Current_Password) ||
+                string.IsNullOrWhiteSpace(request.New_Password) ||
+                string.IsNullOrWhiteSpace(request.Confirm_Password))
+            {
+                return BadRequest(new { message = "كلمة المرور الحالية والجديدة والتأكيد حقول مطلوبة." });
+            }
+
+            if (!string.Equals(request.New_Password, request.Confirm_Password, StringComparison.Ordinal))
+                return BadRequest(new { message = "كلمة المرور الجديدة وتأكيدها غير متطابقين." });
+
+            var user = await _context.Users.FirstOrDefaultAsync(
+                x => x.User_ID == session.User_ID && x.Is_Active, cancellationToken);
+            if (user == null)
+                return Unauthorized(new { message = "الحساب غير متاح حالياً." });
+
+            if (!PasswordProtector.Verify(user.Password_Hash, request.Current_Password, out _))
+                return BadRequest(new { message = "كلمة المرور الحالية غير صحيحة." });
+
+            if (PasswordProtector.Verify(user.Password_Hash, request.New_Password, out _))
+                return BadRequest(new { message = "لا يمكن إعادة استخدام كلمة المرور الحالية." });
+
+            var policyError = ValidatePasswordPolicy(request.New_Password, user.Login_Name, user.Full_Name);
+            if (policyError != null)
+                return BadRequest(new { message = policyError });
+
+            await using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
+            user.Password_Hash = PasswordProtector.Hash(request.New_Password);
+            user.Must_Change_Password = false;
+            user.Failed_Login_Count = 0;
+            user.Last_Failed_Login_At = null;
+            user.Locked_Until = null;
+            user.Updated_At = DateTime.UtcNow;
+
+            var revokedRefreshTokens = await _tokens.RevokeOtherUserRefreshTokensAsync(
+                user.User_ID, session.Session_ID, "PASSWORD_CHANGED", cancellationToken);
+            _audit.Add(session, HttpContext, "users", user.User_ID.ToString(), "PASSWORD_CHANGE",
+                newValues: new
+                {
+                    PasswordChanged = true,
+                    OtherRefreshTokensRevoked = revokedRefreshTokens,
+                    OtherServerSessionsInvalidated = true
+                },
+                notes: "تم تغيير كلمة المرور ذاتياً مع الإبقاء على الجلسة الحالية فقط.");
+
+            await _context.SaveChangesAsync(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
+
+            // لا نحذف الجلسات من الذاكرة إلا بعد نجاح الالتزام في قاعدة البيانات؛
+            // بذلك لا تنتهي جلسات سليمة إذا تعذر حفظ كلمة المرور أو سجل التدقيق.
+            var revokedServerSessions = _sessions.RemoveOtherSessionsForUser(user.User_ID, session.Session_ID);
+
+            return Ok(new
+            {
+                message = "تم تغيير كلمة المرور بنجاح. تم إنهاء جميع الجلسات الأخرى.",
+                otherSessionsRevoked = revokedServerSessions
+            });
+        }
+
         /// <summary>يعرض سياق الجلسة الموثوق للعميل؛ لا يقبل سياقاً من الجسم.</summary>
         [Authorize]
         [HttpGet("CurrentSession")]
@@ -316,6 +396,28 @@ namespace AlTayerERP.API.Controllers
         private static string NormalizeDeviceId(string? deviceId) =>
             string.IsNullOrWhiteSpace(deviceId) ? "desktop-unknown" : deviceId.Trim()[..Math.Min(deviceId.Trim().Length, 128)];
 
+        private static string? ValidatePasswordPolicy(string password, string loginName, string fullName)
+        {
+            if (password.Length < 12)
+                return "يجب ألا تقل كلمة المرور عن 12 حرفاً.";
+            if (!password.Any(char.IsUpper) || !password.Any(char.IsLower) ||
+                !password.Any(char.IsDigit) || !password.Any(ch => !char.IsLetterOrDigit(ch)))
+            {
+                return "يجب أن تحتوي كلمة المرور على حرف كبير وحرف صغير ورقم ورمز خاص.";
+            }
+
+            var normalized = password.ToUpperInvariant();
+            if (!string.IsNullOrWhiteSpace(loginName) && normalized.Contains(loginName.Trim().ToUpperInvariant()))
+                return "لا يجوز أن تتضمن كلمة المرور اسم الدخول.";
+
+            var nameParts = fullName.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .Where(x => x.Length >= 3);
+            if (nameParts.Any(part => normalized.Contains(part.ToUpperInvariant())))
+                return "لا يجوز أن تتضمن كلمة المرور أجزاءً من الاسم.";
+
+            return null;
+        }
+
         private sealed record LoginContext(User User, AlTayerERP.Core.Entities.Role Role);
     }
 
@@ -336,5 +438,13 @@ namespace AlTayerERP.API.Controllers
     {
         public string Refresh_Token { get; set; } = string.Empty;
         public string? Device_ID { get; set; }
+    }
+
+    /// <summary>لا تعاد أو تسجل أي قيمة من هذه الحقول في الاستجابة أو التدقيق.</summary>
+    public sealed class ChangePasswordRequestDto
+    {
+        public string Current_Password { get; set; } = string.Empty;
+        public string New_Password { get; set; } = string.Empty;
+        public string Confirm_Password { get; set; } = string.Empty;
     }
 }

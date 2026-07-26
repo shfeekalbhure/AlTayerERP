@@ -67,6 +67,27 @@ namespace AlTayerERP.API.Services
                 Sessions.TryRemove(sessionId, out _);
         }
 
+        /// <summary>
+        /// يبطل جلسات المستخدم الأخرى بعد تغيير كلمة المرور. لا تُمس الجلسة التي
+        /// نفذت التغيير حتى يتلقى العميل نتيجة العملية بصورة سليمة.
+        /// </summary>
+        public int RemoveOtherSessionsForUser(int userId, string currentSessionId)
+        {
+            RemoveExpired();
+            var removed = 0;
+            foreach (var item in Sessions)
+            {
+                if (item.Value.User_ID == userId &&
+                    !string.Equals(item.Key, currentSessionId, StringComparison.Ordinal))
+                {
+                    if (Sessions.TryRemove(item.Key, out _))
+                        removed++;
+                }
+            }
+
+            return removed;
+        }
+
         /// <summary>يعيد لقائمة الرقابة جلسات حية فقط؛ لا يعيد رموز وصول أو تجديد.</summary>
         public IReadOnlyCollection<ServerSession> GetActiveSessions()
         {
