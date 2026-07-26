@@ -6,13 +6,15 @@ namespace AlTayerERP.Mobile.Office;
 public partial class MainPage : ContentPage
 {
     private readonly AuthenticationService _authentication;
+    private readonly MobileHomeService _mobileHomeService;
     private LoginOptionsResponseDto? _loginOptions;
     private bool _companiesLoaded;
 
-    public MainPage(AuthenticationService authentication)
+    public MainPage(AuthenticationService authentication, MobileHomeService mobileHomeService)
     {
         InitializeComponent();
         _authentication = authentication;
+        _mobileHomeService = mobileHomeService;
     }
 
     protected override async void OnAppearing()
@@ -90,7 +92,6 @@ public partial class MainPage : ContentPage
             BranchPicker.SelectedItem = defaultBranch;
             YearPicker.SelectedItem = defaultYear;
 
-            // عند وجود خيار واحد فقط في كل قائمة لا نعرض خطوة إضافية للمستخدم.
             if (_loginOptions.Branches.Count == 1 &&
                 _loginOptions.Years.Count == 1 &&
                 defaultBranch != null &&
@@ -160,6 +161,7 @@ public partial class MainPage : ContentPage
 
         PasswordEntry.Text = string.Empty;
         await Navigation.PushAsync(new HomePage(
+            _mobileHomeService,
             result.Full_Name,
             result.Company_ID,
             result.Branch_ID,
