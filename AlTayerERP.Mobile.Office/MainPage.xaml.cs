@@ -82,10 +82,23 @@ public partial class MainPage : ContentPage
             BranchPicker.ItemsSource = _loginOptions.Branches;
             YearPicker.ItemsSource = _loginOptions.Years;
 
-            BranchPicker.SelectedItem = _loginOptions.Branches.FirstOrDefault(x => x.Is_Default)
-                                        ?? _loginOptions.Branches.FirstOrDefault();
-            YearPicker.SelectedItem = _loginOptions.Years.FirstOrDefault(x => x.Is_Default)
-                                      ?? _loginOptions.Years.FirstOrDefault();
+            var defaultBranch = _loginOptions.Branches.FirstOrDefault(x => x.Is_Default)
+                                ?? _loginOptions.Branches.FirstOrDefault();
+            var defaultYear = _loginOptions.Years.FirstOrDefault(x => x.Is_Default)
+                              ?? _loginOptions.Years.FirstOrDefault();
+
+            BranchPicker.SelectedItem = defaultBranch;
+            YearPicker.SelectedItem = defaultYear;
+
+            // عند وجود خيار واحد فقط في كل قائمة لا نعرض خطوة إضافية للمستخدم.
+            if (_loginOptions.Branches.Count == 1 &&
+                _loginOptions.Years.Count == 1 &&
+                defaultBranch != null &&
+                defaultYear != null)
+            {
+                await CompleteLoginAsync(defaultBranch, defaultYear);
+                return;
+            }
 
             UserWelcomeLabel.Text = $"مرحباً {_loginOptions.Full_Name}";
             CredentialsPanel.IsVisible = false;
@@ -117,19 +130,7 @@ public partial class MainPage : ContentPage
         SetBusy(true);
         try
         {
-            var result = await _authentication.LoginAsync(new LoginRequestDto
-            {
-                Company_ID = _loginOptions.Company_ID,
-                Branch_ID = branch.Branch_ID,
-                Year_ID = year.Year_ID,
-                User_ID = _loginOptions.User_ID,
-                Login_Name = LoginNameEntry.Text.Trim(),
-                Password = PasswordEntry.Text,
-                Device_ID = GetDeviceId()
-            });
-
-            PasswordEntry.Text = string.Empty;
-            await DisplayAlert("تم تسجيل الدخول", $"مرحباً {result.Full_Name}", "موافق");
+            await CompleteLoginAsync(branch, year);
         }
         catch (Exception ex)
         {
@@ -139,6 +140,30 @@ public partial class MainPage : ContentPage
         {
             SetBusy(false);
         }
+    }
+
+    private async Task CompleteLoginAsync(LoginBranchOptionDto branch, LoginYearOptionDto year)
+    {
+        if (_loginOptions == null)
+            throw new InvalidOperationException("لم يتم تحميل سياق الدخول.");
+
+        var result = await _authentication.LoginAsync(new LoginRequestDto
+        {
+            Company_ID = _loginOptions.Company_ID,
+            Branch_ID = branch.Branch_ID,
+            Year_ID = year.Year_ID,
+            User_ID = _loginOptions.User_ID,
+            Login_Name = LoginNameEntry.Text.Trim(),
+            Password = PasswordEntry.Text,
+            Device_ID = GetDeviceId()
+        });
+
+        PasswordEntry.Text = string.Empty;
+        await Navigation.PushAsync(new HomePage(
+            result.Full_Name,
+            result.Company_ID,
+            result.Branch_ID,
+            result.Year_ID));
     }
 
     private void OnBackClicked(object? sender, EventArgs e)
