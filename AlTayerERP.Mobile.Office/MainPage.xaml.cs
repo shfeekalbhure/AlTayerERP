@@ -41,7 +41,7 @@ public partial class MainPage : ContentPage
             });
 
             PasswordEntry.Text = string.Empty;
-            await DisplayAlertAsync("تم تسجيل الدخول", $"مرحباً {result.Full_Name}", "موافق");
+            await DisplayAlert("تم تسجيل الدخول", $"مرحباً {result.Full_Name}", "موافق");
         }
         catch (Exception ex)
         {
