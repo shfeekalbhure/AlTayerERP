@@ -5,8 +5,16 @@
              FlowDirection="RightToLeft"
              BackgroundColor="#F6F8FB"
              Title="طلبات الصرف">
-    <Grid RowDefinitions="Auto,Auto,*" Padding="16" RowSpacing="12">
-        <Grid Grid.Row="0" ColumnDefinitions="*,Auto" ColumnSpacing="8">
+    <Grid RowDefinitions="Auto,Auto,Auto,*" Padding="16" RowSpacing="12">
+        <Button Grid.Row="0"
+                Text="+ طلب صرف جديد"
+                HeightRequest="50"
+                CornerRadius="12"
+                BackgroundColor="#17324D"
+                TextColor="White"
+                Clicked="OnNewClicked" />
+
+        <Grid Grid.Row="1" ColumnDefinitions="*,Auto" ColumnSpacing="8">
             <Entry x:Name="RequestNoEntry"
                    Grid.Column="0"
                    Placeholder="بحث برقم الطلب"
@@ -21,7 +29,7 @@
         </Grid>
 
         <Picker x:Name="StatusPicker"
-                Grid.Row="1"
+                Grid.Row="2"
                 Title="كل الحالات"
                 TextColor="#17324D"
                 TitleColor="#7A8896"
@@ -29,7 +37,7 @@
                 SelectedIndexChanged="OnStatusChanged" />
 
         <RefreshView x:Name="RequestsRefresh"
-                     Grid.Row="2"
+                     Grid.Row="3"
                      Refreshing="OnRefreshing">
             <CollectionView x:Name="RequestsList"
                             SelectionMode="None">
