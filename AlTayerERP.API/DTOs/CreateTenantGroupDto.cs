@@ -4,7 +4,9 @@ namespace AlTayerERP.API.DTOs
     {
         public string Group_Code { get; set; } = string.Empty;
         public string Group_Name_AR { get; set; } = string.Empty;
-        public string Group_Name_EN { get; set; } = string.Empty;
+        // الاسم الإنجليزي اختياري في شاشة المجموعات التجارية؛ عند عدم إدخاله
+        // لا يجب أن يفشل Model Binding قبل وصول الطلب إلى التحقق الوظيفي.
+        public string? Group_Name_EN { get; set; }
         public string Short_Name { get; set; } = string.Empty;
         public string Group_Type { get; set; } = string.Empty;
         public string? Parent_Group_ID { get; set; }
