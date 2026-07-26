@@ -14,6 +14,7 @@ public partial class CompanyForm
     private bool _approvedLayoutApplied;
     private bool _layoutReflowed;
     private TableLayoutPanel? _companyEntryLayout;
+    private TableLayoutPanel? _companyAuditCards;
 
     protected override void OnShown(EventArgs e)
     {
@@ -72,10 +73,12 @@ public partial class CompanyForm
         label7.Text = "العنوان";
         ApplyRequestedToolbarColors();
         ApplyRequestedCardStyle();
+        ArrangeToolbarForRtl();
 
         ReflowMainAreaForWorkspace();
         ArrangePrimaryCompanyFields();
         ArrangeCompanyEntryLikeReference();
+        ArrangeAuditFooter();
 
         pnlHeader.BringToFront();
         pnlToolbar.BringToFront();
@@ -83,6 +86,93 @@ public partial class CompanyForm
         pnlAudit.BringToFront();
 
         ResumeLayout(true);
+    }
+
+    /// <summary>يثبت الترتيب المرئي للأزرار من اليمين: جديد ثم حفظ ثم تعديل.</summary>
+    private void ArrangeToolbarForRtl()
+    {
+        pnlToolbar.SuspendLayout();
+        pnlToolbar.Controls.Clear();
+        pnlToolbar.FlowDirection = FlowDirection.RightToLeft;
+        pnlToolbar.WrapContents = false;
+
+        // FlowLayoutPanel يعرض عناصر هذه الشاشة من اليسار إلى اليمين عملياً
+        // داخل حاوية RTL؛ لذلك تضاف بالترتيب العكسي ليظهر «جديد» من اليمين.
+        pnlToolbar.Controls.AddRange(new Control[]
+        {
+            btnClose, btnRefresh, btnSearch, btnPrint, btnApprove,
+            btnDelete, btnEdit, btnSaveCompany, btnNew
+        });
+        pnlToolbar.ResumeLayout(true);
+    }
+
+    /// <summary>يعرض بيانات الإنشاء والتعديل والعدادات كبطاقات قابلة للقراءة.</summary>
+    private void ArrangeAuditFooter()
+    {
+        if (_companyAuditCards is not null)
+            return;
+
+        pnlAudit.SuspendLayout();
+        pnlAudit.Controls.Clear();
+        pnlAudit.Height = 78;
+        pnlAudit.Padding = new Padding(5);
+
+        _companyAuditCards = new TableLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            ColumnCount = 3,
+            RowCount = 1,
+            RightToLeft = RightToLeft.Yes,
+            BackColor = Color.FromArgb(241, 245, 249)
+        };
+        _companyAuditCards.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 33.34F));
+        _companyAuditCards.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 33.33F));
+        _companyAuditCards.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 33.33F));
+        _companyAuditCards.Controls.Add(CreateAuditCard("بيانات الإنشاء", "أنشئ بواسطة:", lblCreatedBy, "تاريخ الإنشاء:", lblCreatedAt), 0, 0);
+        _companyAuditCards.Controls.Add(CreateAuditCard("بيانات التعديل", "عدل بواسطة:", lblModifiedBy, "تاريخ التعديل:", lblModifiedAt), 1, 0);
+        _companyAuditCards.Controls.Add(CreateAuditCard("العدادات", "عدد التعديلات:", lblEditCount, "عدد مرات الطباعة:", lblPrintCount), 2, 0);
+        pnlAudit.Controls.Add(_companyAuditCards);
+        pnlAudit.ResumeLayout(true);
+    }
+
+    private static Control CreateAuditCard(string title, string firstCaption, Label firstValue,
+        string secondCaption, Label secondValue)
+    {
+        var card = new TableLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            ColumnCount = 2,
+            RowCount = 3,
+            Margin = new Padding(4, 0, 4, 0),
+            Padding = new Padding(6, 2, 6, 2),
+            BackColor = Color.White,
+            BorderStyle = BorderStyle.FixedSingle
+        };
+        card.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 105F));
+        card.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
+        card.RowStyles.Add(new RowStyle(SizeType.Absolute, 22F));
+        card.RowStyles.Add(new RowStyle(SizeType.Absolute, 23F));
+        card.RowStyles.Add(new RowStyle(SizeType.Absolute, 23F));
+
+        var header = new Label { Text = title, Dock = DockStyle.Fill, Font = new Font("Segoe UI", 8.5F, FontStyle.Bold), ForeColor = Color.FromArgb(31, 78, 121), TextAlign = ContentAlignment.MiddleRight };
+        card.Controls.Add(header, 0, 0);
+        card.SetColumnSpan(header, 2);
+        AddAuditRow(card, 1, firstCaption, firstValue);
+        AddAuditRow(card, 2, secondCaption, secondValue);
+        return card;
+    }
+
+    private static void AddAuditRow(TableLayoutPanel card, int row, string caption, Label value)
+    {
+        var captionLabel = new Label { Text = caption, Dock = DockStyle.Fill, Font = new Font("Segoe UI", 8F, FontStyle.Bold), TextAlign = ContentAlignment.MiddleRight };
+        value.Dock = DockStyle.Fill;
+        value.AutoEllipsis = true;
+        value.TextAlign = ContentAlignment.MiddleRight;
+        value.Font = new Font("Segoe UI", 8F);
+        value.ForeColor = Color.FromArgb(30, 64, 95);
+        value.BorderStyle = BorderStyle.FixedSingle;
+        card.Controls.Add(captionLabel, 0, row);
+        card.Controls.Add(value, 1, row);
     }
 
     /// <summary>
@@ -196,6 +286,8 @@ public partial class CompanyForm
         label9.Visible = false;
         pnlLogoButtons.Anchor = AnchorStyles.Top;
         pnlLogoButtons.FlowDirection = FlowDirection.RightToLeft;
+        pnlLogoButtons.AutoScroll = false;
+        pnlLogoButtons.WrapContents = false;
         pnlLogoButtons.Location = new Point(22, 164);
         pnlLogoButtons.Size = new Size(210, 42);
 
@@ -236,10 +328,16 @@ public partial class CompanyForm
         pnlListHeader.Dock = DockStyle.Top;
         dgvCompanies.Dock = DockStyle.Fill;
 
-        pnlListHeader.Height = 58;
-        lblListTitle.Dock = DockStyle.Right;
+        pnlListHeader.Height = 70;
+        lblListTitle.Dock = DockStyle.Top;
         lblListTitle.TextAlign = ContentAlignment.MiddleRight;
-        lblListTitle.Width = 160;
+        lblListTitle.Height = 26;
+        if (_txtQuickSearch is not null)
+        {
+            _txtQuickSearch.Dock = DockStyle.Bottom;
+            _txtQuickSearch.Height = 30;
+            _txtQuickSearch.Margin = new Padding(4, 0, 4, 2);
+        }
 
         dgvCompanies.RowHeadersVisible = false;
         dgvCompanies.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
@@ -276,7 +374,7 @@ public partial class CompanyForm
             if (control is not Button button)
                 continue;
 
-            button.Width = compact ? 76 : 88;
+            button.Width = compact ? 84 : 94;
             button.Height = compact ? 32 : 36;
             button.Margin = new Padding(3, 0, 3, 0);
         }
@@ -287,8 +385,8 @@ public partial class CompanyForm
 
         if (_companyEntryLayout is not null)
             _companyEntryLayout.RowStyles[0].Height = compact ? 190 : 214;
-        pnlAudit.Height = 48;
-        pnlListHeader.Height = compact ? 48 : 54;
+        pnlAudit.Height = compact ? 72 : 78;
+        pnlListHeader.Height = compact ? 66 : 70;
 
         AdjustLogoArea(compact);
         Invalidate(true);
@@ -342,5 +440,6 @@ public partial class CompanyForm
         btnRemoveLogo.Width = compact ? 92 : 100;
         btnBrowseLogo.Height = 30;
         btnRemoveLogo.Height = 30;
+        pnlLogoButtons.Left = Math.Max(8, (grpLogo.ClientSize.Width - pnlLogoButtons.Width) / 2);
     }
 }
