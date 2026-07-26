@@ -129,6 +129,9 @@ namespace AlTayerERP.Desktop
 
             // استدعاء دالة لتسجيل أحداث العمليات الإضافية على السند
             RegisterVoucherActionEvents();
+
+            KeyDown -= FrmReceiptVoucher_KeyDown;
+            KeyDown += FrmReceiptVoucher_KeyDown;
         }
 
         #endregion
@@ -162,7 +165,7 @@ namespace AlTayerERP.Desktop
             btnExport.Text = "إعادة للتصحيح";
             btnExport.Location = new System.Drawing.Point(443, 12);
             btnExport.Size = new System.Drawing.Size(110, 29);
-            btnAttachments.Visible = false;
+            btnAttachments.Visible = true;
             button1.Visible = false;
 
             _lblReviewStatus.AutoSize = true;
