@@ -123,9 +123,11 @@ namespace AlTayerERP.Desktop
             txtCompanyNameEn.Clear();
             txtCompanyPrefix.Clear();
             txtPhone.Clear();
+            txtMobile.Clear();
             txtEmail.Clear();
             txtAddress.Clear();
             txtTaxNumber.Clear();
+            txtActivityType.Clear();
 
             picCompanyLogo.Image = null;
             picCompanyLogo.Tag = null;
@@ -193,7 +195,9 @@ namespace AlTayerERP.Desktop
                 Company_Name_AR = txtCompanyNameAr.Text.Trim(),
                 Company_Name_EN = txtCompanyNameEn.Text.Trim(),
                 Company_Prefix = txtCompanyPrefix.Text.Trim(),
+                Activity_Type = CleanOptional(txtActivityType.Text),
                 Phone = txtPhone.Text.Trim(),
+                Mobile = CleanOptional(txtMobile.Text),
                 Email = txtEmail.Text.Trim(),
                 Address = txtAddress.Text.Trim(),
                 Tax_Number = txtTaxNumber.Text.Trim(),
@@ -241,7 +245,9 @@ namespace AlTayerERP.Desktop
                     txtCompanyNameAr.Text = company.Company_Name_AR;
                     txtCompanyNameEn.Text = company.Company_Name_EN;
                     txtCompanyPrefix.Text = company.Company_Prefix;
+                    txtActivityType.Text = company.Activity_Type;
                     txtPhone.Text = company.Phone;
+                    txtMobile.Text = company.Mobile;
                     txtEmail.Text = company.Email;
                     txtAddress.Text = company.Address;
                     txtTaxNumber.Text = company.Tax_Number;
@@ -304,7 +310,9 @@ namespace AlTayerERP.Desktop
                 Company_Name_AR = txtCompanyNameAr.Text.Trim(),
                 Company_Name_EN = txtCompanyNameEn.Text.Trim(),
                 Company_Prefix = txtCompanyPrefix.Text.Trim(),
+                Activity_Type = CleanOptional(txtActivityType.Text),
                 Phone = txtPhone.Text.Trim(),
+                Mobile = CleanOptional(txtMobile.Text),
                 Email = txtEmail.Text.Trim(),
                 Address = txtAddress.Text.Trim(),
                 Tax_Number = txtTaxNumber.Text.Trim(),
@@ -560,6 +568,7 @@ namespace AlTayerERP.Desktop
 
         private void dgvCompanies_CellContentClick(object sender, DataGridViewCellEventArgs e) { }
         private void btnPrint_Click(object sender, EventArgs e) { MessageBox.Show("تم توليد أمر الطباعة للتقرير المرفق.", "طباعة التقارير", MessageBoxButtons.OK, MessageBoxIcon.Information); }
+        private static string? CleanOptional(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
     }
 
     // ======================================================
@@ -590,8 +599,10 @@ namespace AlTayerERP.Desktop
         public string Company_Name_AR { get; set; } = string.Empty;
         public string Company_Name_EN { get; set; } = string.Empty;
         public string? Company_Prefix { get; set; }
+        public string? Activity_Type { get; set; }
         public string? Tax_Number { get; set; }
         public string? Phone { get; set; }
+        public string? Mobile { get; set; }
         public string? Email { get; set; }
         public string? Address { get; set; }
         public byte[]? Company_Logo { get; set; }

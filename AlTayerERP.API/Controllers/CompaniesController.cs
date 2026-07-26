@@ -36,7 +36,9 @@ namespace AlTayerERP.API.Controllers
         {
             if (!TryGetAdminSession(out _)) return Forbid();
             return Ok(await _context.Companies.AsNoTracking()
-                .OrderBy(x => x.Company_Name_AR).ToListAsync());
+                .OrderBy(x => x.Company_Name_AR)
+                .Select(x => new { x.Company_ID, x.Company_Name_AR, x.Company_Name_EN, x.Company_Prefix, x.Phone, x.Email, x.Address, x.Is_Active })
+                .ToListAsync());
         }
 
         /// <summary>عرض شركة واحدة وفق معرفها الداخلي.</summary>
@@ -44,7 +46,9 @@ namespace AlTayerERP.API.Controllers
         public async Task<IActionResult> GetCompany(string id)
         {
             if (!TryGetAdminSession(out _)) return Forbid();
-            var company = await _context.Companies.AsNoTracking().FirstOrDefaultAsync(x => x.Company_ID == id);
+            var company = await _context.Companies.AsNoTracking().Where(x => x.Company_ID == id)
+                .Select(x => new { x.Company_ID, x.Group_ID, x.Company_Name_AR, x.Company_Name_EN, x.Company_Prefix, x.Activity_Type, x.Tax_Number, x.Phone, x.Mobile, x.Email, x.Address, x.Company_Logo, x.Is_Active })
+                .FirstOrDefaultAsync();
             return company is null ? NotFound("الشركة غير موجودة.") : Ok(company);
         }
 
@@ -171,12 +175,12 @@ namespace AlTayerERP.API.Controllers
             company.Company_Name_AR = dto.Company_Name_AR.Trim();
             company.Company_Name_EN = dto.Company_Name_EN?.Trim() ?? string.Empty;
             company.Company_Prefix = dto.Company_Prefix?.Trim().ToUpperInvariant();
-            company.Activity_Type = dto.Activity_Type?.Trim();
-            company.Tax_Number = dto.Tax_Number?.Trim();
-            company.Phone = dto.Phone?.Trim();
-            company.Mobile = dto.Mobile?.Trim();
-            company.Email = dto.Email?.Trim();
-            company.Address = dto.Address?.Trim();
+            if (dto.Activity_Type is not null) company.Activity_Type = dto.Activity_Type.Trim();
+            if (dto.Tax_Number is not null) company.Tax_Number = dto.Tax_Number.Trim();
+            if (dto.Phone is not null) company.Phone = dto.Phone.Trim();
+            if (dto.Mobile is not null) company.Mobile = dto.Mobile.Trim();
+            if (dto.Email is not null) company.Email = dto.Email.Trim();
+            if (dto.Address is not null) company.Address = dto.Address.Trim();
             // لا نمسح الشعار تلقائياً عند إرسال DTO بلا صورة؛ الإزالة تحتاج عملية صريحة لاحقاً.
             if (dto.Company_Logo is { Length: > 0 })
                 company.Company_Logo = dto.Company_Logo;

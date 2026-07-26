@@ -20,22 +20,22 @@
         public string Company_Prefix { get; set; } = string.Empty;
 
         // نوع النشاط
-        public string Activity_Type { get; set; } = string.Empty;
+        public string? Activity_Type { get; set; }
 
         // الرقم الضريبي
-        public string Tax_Number { get; set; } = string.Empty;
+        public string? Tax_Number { get; set; }
 
         // رقم الهاتف
-        public string Phone { get; set; } = string.Empty;
+        public string? Phone { get; set; }
 
         // رقم الجوال
-        public string Mobile { get; set; } = string.Empty;
+        public string? Mobile { get; set; }
 
         // البريد الإلكتروني
-        public string Email { get; set; } = string.Empty;
+        public string? Email { get; set; }
 
         // عنوان الشركة
-        public string Address { get; set; } = string.Empty;
+        public string? Address { get; set; }
 
         // شعار الشركة
         public byte[]? Company_Logo { get; set; }
