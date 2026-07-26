@@ -5,6 +5,7 @@ using System.Text.Json;
 using AlTayerERP.Infrastructure.Data;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 using System.Data;
 using System.Data.Common;
 
@@ -116,18 +117,39 @@ public sealed class GeographicReferencesController : ControllerBase
 
         if (dto.Country_ID > 0)
         {
-            await ExecuteAsync("UPDATE countries SET Country_Code=@Code, Country_Name_AR=@NameAR, Country_Name_EN=@NameEN, ISO2=@ISO2, ISO3=@ISO3, Phone_Code=@Phone, Currency_Code=@Currency, Nationality_Name_AR=@Nationality, Sort_Order=@Sort, Notes=@Notes, Updated_At=UTC_TIMESTAMP() WHERE Country_ID=@ID",
-                ("@Code", dto.Country_Code.Trim().ToUpperInvariant()), ("@NameAR", dto.Country_Name_AR.Trim()), ("@NameEN", dto.Country_Name_EN), ("@ISO2", dto.ISO2), ("@ISO3", dto.ISO3), ("@Phone", dto.Phone_Code), ("@Currency", dto.Currency_Code), ("@Nationality", dto.Nationality_Name_AR), ("@Sort", dto.Sort_Order), ("@Notes", dto.Notes), ("@ID", dto.Country_ID));
-            AddAudit("countries", dto.Country_ID, "UPDATE", "تعديل بيانات الدولة."); await _context.SaveChangesAsync();
-            return Ok(new { message = "تم تعديل الدولة." });
+            await using var transaction = await _context.Database.BeginTransactionAsync();
+            try
+            {
+                await ExecuteAsync("UPDATE countries SET Country_Code=@Code, Country_Name_AR=@NameAR, Country_Name_EN=@NameEN, ISO2=@ISO2, ISO3=@ISO3, Phone_Code=@Phone, Currency_Code=@Currency, Nationality_Name_AR=@Nationality, Sort_Order=@Sort, Notes=@Notes, Updated_At=UTC_TIMESTAMP() WHERE Country_ID=@ID",
+                    ("@Code", dto.Country_Code.Trim().ToUpperInvariant()), ("@NameAR", dto.Country_Name_AR.Trim()), ("@NameEN", dto.Country_Name_EN), ("@ISO2", dto.ISO2), ("@ISO3", dto.ISO3), ("@Phone", dto.Phone_Code), ("@Currency", dto.Currency_Code), ("@Nationality", dto.Nationality_Name_AR), ("@Sort", dto.Sort_Order), ("@Notes", dto.Notes), ("@ID", dto.Country_ID));
+                AddAudit("countries", dto.Country_ID, "UPDATE", "تعديل بيانات الدولة.");
+                await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
+                return Ok(new { message = "تم تعديل الدولة." });
+            }
+            catch
+            {
+                await transaction.RollbackAsync();
+                throw;
+            }
         }
 
-        await ExecuteAsync("INSERT INTO countries (Country_Code, Country_Name_AR, Country_Name_EN, ISO2, ISO3, Phone_Code, Currency_Code, Nationality_Name_AR, Sort_Order, Is_Active, Notes) VALUES (@Code,@NameAR,@NameEN,@ISO2,@ISO3,@Phone,@Currency,@Nationality,@Sort,1,@Notes)",
-            ("@Code", dto.Country_Code.Trim().ToUpperInvariant()), ("@NameAR", dto.Country_Name_AR.Trim()), ("@NameEN", dto.Country_Name_EN), ("@ISO2", dto.ISO2), ("@ISO3", dto.ISO3), ("@Phone", dto.Phone_Code), ("@Currency", dto.Currency_Code), ("@Nationality", dto.Nationality_Name_AR), ("@Sort", dto.Sort_Order), ("@Notes", dto.Notes));
-        // قواعد بيانات الإصدارات السابقة تعتمد INSERT في قيد Action_Type؛
-        // وتتعامل شاشة التدقيق معه كعملية إنشاء أيضاً.
-        var countryId = await ScalarAsync<int>("SELECT LAST_INSERT_ID()"); AddAudit("countries", countryId, "INSERT", "إضافة دولة."); await _context.SaveChangesAsync();
-        return Ok(new { message = "تم حفظ الدولة." });
+        await using var transaction = await _context.Database.BeginTransactionAsync();
+        try
+        {
+            await ExecuteAsync("INSERT INTO countries (Country_Code, Country_Name_AR, Country_Name_EN, ISO2, ISO3, Phone_Code, Currency_Code, Nationality_Name_AR, Sort_Order, Is_Active, Notes) VALUES (@Code,@NameAR,@NameEN,@ISO2,@ISO3,@Phone,@Currency,@Nationality,@Sort,1,@Notes)",
+                ("@Code", dto.Country_Code.Trim().ToUpperInvariant()), ("@NameAR", dto.Country_Name_AR.Trim()), ("@NameEN", dto.Country_Name_EN), ("@ISO2", dto.ISO2), ("@ISO3", dto.ISO3), ("@Phone", dto.Phone_Code), ("@Currency", dto.Currency_Code), ("@Nationality", dto.Nationality_Name_AR), ("@Sort", dto.Sort_Order), ("@Notes", dto.Notes));
+            var countryId = await ScalarAsync<int>("SELECT LAST_INSERT_ID()");
+            AddAudit("countries", countryId, "INSERT", "إضافة دولة.");
+            await _context.SaveChangesAsync();
+            await transaction.CommitAsync();
+            return Ok(new { message = "تم حفظ الدولة." });
+        }
+        catch
+        {
+            await transaction.RollbackAsync();
+            throw;
+        }
     }
 
     [HttpPost("governorates")]
@@ -309,6 +331,7 @@ public sealed class GeographicReferencesController : ControllerBase
     {
         await _context.Database.OpenConnectionAsync();
         await using var command = _context.Database.GetDbConnection().CreateCommand();
+        command.Transaction = _context.Database.CurrentTransaction?.GetDbTransaction();
         command.CommandText = sql;
         AddParameters(command, parameters);
         await using var reader = await command.ExecuteReaderAsync();
@@ -326,6 +349,7 @@ public sealed class GeographicReferencesController : ControllerBase
     {
         await _context.Database.OpenConnectionAsync();
         await using var command = _context.Database.GetDbConnection().CreateCommand();
+        command.Transaction = _context.Database.CurrentTransaction?.GetDbTransaction();
         command.CommandText = sql;
         AddParameters(command, parameters);
         return await command.ExecuteNonQueryAsync();
@@ -335,6 +359,7 @@ public sealed class GeographicReferencesController : ControllerBase
     {
         await _context.Database.OpenConnectionAsync();
         await using var command = _context.Database.GetDbConnection().CreateCommand();
+        command.Transaction = _context.Database.CurrentTransaction?.GetDbTransaction();
         command.CommandText = sql;
         AddParameters(command, parameters);
         var result = await command.ExecuteScalarAsync();

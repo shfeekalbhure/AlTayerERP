@@ -65,7 +65,7 @@ public class FrmGeographicReference : BaseForm
         {
             Dock = DockStyle.Fill,
             ColumnCount = 1,
-            RowCount = 7,
+            RowCount = 6,
             Padding = new Padding(10),
             BackColor = Color.FromArgb(244, 247, 251)
         };
@@ -77,7 +77,6 @@ public class FrmGeographicReference : BaseForm
         shell.RowStyles.Add(new RowStyle(SizeType.Absolute, 48));
         shell.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
         shell.RowStyles.Add(new RowStyle(SizeType.Absolute, 78));
-        shell.RowStyles.Add(new RowStyle(SizeType.Absolute, 26));
 
         shell.Controls.Add(new BrandHeaderControl(ScreenTitle), 0, 0);
         shell.Controls.Add(BuildToolbar(), 0, 1);
@@ -87,7 +86,6 @@ public class FrmGeographicReference : BaseForm
 
         shell.Controls.Add(BuildGridCard(), 0, 4);
         shell.Controls.Add(BuildFooter(), 0, 5);
-        shell.Controls.Add(CreateSessionStatusStrip(), 0, 6);
         Controls.Add(shell);
     }
 
@@ -716,5 +714,3 @@ public class FrmGeographicReference : BaseForm
 }
 
 public sealed class FrmCountries : FrmGeographicReference { public FrmCountries() : base(GeographicReferenceType.Country) { } }
-public sealed class FrmGovernorates : FrmGeographicReference { public FrmGovernorates() : base(GeographicReferenceType.Governorate) { } }
-public sealed class FrmCities : FrmGeographicReference { public FrmCities() : base(GeographicReferenceType.City) { } }

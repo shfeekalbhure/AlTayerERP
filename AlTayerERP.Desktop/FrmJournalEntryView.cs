@@ -47,11 +47,8 @@ public sealed class FrmJournalEntryView : BaseForm
         body.Controls.Add(_grid, 0, 0);
         body.Controls.Add(CreateAuditInfoPanel(), 0, 1);
 
-        var statusHost = new Panel { Dock = DockStyle.Bottom, Height = 25 };
-        statusHost.Controls.Add(CreateSessionStatusStrip());
         Controls.Add(body);
         Controls.Add(_header);
-        Controls.Add(statusHost);
     }
 
     private async Task LoadJournalAsync()
