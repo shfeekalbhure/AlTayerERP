@@ -124,7 +124,9 @@ public sealed class GeographicReferencesController : ControllerBase
 
         await ExecuteAsync("INSERT INTO countries (Country_Code, Country_Name_AR, Country_Name_EN, ISO2, ISO3, Phone_Code, Currency_Code, Nationality_Name_AR, Sort_Order, Is_Active, Notes) VALUES (@Code,@NameAR,@NameEN,@ISO2,@ISO3,@Phone,@Currency,@Nationality,@Sort,1,@Notes)",
             ("@Code", dto.Country_Code.Trim().ToUpperInvariant()), ("@NameAR", dto.Country_Name_AR.Trim()), ("@NameEN", dto.Country_Name_EN), ("@ISO2", dto.ISO2), ("@ISO3", dto.ISO3), ("@Phone", dto.Phone_Code), ("@Currency", dto.Currency_Code), ("@Nationality", dto.Nationality_Name_AR), ("@Sort", dto.Sort_Order), ("@Notes", dto.Notes));
-        var countryId = await ScalarAsync<int>("SELECT LAST_INSERT_ID()"); AddAudit("countries", countryId, "CREATE", "إضافة دولة."); await _context.SaveChangesAsync();
+        // قواعد بيانات الإصدارات السابقة تعتمد INSERT في قيد Action_Type؛
+        // وتتعامل شاشة التدقيق معه كعملية إنشاء أيضاً.
+        var countryId = await ScalarAsync<int>("SELECT LAST_INSERT_ID()"); AddAudit("countries", countryId, "INSERT", "إضافة دولة."); await _context.SaveChangesAsync();
         return Ok(new { message = "تم حفظ الدولة." });
     }
 
@@ -155,7 +157,7 @@ public sealed class GeographicReferencesController : ControllerBase
 
         await ExecuteAsync("INSERT INTO governorates (Country_ID, Governorate_Code, Governorate_Name_AR, Governorate_Name_EN, Sort_Order, Is_Active, Notes) VALUES (@Country,@Code,@NameAR,@NameEN,@Sort,1,@Notes)",
             ("@Country", dto.Country_ID), ("@Code", dto.Governorate_Code.Trim().ToUpperInvariant()), ("@NameAR", dto.Governorate_Name_AR.Trim()), ("@NameEN", dto.Governorate_Name_EN), ("@Sort", dto.Sort_Order), ("@Notes", dto.Notes));
-        var governorateId = await ScalarAsync<int>("SELECT LAST_INSERT_ID()"); AddAudit("governorates", governorateId, "CREATE", "إضافة محافظة."); await _context.SaveChangesAsync();
+        var governorateId = await ScalarAsync<int>("SELECT LAST_INSERT_ID()"); AddAudit("governorates", governorateId, "INSERT", "إضافة محافظة."); await _context.SaveChangesAsync();
         return Ok(new { message = "تم حفظ المحافظة." });
     }
 
@@ -189,7 +191,7 @@ public sealed class GeographicReferencesController : ControllerBase
 
         await ExecuteAsync("INSERT INTO cities (Country_ID, Governorate_ID, City_Code, City_Name_AR, City_Name_EN, Postal_Code, Sort_Order, Is_Active, Notes) VALUES (@Country,@Governorate,@Code,@NameAR,@NameEN,@Postal,@Sort,1,@Notes)",
             ("@Country", dto.Country_ID), ("@Governorate", dto.Governorate_ID), ("@Code", dto.City_Code.Trim().ToUpperInvariant()), ("@NameAR", dto.City_Name_AR.Trim()), ("@NameEN", dto.City_Name_EN), ("@Postal", dto.Postal_Code), ("@Sort", dto.Sort_Order), ("@Notes", dto.Notes));
-        var cityId = await ScalarAsync<int>("SELECT LAST_INSERT_ID()"); AddAudit("cities", cityId, "CREATE", "إضافة مدينة."); await _context.SaveChangesAsync();
+        var cityId = await ScalarAsync<int>("SELECT LAST_INSERT_ID()"); AddAudit("cities", cityId, "INSERT", "إضافة مدينة."); await _context.SaveChangesAsync();
         return Ok(new { message = "تم حفظ المدينة." });
     }
 
