@@ -168,6 +168,8 @@ namespace AlTayerERP.Desktop
             btnAttachments.Visible = true;
             button1.Visible = false;
 
+            ConfigureReceiptToolbar();
+
             _lblReviewStatus.AutoSize = true;
             _lblReviewStatus.Location = new System.Drawing.Point(1278, 12);
             _lblReviewStatus.Text = "المراجعة: غير مراجع";
@@ -178,6 +180,87 @@ namespace AlTayerERP.Desktop
             ConfigureNumericControls();
             ConfigureVoucherGrid();
             ConfigureHeaderAmountFields();
+        }
+
+        /// <summary>
+        /// يوحد شريط أوامر سند القبض: مقاسات وألوان ومحاذاة RTL ثابتة.
+        /// يعاد ترتيبه تلقائياً عند تغيير حجم نافذة الشاشة.
+        /// </summary>
+        private void ConfigureReceiptToolbar()
+        {
+            pnlToolbar.BackColor = System.Drawing.Color.FromArgb(245, 248, 252);
+            pnlToolbar.Padding = new Padding(12, 8, 12, 8);
+            pnlToolbar.Resize -= pnlToolbar_Resize;
+            pnlToolbar.Resize += pnlToolbar_Resize;
+
+            ApplyReceiptToolbarLayout();
+        }
+
+        private void pnlToolbar_Resize(object? sender, EventArgs e) =>
+            ApplyReceiptToolbarLayout();
+
+        private void ApplyReceiptToolbarLayout()
+        {
+            if (pnlToolbar.ClientSize.Width <= 0)
+            {
+                return;
+            }
+
+            var orderedButtons = new[]
+            {
+                btnNew, btnSave, btnEdit, btnDelete, btnPrint, btnSearch, btnRefresh,
+                btnImport, btnExport, btnApprove, btnCancelApprove, btnPost, btnUnPost,
+                btnViewJournalEntry, btnAttachments, btnUndo
+            };
+
+            int right = pnlToolbar.ClientSize.Width - 12;
+            const int top = 8;
+            const int height = 34;
+            const int gap = 4;
+
+            pnlToolbar.SuspendLayout();
+            try
+            {
+                foreach (Button button in orderedButtons)
+                {
+                    bool wideButton = button == btnExport || button == btnCancelApprove ||
+                        button == btnUnPost || button == btnViewJournalEntry;
+                    int width = wideButton ? 98 : 78;
+
+                    right -= width;
+                    button.Location = new System.Drawing.Point(right, top);
+                    button.Size = new System.Drawing.Size(width, height);
+                    button.FlatStyle = FlatStyle.Flat;
+                    button.FlatAppearance.BorderSize = 0;
+                    button.ForeColor = System.Drawing.Color.White;
+                    button.Font = new System.Drawing.Font("Segoe UI", 8.5F, System.Drawing.FontStyle.Bold);
+                    button.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
+                    button.UseVisualStyleBackColor = false;
+                    button.BackColor = GetReceiptToolbarColor(button);
+                    right -= gap;
+                }
+            }
+            finally
+            {
+                pnlToolbar.ResumeLayout();
+            }
+        }
+
+        private static System.Drawing.Color GetReceiptToolbarColor(Button button)
+        {
+            if (button == btnNew) return System.Drawing.Color.FromArgb(37, 99, 235);
+            if (button == btnSave) return System.Drawing.Color.FromArgb(22, 135, 79);
+            if (button == btnEdit) return System.Drawing.Color.FromArgb(217, 119, 6);
+            if (button == btnDelete || button == btnUnPost) return System.Drawing.Color.FromArgb(198, 40, 40);
+            if (button == btnPrint) return System.Drawing.Color.FromArgb(109, 40, 217);
+            if (button == btnSearch) return System.Drawing.Color.FromArgb(14, 116, 144);
+            if (button == btnRefresh) return System.Drawing.Color.FromArgb(71, 85, 105);
+            if (button == btnImport) return System.Drawing.Color.FromArgb(91, 33, 182);
+            if (button == btnExport || button == btnCancelApprove) return System.Drawing.Color.FromArgb(194, 65, 12);
+            if (button == btnApprove || button == btnPost) return System.Drawing.Color.FromArgb(5, 120, 87);
+            if (button == btnViewJournalEntry) return System.Drawing.Color.FromArgb(29, 78, 216);
+            if (button == btnAttachments) return System.Drawing.Color.FromArgb(3, 105, 161);
+            return System.Drawing.Color.FromArgb(100, 116, 139);
         }
 
         // دالة لضبط حدود وخصائص حقول الإدخال الرقمية الخاصة بالمبالغ وسعر الصرف
