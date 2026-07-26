@@ -74,6 +74,11 @@ public sealed class GeographicReferencesController : ControllerBase
     public Task<IActionResult> GetCountryAuditInfo(int id) =>
         GetAuditInfoAsync("Countries", "countries", id);
 
+    [HttpGet("governorates/{id:int}/audit-info")]
+    public Task<IActionResult> GetGovernorateAuditInfo(int id) =>
+        GetAuditInfoAsync("Governorates", "governorates", id);
+
+
     /// <summary>يسجل معاينة طباعة قائمة أو بطاقة دولة في سجل التدقيق.</summary>
     [HttpPost("countries/{id:int}/print")]
     public async Task<IActionResult> RegisterCountryPrint(int id)
@@ -85,6 +90,21 @@ public sealed class GeographicReferencesController : ControllerBase
             return NotFound("الدولة غير موجودة.");
 
         AddAudit("countries", id, "PRINT", "معاينة طباعة بيانات الدولة.");
+        await _context.SaveChangesAsync();
+        return Ok(new { message = "تم تسجيل عملية الطباعة." });
+    }
+
+    /// <summary>يسجل معاينة طباعة بطاقة المحافظة في سجل التدقيق.</summary>
+    [HttpPost("governorates/{id:int}/print")]
+    public async Task<IActionResult> RegisterGovernoratePrint(int id)
+    {
+        var access = await RequireAsync("Governorates", ScreenOperation.Print);
+        if (access != null) return access;
+
+        if (await ScalarAsync<int>("SELECT COUNT(*) FROM governorates WHERE Governorate_ID=@ID", ("@ID", id)) == 0)
+            return NotFound("المحافظة غير موجودة.");
+
+        AddAudit("governorates", id, "PRINT", "معاينة طباعة بيانات المحافظة.");
         await _context.SaveChangesAsync();
         return Ok(new { message = "تم تسجيل عملية الطباعة." });
     }
