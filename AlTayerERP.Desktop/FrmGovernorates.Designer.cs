@@ -127,22 +127,23 @@ partial class FrmGovernorates
         panelButtons.WrapContents = false;
 
         // الأزرار التسعة بالهوية الموحدة
-        btnNew = new Button(); btnSave = new Button(); btnEdit = new Button();
+        btnNew = new Button(); btnSave = new Button(); btnEdit = new Button(); btnDeactivate = new Button();
         btnCancel = new Button(); btnReset = new Button(); btnRefresh = new Button();
         btnSearch = new Button(); btnPrint = new Button(); btnClose = new Button();
 
-        Button[] buttons = { btnNew, btnSave, btnEdit, btnCancel, btnReset, btnRefresh, btnSearch, btnPrint, btnClose };
-        string[] titles = { "+ جديد", "✔ حفظ", "✎ تعديل", "✖ إلغاء", "↺ إعادة", "↻ تحديث", "🔍 بحث", "🖨 طباعة", "🚪 إغلاق" };
+        Button[] buttons = { btnNew, btnSave, btnEdit, btnDeactivate, btnCancel, btnReset, btnRefresh, btnSearch, btnPrint, btnClose };
+        string[] titles = { "+ جديد", "✔ حفظ", "✎ تعديل", "⏸ إيقاف", "✖ إلغاء", "↺ إعادة", "↻ تحديث", "🔍 بحث", "🖨 طباعة", "🚪 إغلاق" };
         Color[] colors = {
             Color.FromArgb(13, 148, 136),  // جديد (تركوازي)
             Color.FromArgb(37, 99, 235),   // حفظ (أزرق)
             Color.FromArgb(217, 119, 6),   // تعديل (برتقالي)
+            Color.FromArgb(220, 38, 38),   // إيقاف / إعادة تفعيل
             Color.FromArgb(100, 116, 139), // إلغاء (رمادي)
             Color.FromArgb(79, 70, 229),   // إعادة (بنفسجي)
             Color.FromArgb(2, 132, 199),   // تحديث (أزرق سماوي)
             Color.FromArgb(5, 150, 105),   // بحث (أخضر)
             Color.FromArgb(124, 58, 237),  // طباعة (بنفسجي غامق)
-            Color.FromArgb(220, 38, 38)    // إغلاق (أحمر)
+            Color.FromArgb(71, 85, 105)     // إغلاق (رمادي داكن)
         };
 
         for (var i = 0; i < buttons.Length; i++)
@@ -347,7 +348,7 @@ partial class FrmGovernorates
     // =========================================================================
     private TableLayoutPanel mainTableLayout = null!;
     private FlowLayoutPanel panelButtons = null!;
-    private Button btnNew = null!, btnSave = null!, btnEdit = null!, btnCancel = null!, btnReset = null!, btnRefresh = null!, btnSearch = null!, btnPrint = null!, btnClose = null!;
+    private Button btnNew = null!, btnSave = null!, btnEdit = null!, btnDeactivate = null!, btnCancel = null!, btnReset = null!, btnRefresh = null!, btnSearch = null!, btnPrint = null!, btnClose = null!;
     private GroupBox grpDataCard = null!;
     private TableLayoutPanel tblDataCard = null!;
     private Label lblGovCode = null!, lblGovNameAr = null!, lblGovNameEn = null!, lblCountry = null!, lblDisplayOrder = null!, lblStatus = null!, lblNotes = null!;
