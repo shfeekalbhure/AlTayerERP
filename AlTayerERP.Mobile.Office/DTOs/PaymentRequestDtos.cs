@@ -37,3 +37,26 @@ public sealed class PaymentRequestLineItemDto
     public string? Reference_No { get; set; }
     public string? Description { get; set; }
 }
+
+public sealed class CreatePaymentRequestDto
+{
+    public DateTime Request_Date { get; set; } = DateTime.Today;
+    public string Beneficiary_Name { get; set; } = string.Empty;
+    public string? Party_ID { get; set; }
+    public int? Payment_Method_ID { get; set; }
+    public string? Header_Reference_No { get; set; }
+    public string? Description { get; set; }
+    public List<CreatePaymentRequestLineDto> Lines { get; set; } = [];
+}
+
+public sealed class CreatePaymentRequestLineDto
+{
+    public string Account_ID { get; set; } = string.Empty;
+    public string? Cost_Center_ID { get; set; }
+    public int Currency_ID { get; set; }
+    public decimal Exchange_Rate { get; set; } = 1m;
+    public decimal Foreign_Amount { get; set; }
+    public decimal Local_Amount { get; set; }
+    public string? Reference_No { get; set; }
+    public string? Description { get; set; }
+}
