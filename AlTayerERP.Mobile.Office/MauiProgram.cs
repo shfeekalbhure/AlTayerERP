@@ -25,6 +25,7 @@ public static class MauiProgram
         });
         builder.Services.AddSingleton<SessionStorageService>();
         builder.Services.AddSingleton<AuthenticationService>();
+        builder.Services.AddSingleton<MobileHomeService>();
         builder.Services.AddTransient<MainPage>();
 
 #if DEBUG
