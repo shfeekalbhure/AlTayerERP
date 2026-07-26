@@ -8,8 +8,8 @@ using Microsoft.EntityFrameworkCore;
 namespace AlTayerERP.API.Controllers;
 
 /// <summary>
-/// يتحقق من بيانات المستخدم أولاً ثم يعيد فقط الفروع والسنوات المالية المصرح بها
-/// لا ينشئ جلسة ولا يصدر JWT؛ الدخول النهائي يبقى عبر Auth/Login.
+/// يوفر خيارات شاشة دخول الجوال دون إنشاء جلسة، ثم يتحقق من بيانات المستخدم
+/// ويعيد فقط الفروع والسنوات المالية المصرح بها.
 /// </summary>
 [ApiController]
 [Route("api/Auth")]
@@ -29,6 +29,27 @@ public sealed class LoginOptionsController : ControllerBase
         _logger = logger;
     }
 
+    /// <summary>
+    /// يعيد الحد الأدنى اللازم من الشركات النشطة لشاشة الدخول.
+    /// لا يعيد بيانات اتصال أو معلومات مالية أو إدارية حساسة.
+    /// </summary>
+    [AllowAnonymous]
+    [HttpGet("LoginCompanies")]
+    public async Task<IActionResult> GetLoginCompanies(CancellationToken cancellationToken)
+    {
+        var companies = await _context.Companies.AsNoTracking()
+            .Where(x => x.Is_Active)
+            .OrderBy(x => x.Company_Name_AR)
+            .Select(x => new LoginCompanyOptionDto
+            {
+                Company_ID = x.Company_ID,
+                Company_Name = x.Company_Name_AR
+            })
+            .ToListAsync(cancellationToken);
+
+        return Ok(companies);
+    }
+
     [AllowAnonymous]
     [HttpPost("LoginOptions")]
     public async Task<IActionResult> GetLoginOptions(
@@ -40,7 +61,7 @@ public sealed class LoginOptionsController : ControllerBase
             string.IsNullOrWhiteSpace(request.Login_Name) ||
             string.IsNullOrWhiteSpace(request.Password))
         {
-            return BadRequest("رمز الشركة واسم المستخدم وكلمة المرور مطلوبة.");
+            return BadRequest("الشركة واسم المستخدم وكلمة المرور مطلوبة.");
         }
 
         var companyId = request.Company_ID.Trim();
@@ -151,6 +172,12 @@ public sealed class LoginOptionsController : ControllerBase
         string.IsNullOrWhiteSpace(deviceId)
             ? "mobile-unknown"
             : deviceId.Trim()[..Math.Min(deviceId.Trim().Length, 128)];
+}
+
+public sealed class LoginCompanyOptionDto
+{
+    public string Company_ID { get; set; } = string.Empty;
+    public string Company_Name { get; set; } = string.Empty;
 }
 
 public sealed class LoginOptionsRequestDto
