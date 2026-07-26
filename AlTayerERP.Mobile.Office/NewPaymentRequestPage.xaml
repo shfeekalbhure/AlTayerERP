@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="AlTayerERP.Mobile.Office.NewPaymentRequestPage"
+             FlowDirection="RightToLeft"
+             BackgroundColor="#F6F8FB"
+             Title="طلب صرف جديد">
+    <ScrollView>
+        <VerticalStackLayout Padding="16" Spacing="12">
+            <Label Text="بيانات الطلب" FontSize="20" FontAttributes="Bold" TextColor="#17324D" />
+
+            <DatePicker x:Name="RequestDatePicker"
+                        TextColor="#17324D"
+                        BackgroundColor="White" />
+            <Entry x:Name="BeneficiaryEntry"
+                   Placeholder="اسم المستفيد"
+                   TextColor="#17324D"
+                   PlaceholderColor="#7A8896"
+                   BackgroundColor="White" />
+            <Entry x:Name="PartyIdEntry"
+                   Placeholder="رقم الطرف - اختياري"
+                   TextColor="#17324D"
+                   PlaceholderColor="#7A8896"
+                   BackgroundColor="White" />
+            <Entry x:Name="ReferenceEntry"
+                   Placeholder="رقم المرجع - اختياري"
+                   TextColor="#17324D"
+                   PlaceholderColor="#7A8896"
+                   BackgroundColor="White" />
+            <Editor x:Name="DescriptionEditor"
+                    Placeholder="البيان أو الغرض من طلب الصرف"
+                    TextColor="#17324D"
+                    PlaceholderColor="#7A8896"
+                    BackgroundColor="White"
+                    AutoSize="TextChanges"
+                    MinimumHeightRequest="90" />
+
+            <Label Text="سطر الصرف" FontSize="18" FontAttributes="Bold" TextColor="#17324D" Margin="0,8,0,0" />
+            <Entry x:Name="AccountIdEntry"
+                   Placeholder="رقم الحساب المدين"
+                   TextColor="#17324D"
+                   PlaceholderColor="#7A8896"
+                   BackgroundColor="White" />
+            <Entry x:Name="CostCenterIdEntry"
+                   Placeholder="رقم مركز التكلفة - اختياري"
+                   TextColor="#17324D"
+                   PlaceholderColor="#7A8896"
+                   BackgroundColor="White" />
+            <Entry x:Name="CurrencyIdEntry"
+                   Placeholder="رقم العملة"
+                   Keyboard="Numeric"
+                   TextColor="#17324D"
+                   PlaceholderColor="#7A8896"
+                   BackgroundColor="White" />
+            <Entry x:Name="ExchangeRateEntry"
+                   Placeholder="سعر الصرف"
+                   Keyboard="Numeric"
+                   Text="1"
+                   TextColor="#17324D"
+                   PlaceholderColor="#7A8896"
+                   BackgroundColor="White" />
+            <Entry x:Name="ForeignAmountEntry"
+                   Placeholder="المبلغ الأجنبي - صفر للعملة المحلية"
+                   Keyboard="Numeric"
+                   Text="0"
+                   TextColor="#17324D"
+                   PlaceholderColor="#7A8896"
+                   BackgroundColor="White" />
+            <Entry x:Name="LocalAmountEntry"
+                   Placeholder="المبلغ المحلي"
+                   Keyboard="Numeric"
+                   TextColor="#17324D"
+                   PlaceholderColor="#7A8896"
+                   BackgroundColor="White" />
+            <Editor x:Name="LineDescriptionEditor"
+                    Placeholder="وصف السطر"
+                    TextColor="#17324D"
+                    PlaceholderColor="#7A8896"
+                    BackgroundColor="White"
+                    AutoSize="TextChanges"
+                    MinimumHeightRequest="70" />
+
+            <Grid ColumnDefinitions="*,*" ColumnSpacing="10" Margin="0,10,0,0">
+                <Button Grid.Column="0"
+                        x:Name="SaveDraftButton"
+                        Text="حفظ مسودة"
+                        HeightRequest="52"
+                        CornerRadius="12"
+                        BackgroundColor="#0B6B87"
+                        TextColor="White"
+                        Clicked="OnSaveDraftClicked" />
+                <Button Grid.Column="1"
+                        x:Name="SaveAndSubmitButton"
+                        Text="حفظ وإرسال"
+                        HeightRequest="52"
+                        CornerRadius="12"
+                        BackgroundColor="#17324D"
+                        TextColor="White"
+                        Clicked="OnSaveAndSubmitClicked" />
+            </Grid>
+
+            <ActivityIndicator x:Name="BusyIndicator"
+                               Color="#0B6B87"
+                               IsVisible="False"
+                               IsRunning="False" />
+            <Label x:Name="StatusLabel"
+                   IsVisible="False"
+                   HorizontalTextAlignment="Center"
+                   TextColor="#B42318" />
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>
