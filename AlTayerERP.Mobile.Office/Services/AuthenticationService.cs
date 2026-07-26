@@ -5,6 +5,21 @@ namespace AlTayerERP.Mobile.Office.Services;
 
 public sealed class AuthenticationService(HttpClient httpClient, SessionStorageService sessionStorage)
 {
+    public async Task<List<LoginCompanyOptionDto>> GetLoginCompaniesAsync(
+        CancellationToken cancellationToken = default)
+    {
+        using var response = await httpClient.GetAsync("api/Auth/LoginCompanies", cancellationToken);
+        if (!response.IsSuccessStatusCode)
+        {
+            var message = await response.Content.ReadAsStringAsync(cancellationToken);
+            throw new InvalidOperationException(NormalizeError(message, "تعذر تحميل الشركات."));
+        }
+
+        return await response.Content.ReadFromJsonAsync<List<LoginCompanyOptionDto>>(
+                   cancellationToken: cancellationToken)
+               ?? [];
+    }
+
     public async Task<LoginOptionsResponseDto> GetLoginOptionsAsync(
         LoginOptionsRequestDto request,
         CancellationToken cancellationToken = default)
