@@ -39,6 +39,7 @@ namespace AlTayerERP.Desktop
             btnRefresh.Enabled = _selectedVoucherId > 0;
             btnPrint.Enabled = _selectedVoucherId > 0;
             btnViewJournalEntry.Enabled = _selectedVoucherId > 0;
+            btnAttachments.Enabled = _selectedVoucherId > 0;
 
             btnSave.Enabled = false;
             btnUndo.Enabled = false;
@@ -62,6 +63,7 @@ namespace AlTayerERP.Desktop
             btnRefresh.Enabled = false;
             btnPrint.Enabled = false;
             btnViewJournalEntry.Enabled = false;
+            btnAttachments.Enabled = false;
 
             btnSave.Enabled = true;
             btnUndo.Enabled = true;
@@ -125,6 +127,7 @@ namespace AlTayerERP.Desktop
             btnRefresh.Enabled = false;
             btnPrint.Enabled = false;
             btnViewJournalEntry.Enabled = false;
+            btnAttachments.Enabled = false;
 
             btnSave.Enabled = true;
             btnUndo.Enabled = true;
