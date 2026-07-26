@@ -14,7 +14,8 @@ public partial class CountriesForm : BaseForm
     private List<CountryRow> _allRows = new();
     private int _selectedId;
     private string? _selectedCurrencyCode;
-    private bool _selectedIsActive;
+    // حقل الجنسية غير ظاهر في التصميم المعتمد؛ نحتفظ بالقيمة السابقة عند تعديل دولة قائمة.
+    private string? _selectedNationality;
     private EditorMode _editorMode = EditorMode.View;
 
     public CountriesForm()
@@ -41,8 +42,6 @@ public partial class CountriesForm : BaseForm
             if (_editorMode == EditorMode.New) await CancelChangesAsync();
             else BeginEdit();
         };
-        btnDeactivate.Click += async (_, _) => await ChangeStatusAsync(false);
-        btnReactivate.Click += async (_, _) => await ChangeStatusAsync(true);
         btnCancel.Click += async (_, _) => await CancelChangesAsync();
         btnReset.Click += (_, _) => ResetCurrentInput();
         btnRefresh.Click += async (_, _) => await LoadRowsAsync();
@@ -121,12 +120,11 @@ public partial class CountriesForm : BaseForm
         if (dgvCountries.CurrentRow?.DataBoundItem is not CountryRow row) return;
         _selectedId = row.Country_ID;
         _selectedCurrencyCode = row.Currency_Code;
-        _selectedIsActive = row.Is_Active;
+        _selectedNationality = row.Nationality_Name_AR;
         txtCountryCode.Text = row.Country_Code; txtCountryNameAr.Text = row.Country_Name_AR; txtCountryNameEn.Text = row.Country_Name_EN ?? string.Empty;
         txtIso2.Text = row.ISO2 ?? string.Empty; txtIso3.Text = row.ISO3 ?? string.Empty; txtPhoneKey.Text = row.Phone_Code ?? string.Empty; txtNotes.Text = row.Notes ?? string.Empty;
         numDisplayOrder.Value = Math.Clamp(row.Sort_Order, (int)numDisplayOrder.Minimum, (int)numDisplayOrder.Maximum);
         if (!string.IsNullOrWhiteSpace(row.Currency_Code)) cmbCurrency.SelectedValue = row.Currency_Code;
-        txtNationality.Text = row.Nationality_Name_AR ?? string.Empty;
         SetEditorMode(EditorMode.View);
         await LoadAuditAsync(row.Country_ID);
     }
@@ -159,7 +157,7 @@ public partial class CountriesForm : BaseForm
         try
         {
             var currencyCode = cmbCurrency.SelectedValue?.ToString() ?? _selectedCurrencyCode;
-            var dto = new { Country_ID = _selectedId, Country_Code = countryCode, Country_Name_AR = txtCountryNameAr.Text.Trim(), Country_Name_EN = Empty(txtCountryNameEn.Text), ISO2 = Empty(txtIso2.Text)?.ToUpperInvariant(), ISO3 = Empty(txtIso3.Text)?.ToUpperInvariant(), Phone_Code = Empty(txtPhoneKey.Text), Currency_Code = currencyCode, Nationality_Name_AR = Empty(txtNationality.Text), Sort_Order = (int)numDisplayOrder.Value, Notes = Empty(txtNotes.Text) };
+            var dto = new { Country_ID = _selectedId, Country_Code = countryCode, Country_Name_AR = txtCountryNameAr.Text.Trim(), Country_Name_EN = Empty(txtCountryNameEn.Text), ISO2 = Empty(txtIso2.Text)?.ToUpperInvariant(), ISO3 = Empty(txtIso3.Text)?.ToUpperInvariant(), Phone_Code = Empty(txtPhoneKey.Text), Currency_Code = currencyCode, Nationality_Name_AR = _selectedNationality, Sort_Order = (int)numDisplayOrder.Value, Notes = Empty(txtNotes.Text) };
             var response = await ApiService.Client.PostAsJsonAsync("GeographicReferences/countries", dto);
             if (!response.IsSuccessStatusCode) { MessageBox.Show(await response.Content.ReadAsStringAsync(), "تعذر الحفظ", MessageBoxButtons.OK, MessageBoxIcon.Warning); return; }
             await LoadRowsAsync(); MessageBox.Show("تم الحفظ بنجاح.", Text, MessageBoxButtons.OK, MessageBoxIcon.Information);
@@ -188,7 +186,7 @@ public partial class CountriesForm : BaseForm
 
     private void StartNew()
     {
-        _selectedId = 0; _selectedCurrencyCode = null; _selectedIsActive = true;
+        _selectedId = 0; _selectedCurrencyCode = null; _selectedNationality = null;
         ClearInputFields();
         dgvCountries.ClearSelection();
         ClearAudit();
@@ -204,7 +202,7 @@ public partial class CountriesForm : BaseForm
 
     private void ClearEditor()
     {
-        _selectedId = 0; _selectedCurrencyCode = null; _selectedIsActive = true;
+        _selectedId = 0; _selectedCurrencyCode = null; _selectedNationality = null;
         ClearInputFields();
         dgvCountries.ClearSelection();
         ClearAudit();
@@ -213,14 +211,14 @@ public partial class CountriesForm : BaseForm
 
     private void ClearInputFields()
     {
-        txtCountryCode.Clear(); txtCountryNameAr.Clear(); txtCountryNameEn.Clear(); txtIso2.Clear(); txtIso3.Clear(); txtPhoneKey.Clear(); txtNationality.Clear(); txtNotes.Clear(); numDisplayOrder.Value = 0; cmbCurrency.SelectedIndex = -1;
+        txtCountryCode.Clear(); txtCountryNameAr.Clear(); txtCountryNameEn.Clear(); txtIso2.Clear(); txtIso3.Clear(); txtPhoneKey.Clear(); txtNotes.Clear(); numDisplayOrder.Value = 0; cmbCurrency.SelectedIndex = -1;
     }
 
     private void SetEditorMode(EditorMode mode)
     {
         _editorMode = mode;
         var editable = mode is EditorMode.New or EditorMode.Edit;
-        foreach (var control in new Control[] { txtCountryCode, txtCountryNameAr, txtCountryNameEn, txtIso2, txtIso3, txtPhoneKey, txtNationality, txtNotes, numDisplayOrder, cmbCurrency }) control.Enabled = editable;
+        foreach (var control in new Control[] { txtCountryCode, txtCountryNameAr, txtCountryNameEn, txtIso2, txtIso3, txtPhoneKey, txtNotes, numDisplayOrder, cmbCurrency }) control.Enabled = editable;
 
         btnSave.Enabled = editable;
         btnSave.Text = mode == EditorMode.New ? "حفظ جديد" : mode == EditorMode.Edit ? "حفظ التعديل" : "حفظ";
@@ -229,8 +227,6 @@ public partial class CountriesForm : BaseForm
         btnNew.Enabled = mode == EditorMode.View;
         btnReset.Enabled = editable;
         btnRefresh.Enabled = mode == EditorMode.View;
-        btnDeactivate.Enabled = mode == EditorMode.View && _selectedId > 0 && _selectedIsActive;
-        btnReactivate.Enabled = mode == EditorMode.View && _selectedId > 0 && !_selectedIsActive;
         btnPrint.Enabled = mode == EditorMode.View && _selectedId > 0;
         dgvCountries.Enabled = mode == EditorMode.View;
     }
@@ -258,7 +254,7 @@ public partial class CountriesForm : BaseForm
         var response = await ApiService.Client.PostAsync("GeographicReferences/countries/" + _selectedId + "/print", null);
         if (!response.IsSuccessStatusCode) { MessageBox.Show(await response.Content.ReadAsStringAsync(), "تعذر تسجيل الطباعة", MessageBoxButtons.OK, MessageBoxIcon.Warning); return; }
         using var document = new PrintDocument { DocumentName = "بيانات الدولة - " + txtCountryNameAr.Text };
-        document.PrintPage += (_, e) => { using var font = new Font("Segoe UI", 11); e.Graphics.DrawString($"بيانات الدولة\nالكود: {txtCountryCode.Text}\nالاسم: {txtCountryNameAr.Text}\nالجنسية: {txtNationality.Text}\nISO2: {txtIso2.Text}\nISO3: {txtIso3.Text}", font, Brushes.Black, 70, 70); };
+        document.PrintPage += (_, e) => { using var font = new Font("Segoe UI", 11); e.Graphics.DrawString($"بيانات الدولة\nالكود: {txtCountryCode.Text}\nالاسم: {txtCountryNameAr.Text}\nISO2: {txtIso2.Text}\nISO3: {txtIso3.Text}", font, Brushes.Black, 70, 70); };
         using var preview = new PrintPreviewDialog { Document = document, Width = 900, Height = 700, RightToLeft = RightToLeft.Yes };
         preview.ShowDialog(this); await LoadAuditAsync(_selectedId);
     }
