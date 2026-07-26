@@ -15,6 +15,7 @@ public partial class CompanyForm
     private bool _layoutReflowed;
     private TableLayoutPanel? _companyEntryLayout;
     private TableLayoutPanel? _companyAuditCards;
+    private FlowLayoutPanel? _toolbarActions;
 
     protected override void OnShown(EventArgs e)
     {
@@ -79,6 +80,7 @@ public partial class CompanyForm
         ArrangePrimaryCompanyFields();
         ArrangeCompanyEntryLikeReference();
         ArrangeAuditFooter();
+        MoveAuditBelowGrid();
 
         pnlHeader.BringToFront();
         pnlToolbar.BringToFront();
@@ -93,16 +95,26 @@ public partial class CompanyForm
     {
         pnlToolbar.SuspendLayout();
         pnlToolbar.Controls.Clear();
-        pnlToolbar.FlowDirection = FlowDirection.RightToLeft;
-        pnlToolbar.WrapContents = false;
+        pnlToolbar.RightToLeft = RightToLeft.Yes;
 
-        // FlowLayoutPanel يعرض عناصر هذه الشاشة من اليسار إلى اليمين عملياً
-        // داخل حاوية RTL؛ لذلك تضاف بالترتيب العكسي ليظهر «جديد» من اليمين.
-        pnlToolbar.Controls.AddRange(new Control[]
+        _toolbarActions = new FlowLayoutPanel
+        {
+            Dock = DockStyle.Right,
+            AutoSize = true,
+            AutoSizeMode = AutoSizeMode.GrowAndShrink,
+            FlowDirection = FlowDirection.LeftToRight,
+            RightToLeft = RightToLeft.No,
+            WrapContents = false,
+            Padding = new Padding(0),
+            Margin = new Padding(0)
+        };
+        // الترتيب من اليسار إلى اليمين هنا يجعل «جديد» عند أقصى اليمين.
+        _toolbarActions.Controls.AddRange(new Control[]
         {
             btnClose, btnRefresh, btnSearch, btnPrint, btnApprove,
             btnDelete, btnEdit, btnSaveCompany, btnNew
         });
+        pnlToolbar.Controls.Add(_toolbarActions);
         pnlToolbar.ResumeLayout(true);
     }
 
@@ -133,6 +145,19 @@ public partial class CompanyForm
         _companyAuditCards.Controls.Add(CreateAuditCard("العدادات", "عدد التعديلات:", lblEditCount, "عدد مرات الطباعة:", lblPrintCount), 2, 0);
         pnlAudit.Controls.Add(_companyAuditCards);
         pnlAudit.ResumeLayout(true);
+    }
+
+    /// <summary>يضع جدول الشركات قبل بطاقات التدقيق لتبقى البطاقات أسفل الشاشة.</summary>
+    private void MoveAuditBelowGrid()
+    {
+        if (pnlAudit.Parent == splitMain.Panel2)
+            return;
+
+        pnlAudit.Parent?.Controls.Remove(pnlAudit);
+        pnlAudit.Dock = DockStyle.Bottom;
+        splitMain.Panel2.Controls.Add(pnlAudit);
+        pnlAudit.BringToFront();
+        pnlDetails.AutoScroll = false;
     }
 
     private static Control CreateAuditCard(string title, string firstCaption, Label firstValue,
@@ -209,7 +234,8 @@ public partial class CompanyForm
         tblContact.SetColumnSpan(txtAddress, 1);
 
         ApplyReferenceInputStyle(cmbGroups, txtCompanyNameAr, txtCompanyNameEn,
-            txtCompanyPrefix, txtActivityType, txtTaxNumber);
+            txtCompanyPrefix, txtActivityType, txtTaxNumber, txtPhone, txtMobile,
+            txtEmail, txtAddress);
 
         tblContact.ResumeLayout(true);
         tblBasic.ResumeLayout(true);
@@ -369,7 +395,8 @@ public partial class CompanyForm
 
         pnlToolbar.Height = compact ? 46 : 52;
 
-        foreach (Control control in pnlToolbar.Controls)
+        Control.ControlCollection toolbarControls = _toolbarActions?.Controls ?? pnlToolbar.Controls;
+        foreach (Control control in toolbarControls)
         {
             if (control is not Button button)
                 continue;
@@ -380,7 +407,7 @@ public partial class CompanyForm
         }
 
         int availableHeight = Math.Max(520, splitMain.Height);
-        int tableHeight = compact ? 210 : 240;
+        int tableHeight = compact ? 300 : 340;
         splitMain.SplitterDistance = Math.Max(300, availableHeight - tableHeight);
 
         if (_companyEntryLayout is not null)
