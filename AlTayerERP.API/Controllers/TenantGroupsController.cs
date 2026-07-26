@@ -42,8 +42,18 @@ namespace AlTayerERP.API.Controllers
                 .GroupBy(x => x.Group_ID)
                 .Select(x => new { Group_ID = x.Key, Count = x.Count() })
                 .ToDictionaryAsync(x => x.Group_ID, x => x.Count);
+            var mainCompanyIds = groups.Where(x => !string.IsNullOrWhiteSpace(x.Main_Company_ID))
+                .Select(x => x.Main_Company_ID!).Distinct().ToList();
+            var mainCompanyNames = await _context.Companies.AsNoTracking()
+                .Where(x => mainCompanyIds.Contains(x.Company_ID))
+                .Select(x => new { x.Company_ID, x.Company_Name_AR })
+                .ToDictionaryAsync(x => x.Company_ID, x => x.Company_Name_AR);
             foreach (var group in groups)
+            {
                 group.Companies_Count = companyCounts.GetValueOrDefault(group.Group_ID);
+                group.Main_Company_Name = !string.IsNullOrWhiteSpace(group.Main_Company_ID)
+                    ? mainCompanyNames.GetValueOrDefault(group.Main_Company_ID) : null;
+            }
             return Ok(groups);
         }
 
@@ -56,6 +66,22 @@ namespace AlTayerERP.API.Controllers
             var group = await _context.Tenant_Groups.AsNoTracking()
                 .FirstOrDefaultAsync(x => x.Group_ID == id);
             return group is null ? NotFound("المجموعة التجارية غير موجودة.") : Ok(group);
+        }
+
+        /// <summary>قائمة الشركات النشطة التابعة للمجموعة فقط لاختيار الشركة الرئيسية.</summary>
+        [HttpGet("{id}/companies")]
+        public async Task<IActionResult> GetGroupCompanies(string id)
+        {
+            if (!TryGetAdminSession(out _)) return Forbid();
+            if (!await _context.Tenant_Groups.AsNoTracking().AnyAsync(x => x.Group_ID == id))
+                return NotFound("المجموعة التجارية غير موجودة.");
+
+            var companies = await _context.Companies.AsNoTracking()
+                .Where(x => x.Group_ID == id && x.Is_Active)
+                .OrderBy(x => x.Company_Name_AR)
+                .Select(x => new { x.Company_ID, x.Company_Name_AR })
+                .ToListAsync();
+            return Ok(companies);
         }
 
         /// <summary>إنشاء مجموعة وربط حقول التدقيق بالمستخدم الموجود في جلسة الخادم.</summary>
@@ -72,7 +98,8 @@ namespace AlTayerERP.API.Controllers
                 Group_ID = Guid.NewGuid().ToString(),
                 Created_At = DateTime.UtcNow,
                 Created_By = session.User_ID,
-                Edit_Count = 0
+                Edit_Count = 0,
+                Is_Active = true
             };
             Map(dto, group);
             _context.Tenant_Groups.Add(group);
@@ -91,6 +118,8 @@ namespace AlTayerERP.API.Controllers
 
             var group = await _context.Tenant_Groups.FirstOrDefaultAsync(x => x.Group_ID == id);
             if (group is null) return NotFound("المجموعة التجارية غير موجودة.");
+            if (!group.Is_Active)
+                return Conflict("لا يمكن تعديل مجموعة موقوفة؛ أعد تفعيلها أولاً.");
 
             var validation = await ValidateAsync(dto, id);
             if (validation is not null) return BadRequest(validation);
@@ -121,6 +150,8 @@ namespace AlTayerERP.API.Controllers
 
             if (await _context.Companies.AnyAsync(x => x.Group_ID == id && x.Is_Active))
                 return Conflict("لا يمكن إيقاف المجموعة لوجود شركات نشطة مرتبطة بها.");
+            if (await _context.Tenant_Groups.AnyAsync(x => x.Parent_Group_ID == id && x.Is_Active))
+                return Conflict("لا يمكن إيقاف المجموعة لوجود مجموعات فرعية نشطة مرتبطة بها.");
 
             var oldValues = BuildSnapshot(group);
             group.Is_Active = false;
@@ -148,6 +179,9 @@ namespace AlTayerERP.API.Controllers
 
             var group = await _context.Tenant_Groups.FirstOrDefaultAsync(x => x.Group_ID == id);
             if (group is null) return NotFound("المجموعة التجارية غير موجودة.");
+            if (!string.IsNullOrWhiteSpace(group.Parent_Group_ID) &&
+                !await _context.Tenant_Groups.AsNoTracking().AnyAsync(x => x.Group_ID == group.Parent_Group_ID && x.Is_Active))
+                return Conflict("لا يمكن إعادة تفعيل المجموعة قبل إعادة تفعيل المجموعة الأم.");
 
             var oldValues = BuildSnapshot(group);
             group.Is_Active = true;
@@ -294,7 +328,7 @@ namespace AlTayerERP.API.Controllers
             group.Show_In_Login = dto.Show_In_Login;
             group.Sort_Order = dto.Sort_Order;
             group.Notes = dto.Notes?.Trim();
-            group.Is_Active = dto.Is_Active;
+            // الحالة لا تتغير عبر الحفظ العام؛ الإيقاف وإعادة التفعيل مساران مستقلان بسبب وتدقيق.
         }
     }
 }

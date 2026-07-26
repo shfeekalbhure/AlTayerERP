@@ -16,31 +16,37 @@ public sealed class FrmTenantGroups : BaseForm, IWorkspaceDirtyAware
     private readonly CheckBox _showInLogin = new() { Text = "تظهر في شاشة اختيار الشركة", Checked = true, AutoSize = true };
     private readonly CheckBox _active = new() { Text = "نشطة", Checked = true, Enabled = false, AutoSize = true };
     private readonly NumericUpDown _sort = new() { Minimum = 0, Maximum = 9999, TextAlign = HorizontalAlignment.Right };
-    private readonly TextBox _search = new() { PlaceholderText = "ابحث بالكود أو الاسم أو النوع…" };
+    private readonly TextBox _search = new() { PlaceholderText = "ابحث بالكود أو الاسم…" };
+    private readonly ComboBox _filterType = Combo(), _filterStatus = Combo();
     private readonly Label _count = new() { AutoSize = true }, _companiesCount = new() { Text = "0", AutoSize = true, Font = new Font("Segoe UI", 11F, FontStyle.Bold) };
     private readonly Label _createdBy = AuditValue(), _createdAt = AuditValue(), _updatedBy = AuditValue(), _updatedAt = AuditValue(), _editCount = AuditValue(), _printCount = AuditValue();
-    private readonly Button _save, _deactivate, _reactivate;
+    private readonly Button _save, _edit, _deactivate, _reactivate;
     private List<GroupRow> _groups = new();
     private string? _selectedId;
-    private bool _dirty, _binding;
+    private bool _dirty, _binding, _editing;
 
     public bool HasUnsavedChanges => _dirty;
 
     public FrmTenantGroups()
     {
         base.Text = "المجموعات التجارية";
-        Width = 1420; Height = 870; MinimumSize = new Size(1150, 740); StartPosition = FormStartPosition.CenterParent;
+        Width = 1320; Height = 820; MinimumSize = new Size(1080, 700); StartPosition = FormStartPosition.CenterParent;
         ApplyBaseFormStyle();
         _save = Button("حفظ  Ctrl+S", async (_, _) => await SaveAsync(), true);
+        _edit = Button("✎ تعديل", (_, _) => BeginEdit());
         _deactivate = Button("إيقاف", async (_, _) => await ChangeStatusAsync(false), danger: true);
         _reactivate = Button("إعادة تفعيل", async (_, _) => await ChangeStatusAsync(true));
         _type.DataSource = new[] { "مجموعة استثمارية", "مجموعة صناعية", "مجموعة خدمية", "مجموعة قابضة", "أخرى" };
+        _filterType.Items.Add("كل الأنواع"); _filterType.Items.AddRange(_type.Items.Cast<object>().ToArray()); _filterType.SelectedIndex = 0;
+        _filterStatus.Items.AddRange(new object[] { "كل الحالات", "نشطة", "موقوفة" }); _filterStatus.SelectedIndex = 0;
         Build();
         Load += async (_, _) => await InitializeAsync();
         KeyDown += HandleKeys;
         _country.SelectedIndexChanged += async (_, _) => { if (!_binding) await LoadCitiesAsync(); };
         _grid.SelectionChanged += async (_, _) => await BindSelectedAsync();
         _search.TextChanged += (_, _) => Filter();
+        _filterType.SelectedIndexChanged += (_, _) => Filter();
+        _filterStatus.SelectedIndexChanged += (_, _) => Filter();
         foreach (var c in new Control[] { _code, _nameAr, _nameEn, _shortName, _type, _parent, _mainCompany, _currency, _country, _city, _address, _phone, _email, _manager, _notes, _showInLogin, _sort })
         {
             c.TextChanged += (_, _) => MarkDirty();
@@ -52,16 +58,17 @@ public sealed class FrmTenantGroups : BaseForm, IWorkspaceDirtyAware
 
     private void Build()
     {
-        var shell = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 5, Padding = new Padding(6), BackColor = Color.FromArgb(248, 250, 252) };
-        shell.RowStyles.Add(new RowStyle(SizeType.Absolute, 48)); shell.RowStyles.Add(new RowStyle(SizeType.Absolute, 290));
+        var shell = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 6, Padding = new Padding(6), BackColor = Color.FromArgb(248, 250, 252) };
+        shell.RowStyles.Add(new RowStyle(SizeType.Absolute, 68)); shell.RowStyles.Add(new RowStyle(SizeType.Absolute, 48)); shell.RowStyles.Add(new RowStyle(SizeType.Absolute, 290));
         shell.RowStyles.Add(new RowStyle(SizeType.Absolute, 65)); shell.RowStyles.Add(new RowStyle(SizeType.Percent, 100)); shell.RowStyles.Add(new RowStyle(SizeType.Absolute, 78));
-        shell.Controls.Add(Toolbar(), 0, 0);
+        shell.Controls.Add(new BrandHeaderControl("المجموعات التجارية"), 0, 0);
+        shell.Controls.Add(Toolbar(), 0, 1);
         var editor = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, RowCount = 1, Margin = new Padding(0, 4, 0, 4) };
         editor.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 56)); editor.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 44));
-        editor.Controls.Add(IdentityCard(), 0, 0); editor.Controls.Add(ContactCard(), 1, 0); shell.Controls.Add(editor, 0, 1);
-        _search.Dock = DockStyle.Fill; _search.Margin = new Padding(5, 8, 5, 8); shell.Controls.Add(Card("البحث والتصفية السريعة", _search), 0, 2);
-        ConfigureGrid(); shell.Controls.Add(Card("قائمة المجموعات التجارية", _grid), 0, 3);
-        shell.Controls.Add(BuildAuditFooter(), 0, 4); Controls.Add(shell);
+        editor.Controls.Add(IdentityCard(), 0, 0); editor.Controls.Add(ContactCard(), 1, 0); shell.Controls.Add(editor, 0, 2);
+        shell.Controls.Add(Card("البحث والتصفية السريعة", FilterBar()), 0, 3);
+        ConfigureGrid(); shell.Controls.Add(Card("قائمة المجموعات التجارية", _grid), 0, 4);
+        shell.Controls.Add(BuildAuditFooter(), 0, 5); Controls.Add(shell);
     }
 
     private Control Toolbar()
@@ -69,14 +76,28 @@ public sealed class FrmTenantGroups : BaseForm, IWorkspaceDirtyAware
         var bar = new FlowLayoutPanel { Dock = DockStyle.Fill, FlowDirection = FlowDirection.RightToLeft, WrapContents = false, Padding = new Padding(4), BackColor = Color.White };
         var add = ToolbarButton("+ جديد", (_, _) => ClearForm(), Color.FromArgb(13, 148, 136));
         _save.Text = "✔ حفظ"; ApplyToolbarColor(_save, Color.FromArgb(37, 99, 235));
-        var edit = ToolbarButton("✎ تعديل", async (_, _) => await SaveAsync(), Color.FromArgb(217, 119, 6));
-        var reset = ToolbarButton("↺ إعادة", (_, _) => ClearForm(), Color.FromArgb(79, 70, 229));
+        ApplyToolbarColor(_edit, Color.FromArgb(217, 119, 6));
         ApplyToolbarColor(_deactivate, Color.FromArgb(220, 38, 38)); ApplyToolbarColor(_reactivate, Color.FromArgb(5, 150, 105));
         var refresh = ToolbarButton("↻ تحديث", async (_, _) => await LoadGroupsAsync(), Color.FromArgb(2, 132, 199));
         var search = ToolbarButton("🔍 بحث", (_, _) => _search.Focus(), Color.FromArgb(5, 150, 105));
         var print = ToolbarButton("🖨 طباعة", async (_, _) => await PrintSelectedAsync(), Color.FromArgb(124, 58, 237));
         var close = ToolbarButton("🚪 إغلاق", (_, _) => Close(), Color.FromArgb(100, 116, 139));
-        bar.Controls.AddRange(new Control[] { add, _save, edit, reset, _deactivate, _reactivate, refresh, search, print, close });
+        bar.Controls.AddRange(new Control[] { add, _save, _edit, _deactivate, _reactivate, print, search, refresh, close });
+        return bar;
+    }
+
+    private Control FilterBar()
+    {
+        var bar = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 7, Padding = new Padding(6, 6, 6, 2) };
+        bar.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 70)); bar.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+        bar.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 76)); bar.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 160));
+        bar.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 76)); bar.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 130));
+        bar.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 95));
+        _search.Dock = DockStyle.Fill; _filterType.Dock = DockStyle.Fill; _filterStatus.Dock = DockStyle.Fill;
+        var apply = ToolbarButton("تطبيق", (_, _) => Filter(), Color.FromArgb(37, 99, 235)); apply.Dock = DockStyle.Fill;
+        bar.Controls.Add(Caption("بحث:"), 0, 0); bar.Controls.Add(_search, 1, 0);
+        bar.Controls.Add(Caption("النوع:"), 2, 0); bar.Controls.Add(_filterType, 3, 0);
+        bar.Controls.Add(Caption("الحالة:"), 4, 0); bar.Controls.Add(_filterStatus, 5, 0); bar.Controls.Add(apply, 6, 0);
         return bar;
     }
 
@@ -113,7 +134,7 @@ public sealed class FrmTenantGroups : BaseForm, IWorkspaceDirtyAware
     private async Task InitializeAsync()
     {
         _binding = true;
-        try { await Task.WhenAll(LoadCountriesAsync(), LoadCurrenciesAsync(), LoadCompaniesAsync()); await LoadGroupsAsync(); }
+        try { await Task.WhenAll(LoadCountriesAsync(), LoadCurrenciesAsync()); await LoadGroupsAsync(); }
         finally { _binding = false; }
     }
 
@@ -155,16 +176,15 @@ public sealed class FrmTenantGroups : BaseForm, IWorkspaceDirtyAware
         catch { _currency.DataSource = null; }
     }
 
-    private async Task LoadCompaniesAsync()
+    private async Task LoadCompaniesAsync(string groupId)
     {
-        // هذه الشاشة تحتاج قائمة اختيار فقط؛ لا تطلب سجل الشركة كاملاً وما فيه من أعمدة تدقيق.
-        // نقطة النهاية تعيد الشركات النشطة فقط وتستخدم في شاشة الدخول أيضاً.
-        var data = await ApiService.Client.GetFromJsonAsync<List<CompanyLookup>>("Branches/GetCompaniesLookup") ?? new();
+        var data = await ApiService.Client.GetFromJsonAsync<List<CompanyLookup>>($"TenantGroups/{groupId}/companies") ?? new();
         _mainCompany.DataSource = data; _mainCompany.DisplayMember = nameof(CompanyLookup.Company_Name_AR); _mainCompany.ValueMember = nameof(CompanyLookup.Company_ID); _mainCompany.SelectedIndex = -1;
     }
 
     private async Task SaveAsync()
     {
+        if (!_editing) { MessageBox.Show("اختر «تعديل» قبل الحفظ، أو استخدم «جديد» لإنشاء مجموعة."); return; }
         if (string.IsNullOrWhiteSpace(_code.Text) || string.IsNullOrWhiteSpace(_nameAr.Text) || string.IsNullOrWhiteSpace(_shortName.Text) || _type.SelectedItem is null)
         { MessageBox.Show("كود المجموعة والاسم العربي والاسم المختصر ونوع المجموعة حقول مطلوبة."); return; }
         _save.Enabled = false;
@@ -206,14 +226,14 @@ public sealed class FrmTenantGroups : BaseForm, IWorkspaceDirtyAware
         try
         {
             _selectedId = row.Group_ID; _code.Text = row.Group_Code; _nameAr.Text = row.Group_Name_AR; _nameEn.Text = row.Group_Name_EN; _shortName.Text = row.Short_Name; _type.Text = row.Group_Type;
-            _parent.SelectedValue = row.Parent_Group_ID; _mainCompany.SelectedValue = row.Main_Company_ID; _currency.SelectedValue = row.Default_Currency_Code;
+            _parent.SelectedValue = row.Parent_Group_ID; await LoadCompaniesAsync(row.Group_ID); _mainCompany.SelectedValue = row.Main_Company_ID; _currency.SelectedValue = row.Default_Currency_Code;
             if (!string.IsNullOrWhiteSpace(row.Country_Name))
             {
                 var country = (_country.DataSource as List<CountryLookup>)?.FirstOrDefault(x => x.Country_Name_AR == row.Country_Name); if (country is not null) _country.SelectedValue = country.Country_ID;
                 await LoadCitiesAsync(); var city = (_city.DataSource as List<CityLookup>)?.FirstOrDefault(x => x.City_Name_AR == row.City_Name); if (city is not null) _city.SelectedValue = city.City_ID;
             }
             _address.Text = row.Short_Address; _phone.Text = row.Phone; _email.Text = row.Email; _manager.Text = row.Manager_Name; _showInLogin.Checked = row.Show_In_Login; _sort.Value = row.Sort_Order; _notes.Text = row.Notes; _active.Checked = row.Is_Active;
-            _companiesCount.Text = row.Companies_Count.ToString(); _dirty = false; UpdateButtons();
+            _companiesCount.Text = row.Companies_Count.ToString(); _editing = false; _dirty = false; SetEditorEnabled(false); UpdateButtons();
             await LoadAuditAsync(row.Group_ID);
         }
         finally { _binding = false; }
@@ -223,13 +243,15 @@ public sealed class FrmTenantGroups : BaseForm, IWorkspaceDirtyAware
     {
         _grid.Dock = DockStyle.Fill; _grid.AutoGenerateColumns = false; _grid.AllowUserToAddRows = false; _grid.ReadOnly = true; _grid.SelectionMode = DataGridViewSelectionMode.FullRowSelect; _grid.MultiSelect = false; _grid.RowHeadersVisible = false;
         _grid.Columns.Add(Col(nameof(GroupRow.Group_Code), "كود المجموعة", 125)); _grid.Columns.Add(Col(nameof(GroupRow.Group_Name_AR), "اسم المجموعة", 230)); _grid.Columns.Add(Col(nameof(GroupRow.Group_Type), "النوع", 160));
-        _grid.Columns.Add(Col(nameof(GroupRow.Default_Currency_Code), "العملة", 90)); _grid.Columns.Add(Col(nameof(GroupRow.Country_Name), "الدولة", 130)); _grid.Columns.Add(Col(nameof(GroupRow.City_Name), "المدينة", 130)); _grid.Columns.Add(Col(nameof(GroupRow.Status_Text), "الحالة", 90));
+        _grid.Columns.Add(Col(nameof(GroupRow.Default_Currency_Code), "العملة", 90)); _grid.Columns.Add(Col(nameof(GroupRow.Main_Company_Name), "الشركة الرئيسية", 170)); _grid.Columns.Add(Col(nameof(GroupRow.Companies_Count), "الشركات", 80)); _grid.Columns.Add(Col(nameof(GroupRow.Country_Name), "الدولة", 130)); _grid.Columns.Add(Col(nameof(GroupRow.City_Name), "المدينة", 130)); _grid.Columns.Add(Col(nameof(GroupRow.Status_Text), "الحالة", 90));
     }
 
-    private void Filter() { var q = _search.Text.Trim(); _grid.DataSource = _groups.Where(x => string.IsNullOrWhiteSpace(q) || ($"{x.Group_Code} {x.Group_Name_AR} {x.Group_Name_EN} {x.Group_Type} {x.Country_Name} {x.City_Name}").Contains(q, StringComparison.CurrentCultureIgnoreCase)).ToList(); }
-    private void ClearForm() { _binding = true; try { _selectedId = null; foreach (var t in new[] { _code, _nameAr, _nameEn, _shortName, _address, _phone, _email, _manager, _notes }) t.Clear(); _type.SelectedIndex = 0; _parent.SelectedIndex = -1; _mainCompany.SelectedIndex = -1; _currency.SelectedIndex = -1; _country.SelectedIndex = -1; _city.DataSource = null; _showInLogin.Checked = true; _sort.Value = 0; _active.Checked = true; _companiesCount.Text = "0"; _grid.ClearSelection(); ClearAudit(); _dirty = false; UpdateButtons(); } finally { _binding = false; } _code.Focus(); }
+    private void Filter() { var q = _search.Text.Trim(); var type = _filterType.Text; var status = _filterStatus.Text; _grid.DataSource = _groups.Where(x => (type == "كل الأنواع" || x.Group_Type == type) && (status == "كل الحالات" || (status == "نشطة" && x.Is_Active) || (status == "موقوفة" && !x.Is_Active)) && (string.IsNullOrWhiteSpace(q) || ($"{x.Group_Code} {x.Group_Name_AR} {x.Group_Name_EN} {x.Group_Type} {x.Country_Name} {x.City_Name}").Contains(q, StringComparison.CurrentCultureIgnoreCase))).ToList(); }
+    private void ClearForm() { _binding = true; try { _selectedId = null; foreach (var t in new[] { _code, _nameAr, _nameEn, _shortName, _address, _phone, _email, _manager, _notes }) t.Clear(); _type.SelectedIndex = 0; _parent.SelectedIndex = -1; _mainCompany.DataSource = null; _currency.SelectedIndex = -1; _country.SelectedIndex = -1; _city.DataSource = null; _showInLogin.Checked = true; _sort.Value = 0; _active.Checked = true; _companiesCount.Text = "0"; _grid.ClearSelection(); ClearAudit(); _editing = true; _dirty = false; SetEditorEnabled(true); UpdateButtons(); } finally { _binding = false; } _code.Focus(); }
     private void MarkDirty() { if (!_binding) _dirty = true; }
-    private void UpdateButtons() { _deactivate.Enabled = !string.IsNullOrWhiteSpace(_selectedId) && _active.Checked; _reactivate.Enabled = !string.IsNullOrWhiteSpace(_selectedId) && !_active.Checked; _mainCompany.Enabled = !string.IsNullOrWhiteSpace(_selectedId); }
+    private void BeginEdit() { if (string.IsNullOrWhiteSpace(_selectedId)) { ClearForm(); return; } if (!_active.Checked) { MessageBox.Show("أعد تفعيل المجموعة أولاً قبل تعديلها."); return; } _editing = true; SetEditorEnabled(true); UpdateButtons(); _nameAr.Focus(); }
+    private void SetEditorEnabled(bool enabled) { foreach (var control in new Control[] { _nameAr, _nameEn, _shortName, _type, _parent, _mainCompany, _currency, _country, _city, _address, _phone, _email, _manager, _notes, _showInLogin, _sort }) control.Enabled = enabled; _code.Enabled = enabled && string.IsNullOrWhiteSpace(_selectedId); }
+    private void UpdateButtons() { _save.Enabled = _editing; _edit.Enabled = !string.IsNullOrWhiteSpace(_selectedId) && _active.Checked && !_editing; _deactivate.Enabled = !string.IsNullOrWhiteSpace(_selectedId) && _active.Checked && !_editing; _reactivate.Enabled = !string.IsNullOrWhiteSpace(_selectedId) && !_active.Checked; }
     private void HandleKeys(object? s, KeyEventArgs e) { if (e.Control && e.KeyCode == Keys.N) { ClearForm(); e.SuppressKeyPress = true; } else if (e.Control && e.KeyCode == Keys.S) { _ = SaveAsync(); e.SuppressKeyPress = true; } else if (e.Control && e.KeyCode == Keys.F) { _search.Focus(); e.SuppressKeyPress = true; } else if (e.KeyCode == Keys.F5) { _ = LoadGroupsAsync(); e.SuppressKeyPress = true; } else if (e.KeyCode == Keys.Escape) { Close(); e.SuppressKeyPress = true; } }
 
     private async Task LoadAuditAsync(string groupId)
@@ -277,7 +299,7 @@ public sealed class FrmTenantGroups : BaseForm, IWorkspaceDirtyAware
     private sealed class GroupRow
     {
         public string Group_ID { get; set; } = string.Empty; public string Group_Code { get; set; } = string.Empty; public string Group_Name_AR { get; set; } = string.Empty; public string Group_Name_EN { get; set; } = string.Empty;
-        public string Short_Name { get; set; } = string.Empty; public string Group_Type { get; set; } = string.Empty; public string? Parent_Group_ID { get; set; } public string? Main_Company_ID { get; set; } public string? Default_Currency_Code { get; set; }
+        public string Short_Name { get; set; } = string.Empty; public string Group_Type { get; set; } = string.Empty; public string? Parent_Group_ID { get; set; } public string? Main_Company_ID { get; set; } public string? Main_Company_Name { get; set; } public string? Default_Currency_Code { get; set; }
         public string? Country_Name { get; set; } public string? City_Name { get; set; } public string? Short_Address { get; set; } public string? Phone { get; set; } public string? Email { get; set; } public string? Manager_Name { get; set; }
         public bool Show_In_Login { get; set; } public int Sort_Order { get; set; } public string? Notes { get; set; } public bool Is_Active { get; set; } public int Companies_Count { get; set; }
         public string Status_Text => Is_Active ? "نشطة" : "موقوفة";
