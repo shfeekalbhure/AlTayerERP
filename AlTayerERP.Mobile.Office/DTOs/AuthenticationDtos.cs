@@ -1,5 +1,43 @@
 namespace AlTayerERP.Mobile.Office.DTOs;
 
+public sealed class LoginOptionsRequestDto
+{
+    public string Company_ID { get; set; } = string.Empty;
+    public string Login_Name { get; set; } = string.Empty;
+    public string Password { get; set; } = string.Empty;
+    public string? Device_ID { get; set; }
+}
+
+public sealed class LoginOptionsResponseDto
+{
+    public int User_ID { get; set; }
+    public string Full_Name { get; set; } = string.Empty;
+    public string Company_ID { get; set; } = string.Empty;
+    public List<LoginBranchOptionDto> Branches { get; set; } = [];
+    public List<LoginYearOptionDto> Years { get; set; } = [];
+}
+
+public sealed class LoginBranchOptionDto
+{
+    public int Branch_ID { get; set; }
+    public string Branch_Code { get; set; } = string.Empty;
+    public string Branch_Name { get; set; } = string.Empty;
+    public bool Is_Default { get; set; }
+
+    public string DisplayName => string.IsNullOrWhiteSpace(Branch_Code)
+        ? Branch_Name
+        : $"{Branch_Name} - {Branch_Code}";
+}
+
+public sealed class LoginYearOptionDto
+{
+    public int Year_ID { get; set; }
+    public string Year_Name { get; set; } = string.Empty;
+    public bool Is_Default { get; set; }
+
+    public string DisplayName => Year_Name;
+}
+
 public sealed class LoginRequestDto
 {
     public string Company_ID { get; set; } = string.Empty;
