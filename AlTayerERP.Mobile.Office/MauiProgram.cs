@@ -16,8 +16,6 @@ public static class MauiProgram
                 fonts.AddFont("OpenSans-Semibold.ttf", "OpenSansSemibold");
             });
 
-        // عنوان تطوير محلي للهاتف الحقيقي على نفس شبكة Wi-Fi.
-        // في الإنتاج يستبدل بعنوان HTTPS ثابت من إعدادات البيئة.
         builder.Services.AddSingleton(new HttpClient
         {
             BaseAddress = new Uri("http://172.16.4.250:5021/"),
@@ -26,6 +24,7 @@ public static class MauiProgram
         builder.Services.AddSingleton<SessionStorageService>();
         builder.Services.AddSingleton<AuthenticationService>();
         builder.Services.AddSingleton<MobileHomeService>();
+        builder.Services.AddSingleton<PaymentRequestService>();
         builder.Services.AddTransient<MainPage>();
 
 #if DEBUG
