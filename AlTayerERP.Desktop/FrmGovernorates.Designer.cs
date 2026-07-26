@@ -266,8 +266,10 @@ partial class FrmGovernorates
         foreach (var label in new[] { lblSearch, lblFilterCountry, lblFilterStatus })
         {
             label.AutoSize = false;
-            label.Dock = DockStyle.Fill;
-            label.Margin = new Padding(2, 0, 2, 0);
+            label.Dock = DockStyle.None;
+            label.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
+            label.Height = 32;
+            label.Margin = new Padding(2, 2, 2, 0);
             label.TextAlign = ContentAlignment.MiddleRight;
             label.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
         }
@@ -275,12 +277,15 @@ partial class FrmGovernorates
         txtSearch.Size = new Size(230, 32);
         cmbFilterCountry.Size = new Size(180, 32);
         cmbFilterStatus.Size = new Size(130, 32);
-        txtSearch.Margin = new Padding(2, 1, 8, 1);
-        cmbFilterCountry.Margin = new Padding(2, 1, 8, 1);
-        cmbFilterStatus.Margin = new Padding(2, 1, 8, 1);
-        txtSearch.Dock = DockStyle.Fill;
-        cmbFilterCountry.Dock = DockStyle.Fill;
-        cmbFilterStatus.Dock = DockStyle.Fill;
+        txtSearch.Margin = new Padding(2, 2, 8, 0);
+        cmbFilterCountry.Margin = new Padding(2, 2, 8, 0);
+        cmbFilterStatus.Margin = new Padding(2, 2, 8, 0);
+        txtSearch.Dock = DockStyle.None;
+        cmbFilterCountry.Dock = DockStyle.None;
+        cmbFilterStatus.Dock = DockStyle.None;
+        txtSearch.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
+        cmbFilterCountry.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
+        cmbFilterStatus.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
         txtSearch.RightToLeft = RightToLeft.Yes;
         txtSearch.TextAlign = HorizontalAlignment.Right;
         cmbFilterCountry.RightToLeft = RightToLeft.Yes;
@@ -292,9 +297,12 @@ partial class FrmGovernorates
         btnApplyFilter.ForeColor = Color.White;
         btnApplyFilter.FlatStyle = FlatStyle.Flat;
         btnApplyFilter.FlatAppearance.BorderSize = 0;
-        btnApplyFilter.Margin = new Padding(2, 1, 8, 1);
-        btnApplyFilter.Dock = DockStyle.Fill;
+        btnApplyFilter.Margin = new Padding(2, 2, 8, 0);
+        btnApplyFilter.Dock = DockStyle.None;
+        btnApplyFilter.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
+        btnApplyFilter.Height = 32;
         btnApplyFilter.TextAlign = ContentAlignment.MiddleCenter;
+        btnApplyFilter.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
 
         // من اليمين: الحالة، الدولة، البحث السريع، ثم تطبيق التصفية.
         pnlSearchFilter.Controls.Add(lblFilterStatus, 0, 0);
