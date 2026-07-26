@@ -52,7 +52,11 @@ public partial class FrmCities : BaseForm
 
     private void ApplyFilter()
     {
-        var query = txtSearch.Text.Trim(); var governorateId = Convert.ToInt32(cmbFilterGovernorate.SelectedValue ?? 0); var status = cmbFilterStatus.SelectedItem?.ToString() ?? "الكل";
+        var query = txtSearch.Text.Trim();
+        var governorateId = cmbFilterGovernorate.SelectedValue is int selectedId
+            ? selectedId
+            : (cmbFilterGovernorate.SelectedItem as GovernorateLookup)?.Governorate_ID ?? 0;
+        var status = cmbFilterStatus.SelectedItem?.ToString() ?? "الكل";
         _rows.DataSource = _allRows.Where(x => (governorateId == 0 || x.Governorate_ID == governorateId) && (status == "الكل" || (status == "نشط" && x.Is_Active) || (status == "موقوف" && !x.Is_Active)) && (string.IsNullOrWhiteSpace(query) || x.City_Code.Contains(query, StringComparison.CurrentCultureIgnoreCase) || x.City_Name_AR.Contains(query, StringComparison.CurrentCultureIgnoreCase) || (x.City_Name_EN ?? string.Empty).Contains(query, StringComparison.CurrentCultureIgnoreCase) || x.Governorate_Name_AR.Contains(query, StringComparison.CurrentCultureIgnoreCase))).ToList();
         dgvCities.DataSource = _rows; ConfigureGrid();
     }
