@@ -1,4 +1,5 @@
 using AlTayerERP.Mobile.Office.Services;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace AlTayerERP.Mobile.Office;
 
@@ -12,7 +13,6 @@ public partial class HomePage : ContentPage
     public HomePage(
         MobileHomeService mobileHomeService,
         AuthenticationService authenticationService,
-        PaymentRequestService paymentRequestService,
         string fullName,
         string companyId,
         int branchId,
@@ -21,7 +21,7 @@ public partial class HomePage : ContentPage
         InitializeComponent();
         _mobileHomeService = mobileHomeService;
         _authenticationService = authenticationService;
-        _paymentRequestService = paymentRequestService;
+        _paymentRequestService = IPlatformApplication.Current.Services.GetRequiredService<PaymentRequestService>();
         WelcomeLabel.Text = $"مرحباً {fullName}";
         ContextLabel.Text = $"الشركة: {companyId} | الفرع: {branchId} | السنة: {yearId}";
     }
@@ -31,7 +31,6 @@ public partial class HomePage : ContentPage
         base.OnAppearing();
         if (_permissionsLoaded)
             return;
-
         await LoadPermissionsAsync();
     }
 
@@ -46,8 +45,7 @@ public partial class HomePage : ContentPage
         try
         {
             var response = await _mobileHomeService.GetPermissionsAsync();
-            var allowed = response.Permissions
-                .Where(x => x.CanView)
+            var allowed = response.Permissions.Where(x => x.CanView)
                 .Select(x => x.ScreenCode)
                 .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
@@ -77,10 +75,8 @@ public partial class HomePage : ContentPage
         }
     }
 
-    private async void OnPaymentRequestsClicked(object? sender, EventArgs e)
-    {
+    private async void OnPaymentRequestsClicked(object? sender, EventArgs e) =>
         await Navigation.PushAsync(new PaymentRequestsPage(_paymentRequestService));
-    }
 
     private async void OnLogoutClicked(object? sender, EventArgs e)
     {
@@ -96,7 +92,7 @@ public partial class HomePage : ContentPage
         {
             if (Application.Current?.Windows.FirstOrDefault() is Window window)
             {
-                window.Page = new NavigationPage(new MainPage(_authenticationService, _mobileHomeService, _paymentRequestService))
+                window.Page = new NavigationPage(new MainPage(_authenticationService, _mobileHomeService))
                 {
                     FlowDirection = FlowDirection.RightToLeft,
                     BarBackgroundColor = Color.FromArgb("#17324D"),
