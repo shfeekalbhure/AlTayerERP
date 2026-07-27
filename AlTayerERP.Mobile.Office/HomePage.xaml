@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
-               xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-               x:Class="AlTayerERP.Mobile.Office.HomePage"
-               FlowDirection="RightToLeft"
-               BackgroundColor="#F6F8FB"
-               Title="الرئيسية">
+                xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+                x:Class="AlTayerERP.Mobile.Office.HomePage"
+                FlowDirection="RightToLeft"
+                BackgroundColor="#F6F8FB"
+                Title="الرئيسية">
     <ScrollView>
         <VerticalStackLayout Padding="20" Spacing="16">
             <Border BackgroundColor="#17324D" StrokeThickness="0" Padding="18" StrokeShape="RoundRectangle 18">
@@ -30,7 +30,7 @@
                     <Button x:Name="DocumentSearchButton" Grid.Row="2" Grid.Column="0" Text="بحث المستندات" HeightRequest="90" BackgroundColor="White" TextColor="#17324D" BorderColor="#D9E2EC" BorderWidth="1" CornerRadius="14" IsVisible="False" Clicked="OnDocumentSearchClicked" />
                     <Button x:Name="ApprovalRequestsButton" Grid.Row="2" Grid.Column="1" Text="طلبات الاعتماد" HeightRequest="90" BackgroundColor="White" TextColor="#17324D" BorderColor="#D9E2EC" BorderWidth="1" CornerRadius="14" IsVisible="False" Clicked="OnApprovalRequestsClicked" />
                     <Button x:Name="TrialBalanceButton" Grid.Row="3" Grid.Column="0" Text="ميزان المراجعة" HeightRequest="90" BackgroundColor="White" TextColor="#17324D" BorderColor="#D9E2EC" BorderWidth="1" CornerRadius="14" IsVisible="False" Clicked="OnTrialBalanceClicked" />
-                    <Button x:Name="GeneralLedgerButton" Grid.Row="3" Grid.Column="1" Text="الأستاذ العام" HeightRequest="90" BackgroundColor="White" TextColor="#17324D" BorderColor="#D9E2EC" BorderWidth="1" CornerRadius="14" IsVisible="False" />
+                    <Button x:Name="GeneralLedgerButton" Grid.Row="3" Grid.Column="1" Text="الأستاذ العام" HeightRequest="90" BackgroundColor="White" TextColor="#17324D" BorderColor="#D9E2EC" BorderWidth="1" CornerRadius="14" IsVisible="False" Clicked="OnGeneralLedgerClicked" />
                 </Grid>
             </VerticalStackLayout>
 
