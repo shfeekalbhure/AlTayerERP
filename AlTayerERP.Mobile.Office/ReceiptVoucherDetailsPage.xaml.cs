@@ -8,6 +8,7 @@ public partial class ReceiptVoucherDetailsPage : ContentPage
     private readonly ReceiptVoucherService _service;
     private readonly VoucherWorkflowService _workflow;
     private readonly VoucherJournalService _journalService;
+    private readonly VoucherAttachmentService _attachmentService;
     private readonly long _voucherId;
     private bool _isPosted;
     private byte _approvalStatus;
@@ -19,6 +20,7 @@ public partial class ReceiptVoucherDetailsPage : ContentPage
         _service = service;
         _workflow = IPlatformApplication.Current.Services.GetRequiredService<VoucherWorkflowService>();
         _journalService = IPlatformApplication.Current.Services.GetRequiredService<VoucherJournalService>();
+        _attachmentService = IPlatformApplication.Current.Services.GetRequiredService<VoucherAttachmentService>();
         _voucherId = voucherId;
     }
 
@@ -98,6 +100,7 @@ public partial class ReceiptVoucherDetailsPage : ContentPage
         UnpostButton.IsVisible = isPosted;
         DeleteButton.IsVisible = !isPosted && approvalStatus != 2 && reviewStatus != 2;
         JournalButton.IsVisible = isPosted;
+        AttachmentsButton.IsVisible = true;
     }
 
     private async void OnReviewClicked(object? sender, EventArgs e) =>
@@ -144,6 +147,9 @@ public partial class ReceiptVoucherDetailsPage : ContentPage
 
     private async void OnPrintClicked(object? sender, EventArgs e) =>
         await ExecuteAsync(() => _service.RecordPrintAsync(_voucherId), "تم تسجيل عملية الطباعة.");
+
+    private async void OnAttachmentsClicked(object? sender, EventArgs e) =>
+        await Navigation.PushAsync(new VoucherAttachmentsPage(_attachmentService, _voucherId));
 
     private async void OnJournalClicked(object? sender, EventArgs e) =>
         await Navigation.PushAsync(new VoucherJournalPage(_journalService, _voucherId));
