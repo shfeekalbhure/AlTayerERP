@@ -50,13 +50,11 @@
 	</ItemGroup>
 
 	<!--
-      إزالة أي تسجيل تلقائي لملف موارد سند القبض،
-      ثم تسجيل ملف الموارد الصحيح مرة واحدة فقط.
+      ملف الموارد موجود تلقائياً بواسطة مشروع .NET.
+      نحدّث خصائصه فقط ولا نضيف نسخة ثانية منه؛ لمنع خطأ تعارض ملفات الموارد.
   -->
 	<ItemGroup>
-		<EmbeddedResource Remove="**\FrmReceiptVoucher.resx" />
-
-		<EmbeddedResource Include="Accounting\ReceiptVoucher\FrmReceiptVoucher.resx">
+		<EmbeddedResource Update="Accounting\ReceiptVoucher\FrmReceiptVoucher.resx">
 			<DependentUpon>FrmReceiptVoucher.cs</DependentUpon>
 			<LogicalName>AlTayerERP.Desktop.FrmReceiptVoucher.resources</LogicalName>
 		</EmbeddedResource>
