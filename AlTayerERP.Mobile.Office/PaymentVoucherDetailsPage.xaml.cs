@@ -7,6 +7,7 @@ public partial class PaymentVoucherDetailsPage : ContentPage
 {
     private readonly PaymentVoucherService _service;
     private readonly VoucherWorkflowService _workflow;
+    private readonly VoucherJournalService _journalService;
     private readonly long _voucherId;
     private bool _isPosted;
 
@@ -15,6 +16,7 @@ public partial class PaymentVoucherDetailsPage : ContentPage
         InitializeComponent();
         _service = service;
         _workflow = IPlatformApplication.Current.Services.GetRequiredService<VoucherWorkflowService>();
+        _journalService = IPlatformApplication.Current.Services.GetRequiredService<VoucherJournalService>();
         _voucherId = voucherId;
     }
 
@@ -46,6 +48,7 @@ public partial class PaymentVoucherDetailsPage : ContentPage
             TotalLabel.Text = $"الإجمالي المحلي: {header.LocalTotal:N2}";
             PostButton.IsVisible = !header.IsPosted;
             UnpostButton.IsVisible = header.IsPosted;
+            JournalButton.IsVisible = header.JournalEntryId.HasValue;
 
             LinesPanel.Children.Clear();
             foreach (var line in result.Details.OrderBy(x => x.LineNo))
@@ -103,6 +106,9 @@ public partial class PaymentVoucherDetailsPage : ContentPage
         if (string.IsNullOrWhiteSpace(reason)) return;
         await ExecuteAsync(() => _workflow.UnpostAsync(_voucherId, reason), "تم فك ترحيل السند.");
     }
+
+    private async void OnJournalClicked(object? sender, EventArgs e) =>
+        await Navigation.PushAsync(new VoucherJournalPage(_journalService, _voucherId));
 
     private async Task ExecuteAsync(Func<Task> action, string successMessage)
     {
