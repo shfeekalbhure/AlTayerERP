@@ -219,6 +219,14 @@ namespace AlTayerERP.Desktop
             StyleReadOnlyField(txtLastPrintedBy);
             StyleReadOnlyField(txtLastPrintDate);
 
+            // توحيد شكل حقول رأس السند لتظهر الحقول القابلة للإدخال بوضوح.
+            ConfigureHeaderInputAppearance();
+
+            // تغيير لون حالة السند فور تحميلها أو عند تغيير السجل المعروض.
+            cmbStatus.SelectedIndexChanged -= cmbStatus_SelectedIndexChanged;
+            cmbStatus.SelectedIndexChanged += cmbStatus_SelectedIndexChanged;
+            RefreshVoucherStatusAppearance();
+
             Resize -= FrmReceiptVoucher_Resize;
             Resize += FrmReceiptVoucher_Resize;
             Shown -= FrmReceiptVoucher_Shown;
@@ -300,6 +308,70 @@ namespace AlTayerERP.Desktop
             field.BackColor = System.Drawing.Color.FromArgb(248, 250, 252);
             field.ForeColor = System.Drawing.Color.FromArgb(51, 65, 85);
             field.BorderStyle = BorderStyle.FixedSingle;
+        }
+
+        // توحيد الخط والخلفية للحقول التي يدخل فيها المستخدم بيانات رأس السند.
+        private void ConfigureHeaderInputAppearance()
+        {
+            foreach (Control control in new Control[]
+            {
+                cmbVoucherType, cmbBranch, cmbCashAccount, cmbParty, cmbCurrency,
+                cmbPaymentMethod, cmbCostCenter, txtReferenceNo, txtReference,
+                txtAgainst, txtHeaderNotes, numAmount, numForeignAmount,
+                numLocalAmount, numExchangeRate
+            })
+            {
+                control.Font = new System.Drawing.Font("Segoe UI", 9F);
+                control.BackColor = System.Drawing.Color.White;
+            }
+
+            // جعل حدود الحقول النصية متناسقة وسهلة التمييز.
+            txtHeaderNotes.BorderStyle = BorderStyle.FixedSingle;
+            txtReferenceNo.BorderStyle = BorderStyle.FixedSingle;
+            txtReference.BorderStyle = BorderStyle.FixedSingle;
+            txtAgainst.BorderStyle = BorderStyle.FixedSingle;
+
+            // تثبيت الخلفية البيضاء للأقسام الرئيسية ومنع التمرير خارج جدول التوزيع.
+            grpVoucherInfo.BackColor = System.Drawing.Color.White;
+            groupBox1.BackColor = System.Drawing.Color.White;
+            grpDistribution.BackColor = System.Drawing.Color.White;
+            grpDistribution.Padding = new Padding(6, 23, 6, 6);
+        }
+
+        // تحديث شكل شارة الحالة عند اختيار حالة جديدة أو تحميل سند.
+        private void cmbStatus_SelectedIndexChanged(object? sender, EventArgs e) =>
+            RefreshVoucherStatusAppearance();
+
+        // تلوين حالة السند لتمييز المسودة والمراجعة والاعتماد والترحيل والإلغاء بصرياً.
+        private void RefreshVoucherStatusAppearance()
+        {
+            string status = cmbStatus.Text?.Trim() ?? string.Empty;
+            cmbStatus.FlatStyle = FlatStyle.Flat;
+            cmbStatus.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Bold);
+            cmbStatus.ForeColor = System.Drawing.Color.White;
+
+            if (status.Contains("مرحل", StringComparison.OrdinalIgnoreCase))
+            {
+                cmbStatus.BackColor = System.Drawing.Color.FromArgb(5, 120, 87);
+            }
+            else if (status.Contains("معتمد", StringComparison.OrdinalIgnoreCase))
+            {
+                cmbStatus.BackColor = System.Drawing.Color.FromArgb(29, 78, 216);
+            }
+            else if (status.Contains("ملغ", StringComparison.OrdinalIgnoreCase) ||
+                     status.Contains("مرفوض", StringComparison.OrdinalIgnoreCase))
+            {
+                cmbStatus.BackColor = System.Drawing.Color.FromArgb(198, 40, 40);
+            }
+            else if (status.Contains("مراجع", StringComparison.OrdinalIgnoreCase))
+            {
+                cmbStatus.BackColor = System.Drawing.Color.FromArgb(217, 119, 6);
+            }
+            else
+            {
+                // حالة المسودة والحالات الأولية تظهر بلون محايد.
+                cmbStatus.BackColor = System.Drawing.Color.FromArgb(100, 116, 139);
+            }
         }
 
         /// <summary>
