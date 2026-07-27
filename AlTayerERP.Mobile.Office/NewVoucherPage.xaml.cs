@@ -221,12 +221,13 @@ public partial class NewVoucherPage : ContentPage
 
         var party = PartyPicker.SelectedItem as VoucherEntryPartyDto;
         var method = PaymentMethodPicker.SelectedItem as VoucherEntryPaymentMethodDto;
+        var voucherDate = VoucherDatePicker.Date ?? DateTime.Today;
         var dto = new CreateMobileVoucherDto
         {
             Voucher_Type_ID = _references.VoucherType.Id,
             Voucher_Status_ID = _references.DraftStatus.Id,
-            Voucher_Date = VoucherDatePicker.Date,
-            Transaction_Date = VoucherDatePicker.Date,
+            Voucher_Date = voucherDate.Date,
+            Transaction_Date = voucherDate,
             Cash_Account_ID = source.AccountId,
             Party_ID = party?.Id,
             Received_From_Name = PartyNameEntry.Text.Trim(),
