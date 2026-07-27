@@ -34,6 +34,7 @@ public static class MauiProgram
         builder.Services.AddSingleton<TrialBalanceService>();
         builder.Services.AddSingleton<GeneralLedgerService>();
         builder.Services.AddSingleton<VoucherEntryService>();
+        builder.Services.AddSingleton<VoucherWorkflowService>();
         builder.Services.AddTransient<MainPage>();
 
 #if DEBUG
