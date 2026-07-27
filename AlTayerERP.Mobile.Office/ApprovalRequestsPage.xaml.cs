@@ -18,8 +18,7 @@ public partial class ApprovalRequestsPage : ContentPage
     protected override async void OnAppearing()
     {
         base.OnAppearing();
-        if (!_loaded)
-            await LoadAsync();
+        await LoadAsync();
     }
 
     private async Task LoadAsync()
@@ -27,6 +26,13 @@ public partial class ApprovalRequestsPage : ContentPage
         RequestsRefresh.IsRefreshing = true;
         try
         {
+            var draft = await _service.GetAsync("DRAFT");
+            var pendingReview = await _service.GetAsync("PENDING_REVIEW");
+            var pendingApproval = await _service.GetAsync("PENDING_APPROVAL");
+            var approved = await _service.GetAsync("APPROVED");
+            var rejected = await _service.GetAsync("REJECTED");
+            var returned = await _service.GetAsync("RETURNED");
+
             var selectedStatus = StatusPicker.SelectedIndex switch
             {
                 1 => "PENDING_REVIEW",
@@ -34,23 +40,31 @@ public partial class ApprovalRequestsPage : ContentPage
                 _ => null
             };
 
-            List<PaymentRequestListItemDto> rows;
-            if (selectedStatus != null)
+            var rows = selectedStatus switch
             {
-                rows = await _service.GetAsync(selectedStatus);
-            }
-            else
-            {
-                var review = await _service.GetAsync("PENDING_REVIEW");
-                var approval = await _service.GetAsync("PENDING_APPROVAL");
-                rows = review.Concat(approval)
+                "PENDING_REVIEW" => pendingReview,
+                "PENDING_APPROVAL" => pendingApproval,
+                _ => pendingReview.Concat(pendingApproval)
                     .OrderByDescending(x => x.Request_Date)
                     .ThenByDescending(x => x.Payment_Request_ID)
-                    .ToList();
-            }
+                    .ToList()
+            };
 
             RequestsList.ItemsSource = rows;
             SummaryLabel.Text = $"طلبات معلقة: {rows.Count}";
+            DiagnosticLabel.Text =
+                $"مسودة: {draft.Count} | مراجعة: {pendingReview.Count} | اعتماد: {pendingApproval.Count}\n" +
+                $"معتمد: {approved.Count} | معاد: {returned.Count} | مرفوض: {rejected.Count}";
+
+            if (rows.Count == 0 && draft.Count > 0)
+            {
+                EmptyTitleLabel.Text = "توجد طلبات مسودة لكنها لم تُرسل للمراجعة بعد.";
+            }
+            else if (rows.Count == 0)
+            {
+                EmptyTitleLabel.Text = "لا توجد طلبات اعتماد معلقة.";
+            }
+
             _loaded = true;
         }
         catch (Exception ex)
