@@ -1,5 +1,8 @@
 using AlTayerERP.Mobile.Office.Services;
 using Microsoft.Extensions.Logging;
+#if ANDROID
+using AlTayerERP.Mobile.Office.Platforms.Android;
+#endif
 
 namespace AlTayerERP.Mobile.Office;
 
@@ -37,6 +40,9 @@ public static class MauiProgram
         builder.Services.AddSingleton<VoucherWorkflowService>();
         builder.Services.AddSingleton<VoucherJournalService>();
         builder.Services.AddSingleton<VoucherAttachmentService>();
+#if ANDROID
+        builder.Services.AddSingleton<IReceiptVoucherPrintService, ReceiptVoucherPrintService>();
+#endif
         builder.Services.AddTransient<MainPage>();
 
 #if DEBUG
