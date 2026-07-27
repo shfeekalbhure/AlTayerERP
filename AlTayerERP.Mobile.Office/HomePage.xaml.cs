@@ -10,6 +10,7 @@ public partial class HomePage : ContentPage
     private readonly PaymentRequestService _paymentRequestService;
     private readonly PaymentVoucherService _paymentVoucherService;
     private readonly ReceiptVoucherService _receiptVoucherService;
+    private readonly JournalVoucherService _journalVoucherService;
     private bool _permissionsLoaded;
 
     public HomePage(
@@ -26,6 +27,7 @@ public partial class HomePage : ContentPage
         _paymentRequestService = IPlatformApplication.Current.Services.GetRequiredService<PaymentRequestService>();
         _paymentVoucherService = IPlatformApplication.Current.Services.GetRequiredService<PaymentVoucherService>();
         _receiptVoucherService = IPlatformApplication.Current.Services.GetRequiredService<ReceiptVoucherService>();
+        _journalVoucherService = IPlatformApplication.Current.Services.GetRequiredService<JournalVoucherService>();
         WelcomeLabel.Text = $"مرحباً {fullName}";
         ContextLabel.Text = $"الشركة: {companyId} | الفرع: {branchId} | السنة: {yearId}";
     }
@@ -87,6 +89,9 @@ public partial class HomePage : ContentPage
 
     private async void OnPaymentVouchersClicked(object? sender, EventArgs e) =>
         await Navigation.PushAsync(new PaymentVouchersPage(_paymentVoucherService));
+
+    private async void OnJournalVouchersClicked(object? sender, EventArgs e) =>
+        await Navigation.PushAsync(new JournalVouchersPage(_journalVoucherService));
 
     private async void OnLogoutClicked(object? sender, EventArgs e)
     {
