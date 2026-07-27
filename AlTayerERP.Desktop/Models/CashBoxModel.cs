@@ -21,6 +21,8 @@ namespace AlTayerERP.Desktop.Models
         public string? Box_Name_EN { get; set; }
 
         public decimal Opening_Balance { get; set; }
+        public decimal Current_Balance { get; set; }
+        public bool Has_Posted_Movement { get; set; }
         public decimal Max_Limit { get; set; }
         public decimal Min_Limit { get; set; }
         public bool Is_Active { get; set; }
