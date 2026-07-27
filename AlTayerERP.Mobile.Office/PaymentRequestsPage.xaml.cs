@@ -1,3 +1,4 @@
+using AlTayerERP.Mobile.Office.DTOs;
 using AlTayerERP.Mobile.Office.Services;
 
 namespace AlTayerERP.Mobile.Office;
@@ -51,6 +52,15 @@ public partial class PaymentRequestsPage : ContentPage
 
     private async void OnNewClicked(object? sender, EventArgs e) =>
         await Navigation.PushAsync(new NewPaymentRequestPage(_service));
+
+    private async void OnRequestSelected(object? sender, SelectionChangedEventArgs e)
+    {
+        if (e.CurrentSelection.FirstOrDefault() is not PaymentRequestListItemDto selected)
+            return;
+
+        RequestsList.SelectedItem = null;
+        await Navigation.PushAsync(new PaymentRequestDetailsPage(_service, selected.Payment_Request_ID));
+    }
 
     private async void OnSearchClicked(object? sender, EventArgs e) => await LoadAsync();
     private async void OnStatusChanged(object? sender, EventArgs e) => await LoadAsync();
