@@ -40,6 +40,28 @@ namespace AlTayerERP.API.Controllers
                 : Forbid();
         }
 
+        [HttpGet("GetLookup")]
+        public async Task<IActionResult> GetLookup()
+        {
+            if (Session == null)
+                return Unauthorized(new { message = "انتهت الجلسة أو أنها غير صالحة." });
+
+            if (!await _authorization.IsAllowedAsync(Session, "CashBoxes", ScreenOperation.View))
+                return Forbid();
+
+            return Ok(await _context.Currencies.AsNoTracking()
+                .Where(x => x.Company_ID == Session.Company_ID && x.Is_Active)
+                .OrderByDescending(x => x.Is_Default)
+                .ThenByDescending(x => x.Is_Local_Currency)
+                .ThenBy(x => x.Currency_Code)
+                .Select(x => new
+                {
+                    x.Currency_Code,
+                    x.Currency_Name_AR
+                })
+                .ToListAsync());
+        }
+
         [HttpGet]
         public async Task<IActionResult> GetCurrencies()
         {
