@@ -36,6 +36,7 @@ public static class MauiProgram
         builder.Services.AddSingleton<VoucherEntryService>();
         builder.Services.AddSingleton<VoucherWorkflowService>();
         builder.Services.AddSingleton<VoucherJournalService>();
+        builder.Services.AddSingleton<VoucherAttachmentService>();
         builder.Services.AddTransient<MainPage>();
 
 #if DEBUG
