@@ -1,6 +1,12 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
+		<!--
+		  نتولى إدراج ملفات الموارد مرة واحدة في الأسفل.
+		  يمنع هذا تكرار إدراج FrmReceiptVoucher.resx بواسطة الإدراج التلقائي للمشروع.
+		-->
+		<EnableDefaultEmbeddedResourceItems>false</EnableDefaultEmbeddedResourceItems>
+
 		<!-- نوع المشروع: تطبيق Windows Forms -->
 		<OutputType>WinExe</OutputType>
 
@@ -20,6 +26,11 @@
 	<!-- مراجع المشاريع -->
 	<ItemGroup>
 		<ProjectReference Include="..\AlTayerERP.Core\AlTayerERP.Core.csproj" />
+	</ItemGroup>
+
+	<!-- إدراج جميع ملفات الموارد مرة واحدة مع استبعاد مخرجات البناء المؤقتة. -->
+	<ItemGroup>
+		<EmbeddedResource Include="**\*.resx" Exclude="bin\**;obj\**" />
 	</ItemGroup>
 
 	<!-- ملف الموارد العام للمشروع -->
