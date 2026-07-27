@@ -14,6 +14,7 @@ public sealed class FrmApprovalRequests : BaseForm
     private readonly TextBox _search = new() { PlaceholderText = "ابحث بالمرجع أو الجهة أو السبب…" };
     private readonly TextBox _reason = new() { Multiline = true, PlaceholderText = "سبب القرار (إلزامي للاعتماد والرفض والإرجاع)" };
     private readonly Label _details = new() { AutoSize = false, BorderStyle = BorderStyle.FixedSingle };
+    private readonly Label _count = new() { AutoSize = false, TextAlign = ContentAlignment.MiddleLeft };
     private readonly DataGridView _grid = new();
     private int _selectedId;
     private string _selectedStatus = string.Empty;
@@ -48,7 +49,9 @@ public sealed class FrmApprovalRequests : BaseForm
         };
         shell.RowStyles.Add(new RowStyle(SizeType.Absolute, 68));
         shell.RowStyles.Add(new RowStyle(SizeType.Absolute, 48));
-        shell.RowStyles.Add(new RowStyle(SizeType.Absolute, 92));
+        // زيادة بطاقة التفاصيل بمقدار يقارب 2 سم حتى تظهر بيانات الطلب وسبب القرار بوضوح.
+        // تنخفض مساحة القائمة بالقدر نفسه، وتبقى قابلة للتمدد مع حجم النافذة.
+        shell.RowStyles.Add(new RowStyle(SizeType.Absolute, 168));
         shell.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
 
         shell.Controls.Add(new BrandHeaderControl(Text), 0, 0);
@@ -57,7 +60,15 @@ public sealed class FrmApprovalRequests : BaseForm
         shell.Controls.Add(BuildGridCard(), 0, 3);
         Controls.Add(shell);
 
-        _status.Items.AddRange(new object[] { "الكل", "Pending", "UnderReview", "Approved", "Rejected", "Returned" });
+        _status.Items.AddRange(new object[]
+        {
+            new StatusOption("الكل", null),
+            new StatusOption("بانتظار الإجراء", "Pending"),
+            new StatusOption("تحت المراجعة", "UnderReview"),
+            new StatusOption("معتمد", "Approved"),
+            new StatusOption("مرفوض", "Rejected"),
+            new StatusOption("معاد للتعديل", "Returned")
+        });
         _status.SelectedIndex = 0;
         _status.SelectedIndexChanged += async (_, _) => await LoadRowsAsync();
         _search.TextChanged += (_, _) => ApplyFilter();
@@ -82,9 +93,9 @@ public sealed class FrmApprovalRequests : BaseForm
 
         bar.Controls.AddRange(new Control[]
         {
-            Button("تحديث", async (_, _) => await LoadRowsAsync(), Color.FromArgb(37, 99, 235)),
-            Button("بحث", (_, _) => _search.Focus(), Color.FromArgb(75, 85, 99)),
             _review, _approve, _reject, _return,
+            Button("بحث", (_, _) => _search.Focus(), Color.FromArgb(75, 85, 99)),
+            Button("تحديث", async (_, _) => await LoadRowsAsync(), Color.FromArgb(37, 99, 235)),
             Button("إغلاق", (_, _) => Close(), Color.FromArgb(71, 85, 105))
         });
         return bar;
@@ -92,11 +103,15 @@ public sealed class FrmApprovalRequests : BaseForm
 
     private Control BuildDecisionCard()
     {
-        var table = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 4, Padding = new Padding(10), BackColor = Color.White, BorderStyle = BorderStyle.FixedSingle };
+        var table = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 4, RowCount = 4, Padding = new Padding(10), BackColor = Color.White, BorderStyle = BorderStyle.FixedSingle };
         table.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 90));
         table.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 38));
         table.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 90));
         table.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 62));
+        table.RowStyles.Add(new RowStyle(SizeType.Absolute, 30));
+        table.RowStyles.Add(new RowStyle(SizeType.Percent, 48));
+        table.RowStyles.Add(new RowStyle(SizeType.Percent, 52));
+        table.RowStyles.Add(new RowStyle(SizeType.Absolute, 22));
 
         _status.Dock = DockStyle.Fill;
         _search.Dock = DockStyle.Fill;
@@ -116,6 +131,10 @@ public sealed class FrmApprovalRequests : BaseForm
         table.Controls.Add(Caption("سبب القرار:"), 0, 2);
         table.Controls.Add(_reason, 1, 2);
         table.SetColumnSpan(_reason, 3);
+        _count.ForeColor = Color.FromArgb(75, 85, 99);
+        _count.Font = new Font("Segoe UI", 8.5F, FontStyle.Bold);
+        table.Controls.Add(_count, 0, 3);
+        table.SetColumnSpan(_count, 4);
         return table;
     }
 
@@ -128,7 +147,18 @@ public sealed class FrmApprovalRequests : BaseForm
         _grid.RowHeadersVisible = false;
         _grid.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
         _grid.MultiSelect = false;
-        _grid.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
+        _grid.AutoGenerateColumns = false;
+        _grid.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.None;
+        _grid.Columns.Clear();
+        AddColumn(nameof(ApprovalRow.Approval_ID), "رقم الطلب", 75);
+        AddColumn(nameof(ApprovalRow.Request_Type), "نوع الطلب", 130);
+        AddColumn(nameof(ApprovalRow.Reference_No), "المرجع", 130);
+        AddColumn(nameof(ApprovalRow.Entity_Name), "الجهة", 150);
+        AddColumn(nameof(ApprovalRow.Amount_Display), "المبلغ", 125, DataGridViewContentAlignment.MiddleLeft);
+        AddColumn(nameof(ApprovalRow.Status_Display), "الحالة", 120);
+        AddColumn(nameof(ApprovalRow.Requested_By), "مقدم الطلب", 115);
+        AddColumn(nameof(ApprovalRow.Requested_At_Display), "تاريخ الطلب", 145);
+        AddColumn(nameof(ApprovalRow.Reason), "سبب الطلب", 260);
         _grid.SelectionChanged += (_, _) => SelectCurrent();
         return Card("قائمة طلبات الاعتماد", _grid);
     }
@@ -137,19 +167,22 @@ public sealed class FrmApprovalRequests : BaseForm
     {
         try
         {
-            var value = _status.SelectedItem?.ToString();
-            var url = value is null or "الكل" ? "approval-requests" : $"approval-requests?status={Uri.EscapeDataString(value)}";
+            var value = (_status.SelectedItem as StatusOption)?.Value;
+            var url = string.IsNullOrWhiteSpace(value) ? "approval-requests" : $"approval-requests?status={Uri.EscapeDataString(value)}";
             var rows = await ApiService.Client.GetFromJsonAsync<List<ApprovalRow>>(url) ?? new();
             _grid.DataSource = rows;
             _grid.ClearSelection();
             _selectedId = 0;
             _selectedStatus = string.Empty;
-            _details.Text = $"عدد الطلبات: {rows.Count}";
+            _details.Text = "اختر طلباً لعرض التفاصيل.";
+            _count.Text = $"عدد الطلبات الظاهرة: {rows.Count}";
             ApplyButtons();
         }
         catch (Exception ex)
         {
-            MessageBox.Show("تعذر تحميل طلبات الاعتماد.\n\n" + ex.Message, Text, MessageBoxButtons.OK, MessageBoxIcon.Error);
+            MessageBox.Show("تعذر تحميل طلبات الاعتماد.
+
+" + ex.Message, Text, MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
     }
 
@@ -161,6 +194,7 @@ public sealed class FrmApprovalRequests : BaseForm
             row.Visible = string.IsNullOrWhiteSpace(query) ||
                 row.Cells.Cast<DataGridViewCell>().Any(x =>
                     (x.Value?.ToString() ?? string.Empty).Contains(query, StringComparison.CurrentCultureIgnoreCase));
+        _count.Text = $"عدد الطلبات الظاهرة: {_grid.Rows.Cast<DataGridViewRow>().Count(x => x.Visible)}";
     }
 
     private void SelectCurrent()
@@ -171,7 +205,9 @@ public sealed class FrmApprovalRequests : BaseForm
 
         _selectedId = row.Approval_ID;
         _selectedStatus = row.Status ?? string.Empty;
-        _details.Text = $"النوع: {row.Request_Type}   |   المرجع: {row.Reference_No}   |   الجهة: {row.Entity_Name}   |   المبلغ: {row.Amount?.ToString("N2") ?? "—"} {row.Currency_Code}\nالسبب: {row.Reason ?? "—"}";
+        _details.Text = $"نوع الطلب: {row.Request_Type ?? "—"}   |   المرجع: {row.Reference_No}   |   الجهة: {row.Entity_Name}
+الحالة: {row.Status_Display}   |   المبلغ: {row.Amount_Display}
+سبب الطلب: {row.Reason ?? "—"}";
         _reason.Clear();
         ApplyButtons();
     }
@@ -230,6 +266,16 @@ public sealed class FrmApprovalRequests : BaseForm
         return button;
     }
 
+    private void AddColumn(string property, string title, int width, DataGridViewContentAlignment alignment = DataGridViewContentAlignment.MiddleRight) =>
+        _grid.Columns.Add(new DataGridViewTextBoxColumn
+        {
+            DataPropertyName = property,
+            Name = property,
+            HeaderText = title,
+            Width = width,
+            DefaultCellStyle = new DataGridViewCellStyle { Alignment = alignment, NullValue = "—" }
+        });
+
     private static Panel Card(string title, Control body)
     {
         var panel = new Panel { Dock = DockStyle.Fill, BorderStyle = BorderStyle.FixedSingle, BackColor = Color.White, Padding = new Padding(8) };
@@ -256,5 +302,22 @@ public sealed class FrmApprovalRequests : BaseForm
 
         public string Reference_No => string.IsNullOrWhiteSpace(Reference_ID) ? "—" : Reference_ID;
         public string Entity_Name => string.IsNullOrWhiteSpace(Entity_ID) ? "—" : Entity_ID;
+        public string Amount_Display => Amount.HasValue ? $"{Amount.Value:N2} {Currency_Code}" : "—";
+        public string Requested_At_Display => Requested_At == default ? "—" : Requested_At.ToLocalTime().ToString("yyyy/MM/dd HH:mm");
+        public string Status_Display => Status switch
+        {
+            "Pending" => "بانتظار الإجراء",
+            "UnderReview" => "تحت المراجعة",
+            "Approved" => "معتمد",
+            "Rejected" => "مرفوض",
+            "Returned" => "معاد للتعديل",
+            "Canceled" => "ملغي",
+            _ => Status ?? "—"
+        };
+    }
+
+    private sealed record StatusOption(string Display, string? Value)
+    {
+        public override string ToString() => Display;
     }
 }
