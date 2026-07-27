@@ -1,18 +1,57 @@
 using System.Globalization;
 using AlTayerERP.Mobile.Office.DTOs;
 using AlTayerERP.Mobile.Office.Services;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace AlTayerERP.Mobile.Office;
 
 public partial class NewPaymentRequestPage : ContentPage
 {
     private readonly PaymentRequestService _service;
+    private readonly PaymentRequestReferenceService _referenceService;
+    private bool _referencesLoaded;
 
     public NewPaymentRequestPage(PaymentRequestService service)
     {
         InitializeComponent();
         _service = service;
+        _referenceService = IPlatformApplication.Current.Services
+            .GetRequiredService<PaymentRequestReferenceService>();
         RequestDatePicker.Date = DateTime.Today;
+    }
+
+    protected override async void OnAppearing()
+    {
+        base.OnAppearing();
+        if (!_referencesLoaded)
+            await LoadReferencesAsync();
+    }
+
+    private async Task LoadReferencesAsync()
+    {
+        SetBusy(true);
+        HideStatus();
+        try
+        {
+            var data = await _referenceService.GetAsync();
+            AccountPicker.ItemsSource = data.Accounts;
+            CostCenterPicker.ItemsSource = data.CostCenters;
+            CurrencyPicker.ItemsSource = data.Currencies;
+
+            var defaultCurrency = data.Currencies.FirstOrDefault(x => x.IsDefault)
+                                  ?? data.Currencies.FirstOrDefault(x => x.IsLocal)
+                                  ?? data.Currencies.FirstOrDefault();
+            CurrencyPicker.SelectedItem = defaultCurrency;
+            _referencesLoaded = true;
+        }
+        catch (Exception ex)
+        {
+            ShowStatus(ex.Message);
+        }
+        finally
+        {
+            SetBusy(false);
+        }
     }
 
     private async void OnSaveDraftClicked(object? sender, EventArgs e) =>
@@ -20,6 +59,40 @@ public partial class NewPaymentRequestPage : ContentPage
 
     private async void OnSaveAndSubmitClicked(object? sender, EventArgs e) =>
         await SaveAsync(submitAfterSave: true);
+
+    private void OnCurrencyChanged(object? sender, EventArgs e)
+    {
+        if (CurrencyPicker.SelectedItem is not PaymentRequestCurrencyDto currency)
+            return;
+
+        ExchangeRateEntry.Text = currency.IsLocal
+            ? "1"
+            : currency.ExchangeRate.ToString(CultureInfo.InvariantCulture);
+        ExchangeRateEntry.IsReadOnly = currency.IsLocal;
+        ForeignAmountEntry.IsEnabled = !currency.IsLocal;
+
+        if (currency.IsLocal)
+            ForeignAmountEntry.Text = "0";
+        else
+            RecalculateLocalAmount();
+    }
+
+    private void OnForeignAmountChanged(object? sender, TextChangedEventArgs e) =>
+        RecalculateLocalAmount();
+
+    private void RecalculateLocalAmount()
+    {
+        if (CurrencyPicker.SelectedItem is not PaymentRequestCurrencyDto currency || currency.IsLocal)
+            return;
+
+        if (TryDecimal(ForeignAmountEntry.Text, out var foreignAmount) &&
+            TryDecimal(ExchangeRateEntry.Text, out var exchangeRate) &&
+            foreignAmount >= 0 && exchangeRate > 0)
+        {
+            LocalAmountEntry.Text = decimal.Round(foreignAmount * exchangeRate, 2)
+                .ToString(CultureInfo.InvariantCulture);
+        }
+    }
 
     private async Task SaveAsync(bool submitAfterSave)
     {
@@ -67,15 +140,15 @@ public partial class NewPaymentRequestPage : ContentPage
             return false;
         }
 
-        if (string.IsNullOrWhiteSpace(AccountIdEntry.Text))
+        if (AccountPicker.SelectedItem is not PaymentRequestReferenceItemDto account)
         {
-            message = "رقم الحساب المدين مطلوب.";
+            message = "اختر الحساب المدين.";
             return false;
         }
 
-        if (!int.TryParse(CurrencyIdEntry.Text, out var currencyId) || currencyId <= 0)
+        if (CurrencyPicker.SelectedItem is not PaymentRequestCurrencyDto currency)
         {
-            message = "رقم العملة غير صحيح.";
+            message = "اختر العملة.";
             return false;
         }
 
@@ -97,6 +170,13 @@ public partial class NewPaymentRequestPage : ContentPage
             return false;
         }
 
+        if (currency.IsLocal && (foreignAmount != 0 || exchangeRate != 1))
+        {
+            message = "في العملة المحلية يجب أن يكون المبلغ الأجنبي صفراً وسعر الصرف 1.";
+            return false;
+        }
+
+        var costCenter = CostCenterPicker.SelectedItem as PaymentRequestReferenceItemDto;
         dto = new CreatePaymentRequestDto
         {
             Request_Date = RequestDatePicker.Date ?? DateTime.Today,
@@ -108,9 +188,9 @@ public partial class NewPaymentRequestPage : ContentPage
             [
                 new CreatePaymentRequestLineDto
                 {
-                    Account_ID = AccountIdEntry.Text.Trim(),
-                    Cost_Center_ID = Clean(CostCenterIdEntry.Text),
-                    Currency_ID = currencyId,
+                    Account_ID = account.Id,
+                    Cost_Center_ID = costCenter?.Id,
+                    Currency_ID = currency.Id,
                     Exchange_Rate = exchangeRate,
                     Foreign_Amount = foreignAmount,
                     Local_Amount = localAmount,
@@ -134,6 +214,9 @@ public partial class NewPaymentRequestPage : ContentPage
         BusyIndicator.IsRunning = busy;
         SaveDraftButton.IsEnabled = !busy;
         SaveAndSubmitButton.IsEnabled = !busy;
+        AccountPicker.IsEnabled = !busy;
+        CostCenterPicker.IsEnabled = !busy;
+        CurrencyPicker.IsEnabled = !busy;
     }
 
     private void ShowStatus(string message)
