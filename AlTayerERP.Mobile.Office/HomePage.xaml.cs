@@ -12,6 +12,7 @@ public partial class HomePage : ContentPage
     private readonly ReceiptVoucherService _receiptVoucherService;
     private readonly JournalVoucherService _journalVoucherService;
     private readonly DocumentSearchService _documentSearchService;
+    private readonly TrialBalanceService _trialBalanceService;
     private bool _permissionsLoaded;
 
     public HomePage(
@@ -30,6 +31,7 @@ public partial class HomePage : ContentPage
         _receiptVoucherService = IPlatformApplication.Current.Services.GetRequiredService<ReceiptVoucherService>();
         _journalVoucherService = IPlatformApplication.Current.Services.GetRequiredService<JournalVoucherService>();
         _documentSearchService = IPlatformApplication.Current.Services.GetRequiredService<DocumentSearchService>();
+        _trialBalanceService = IPlatformApplication.Current.Services.GetRequiredService<TrialBalanceService>();
         WelcomeLabel.Text = $"مرحباً {fullName}";
         ContextLabel.Text = $"الشركة: {companyId} | الفرع: {branchId} | السنة: {yearId}";
     }
@@ -100,6 +102,9 @@ public partial class HomePage : ContentPage
 
     private async void OnApprovalRequestsClicked(object? sender, EventArgs e) =>
         await Navigation.PushAsync(new ApprovalRequestsPage(_paymentRequestService));
+
+    private async void OnTrialBalanceClicked(object? sender, EventArgs e) =>
+        await Navigation.PushAsync(new TrialBalancePage(_trialBalanceService));
 
     private async void OnLogoutClicked(object? sender, EventArgs e)
     {
