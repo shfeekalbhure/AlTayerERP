@@ -54,7 +54,11 @@ public sealed class MobileReceiptVouchersController : ControllerBase
                 localTotal = x.Local_Total,
                 isPosted = x.Is_Posted,
                 journalEntryId = x.Journal_Entry_ID,
-                referenceNo = x.Reference_No
+                referenceNo = x.Reference_No,
+                voucherStatusId = x.Voucher_Status_ID,
+                approvalStatus = x.Approval_Status,
+                reviewStatus = x.Review_Status,
+                requiresApproval = x.Requires_Approval
             }).ToListAsync(cancellationToken));
     }
 
@@ -112,6 +116,8 @@ public sealed class MobileReceiptVouchersController : ControllerBase
             cashAccountDisplay = cashAccount == null
                 ? voucher.Cash_Account_ID
                 : cashAccount.Account_Code + " - " + cashAccount.Account_Name_AR,
+            partyId = voucher.Party_ID,
+            paymentMethodId = voucher.Payment_Method_ID,
             currencyId = voucher.Currency_ID,
             currencyDisplay = headerCurrency == null
                 ? voucher.Currency_ID.ToString()
@@ -120,8 +126,18 @@ public sealed class MobileReceiptVouchersController : ControllerBase
             amount = voucher.Amount,
             foreignTotal = voucher.Foreign_Total,
             localTotal = voucher.Local_Total,
+            voucherTypeId = voucher.Voucher_Type_ID,
+            voucherStatusId = voucher.Voucher_Status_ID,
+            requiresApproval = voucher.Requires_Approval,
+            approvalStatus = voucher.Approval_Status,
+            reviewStatus = voucher.Review_Status,
+            reviewNotes = voucher.Review_Notes,
             isPosted = voucher.Is_Posted,
-            journalEntryId = voucher.Journal_Entry_ID
+            journalEntryId = voucher.Journal_Entry_ID,
+            editCount = voucher.Edit_Count,
+            printCount = voucher.Print_Count,
+            createdAt = voucher.Created_At,
+            updatedAt = voucher.Updated_At
         };
 
         var details = await (
@@ -136,6 +152,7 @@ public sealed class MobileReceiptVouchersController : ControllerBase
             orderby d.Line_No
             select new
             {
+                voucherDetailId = d.Voucher_Detail_ID,
                 lineNo = d.Line_No,
                 accountId = d.Account_ID,
                 accountDisplay = a == null ? d.Account_ID : a.Account_Code + " - " + a.Account_Name_AR,
@@ -150,6 +167,7 @@ public sealed class MobileReceiptVouchersController : ControllerBase
                 localAmount = d.Local_Amount,
                 debitAmount = d.Debit_Amount,
                 creditAmount = d.Credit_Amount,
+                lineType = d.Line_Type,
                 description = d.Description
             }).ToListAsync(cancellationToken);
 
