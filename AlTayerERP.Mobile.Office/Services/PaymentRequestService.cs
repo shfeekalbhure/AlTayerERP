@@ -1,5 +1,6 @@
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using System.Text.Json;
 using AlTayerERP.Mobile.Office.DTOs;
 
 namespace AlTayerERP.Mobile.Office.Services;
@@ -99,7 +100,59 @@ public sealed class PaymentRequestService(HttpClient httpClient, SessionStorageS
     private static async Task EnsureSuccessAsync(HttpResponseMessage response, string fallback, CancellationToken cancellationToken)
     {
         if (response.IsSuccessStatusCode) return;
-        var message = await response.Content.ReadAsStringAsync(cancellationToken);
-        throw new InvalidOperationException(string.IsNullOrWhiteSpace(message) ? fallback : message.Trim().Trim('"'));
+
+        var raw = await response.Content.ReadAsStringAsync(cancellationToken);
+        throw new InvalidOperationException(ExtractMessage(raw, fallback));
+    }
+
+    private static string ExtractMessage(string? raw, string fallback)
+    {
+        if (string.IsNullOrWhiteSpace(raw))
+            return fallback;
+
+        var text = raw.Trim();
+        try
+        {
+            using var document = JsonDocument.Parse(text);
+            if (document.RootElement.ValueKind == JsonValueKind.Object)
+            {
+                if (document.RootElement.TryGetProperty("message", out var message) &&
+                    message.ValueKind == JsonValueKind.String &&
+                    !string.IsNullOrWhiteSpace(message.GetString()))
+                {
+                    return message.GetString()!.Trim();
+                }
+
+                if (document.RootElement.TryGetProperty("detail", out var detail) &&
+                    detail.ValueKind == JsonValueKind.String &&
+                    !string.IsNullOrWhiteSpace(detail.GetString()))
+                {
+                    return detail.GetString()!.Trim();
+                }
+
+                if (document.RootElement.TryGetProperty("title", out var title) &&
+                    title.ValueKind == JsonValueKind.String &&
+                    !string.IsNullOrWhiteSpace(title.GetString()))
+                {
+                    return title.GetString()!.Trim();
+                }
+            }
+
+            if (document.RootElement.ValueKind == JsonValueKind.String)
+                return document.RootElement.GetString()?.Trim() ?? fallback;
+        }
+        catch (JsonException)
+        {
+            // ليست استجابة JSON؛ نستخدم النص المختصر إن كان مناسباً.
+        }
+
+        if (text.Contains("MySqlConnector", StringComparison.OrdinalIgnoreCase) ||
+            text.Contains("System.", StringComparison.OrdinalIgnoreCase) ||
+            text.Contains(" at ", StringComparison.OrdinalIgnoreCase))
+        {
+            return fallback;
+        }
+
+        return text.Trim('"');
     }
 }
