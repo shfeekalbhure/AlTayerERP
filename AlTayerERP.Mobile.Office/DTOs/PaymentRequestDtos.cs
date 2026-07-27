@@ -12,6 +12,7 @@ public sealed class PaymentRequestListItemDto
     public string? Header_Reference_No { get; set; }
     public string? Description { get; set; }
     public decimal Approved_Local_Total { get; set; }
+    public long? Payment_Voucher_ID { get; set; }
     public List<PaymentRequestLineItemDto> Details { get; set; } = [];
 
     public decimal LocalTotal => Details.Sum(x => x.Local_Amount);
@@ -62,4 +63,17 @@ public sealed class CreatePaymentRequestLineDto
     public decimal Local_Amount { get; set; }
     public string? Reference_No { get; set; }
     public string? Description { get; set; }
+}
+
+public sealed class PaymentVoucherSourceDto
+{
+    public string AccountId { get; set; } = string.Empty;
+    public string SourceType { get; set; } = string.Empty;
+    public string DisplayName { get; set; } = string.Empty;
+}
+
+public sealed class CreatePaymentVoucherResponseDto
+{
+    public long VoucherId { get; set; }
+    public string VoucherNo { get; set; } = string.Empty;
 }
