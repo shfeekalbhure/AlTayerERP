@@ -12,9 +12,11 @@
                     BackgroundColor="White"
                     TextColor="#17324D"
                     SelectedIndexChanged="OnStatusChanged">
-                <x:String>الكل</x:String>
-                <x:String>بانتظار المراجعة</x:String>
-                <x:String>بانتظار الاعتماد</x:String>
+                <Picker.Items>
+                    <x:String>الكل</x:String>
+                    <x:String>بانتظار المراجعة</x:String>
+                    <x:String>بانتظار الاعتماد</x:String>
+                </Picker.Items>
             </Picker>
             <Button Grid.Column="1"
                     Text="تحديث"
