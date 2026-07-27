@@ -27,8 +27,7 @@
                                     Title="اختر الشركة"
                                     TextColor="#17324D"
                                     TitleColor="#7A8896"
-                                    BackgroundColor="White"
-                                    ItemDisplayBinding="{Binding DisplayName}" />
+                                    BackgroundColor="White" />
                         </Border>
                         <Label x:Name="CompaniesStatusLabel"
                                Text="جاري تحميل الشركات..."
@@ -72,8 +71,7 @@
                                     Title="اختر الفرع"
                                     TextColor="#17324D"
                                     TitleColor="#7A8896"
-                                    BackgroundColor="White"
-                                    ItemDisplayBinding="{Binding DisplayName}" />
+                                    BackgroundColor="White" />
                         </Border>
 
                         <Border Stroke="#D9E2EC" BackgroundColor="White" Padding="4" StrokeShape="RoundRectangle 10">
@@ -81,8 +79,7 @@
                                     Title="اختر السنة المالية"
                                     TextColor="#17324D"
                                     TitleColor="#7A8896"
-                                    BackgroundColor="White"
-                                    ItemDisplayBinding="{Binding DisplayName}" />
+                                    BackgroundColor="White" />
                         </Border>
 
                         <Button x:Name="LoginButton"
