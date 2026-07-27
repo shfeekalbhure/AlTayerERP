@@ -47,8 +47,7 @@ public partial class VoucherAttachmentsPage : ContentPage
         {
             var file = await FilePicker.Default.PickAsync(new PickOptions
             {
-                PickerTitle = "اختر مرفق سند القبض",
-                FileTypes = FilePickerFileType.Images
+                PickerTitle = "اختر مرفق سند القبض"
             });
 
             if (file == null)
