@@ -22,7 +22,7 @@ public sealed class VoucherEntryPartyDto { public string Id { get; set; } = stri
 public sealed class VoucherEntryPaymentMethodDto { public int Id { get; set; } public string DisplayName { get; set; } = string.Empty; }
 public sealed class VoucherEntryPeriodDto { public DateTime StartDate { get; set; } public DateTime EndDate { get; set; } }
 
-public sealed class CreateMobileVoucherDto
+public class CreateMobileVoucherDto
 {
     public int Voucher_Type_ID { get; set; }
     public int Voucher_Status_ID { get; set; }
@@ -45,7 +45,7 @@ public sealed class CreateMobileVoucherDto
     public List<CreateMobileVoucherLineDto> Details { get; set; } = [];
 }
 
-public sealed class CreateMobileVoucherLineDto
+public class CreateMobileVoucherLineDto
 {
     public int Line_No { get; set; }
     public string Account_ID { get; set; } = string.Empty;
@@ -58,6 +58,17 @@ public sealed class CreateMobileVoucherLineDto
     public decimal Debit_Amount { get; set; }
     public decimal Credit_Amount { get; set; }
     public byte Line_Type { get; set; } = 2;
+}
+
+public sealed class UpdateMobileVoucherDto : CreateMobileVoucherDto
+{
+    public long Voucher_ID { get; set; }
+    public new List<UpdateMobileVoucherLineDto> Details { get; set; } = [];
+}
+
+public sealed class UpdateMobileVoucherLineDto : CreateMobileVoucherLineDto
+{
+    public long Voucher_Detail_ID { get; set; }
 }
 
 public sealed class CreateMobileVoucherResultDto
