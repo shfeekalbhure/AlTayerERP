@@ -9,6 +9,7 @@ public partial class ReceiptVoucherDetailsPage : ContentPage
     private readonly VoucherWorkflowService _workflow;
     private readonly VoucherJournalService _journalService;
     private readonly VoucherAttachmentService _attachmentService;
+    private readonly VoucherEntryService _entryService;
     private readonly long _voucherId;
     private bool _isPosted;
     private byte _approvalStatus;
@@ -21,6 +22,7 @@ public partial class ReceiptVoucherDetailsPage : ContentPage
         _workflow = IPlatformApplication.Current.Services.GetRequiredService<VoucherWorkflowService>();
         _journalService = IPlatformApplication.Current.Services.GetRequiredService<VoucherJournalService>();
         _attachmentService = IPlatformApplication.Current.Services.GetRequiredService<VoucherAttachmentService>();
+        _entryService = IPlatformApplication.Current.Services.GetRequiredService<VoucherEntryService>();
         _voucherId = voucherId;
     }
 
@@ -92,16 +94,21 @@ public partial class ReceiptVoucherDetailsPage : ContentPage
 
     private void ApplyActionVisibility(bool isPosted, byte approvalStatus, byte reviewStatus)
     {
+        var canEdit = !isPosted && approvalStatus != 2 && reviewStatus != 2;
+        EditButton.IsVisible = canEdit;
         ReviewButton.IsVisible = !isPosted && reviewStatus != 2;
         ApproveButton.IsVisible = !isPosted && reviewStatus == 2 && approvalStatus != 2;
         ReturnButton.IsVisible = !isPosted && approvalStatus != 2;
         CancelApprovalButton.IsVisible = !isPosted && approvalStatus == 2;
         PostButton.IsVisible = !isPosted && approvalStatus == 2;
         UnpostButton.IsVisible = isPosted;
-        DeleteButton.IsVisible = !isPosted && approvalStatus != 2 && reviewStatus != 2;
+        DeleteButton.IsVisible = canEdit;
         JournalButton.IsVisible = isPosted;
         AttachmentsButton.IsVisible = true;
     }
+
+    private async void OnEditClicked(object? sender, EventArgs e) =>
+        await Navigation.PushAsync(new NewVoucherPage(_entryService, _service, _voucherId));
 
     private async void OnReviewClicked(object? sender, EventArgs e) =>
         await ExecuteAsync(() => _workflow.ReviewAsync(_voucherId, "مراجعة من تطبيق الجوال"), "تمت مراجعة السند.");
