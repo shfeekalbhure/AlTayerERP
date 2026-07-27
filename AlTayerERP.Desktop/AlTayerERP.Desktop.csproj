@@ -67,27 +67,42 @@
       وليست شاشات مستقلة ولا ملفات تصميم.
   -->
 	<ItemGroup>
+		<!-- FrmReceiptVoucher.Load.cs: جزء برمجي تابع للنموذج وليس ملف تصميم مستقل. -->
 		<Compile Update="Accounting\ReceiptVoucher\FrmReceiptVoucher.Load.cs">
+			<DependentUpon>FrmReceiptVoucher.cs</DependentUpon>
+			<SubType>Code</SubType>
 			<AutoGen>False</AutoGen>
 			<DesignTime>False</DesignTime>
 		</Compile>
 
+		<!-- FrmReceiptVoucher.New.cs: جزء برمجي تابع للنموذج وليس ملف تصميم مستقل. -->
 		<Compile Update="Accounting\ReceiptVoucher\FrmReceiptVoucher.New.cs">
+			<DependentUpon>FrmReceiptVoucher.cs</DependentUpon>
+			<SubType>Code</SubType>
 			<AutoGen>False</AutoGen>
 			<DesignTime>False</DesignTime>
 		</Compile>
 
+		<!-- FrmReceiptVoucher.Grid.cs: جزء برمجي تابع للنموذج وليس ملف تصميم مستقل. -->
 		<Compile Update="Accounting\ReceiptVoucher\FrmReceiptVoucher.Grid.cs">
+			<DependentUpon>FrmReceiptVoucher.cs</DependentUpon>
+			<SubType>Code</SubType>
 			<AutoGen>False</AutoGen>
 			<DesignTime>False</DesignTime>
 		</Compile>
 
+		<!-- FrmReceiptVoucher.Save.cs: جزء برمجي تابع للنموذج وليس ملف تصميم مستقل. -->
 		<Compile Update="Accounting\ReceiptVoucher\FrmReceiptVoucher.Save.cs">
+			<DependentUpon>FrmReceiptVoucher.cs</DependentUpon>
+			<SubType>Code</SubType>
 			<AutoGen>False</AutoGen>
 			<DesignTime>False</DesignTime>
 		</Compile>
 
+		<!-- FrmReceiptVoucher.Search.cs: جزء برمجي تابع للنموذج وليس ملف تصميم مستقل. -->
 		<Compile Update="Accounting\ReceiptVoucher\FrmReceiptVoucher.Search.cs">
+			<DependentUpon>FrmReceiptVoucher.cs</DependentUpon>
+			<SubType>Code</SubType>
 			<AutoGen>False</AutoGen>
 			<DesignTime>False</DesignTime>
 		</Compile>
