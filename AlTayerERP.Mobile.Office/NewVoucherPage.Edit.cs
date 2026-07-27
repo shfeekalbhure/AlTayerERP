@@ -77,6 +77,7 @@ public partial class NewVoucherPage
 
             PartyPicker.SelectedItem = _references.Parties.FirstOrDefault(x => x.Id == header.PartyId);
             PaymentMethodPicker.SelectedItem = _references.PaymentMethods.FirstOrDefault(x => x.Id == header.PaymentMethodId);
+            RefreshLookupButtonTexts();
 
             _lines.Clear();
             foreach (var line in data.Details.Where(x => x.LineType != 1).OrderBy(x => x.LineNo))
