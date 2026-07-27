@@ -1,16 +1,19 @@
 using AlTayerERP.Mobile.Office.DTOs;
 using AlTayerERP.Mobile.Office.Services;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace AlTayerERP.Mobile.Office;
 
 public partial class PaymentVouchersPage : ContentPage
 {
     private readonly PaymentVoucherService _service;
+    private readonly VoucherEntryService _entryService;
 
     public PaymentVouchersPage(PaymentVoucherService service)
     {
         InitializeComponent();
         _service = service;
+        _entryService = IPlatformApplication.Current.Services.GetRequiredService<VoucherEntryService>();
     }
 
     protected override async void OnAppearing()
@@ -34,6 +37,9 @@ public partial class PaymentVouchersPage : ContentPage
             VouchersRefresh.IsRefreshing = false;
         }
     }
+
+    private async void OnNewClicked(object? sender, EventArgs e) =>
+        await Navigation.PushAsync(new NewVoucherPage(_entryService, "PAYMENT"));
 
     private async void OnSearchClicked(object? sender, EventArgs e) => await LoadAsync();
     private async void OnRefreshing(object? sender, EventArgs e) => await LoadAsync();
