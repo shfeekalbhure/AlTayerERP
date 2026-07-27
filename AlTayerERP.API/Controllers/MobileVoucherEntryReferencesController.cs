@@ -46,42 +46,85 @@ public sealed class MobileVoucherEntryReferencesController : ControllerBase
         if (voucherType == null || draftStatus == null)
             return Conflict(new { message = "نوع السند أو حالة المسودة غير مهيأة." });
 
-        var cashBoxes = await (
-            from box in _db.Cash_Boxes.AsNoTracking()
-            join account in _db.Chart_Of_Accounts.AsNoTracking()
-                on box.Account_ID equals account.Account_ID
-            where box.Company_ID == session.Company_ID &&
-                  box.Branch_ID == session.Branch_ID &&
-                  box.Is_Active &&
-                  box.Account_ID != null && box.Account_ID != "" &&
-                  account.Company_ID == session.Company_ID &&
-                  account.Is_Active && account.Is_Postable && !account.Is_Summary_Account
-            orderby box.Box_Name_AR
-            select new
+        // لا نستخدم INNER JOIN هنا؛ لأن الربط الصارم كان يستبعد صندوقًا صحيحًا
+        // إذا كان الحساب المرتبط غير معلّم كحساب قابل للترحيل أو كانت بياناته ناقصة.
+        // نعرض الصندوق النشط أولًا، ويظل التحقق المحاسبي النهائي في خدمة حفظ السند.
+        var activeCashBoxes = await _db.Cash_Boxes.AsNoTracking()
+            .Where(x => x.Company_ID == session.Company_ID &&
+                        x.Branch_ID == session.Branch_ID &&
+                        x.Is_Active &&
+                        x.Account_ID != null && x.Account_ID != "")
+            .OrderBy(x => x.Box_Name_AR)
+            .Select(x => new
+            {
+                x.Account_ID,
+                x.CashBox_Code,
+                x.Box_Name_AR
+            })
+            .ToListAsync(cancellationToken);
+
+        var cashAccountIds = activeCashBoxes.Select(x => x.Account_ID).Distinct().ToList();
+        var cashAccounts = await _db.Chart_Of_Accounts.AsNoTracking()
+            .Where(x => x.Company_ID == session.Company_ID && cashAccountIds.Contains(x.Account_ID))
+            .Select(x => new
+            {
+                x.Account_ID,
+                x.Account_Code,
+                x.Account_Name_AR,
+                x.Is_Active,
+                x.Is_Postable,
+                x.Is_Summary_Account
+            })
+            .ToDictionaryAsync(x => x.Account_ID, cancellationToken);
+
+        var cashBoxes = activeCashBoxes.Select(box =>
+        {
+            cashAccounts.TryGetValue(box.Account_ID, out var account);
+            var accountText = account == null
+                ? "الحساب المرتبط غير موجود في دليل الحسابات"
+                : account.Account_Code + " - " + account.Account_Name_AR;
+
+            return new
             {
                 accountId = box.Account_ID,
                 sourceType = "CASH",
-                displayName = box.CashBox_Code + " - " + box.Box_Name_AR + " | " +
-                              account.Account_Code + " - " + account.Account_Name_AR
-            }).ToListAsync(cancellationToken);
+                displayName = box.CashBox_Code + " - " + box.Box_Name_AR + " | " + accountText
+            };
+        }).ToList();
 
-        var banks = await (
-            from bank in _db.Bank_Accounts.AsNoTracking()
-            join account in _db.Chart_Of_Accounts.AsNoTracking()
-                on bank.GL_Account equals account.Account_ID
-            where bank.Company_ID == session.Company_ID &&
-                  bank.Is_Active &&
-                  bank.GL_Account != null && bank.GL_Account != "" &&
-                  account.Company_ID == session.Company_ID &&
-                  account.Is_Active && account.Is_Postable && !account.Is_Summary_Account
-            orderby bank.Bank_Name_AR
-            select new
+        var activeBanks = await _db.Bank_Accounts.AsNoTracking()
+            .Where(x => x.Company_ID == session.Company_ID &&
+                        x.Is_Active &&
+                        x.GL_Account != null && x.GL_Account != "")
+            .OrderBy(x => x.Bank_Name_AR)
+            .Select(x => new
             {
-                accountId = bank.GL_Account!,
+                AccountId = x.GL_Account!,
+                x.Bank_Name_AR,
+                x.Account_No
+            })
+            .ToListAsync(cancellationToken);
+
+        var bankAccountIds = activeBanks.Select(x => x.AccountId).Distinct().ToList();
+        var bankAccounts = await _db.Chart_Of_Accounts.AsNoTracking()
+            .Where(x => x.Company_ID == session.Company_ID && bankAccountIds.Contains(x.Account_ID))
+            .Select(x => new { x.Account_ID, x.Account_Code, x.Account_Name_AR })
+            .ToDictionaryAsync(x => x.Account_ID, cancellationToken);
+
+        var banks = activeBanks.Select(bank =>
+        {
+            bankAccounts.TryGetValue(bank.AccountId, out var account);
+            var accountText = account == null
+                ? "الحساب المرتبط غير موجود في دليل الحسابات"
+                : account.Account_Code + " - " + account.Account_Name_AR;
+
+            return new
+            {
+                accountId = bank.AccountId,
                 sourceType = "BANK",
-                displayName = bank.Bank_Name_AR + " - " + bank.Account_No + " | " +
-                              account.Account_Code + " - " + account.Account_Name_AR
-            }).ToListAsync(cancellationToken);
+                displayName = bank.Bank_Name_AR + " - " + bank.Account_No + " | " + accountText
+            };
+        }).ToList();
 
         var sources = cashBoxes.Concat(banks)
             .GroupBy(x => new { x.accountId, x.sourceType, x.displayName })
@@ -138,7 +181,7 @@ public sealed class MobileVoucherEntryReferencesController : ControllerBase
             sources,
             sourceCount = sources.Count,
             sourceMessage = sources.Count == 0
-                ? "لا توجد صناديق أو بنوك فعالة مرتبطة بحساب مالي قابل للترحيل ضمن نطاق الجلسة."
+                ? "لا توجد صناديق أو بنوك فعالة لها حساب مرتبط ضمن الشركة والفرع الحاليين."
                 : null,
             accounts,
             costCenters,
