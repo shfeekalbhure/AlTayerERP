@@ -72,6 +72,7 @@ namespace AlTayerERP.Desktop
                 ?? throw new ArgumentNullException(nameof(voucherCaption));
 
             InitializeComponent();
+            RemoveRedundantMainShellPanels();
             ApplyBaseFormStyle();
             Text = _voucherCaption;
             RegisterEvents();
@@ -137,6 +138,23 @@ namespace AlTayerERP.Desktop
         #endregion
 
         #region === إعداد الشاشة ===
+
+        /// <summary>
+        /// تحذف لوحات السياق المكررة من السند؛ فالشاشة الرئيسية هي المرجع الوحيد
+        /// لبيانات الشركة والفرع والمستخدم وحالة الاتصال.
+        /// </summary>
+        private void RemoveRedundantMainShellPanels()
+        {
+            // نفصل زر الإغلاق أولاً ثم نعيده إلى شريط أوامر السند.
+            pnlTopBar.Controls.Remove(btnClose);
+            pnlToolbar.Controls.Add(btnClose);
+
+            // لا نعرض نسخة ثانية من رأس الشركة أو شريط اتصال النظام داخل السند.
+            Controls.Remove(pnlTopBar);
+            Controls.Remove(statusSystem);
+            pnlTopBar.Dispose();
+            statusSystem.Dispose();
+        }
 
         // دالة لضبط الخصائص الافتراضية لعناصر الواجهة (مثل القراءة فقط والاتجاه)
         private void ConfigureScreen()
@@ -408,6 +426,7 @@ namespace AlTayerERP.Desktop
             btnUnPost.Text = "↶ إلغاء ترحيل";
             btnViewJournalEntry.Text = "☷ استعراض القيد";
             btnUndo.Text = "↩ تراجع";
+            btnClose.Text = "✕ إغلاق";
         }
 
         private void pnlToolbar_Resize(object? sender, EventArgs e) =>
@@ -423,7 +442,7 @@ namespace AlTayerERP.Desktop
             Button[][] rows =
             {
                 new[] { btnNew, btnSave, btnEdit, btnDelete, btnPrint, btnSearch, btnRefresh, btnAttachments },
-                new[] { btnImport, btnExport, btnApprove, btnCancelApprove, btnPost, btnUnPost, btnViewJournalEntry, btnUndo }
+                new[] { btnImport, btnExport, btnApprove, btnCancelApprove, btnPost, btnUnPost, btnViewJournalEntry, btnUndo, btnClose }
             };
 
             const int margin = 12;
@@ -496,6 +515,7 @@ namespace AlTayerERP.Desktop
             if (button == btnApprove || button == btnPost) return System.Drawing.Color.FromArgb(5, 120, 87);
             if (button == btnViewJournalEntry) return System.Drawing.Color.FromArgb(29, 78, 216);
             if (button == btnAttachments) return System.Drawing.Color.FromArgb(3, 105, 161);
+            if (button == btnClose) return System.Drawing.Color.FromArgb(71, 85, 105);
             return System.Drawing.Color.FromArgb(100, 116, 139);
         }
 
