@@ -23,6 +23,15 @@
                     <Label x:Name="TotalLabel" FontAttributes="Bold" TextColor="#17324D" />
                 </VerticalStackLayout>
             </Border>
+
+            <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="8" RowSpacing="8">
+                <Button Grid.Row="0" Grid.Column="0" Text="مراجعة" BackgroundColor="#0B6B87" TextColor="White" Clicked="OnReviewClicked" />
+                <Button Grid.Row="0" Grid.Column="1" Text="اعتماد" BackgroundColor="#17324D" TextColor="White" Clicked="OnApproveClicked" />
+                <Button Grid.Row="1" Grid.Column="0" Text="إعادة للتصحيح" BackgroundColor="#B7791F" TextColor="White" Clicked="OnReturnClicked" />
+                <Button x:Name="PostButton" Grid.Row="1" Grid.Column="1" Text="ترحيل" BackgroundColor="#18794E" TextColor="White" Clicked="OnPostClicked" />
+                <Button x:Name="UnpostButton" Grid.Row="2" Grid.ColumnSpan="2" Text="فك الترحيل" BackgroundColor="#B42318" TextColor="White" IsVisible="False" Clicked="OnUnpostClicked" />
+            </Grid>
+
             <Label Text="التوزيع المحاسبي" FontSize="18" FontAttributes="Bold" TextColor="#17324D" />
             <VerticalStackLayout x:Name="LinesPanel" Spacing="10" />
             <ActivityIndicator x:Name="BusyIndicator" Color="#0B6B87" IsVisible="False" IsRunning="False" />
