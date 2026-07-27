@@ -4,6 +4,27 @@ namespace AlTayerERP.Mobile.Office;
 
 public partial class NewVoucherPage
 {
+    private bool _lookupEventsHooked;
+
+    private void OnLookupPageLoaded(object? sender, EventArgs e)
+    {
+        if (_lookupEventsHooked) return;
+        _lookupEventsHooked = true;
+
+        PartyPicker.SelectedIndexChanged += (_, _) => RefreshLookupButtonTexts();
+        PaymentMethodPicker.SelectedIndexChanged += (_, _) => RefreshLookupButtonTexts();
+        AccountPicker.SelectedIndexChanged += (_, _) => RefreshLookupButtonTexts();
+        CostCenterPicker.SelectedIndexChanged += (_, _) => RefreshLookupButtonTexts();
+        CurrencyPicker.SelectedIndexChanged += (_, _) => RefreshLookupButtonTexts();
+        SourcePicker.SelectedIndexChanged += (_, _) =>
+        {
+            if (SourcePicker.SelectedItem is VoucherEntrySourceDto source)
+                SourceSearchButton.Text = $"{source.DisplayName}  ✓";
+        };
+
+        RefreshLookupButtonTexts();
+    }
+
     private async void OnSelectPartyClicked(object? sender, EventArgs e)
     {
         if (_references == null) { ShowStatus("لم يتم تحميل الأطراف بعد."); return; }
@@ -94,29 +115,24 @@ public partial class NewVoucherPage
 
     private void RefreshLookupButtonTexts()
     {
-        if (PartyPicker.SelectedItem is VoucherEntryPartyDto party)
-            PartySearchButton.Text = party.DisplayName;
-        else
-            PartySearchButton.Text = "اختيار الطرف - اختياري 🔍";
+        PartySearchButton.Text = PartyPicker.SelectedItem is VoucherEntryPartyDto party
+            ? party.DisplayName
+            : "اختيار الطرف - اختياري 🔍";
 
-        if (PaymentMethodPicker.SelectedItem is VoucherEntryPaymentMethodDto method)
-            PaymentMethodSearchButton.Text = method.DisplayName;
-        else
-            PaymentMethodSearchButton.Text = "اختيار طريقة السداد 🔍";
+        PaymentMethodSearchButton.Text = PaymentMethodPicker.SelectedItem is VoucherEntryPaymentMethodDto method
+            ? method.DisplayName
+            : "اختيار طريقة السداد 🔍";
 
-        if (AccountPicker.SelectedItem is VoucherEntryLookupDto account)
-            AccountSearchButton.Text = account.DisplayName;
-        else
-            AccountSearchButton.Text = "اختيار الحساب المقابل 🔍";
+        AccountSearchButton.Text = AccountPicker.SelectedItem is VoucherEntryLookupDto account
+            ? account.DisplayName
+            : "اختيار الحساب المقابل 🔍";
 
-        if (CostCenterPicker.SelectedItem is VoucherEntryLookupDto center)
-            CostCenterSearchButton.Text = center.DisplayName;
-        else
-            CostCenterSearchButton.Text = "اختيار مركز التكلفة - اختياري 🔍";
+        CostCenterSearchButton.Text = CostCenterPicker.SelectedItem is VoucherEntryLookupDto center
+            ? center.DisplayName
+            : "اختيار مركز التكلفة - اختياري 🔍";
 
-        if (CurrencyPicker.SelectedItem is VoucherEntryCurrencyDto currency)
-            CurrencySearchButton.Text = currency.DisplayName;
-        else
-            CurrencySearchButton.Text = "اختيار العملة 🔍";
+        CurrencySearchButton.Text = CurrencyPicker.SelectedItem is VoucherEntryCurrencyDto currency
+            ? currency.DisplayName
+            : "اختيار العملة 🔍";
     }
 }
