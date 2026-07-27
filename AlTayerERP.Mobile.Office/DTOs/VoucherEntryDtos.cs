@@ -22,7 +22,7 @@ public sealed class VoucherEntryPartyDto { public string Id { get; set; } = stri
 public sealed class VoucherEntryPaymentMethodDto { public int Id { get; set; } public string DisplayName { get; set; } = string.Empty; }
 public sealed class VoucherEntryPeriodDto { public DateTime StartDate { get; set; } public DateTime EndDate { get; set; } }
 
-public class CreateMobileVoucherDto
+public sealed class CreateMobileVoucherDto
 {
     public int Voucher_Type_ID { get; set; }
     public int Voucher_Status_ID { get; set; }
@@ -45,7 +45,7 @@ public class CreateMobileVoucherDto
     public List<CreateMobileVoucherLineDto> Details { get; set; } = [];
 }
 
-public class CreateMobileVoucherLineDto
+public sealed class CreateMobileVoucherLineDto
 {
     public int Line_No { get; set; }
     public string Account_ID { get; set; } = string.Empty;
@@ -60,15 +60,45 @@ public class CreateMobileVoucherLineDto
     public byte Line_Type { get; set; } = 2;
 }
 
-public sealed class UpdateMobileVoucherDto : CreateMobileVoucherDto
+public sealed class UpdateMobileVoucherDto
 {
     public long Voucher_ID { get; set; }
-    public new List<UpdateMobileVoucherLineDto> Details { get; set; } = [];
+    public int Voucher_Type_ID { get; set; }
+    public int Voucher_Status_ID { get; set; }
+    public string Branch_ID { get; set; } = string.Empty;
+    public int Fiscal_Year_ID { get; set; }
+    public DateTime Voucher_Date { get; set; }
+    public DateTime Transaction_Date { get; set; }
+    public string Cash_Account_ID { get; set; } = string.Empty;
+    public string? Party_ID { get; set; }
+    public string Received_From_Name { get; set; } = string.Empty;
+    public int? Payment_Method_ID { get; set; }
+    public int Currency_ID { get; set; }
+    public decimal Exchange_Rate { get; set; }
+    public decimal Amount { get; set; }
+    public decimal Foreign_Total { get; set; }
+    public decimal Local_Total { get; set; }
+    public string? Reference_No { get; set; }
+    public string? Description { get; set; }
+    public bool Requires_Approval { get; set; }
+    public List<UpdateMobileVoucherLineDto> Details { get; set; } = [];
+    public List<object> Allocations { get; set; } = [];
 }
 
-public sealed class UpdateMobileVoucherLineDto : CreateMobileVoucherLineDto
+public sealed class UpdateMobileVoucherLineDto
 {
     public long Voucher_Detail_ID { get; set; }
+    public int Line_No { get; set; }
+    public string Account_ID { get; set; } = string.Empty;
+    public string? Description { get; set; }
+    public string? Cost_Center_ID { get; set; }
+    public int Currency_ID { get; set; }
+    public decimal Exchange_Rate { get; set; }
+    public decimal Foreign_Amount { get; set; }
+    public decimal Local_Amount { get; set; }
+    public decimal Debit_Amount { get; set; }
+    public decimal Credit_Amount { get; set; }
+    public byte Line_Type { get; set; } = 2;
 }
 
 public sealed class CreateMobileVoucherResultDto
