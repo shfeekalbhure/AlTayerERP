@@ -1,3 +1,4 @@
+using AlTayerERP.Mobile.Office.DTOs;
 using AlTayerERP.Mobile.Office.Services;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -10,7 +11,9 @@ public partial class ReceiptVoucherDetailsPage : ContentPage
     private readonly VoucherJournalService _journalService;
     private readonly VoucherAttachmentService _attachmentService;
     private readonly VoucherEntryService _entryService;
+    private readonly IReceiptVoucherPrintService _printService;
     private readonly long _voucherId;
+    private ReceiptVoucherDetailsDto? _currentVoucher;
     private bool _isPosted;
     private byte _approvalStatus;
     private byte _reviewStatus;
@@ -23,6 +26,7 @@ public partial class ReceiptVoucherDetailsPage : ContentPage
         _journalService = IPlatformApplication.Current.Services.GetRequiredService<VoucherJournalService>();
         _attachmentService = IPlatformApplication.Current.Services.GetRequiredService<VoucherAttachmentService>();
         _entryService = IPlatformApplication.Current.Services.GetRequiredService<VoucherEntryService>();
+        _printService = IPlatformApplication.Current.Services.GetRequiredService<IReceiptVoucherPrintService>();
         _voucherId = voucherId;
     }
 
@@ -40,6 +44,7 @@ public partial class ReceiptVoucherDetailsPage : ContentPage
         try
         {
             var data = await _service.GetByIdAsync(_voucherId);
+            _currentVoucher = data;
             var header = data.Header;
             _isPosted = header.IsPosted;
             _approvalStatus = header.ApprovalStatus;
@@ -105,6 +110,7 @@ public partial class ReceiptVoucherDetailsPage : ContentPage
         DeleteButton.IsVisible = canEdit;
         JournalButton.IsVisible = isPosted;
         AttachmentsButton.IsVisible = true;
+        PrintButton.IsVisible = true;
     }
 
     private async void OnEditClicked(object? sender, EventArgs e) =>
@@ -152,8 +158,31 @@ public partial class ReceiptVoucherDetailsPage : ContentPage
         }, "تم حذف السند.", reloadAfter: false);
     }
 
-    private async void OnPrintClicked(object? sender, EventArgs e) =>
-        await ExecuteAsync(() => _service.RecordPrintAsync(_voucherId), "تم تسجيل عملية الطباعة.");
+    private async void OnPrintClicked(object? sender, EventArgs e)
+    {
+        if (_currentVoucher == null)
+        {
+            ShowMessage("لم تكتمل بيانات سند القبض للطباعة.");
+            return;
+        }
+
+        BusyIndicator.IsVisible = BusyIndicator.IsRunning = true;
+        MessageLabel.IsVisible = false;
+        try
+        {
+            await _printService.PrintAsync(_currentVoucher);
+            await _service.RecordPrintAsync(_voucherId);
+            await LoadAsync();
+        }
+        catch (Exception ex)
+        {
+            ShowMessage(ex.Message);
+        }
+        finally
+        {
+            BusyIndicator.IsVisible = BusyIndicator.IsRunning = false;
+        }
+    }
 
     private async void OnAttachmentsClicked(object? sender, EventArgs e) =>
         await Navigation.PushAsync(new VoucherAttachmentsPage(_attachmentService, _voucherId));
