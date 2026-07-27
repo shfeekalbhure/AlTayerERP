@@ -6,9 +6,10 @@
              BackgroundColor="#F6F8FB"
              Title="سندات الصرف">
     <Grid RowDefinitions="Auto,*" Padding="16" RowSpacing="12">
-        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
-            <Entry x:Name="VoucherNoEntry" Placeholder="بحث برقم السند" TextColor="#17324D" PlaceholderColor="#7A8896" BackgroundColor="White" />
-            <Button Grid.Column="1" Text="بحث" BackgroundColor="#0B6B87" TextColor="White" Clicked="OnSearchClicked" />
+        <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
+            <Button Grid.Column="0" Text="+ جديد" BackgroundColor="#17324D" TextColor="White" Clicked="OnNewClicked" />
+            <Entry Grid.Column="1" x:Name="VoucherNoEntry" Placeholder="بحث برقم السند" TextColor="#17324D" PlaceholderColor="#7A8896" BackgroundColor="White" />
+            <Button Grid.Column="2" Text="بحث" BackgroundColor="#0B6B87" TextColor="White" Clicked="OnSearchClicked" />
         </Grid>
         <RefreshView x:Name="VouchersRefresh" Grid.Row="1" Refreshing="OnRefreshing">
             <CollectionView x:Name="VouchersList" SelectionMode="Single" SelectionChanged="OnSelectionChanged">
