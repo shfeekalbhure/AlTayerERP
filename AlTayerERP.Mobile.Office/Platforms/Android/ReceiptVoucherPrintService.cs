@@ -6,12 +6,13 @@ using Android.Webkit;
 using AlTayerERP.Mobile.Office.DTOs;
 using AlTayerERP.Mobile.Office.Services;
 using Microsoft.Maui.ApplicationModel;
+using AndroidWebView = Android.Webkit.WebView;
 
 namespace AlTayerERP.Mobile.Office.Platforms.Android;
 
 public sealed class ReceiptVoucherPrintService : IReceiptVoucherPrintService
 {
-    private static WebView? _activePrintView;
+    private static AndroidWebView? _activePrintView;
 
     public async Task PrintAsync(ReceiptVoucherDetailsDto voucher, CancellationToken cancellationToken = default)
     {
@@ -21,7 +22,7 @@ public sealed class ReceiptVoucherPrintService : IReceiptVoucherPrintService
             ?? throw new InvalidOperationException("تعذر الوصول إلى شاشة Android الحالية للطباعة.");
 
         var html = BuildHtml(voucher);
-        var webView = new WebView(activity);
+        var webView = new AndroidWebView(activity);
         webView.Settings.JavaScriptEnabled = false;
         webView.Settings.DefaultTextEncodingName = "utf-8";
 
@@ -118,13 +119,13 @@ table.lines { width:100%; border-collapse:collapse; margin-top:16px; font-size:1
 
     private sealed class PrintWebViewClient(TaskCompletionSource loaded) : WebViewClient
     {
-        public override void OnPageFinished(WebView? view, string? url)
+        public override void OnPageFinished(AndroidWebView? view, string? url)
         {
             base.OnPageFinished(view, url);
             loaded.TrySetResult();
         }
 
-        public override void OnReceivedError(WebView? view, IWebResourceRequest? request, WebResourceError? error)
+        public override void OnReceivedError(AndroidWebView? view, IWebResourceRequest? request, WebResourceError? error)
         {
             base.OnReceivedError(view, request, error);
             loaded.TrySetException(new InvalidOperationException("تعذر تجهيز معاينة سند القبض للطباعة."));
