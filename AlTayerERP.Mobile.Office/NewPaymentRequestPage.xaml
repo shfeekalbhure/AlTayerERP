@@ -9,7 +9,14 @@
         <VerticalStackLayout Padding="16" Spacing="12">
             <Label Text="بيانات الطلب" FontSize="20" FontAttributes="Bold" TextColor="#17324D" />
 
-            <DatePicker x:Name="RequestDatePicker" TextColor="#17324D" BackgroundColor="White" />
+            <Label x:Name="OpenPeriodLabel"
+                   Text="جاري التحقق من الفترة المالية المفتوحة..."
+                   FontSize="12"
+                   TextColor="#7A8896"
+                   HorizontalTextAlignment="Center" />
+            <DatePicker x:Name="RequestDatePicker"
+                        TextColor="#17324D"
+                        BackgroundColor="White" />
             <Entry x:Name="BeneficiaryEntry" Placeholder="اسم المستفيد" TextColor="#17324D" PlaceholderColor="#7A8896" BackgroundColor="White" />
             <Entry x:Name="PartyIdEntry" Placeholder="رقم الطرف - اختياري" TextColor="#17324D" PlaceholderColor="#7A8896" BackgroundColor="White" />
             <Entry x:Name="ReferenceEntry" Placeholder="رقم المرجع - اختياري" TextColor="#17324D" PlaceholderColor="#7A8896" BackgroundColor="White" />
