@@ -2,6 +2,8 @@ using AlTayerERP.Desktop.Models;
 using AlTayerERP.Desktop.Services;
 using System;
 using System.Collections.Generic;
+using System.Drawing;
+using System.Drawing.Printing;
 using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Json;
@@ -18,19 +20,20 @@ namespace AlTayerERP.Desktop
         private string _selectedCashBoxId = "";
         private List<CashBoxModel> _cashBoxesCache = new();
         private bool _isBinding;
-        private bool _isBusy;
+        private int _printRowIndex;
 
         public FrmCashBoxes()
         {
             InitializeComponent();
 
-            Load += FrmCashBoxes_Load;
+            // حدث Load مربوط في ملف المصمم؛ لا يعاد ربطه هنا حتى لا تحمل الشاشة والمنسدلات مرتين.
             btnNew.Click += btnNew_Click;
             btnSave.Click += btnSave_Click;
             btnEdit.Click += btnEdit_Click;
             btnDelete.Click += btnDelete_Click;
             btnSearch.Click += btnSearch_Click;
             btnRefresh.Click += btnRefresh_Click;
+            btnPrint.Click += btnPrint_Click;
             btnClose.Click += btnClose_Click;
             dgvCashBoxes.CellClick += dgvCashBoxes_CellClick;
             cmbAccount.SelectedIndexChanged += cmbAccount_SelectedIndexChanged;
@@ -233,7 +236,8 @@ namespace AlTayerERP.Desktop
             try
             {
                 SetBusy(true);
-                var response = await _client.DeleteAsync($"{_baseUrl}CashBoxes/{_selectedCashBoxId}?reason=إيقاف من شاشة الصناديق");
+                var reason = Uri.EscapeDataString("إيقاف من شاشة الصناديق");
+                var response = await _client.DeleteAsync($"{_baseUrl}CashBoxes/{_selectedCashBoxId}?reason={reason}");
                 if (!response.IsSuccessStatusCode)
                 {
                     await ShowApiErrorAsync(response, "تعذر إيقاف الصندوق");
@@ -271,6 +275,103 @@ namespace AlTayerERP.Desktop
                 SetBusy(false);
             }
         }
+
+        private void btnPrint_Click(object? sender, EventArgs e)
+        {
+            if (dgvCashBoxes.Rows.Count == 0)
+            {
+                MessageBox.Show("لا توجد بيانات للطباعة.", "الطباعة", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
+
+            using var document = new PrintDocument
+            {
+                DocumentName = "قائمة الصناديق",
+                DefaultPageSettings = { Landscape = true }
+            };
+            document.PrintPage += PrintCashBoxesPage;
+
+            using var preview = new PrintPreviewDialog
+            {
+                Document = document,
+                Width = 1100,
+                Height = 750,
+                StartPosition = FormStartPosition.CenterParent
+            };
+
+            _printRowIndex = 0;
+            preview.ShowDialog(this);
+        }
+
+        private void PrintCashBoxesPage(object? sender, PrintPageEventArgs e)
+        {
+            var graphics = e.Graphics;
+            if (graphics == null) return;
+
+            using var titleFont = new Font("Segoe UI", 16F, FontStyle.Bold);
+            using var headerFont = new Font("Segoe UI", 9F, FontStyle.Bold);
+            using var rowFont = new Font("Segoe UI", 8F);
+            using var pen = new Pen(Color.Black);
+
+            var bounds = e.MarginBounds;
+            graphics.DrawString("قائمة الصناديق", titleFont, Brushes.Black, bounds.Left, bounds.Top);
+            var y = bounds.Top + 45;
+
+            var printableColumns = dgvCashBoxes.Columns
+                .Cast<DataGridViewColumn>()
+                .Where(x => x.Visible)
+                .ToList();
+
+            if (printableColumns.Count == 0) return;
+
+            var columnWidth = Math.Max(80, bounds.Width / printableColumns.Count);
+            var rowHeight = 30;
+            var x = bounds.Right - columnWidth;
+
+            foreach (var column in printableColumns)
+            {
+                var rect = new Rectangle(x, y, columnWidth, rowHeight);
+                graphics.DrawRectangle(pen, rect);
+                graphics.DrawString(column.HeaderText, headerFont, Brushes.Black, rect, CenteredStringFormat());
+                x -= columnWidth;
+            }
+
+            y += rowHeight;
+            while (_printRowIndex < dgvCashBoxes.Rows.Count)
+            {
+                var row = dgvCashBoxes.Rows[_printRowIndex];
+                x = bounds.Right - columnWidth;
+
+                foreach (var column in printableColumns)
+                {
+                    var rect = new Rectangle(x, y, columnWidth, rowHeight);
+                    graphics.DrawRectangle(pen, rect);
+                    var value = row.Cells[column.Index].FormattedValue?.ToString() ?? "";
+                    graphics.DrawString(value, rowFont, Brushes.Black, rect, CenteredStringFormat());
+                    x -= columnWidth;
+                }
+
+                y += rowHeight;
+                _printRowIndex++;
+
+                if (y + rowHeight > bounds.Bottom)
+                {
+                    e.HasMorePages = _printRowIndex < dgvCashBoxes.Rows.Count;
+                    return;
+                }
+            }
+
+            e.HasMorePages = false;
+            _printRowIndex = 0;
+        }
+
+        private static StringFormat CenteredStringFormat() => new()
+        {
+            Alignment = StringAlignment.Center,
+            LineAlignment = StringAlignment.Center,
+            Trimming = StringTrimming.EllipsisCharacter,
+            FormatFlags = StringFormatFlags.DirectionRightToLeft
+        };
 
         private void dgvCashBoxes_CellClick(object? sender, DataGridViewCellEventArgs e)
         {
@@ -415,13 +516,13 @@ namespace AlTayerERP.Desktop
 
         private void SetBusy(bool busy)
         {
-            _isBusy = busy;
             btnNew.Enabled = !busy;
             btnSave.Enabled = !busy;
             btnEdit.Enabled = !busy;
             btnDelete.Enabled = !busy;
             btnSearch.Enabled = !busy;
             btnRefresh.Enabled = !busy;
+            btnPrint.Enabled = !busy;
             UseWaitCursor = busy;
         }
 
