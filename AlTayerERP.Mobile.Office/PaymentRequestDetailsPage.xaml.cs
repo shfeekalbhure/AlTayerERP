@@ -1,11 +1,13 @@
 using AlTayerERP.Mobile.Office.DTOs;
 using AlTayerERP.Mobile.Office.Services;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace AlTayerERP.Mobile.Office;
 
 public partial class PaymentRequestDetailsPage : ContentPage
 {
     private readonly PaymentRequestService _service;
+    private readonly PaymentRequestAttachmentService _attachmentService;
     private readonly long _requestId;
     private PaymentRequestListItemDto? _request;
 
@@ -13,6 +15,7 @@ public partial class PaymentRequestDetailsPage : ContentPage
     {
         InitializeComponent();
         _service = service;
+        _attachmentService = IPlatformApplication.Current.Services.GetRequiredService<PaymentRequestAttachmentService>();
         _requestId = requestId;
     }
 
@@ -88,6 +91,9 @@ public partial class PaymentRequestDetailsPage : ContentPage
         await Navigation.PushAsync(new NewPaymentRequestPage(_service, _request));
     }
 
+    private async void OnAttachmentsClicked(object? sender, EventArgs e) =>
+        await Navigation.PushAsync(new PaymentRequestAttachmentsPage(_attachmentService, _requestId));
+
     private async void OnSubmitClicked(object? sender, EventArgs e) =>
         await ExecuteAsync(() => _service.SubmitAsync(_requestId), "تم إرسال الطلب للمراجعة.", false);
     private async void OnReviewClicked(object? sender, EventArgs e) =>
@@ -123,6 +129,7 @@ public partial class PaymentRequestDetailsPage : ContentPage
         BusyIndicator.IsVisible = busy;
         BusyIndicator.IsRunning = busy;
         EditButton.IsEnabled = !busy;
+        AttachmentsButton.IsEnabled = !busy;
         SubmitButton.IsEnabled = !busy;
         ReviewButton.IsEnabled = !busy;
         ApproveButton.IsEnabled = !busy;
