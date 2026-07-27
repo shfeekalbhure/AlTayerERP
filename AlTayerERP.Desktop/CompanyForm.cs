@@ -4,6 +4,7 @@ using System.ComponentModel;
 using System.Data;
 using System.Drawing;
 using System.IO;
+using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Json;
 using System.Windows.Forms;
@@ -92,23 +93,46 @@ namespace AlTayerERP.Desktop
         // ======================================================
         private async void CompanyForm_Load(object sender, EventArgs e)
         {
+            await LoadGroupsAsync();
             await LoadCompaniesAsync();
+        }
 
+        /// <summary>
+        /// تحميل المجموعات النشطة قبل الشركات كي تعمل قيمة SelectedValue عند فتح سجل.
+        /// لا يسمح باختيار مجموعة موقوفة لإنشاء أو تعديل شركة.
+        /// </summary>
+        private async Task LoadGroupsAsync()
+        {
+            btnSaveCompany.Enabled = false;
+            cmbGroups.DataSource = null;
             try
             {
-                var groups = await _client.GetFromJsonAsync<List<GroupLookupModel>>($"{_baseUrl}TenantGroups");
+                using var response = await _client.GetAsync($"{_baseUrl}TenantGroups");
+                if (!response.IsSuccessStatusCode)
+                    throw new HttpRequestException(await response.Content.ReadAsStringAsync());
 
-                if (groups != null && groups.Count > 0)
+                var groups = await response.Content.ReadFromJsonAsync<List<GroupLookupModel>>() ?? new List<GroupLookupModel>();
+                var activeGroups = groups
+                    .Where(group => group.Is_Active)
+                    .OrderBy(group => group.Group_Code)
+                    .ThenBy(group => group.Group_Name_AR)
+                    .ToList();
+
+                if (activeGroups.Count > 0)
                 {
-                    cmbGroups.DataSource = groups;
-                    cmbGroups.DisplayMember = "Group_Name_AR";
+                    cmbGroups.DataSource = activeGroups;
+                    cmbGroups.DisplayMember = nameof(GroupLookupModel.Display_Name);
                     cmbGroups.ValueMember = "Group_ID";
                     cmbGroups.SelectedIndex = -1;
+                    btnSaveCompany.Enabled = true;
+                    return;
                 }
+
+                MessageBox.Show("لا توجد مجموعة تجارية نشطة يمكن ربط الشركة بها.", "المجموعة التجارية", MessageBoxButtons.OK, MessageBoxIcon.Warning);
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"فشل تحميل المجموعات التجارية: {ex.Message}", "خطأ اتصال", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show($"تعذر تحميل المجموعات التجارية.\n{ex.Message}", "خطأ اتصال", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
@@ -167,7 +191,7 @@ namespace AlTayerERP.Desktop
         // ======================================================
         private async void btnSaveCompany_Click(object sender, EventArgs e)
         {
-            if (cmbGroups.SelectedValue == null)
+            if (cmbGroups.SelectedValue == null || string.IsNullOrWhiteSpace(cmbGroups.SelectedValue.ToString()))
             {
                 MessageBox.Show("يرجى اختيار المجموعة الأم أولاً!", "تنبيه", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
@@ -531,9 +555,10 @@ namespace AlTayerERP.Desktop
         // ======================================================
         // [حدث] زر تحديث - إعادة جلب بيانات الشاشة من جديد
         // ======================================================
-        private void btnRefresh_Click(object sender, EventArgs e)
+        private async void btnRefresh_Click(object sender, EventArgs e)
         {
-            CompanyForm_Load(null, null);
+            await LoadGroupsAsync();
+            await LoadCompaniesAsync();
             btnNew_Click(null, null);
         }
 
@@ -577,7 +602,12 @@ namespace AlTayerERP.Desktop
     public class GroupLookupModel
     {
         public string Group_ID { get; set; } = string.Empty;
+        public string Group_Code { get; set; } = string.Empty;
         public string Group_Name_AR { get; set; } = string.Empty;
+        public bool Is_Active { get; set; }
+        public string Display_Name => string.IsNullOrWhiteSpace(Group_Code)
+            ? Group_Name_AR
+            : $"{Group_Code} - {Group_Name_AR}";
     }
 
     public class CompanyListModel
