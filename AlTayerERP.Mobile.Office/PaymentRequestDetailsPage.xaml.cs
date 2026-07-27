@@ -33,9 +33,7 @@ public partial class PaymentRequestDetailsPage : ContentPage
             StatusLabel.Text = $"الحالة: {_request.StatusDisplay}";
             BeneficiaryLabel.Text = $"المستفيد: {_request.Beneficiary_Name}";
             DateLabel.Text = $"التاريخ: {_request.Request_Date:yyyy/MM/dd}";
-            DescriptionLabel.Text = string.IsNullOrWhiteSpace(_request.Description)
-                ? "البيان: —"
-                : $"البيان: {_request.Description}";
+            DescriptionLabel.Text = string.IsNullOrWhiteSpace(_request.Description) ? "البيان: —" : $"البيان: {_request.Description}";
             TotalLabel.Text = $"الإجمالي المحلي: {_request.LocalTotal:N2}";
 
             LinesPanel.Children.Clear();
@@ -61,7 +59,9 @@ public partial class PaymentRequestDetailsPage : ContentPage
                 });
             }
 
-            SubmitButton.IsVisible = _request.Status == "DRAFT" || _request.Status == "RETURNED";
+            var editable = _request.Status is "DRAFT" or "RETURNED";
+            EditButton.IsVisible = editable;
+            SubmitButton.IsVisible = editable;
             ReviewButton.IsVisible = _request.Status == "PENDING_REVIEW";
             ApproveButton.IsVisible = _request.Status == "PENDING_APPROVAL";
             ReturnButton.IsVisible = _request.Status == "PENDING_APPROVAL";
@@ -78,18 +78,24 @@ public partial class PaymentRequestDetailsPage : ContentPage
         }
     }
 
+    private async void OnEditClicked(object? sender, EventArgs e)
+    {
+        if (_request == null || _request.Status is not ("DRAFT" or "RETURNED"))
+        {
+            ShowMessage("لا يمكن تعديل الطلب في حالته الحالية.");
+            return;
+        }
+        await Navigation.PushAsync(new NewPaymentRequestPage(_service, _request));
+    }
+
     private async void OnSubmitClicked(object? sender, EventArgs e) =>
         await ExecuteAsync(() => _service.SubmitAsync(_requestId), "تم إرسال الطلب للمراجعة.", false);
-
     private async void OnReviewClicked(object? sender, EventArgs e) =>
         await ExecuteAsync(() => _service.ReviewAsync(_requestId, ReasonEditor.Text?.Trim() ?? string.Empty), "تم تحويل الطلب للاعتماد.", true);
-
     private async void OnApproveClicked(object? sender, EventArgs e) =>
         await ExecuteAsync(() => _service.ApproveAsync(_requestId, ReasonEditor.Text?.Trim() ?? string.Empty), "تم اعتماد الطلب.", true);
-
     private async void OnReturnClicked(object? sender, EventArgs e) =>
         await ExecuteAsync(() => _service.ReturnAsync(_requestId, ReasonEditor.Text?.Trim() ?? string.Empty), "تمت إعادة الطلب.", true);
-
     private async void OnRejectClicked(object? sender, EventArgs e) =>
         await ExecuteAsync(() => _service.RejectAsync(_requestId, ReasonEditor.Text?.Trim() ?? string.Empty), "تم رفض الطلب.", true);
 
@@ -101,7 +107,6 @@ public partial class PaymentRequestDetailsPage : ContentPage
             ShowMessage("سبب الإجراء مطلوب.");
             return;
         }
-
         SetBusy(true);
         try
         {
@@ -109,20 +114,15 @@ public partial class PaymentRequestDetailsPage : ContentPage
             await DisplayAlert("تمت العملية", successMessage, "موافق");
             await LoadAsync();
         }
-        catch (Exception ex)
-        {
-            ShowMessage(ex.Message);
-        }
-        finally
-        {
-            SetBusy(false);
-        }
+        catch (Exception ex) { ShowMessage(ex.Message); }
+        finally { SetBusy(false); }
     }
 
     private void SetBusy(bool busy)
     {
         BusyIndicator.IsVisible = busy;
         BusyIndicator.IsRunning = busy;
+        EditButton.IsEnabled = !busy;
         SubmitButton.IsEnabled = !busy;
         ReviewButton.IsEnabled = !busy;
         ApproveButton.IsEnabled = !busy;
@@ -130,15 +130,6 @@ public partial class PaymentRequestDetailsPage : ContentPage
         RejectButton.IsEnabled = !busy;
     }
 
-    private void ShowMessage(string message)
-    {
-        MessageLabel.Text = message;
-        MessageLabel.IsVisible = true;
-    }
-
-    private void HideMessage()
-    {
-        MessageLabel.Text = string.Empty;
-        MessageLabel.IsVisible = false;
-    }
+    private void ShowMessage(string message) { MessageLabel.Text = message; MessageLabel.IsVisible = true; }
+    private void HideMessage() { MessageLabel.Text = string.Empty; MessageLabel.IsVisible = false; }
 }
