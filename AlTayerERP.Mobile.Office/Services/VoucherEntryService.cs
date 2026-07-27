@@ -34,6 +34,21 @@ public sealed class VoucherEntryService(HttpClient httpClient, SessionStorageSer
                ?? throw new InvalidOperationException("استجابة حفظ السند غير صالحة.");
     }
 
+    public async Task UpdateAsync(UpdateMobileVoucherDto dto, CancellationToken cancellationToken = default)
+    {
+        if (dto.Voucher_ID <= 0)
+            throw new InvalidOperationException("معرف السند غير صحيح.");
+
+        var session = await GetSessionAsync();
+        dto.Branch_ID = session.BranchId.ToString();
+        dto.Fiscal_Year_ID = session.YearId;
+
+        using var request = CreateRequest(HttpMethod.Put, $"api/FinancialVoucher/{dto.Voucher_ID}", session.AccessToken);
+        request.Content = JsonContent.Create(dto);
+        using var response = await httpClient.SendAsync(request, cancellationToken);
+        await EnsureSuccessAsync(response, "تعذر تعديل سند القبض.", cancellationToken);
+    }
+
     public async Task<StoredSessionDto> GetSessionAsync() =>
         await sessionStorage.GetAsync() ?? throw new InvalidOperationException("لا توجد جلسة دخول محفوظة.");
 
@@ -55,12 +70,14 @@ public sealed class VoucherEntryService(HttpClient httpClient, SessionStorageSer
                 using var json = JsonDocument.Parse(raw);
                 if (json.RootElement.TryGetProperty("message", out var message))
                     throw new InvalidOperationException(message.GetString() ?? fallback);
+                if (json.RootElement.TryGetProperty("detail", out var detail))
+                    throw new InvalidOperationException(detail.GetString() ?? fallback);
                 if (json.RootElement.TryGetProperty("title", out var title))
                     throw new InvalidOperationException(title.GetString() ?? fallback);
             }
             catch (JsonException)
             {
-                // نستخدم الرسالة الافتراضية.
+                // نستخدم الرسالة الافتراضية عندما لا تكون الاستجابة JSON.
             }
         }
         throw new InvalidOperationException(fallback);
