@@ -31,20 +31,23 @@ public sealed class LoginOptionsController : ControllerBase
 
     /// <summary>
     /// يعيد الحد الأدنى اللازم من الشركات النشطة لشاشة الدخول.
-    /// لا يعيد بيانات اتصال أو معلومات مالية أو إدارية حساسة.
+    /// لا تظهر إلا شركات المجموعات النشطة المسموح بإظهارها في شاشة اختيار الشركة.
     /// </summary>
     [AllowAnonymous]
     [HttpGet("LoginCompanies")]
     public async Task<IActionResult> GetLoginCompanies(CancellationToken cancellationToken)
     {
-        var companies = await _context.Companies.AsNoTracking()
-            .Where(x => x.Is_Active)
-            .OrderBy(x => x.Company_Name_AR)
-            .Select(x => new LoginCompanyOptionDto
-            {
-                Company_ID = x.Company_ID,
-                Company_Name = x.Company_Name_AR
-            })
+        var companies = await (
+                from company in _context.Companies.AsNoTracking()
+                join group in _context.Tenant_Groups.AsNoTracking()
+                    on company.Group_ID equals group.Group_ID
+                where company.Is_Active && group.Is_Active && group.Show_In_Login
+                orderby group.Is_Default descending, company.Company_Name_AR
+                select new LoginCompanyOptionDto
+                {
+                    Company_ID = company.Company_ID,
+                    Company_Name = company.Company_Name_AR
+                })
             .ToListAsync(cancellationToken);
 
         return Ok(companies);
