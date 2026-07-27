@@ -39,6 +39,11 @@ public partial class PaymentRequestDetailsPage : ContentPage
             DescriptionLabel.Text = string.IsNullOrWhiteSpace(_request.Description) ? "البيان: —" : $"البيان: {_request.Description}";
             TotalLabel.Text = $"الإجمالي المحلي: {_request.LocalTotal:N2}";
 
+            VoucherLinkLabel.IsVisible = _request.Payment_Voucher_ID.HasValue;
+            VoucherLinkLabel.Text = _request.Payment_Voucher_ID.HasValue
+                ? $"سند الصرف المرتبط: {_request.Payment_Voucher_ID.Value}"
+                : string.Empty;
+
             LinesPanel.Children.Clear();
             foreach (var line in _request.Details.OrderBy(x => x.Line_No))
             {
@@ -69,7 +74,61 @@ public partial class PaymentRequestDetailsPage : ContentPage
             ApproveButton.IsVisible = _request.Status == "PENDING_APPROVAL";
             ReturnButton.IsVisible = _request.Status == "PENDING_APPROVAL";
             RejectButton.IsVisible = _request.Status == "PENDING_APPROVAL";
+            CreateVoucherButton.IsVisible = _request.Status == "APPROVED" && !_request.Payment_Voucher_ID.HasValue;
             ReasonEditor.IsVisible = ReviewButton.IsVisible || ApproveButton.IsVisible || ReturnButton.IsVisible || RejectButton.IsVisible;
+        }
+        catch (Exception ex)
+        {
+            ShowMessage(ex.Message);
+        }
+        finally
+        {
+            SetBusy(false);
+        }
+    }
+
+    private async void OnCreateVoucherClicked(object? sender, EventArgs e)
+    {
+        if (_request == null || _request.Status != "APPROVED" || _request.Payment_Voucher_ID.HasValue)
+        {
+            ShowMessage("لا يمكن إنشاء سند صرف من هذا الطلب.");
+            return;
+        }
+
+        SetBusy(true);
+        try
+        {
+            var sources = await _service.GetPaymentVoucherSourcesAsync();
+            if (sources.Count == 0)
+            {
+                ShowMessage("لا توجد صناديق أو حسابات بنكية نشطة ومربوطة بحسابات دفتر الأستاذ.");
+                return;
+            }
+
+            var selectedName = await DisplayActionSheet(
+                "اختر الصندوق أو البنك الدائن",
+                "إلغاء",
+                null,
+                sources.Select(x => x.DisplayName).ToArray());
+
+            if (string.IsNullOrWhiteSpace(selectedName) || selectedName == "إلغاء")
+                return;
+
+            var selected = sources.FirstOrDefault(x => x.DisplayName == selectedName);
+            if (selected == null)
+                return;
+
+            var confirmed = await DisplayAlert(
+                "إنشاء سند صرف",
+                $"سيتم إنشاء سند صرف بقيمة {_request.LocalTotal:N2} من {selected.DisplayName}. هل تريد المتابعة؟",
+                "إنشاء",
+                "إلغاء");
+            if (!confirmed)
+                return;
+
+            var result = await _service.CreatePaymentVoucherAsync(_requestId, selected.AccountId);
+            await DisplayAlert("تم إنشاء السند", $"رقم سند الصرف: {result.VoucherNo}", "موافق");
+            await LoadAsync();
         }
         catch (Exception ex)
         {
@@ -130,6 +189,7 @@ public partial class PaymentRequestDetailsPage : ContentPage
         BusyIndicator.IsRunning = busy;
         EditButton.IsEnabled = !busy;
         AttachmentsButton.IsEnabled = !busy;
+        CreateVoucherButton.IsEnabled = !busy;
         SubmitButton.IsEnabled = !busy;
         ReviewButton.IsEnabled = !busy;
         ApproveButton.IsEnabled = !busy;
