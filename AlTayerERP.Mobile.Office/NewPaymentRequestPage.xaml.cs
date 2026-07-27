@@ -14,15 +14,21 @@ public partial class NewPaymentRequestPage : ContentPage
     private readonly PaymentRequestListItemDto? _editingRequest;
     private PaymentRequestReferencesDto? _references;
     private bool _referencesLoaded;
+    private bool _hasOpenPeriod;
 
-    public NewPaymentRequestPage(PaymentRequestService service, PaymentRequestListItemDto? editingRequest = null)
+    public NewPaymentRequestPage(
+        PaymentRequestService service,
+        PaymentRequestListItemDto? editingRequest = null)
     {
         InitializeComponent();
         _service = service;
         _editingRequest = editingRequest;
-        _referenceService = IPlatformApplication.Current.Services.GetRequiredService<PaymentRequestReferenceService>();
+        _referenceService = IPlatformApplication.Current.Services
+            .GetRequiredService<PaymentRequestReferenceService>();
+
         RequestDatePicker.Date = editingRequest?.Request_Date ?? DateTime.Today;
         LinesList.ItemsSource = _lines;
+
         if (editingRequest != null)
         {
             Title = $"تعديل {editingRequest.Request_No}";
@@ -51,12 +57,19 @@ public partial class NewPaymentRequestPage : ContentPage
             CurrencyPicker.SelectedItem = _references.Currencies.FirstOrDefault(x => x.IsDefault)
                                           ?? _references.Currencies.FirstOrDefault(x => x.IsLocal)
                                           ?? _references.Currencies.FirstOrDefault();
+
+            ApplyOpenPeriods();
+
             if (_editingRequest != null)
                 PopulateForEdit();
+
             _referencesLoaded = true;
         }
         catch (Exception ex)
         {
+            _hasOpenPeriod = false;
+            OpenPeriodLabel.Text = "تعذر تحميل الفترات المالية المفتوحة.";
+            OpenPeriodLabel.TextColor = Color.FromArgb("#B42318");
             ShowStatus(ex.Message);
         }
         finally
@@ -65,19 +78,63 @@ public partial class NewPaymentRequestPage : ContentPage
         }
     }
 
+    private void ApplyOpenPeriods()
+    {
+        var periods = _references?.OpenPeriods
+            .OrderBy(x => x.StartDate)
+            .ToList() ?? [];
+
+        _hasOpenPeriod = periods.Count > 0;
+        RequestDatePicker.IsEnabled = _hasOpenPeriod;
+
+        if (!_hasOpenPeriod)
+        {
+            OpenPeriodLabel.Text = "لا توجد فترة مالية مفتوحة للفرع والسنة الحالية.";
+            OpenPeriodLabel.TextColor = Color.FromArgb("#B42318");
+            return;
+        }
+
+        RequestDatePicker.MinimumDate = periods.Min(x => x.StartDate.Date);
+        RequestDatePicker.MaximumDate = periods.Max(x => x.EndDate.Date);
+
+        var requestedDate = (_editingRequest?.Request_Date ?? DateTime.Today).Date;
+        var matchingPeriod = periods.FirstOrDefault(x => x.Contains(requestedDate));
+        var selectedPeriod = matchingPeriod
+                             ?? periods.FirstOrDefault(x => x.Contains(DateTime.Today))
+                             ?? periods[0];
+
+        RequestDatePicker.Date = matchingPeriod != null
+            ? requestedDate
+            : DateTime.Today.Date >= selectedPeriod.StartDate.Date &&
+              DateTime.Today.Date <= selectedPeriod.EndDate.Date
+                ? DateTime.Today.Date
+                : selectedPeriod.StartDate.Date;
+
+        OpenPeriodLabel.Text = periods.Count == 1
+            ? $"الفترة المفتوحة: {periods[0].DisplayName}"
+            : $"الفترات المفتوحة: {string.Join(" | ", periods.Select(x => x.DisplayName))}";
+        OpenPeriodLabel.TextColor = Color.FromArgb("#198754");
+    }
+
+    private bool IsDateInOpenPeriod(DateTime date) =>
+        _references?.OpenPeriods.Any(x => x.Contains(date)) == true;
+
     private void PopulateForEdit()
     {
         if (_editingRequest == null || _references == null) return;
+
         BeneficiaryEntry.Text = _editingRequest.Beneficiary_Name;
         PartyIdEntry.Text = _editingRequest.Party_ID;
         ReferenceEntry.Text = _editingRequest.Header_Reference_No;
         DescriptionEditor.Text = _editingRequest.Description;
         _lines.Clear();
+
         foreach (var line in _editingRequest.Details.OrderBy(x => x.Line_No))
         {
             var account = _references.Accounts.FirstOrDefault(x => x.Id == line.Account_ID);
             var costCenter = _references.CostCenters.FirstOrDefault(x => x.Id == line.Cost_Center_ID);
             var currency = _references.Currencies.FirstOrDefault(x => x.Id == line.Currency_ID);
+
             _lines.Add(new PaymentRequestDraftLine
             {
                 AccountId = line.Account_ID,
@@ -92,30 +149,48 @@ public partial class NewPaymentRequestPage : ContentPage
                 Description = line.Description
             });
         }
+
         UpdateTotal();
     }
 
-    private async void OnSaveDraftClicked(object? sender, EventArgs e) => await SaveAsync(false);
-    private async void OnSaveAndSubmitClicked(object? sender, EventArgs e) => await SaveAsync(true);
+    private async void OnSaveDraftClicked(object? sender, EventArgs e) =>
+        await SaveAsync(false);
+
+    private async void OnSaveAndSubmitClicked(object? sender, EventArgs e) =>
+        await SaveAsync(true);
 
     private void OnCurrencyChanged(object? sender, EventArgs e)
     {
         if (CurrencyPicker.SelectedItem is not PaymentRequestCurrencyDto currency) return;
-        ExchangeRateEntry.Text = currency.IsLocal ? "1" : currency.ExchangeRate.ToString(CultureInfo.InvariantCulture);
+
+        ExchangeRateEntry.Text = currency.IsLocal
+            ? "1"
+            : currency.ExchangeRate.ToString(CultureInfo.InvariantCulture);
         ExchangeRateEntry.IsReadOnly = currency.IsLocal;
         ForeignAmountEntry.IsEnabled = !currency.IsLocal;
         LocalAmountEntry.IsReadOnly = !currency.IsLocal;
-        if (currency.IsLocal) ForeignAmountEntry.Text = "0"; else RecalculateLocalAmount();
+
+        if (currency.IsLocal)
+            ForeignAmountEntry.Text = "0";
+        else
+            RecalculateLocalAmount();
     }
 
-    private void OnForeignAmountChanged(object? sender, TextChangedEventArgs e) => RecalculateLocalAmount();
+    private void OnForeignAmountChanged(object? sender, TextChangedEventArgs e) =>
+        RecalculateLocalAmount();
 
     private void RecalculateLocalAmount()
     {
-        if (CurrencyPicker.SelectedItem is not PaymentRequestCurrencyDto currency || currency.IsLocal) return;
+        if (CurrencyPicker.SelectedItem is not PaymentRequestCurrencyDto currency || currency.IsLocal)
+            return;
+
         if (TryDecimal(ForeignAmountEntry.Text, out var foreignAmount) &&
-            TryDecimal(ExchangeRateEntry.Text, out var exchangeRate) && foreignAmount >= 0 && exchangeRate > 0)
-            LocalAmountEntry.Text = decimal.Round(foreignAmount * exchangeRate, 2).ToString(CultureInfo.InvariantCulture);
+            TryDecimal(ExchangeRateEntry.Text, out var exchangeRate) &&
+            foreignAmount >= 0 && exchangeRate > 0)
+        {
+            LocalAmountEntry.Text = decimal.Round(foreignAmount * exchangeRate, 2)
+                .ToString(CultureInfo.InvariantCulture);
+        }
     }
 
     private void OnAddLineClicked(object? sender, EventArgs e)
@@ -126,6 +201,7 @@ public partial class NewPaymentRequestPage : ContentPage
             ShowStatus(message);
             return;
         }
+
         _lines.Add(line!);
         ClearLineEditor();
         UpdateTotal();
@@ -140,16 +216,49 @@ public partial class NewPaymentRequestPage : ContentPage
         }
     }
 
-    private bool TryBuildCurrentLine(out PaymentRequestDraftLine? line, out string message)
+    private bool TryBuildCurrentLine(
+        out PaymentRequestDraftLine? line,
+        out string message)
     {
         line = null;
         message = string.Empty;
-        if (AccountPicker.SelectedItem is not PaymentRequestReferenceItemDto account) { message = "اختر الحساب المدين."; return false; }
-        if (CurrencyPicker.SelectedItem is not PaymentRequestCurrencyDto currency) { message = "اختر العملة."; return false; }
-        if (!TryDecimal(ExchangeRateEntry.Text, out var exchangeRate) || exchangeRate <= 0) { message = "سعر الصرف غير صحيح."; return false; }
-        if (!TryDecimal(ForeignAmountEntry.Text, out var foreignAmount) || foreignAmount < 0) { message = "المبلغ الأجنبي غير صحيح."; return false; }
-        if (!TryDecimal(LocalAmountEntry.Text, out var localAmount) || localAmount <= 0) { message = "المبلغ المحلي يجب أن يكون أكبر من صفر."; return false; }
-        if (currency.IsLocal && (foreignAmount != 0 || exchangeRate != 1)) { message = "في العملة المحلية يجب أن يكون المبلغ الأجنبي صفراً وسعر الصرف 1."; return false; }
+
+        if (AccountPicker.SelectedItem is not PaymentRequestReferenceItemDto account)
+        {
+            message = "اختر الحساب المدين.";
+            return false;
+        }
+
+        if (CurrencyPicker.SelectedItem is not PaymentRequestCurrencyDto currency)
+        {
+            message = "اختر العملة.";
+            return false;
+        }
+
+        if (!TryDecimal(ExchangeRateEntry.Text, out var exchangeRate) || exchangeRate <= 0)
+        {
+            message = "سعر الصرف غير صحيح.";
+            return false;
+        }
+
+        if (!TryDecimal(ForeignAmountEntry.Text, out var foreignAmount) || foreignAmount < 0)
+        {
+            message = "المبلغ الأجنبي غير صحيح.";
+            return false;
+        }
+
+        if (!TryDecimal(LocalAmountEntry.Text, out var localAmount) || localAmount <= 0)
+        {
+            message = "المبلغ المحلي يجب أن يكون أكبر من صفر.";
+            return false;
+        }
+
+        if (currency.IsLocal && (foreignAmount != 0 || exchangeRate != 1))
+        {
+            message = "في العملة المحلية يجب أن يكون المبلغ الأجنبي صفراً وسعر الصرف 1.";
+            return false;
+        }
+
         var costCenter = CostCenterPicker.SelectedItem as PaymentRequestReferenceItemDto;
         line = new PaymentRequestDraftLine
         {
@@ -170,11 +279,35 @@ public partial class NewPaymentRequestPage : ContentPage
     private async Task SaveAsync(bool submitAfterSave)
     {
         HideStatus();
-        if (string.IsNullOrWhiteSpace(BeneficiaryEntry.Text)) { ShowStatus("اسم المستفيد مطلوب."); return; }
-        if (_lines.Count == 0) { ShowStatus("أضف سطر صرف واحداً على الأقل."); return; }
+
+        if (!_hasOpenPeriod)
+        {
+            ShowStatus("لا يمكن الحفظ قبل فتح فترة مالية للفرع والسنة الحالية.");
+            return;
+        }
+
+        var requestDate = RequestDatePicker.Date ?? DateTime.Today;
+        if (!IsDateInOpenPeriod(requestDate))
+        {
+            ShowStatus("تاريخ الطلب لا يقع ضمن أي فترة مالية مفتوحة.");
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(BeneficiaryEntry.Text))
+        {
+            ShowStatus("اسم المستفيد مطلوب.");
+            return;
+        }
+
+        if (_lines.Count == 0)
+        {
+            ShowStatus("أضف سطر صرف واحداً على الأقل.");
+            return;
+        }
+
         var dto = new CreatePaymentRequestDto
         {
-            Request_Date = RequestDatePicker.Date ?? DateTime.Today,
+            Request_Date = requestDate,
             Beneficiary_Name = BeneficiaryEntry.Text.Trim(),
             Party_ID = Clean(PartyIdEntry.Text),
             Payment_Method_ID = _editingRequest?.Payment_Method_ID,
@@ -198,14 +331,27 @@ public partial class NewPaymentRequestPage : ContentPage
             var saved = _editingRequest == null
                 ? await _service.CreateAsync(dto)
                 : await _service.UpdateAsync(_editingRequest.Payment_Request_ID, dto);
-            if (submitAfterSave) await _service.SubmitAsync(saved.Payment_Request_ID);
-            await DisplayAlert("تمت العملية", submitAfterSave
-                ? $"تم حفظ طلب الصرف {saved.Request_No} وإرساله للمراجعة."
-                : $"تم حفظ طلب الصرف {saved.Request_No}.", "موافق");
+
+            if (submitAfterSave)
+                await _service.SubmitAsync(saved.Payment_Request_ID);
+
+            await DisplayAlert(
+                "تمت العملية",
+                submitAfterSave
+                    ? $"تم حفظ طلب الصرف {saved.Request_No} وإرساله للمراجعة."
+                    : $"تم حفظ طلب الصرف {saved.Request_No}.",
+                "موافق");
+
             await Navigation.PopAsync();
         }
-        catch (Exception ex) { ShowStatus(ex.Message); }
-        finally { SetBusy(false); }
+        catch (Exception ex)
+        {
+            ShowStatus(ex.Message);
+        }
+        finally
+        {
+            SetBusy(false);
+        }
     }
 
     private void ClearLineEditor()
@@ -220,26 +366,40 @@ public partial class NewPaymentRequestPage : ContentPage
         LineDescriptionEditor.Text = string.Empty;
     }
 
-    private void UpdateTotal() => TotalLabel.Text = $"الإجمالي: {_lines.Sum(x => x.LocalAmount):N2}";
+    private void UpdateTotal() =>
+        TotalLabel.Text = $"الإجمالي: {_lines.Sum(x => x.LocalAmount):N2}";
+
     private static bool TryDecimal(string? value, out decimal result) =>
         decimal.TryParse(value, NumberStyles.Number, CultureInfo.CurrentCulture, out result) ||
         decimal.TryParse(value, NumberStyles.Number, CultureInfo.InvariantCulture, out result);
-    private static string? Clean(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+
+    private static string? Clean(string? value) =>
+        string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 
     private void SetBusy(bool busy)
     {
         BusyIndicator.IsVisible = busy;
         BusyIndicator.IsRunning = busy;
-        SaveDraftButton.IsEnabled = !busy;
-        SaveAndSubmitButton.IsEnabled = !busy;
-        AddLineButton.IsEnabled = !busy;
+        SaveDraftButton.IsEnabled = !busy && _hasOpenPeriod;
+        SaveAndSubmitButton.IsEnabled = !busy && _hasOpenPeriod;
+        AddLineButton.IsEnabled = !busy && _hasOpenPeriod;
         AccountPicker.IsEnabled = !busy;
         CostCenterPicker.IsEnabled = !busy;
         CurrencyPicker.IsEnabled = !busy;
+        RequestDatePicker.IsEnabled = !busy && _hasOpenPeriod;
     }
 
-    private void ShowStatus(string message) { StatusLabel.Text = message; StatusLabel.IsVisible = true; }
-    private void HideStatus() { StatusLabel.Text = string.Empty; StatusLabel.IsVisible = false; }
+    private void ShowStatus(string message)
+    {
+        StatusLabel.Text = message;
+        StatusLabel.IsVisible = true;
+    }
+
+    private void HideStatus()
+    {
+        StatusLabel.Text = string.Empty;
+        StatusLabel.IsVisible = false;
+    }
 
     private sealed class PaymentRequestDraftLine
     {
