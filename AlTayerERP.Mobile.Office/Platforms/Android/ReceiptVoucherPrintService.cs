@@ -2,11 +2,13 @@ using System.Net;
 using System.Text;
 using Android.Content;
 using Android.Print;
-using Android.Webkit;
 using AlTayerERP.Mobile.Office.DTOs;
 using AlTayerERP.Mobile.Office.Services;
 using Microsoft.Maui.ApplicationModel;
 using AndroidWebView = Android.Webkit.WebView;
+using AndroidWebViewClient = Android.Webkit.WebViewClient;
+using AndroidWebResourceRequest = Android.Webkit.IWebResourceRequest;
+using AndroidWebResourceError = Android.Webkit.WebResourceError;
 
 namespace AlTayerERP.Mobile.Office.Platforms.Android;
 
@@ -117,7 +119,7 @@ table.lines { width:100%; border-collapse:collapse; margin-top:16px; font-size:1
     private static string E(string value) => WebUtility.HtmlEncode(value);
     private static string Safe(string value) => string.Concat(value.Select(ch => char.IsLetterOrDigit(ch) || ch is '-' or '_' ? ch : '_'));
 
-    private sealed class PrintWebViewClient(TaskCompletionSource loaded) : WebViewClient
+    private sealed class PrintWebViewClient(TaskCompletionSource loaded) : AndroidWebViewClient
     {
         public override void OnPageFinished(AndroidWebView? view, string? url)
         {
@@ -125,7 +127,7 @@ table.lines { width:100%; border-collapse:collapse; margin-top:16px; font-size:1
             loaded.TrySetResult();
         }
 
-        public override void OnReceivedError(AndroidWebView? view, IWebResourceRequest? request, WebResourceError? error)
+        public override void OnReceivedError(AndroidWebView? view, AndroidWebResourceRequest? request, AndroidWebResourceError? error)
         {
             base.OnReceivedError(view, request, error);
             loaded.TrySetException(new InvalidOperationException("تعذر تجهيز معاينة سند القبض للطباعة."));
