@@ -18,50 +18,67 @@ public sealed class VoucherEntryService(HttpClient httpClient, SessionStorageSer
         using var request = CreateRequest(HttpMethod.Get,
             $"api/mobile/voucher-entry-references?type={Uri.EscapeDataString(type)}",
             session.AccessToken);
-        using var response = await httpClient.SendAsync(request, cancellationToken);
-        await EnsureSuccessAsync(response, "تعذر تحميل بيانات السند.", cancellationToken);
 
-        var raw = await response.Content.ReadAsStringAsync(cancellationToken);
-        if (string.IsNullOrWhiteSpace(raw))
-            throw new InvalidOperationException("استجابة منسدلات السند فارغة من الخادم.");
-
-        VoucherEntryReferencesDto? result;
+        HttpResponseMessage response;
         try
         {
-            result = JsonSerializer.Deserialize<VoucherEntryReferencesDto>(raw, JsonOptions);
+            response = await httpClient.SendAsync(request, cancellationToken);
         }
-        catch (JsonException ex)
+        catch (HttpRequestException ex)
         {
-            throw new InvalidOperationException($"تعذر قراءة بيانات منسدلات السند: {ex.Message}");
+            throw new InvalidOperationException($"تعذر الاتصال بخادم القوائم: {ex.Message}", ex);
         }
-
-        if (result == null)
-            throw new InvalidOperationException("استجابة بيانات السند غير صالحة.");
-
-        result.Sources ??= [];
-        result.Accounts ??= [];
-        result.CostCenters ??= [];
-        result.Currencies ??= [];
-        result.Parties ??= [];
-        result.PaymentMethods ??= [];
-        result.OpenPeriods ??= [];
-
-        var allCoreListsEmpty = result.Sources.Count == 0 &&
-                                result.Accounts.Count == 0 &&
-                                result.Currencies.Count == 0 &&
-                                result.Parties.Count == 0 &&
-                                result.PaymentMethods.Count == 0;
-
-        if (allCoreListsEmpty)
+        catch (TaskCanceledException ex) when (!cancellationToken.IsCancellationRequested)
         {
-            throw new InvalidOperationException(
-                $"لم تصل أي بيانات للمنسدلات. الشركة: {session.CompanyId}، الفرع: {session.BranchId}، السنة: {session.YearId}. " +
-                $"الصناديق/البنوك: {result.Sources.Count}، الحسابات: {result.Accounts.Count}، العملات: {result.Currencies.Count}، " +
-                $"الأطراف: {result.Parties.Count}، طرق السداد: {result.PaymentMethods.Count}. " +
-                "تأكد أن الـAPI الذي يعمل هو آخر نسخة وأنه متصل بقاعدة altayer_erp_db.");
+            throw new InvalidOperationException("انتهت مهلة الاتصال بخادم القوائم.", ex);
         }
 
-        return result;
+        using (response)
+        {
+            await EnsureSuccessAsync(response, "تعذر تحميل بيانات السند.", cancellationToken);
+
+            var raw = await response.Content.ReadAsStringAsync(cancellationToken);
+            if (string.IsNullOrWhiteSpace(raw))
+                throw new InvalidOperationException("استجابة منسدلات السند فارغة من الخادم.");
+
+            VoucherEntryReferencesDto? result;
+            try
+            {
+                result = JsonSerializer.Deserialize<VoucherEntryReferencesDto>(raw, JsonOptions);
+            }
+            catch (JsonException ex)
+            {
+                throw new InvalidOperationException($"تعذر قراءة بيانات منسدلات السند: {ex.Message}");
+            }
+
+            if (result == null)
+                throw new InvalidOperationException("استجابة بيانات السند غير صالحة.");
+
+            result.Sources ??= [];
+            result.Accounts ??= [];
+            result.CostCenters ??= [];
+            result.Currencies ??= [];
+            result.Parties ??= [];
+            result.PaymentMethods ??= [];
+            result.OpenPeriods ??= [];
+
+            var allCoreListsEmpty = result.Sources.Count == 0 &&
+                                    result.Accounts.Count == 0 &&
+                                    result.Currencies.Count == 0 &&
+                                    result.Parties.Count == 0 &&
+                                    result.PaymentMethods.Count == 0;
+
+            if (allCoreListsEmpty)
+            {
+                throw new InvalidOperationException(
+                    $"لم تصل أي بيانات للمنسدلات. الشركة: {session.CompanyId}، الفرع: {session.BranchId}، السنة: {session.YearId}. " +
+                    $"الصناديق/البنوك: {result.Sources.Count}، الحسابات: {result.Accounts.Count}، العملات: {result.Currencies.Count}، " +
+                    $"الأطراف: {result.Parties.Count}، طرق السداد: {result.PaymentMethods.Count}. " +
+                    "تأكد أن الـAPI الذي يعمل هو آخر نسخة وأنه متصل بقاعدة altayer_erp_db.");
+            }
+
+            return result;
+        }
     }
 
     public async Task<CreateMobileVoucherResultDto> CreateAsync(CreateMobileVoucherDto dto, CancellationToken cancellationToken = default)
@@ -108,24 +125,31 @@ public sealed class VoucherEntryService(HttpClient httpClient, SessionStorageSer
     private static async Task EnsureSuccessAsync(HttpResponseMessage response, string fallback, CancellationToken cancellationToken)
     {
         if (response.IsSuccessStatusCode) return;
+
         var raw = await response.Content.ReadAsStringAsync(cancellationToken);
+        string? serverMessage = null;
         if (!string.IsNullOrWhiteSpace(raw))
         {
             try
             {
                 using var json = JsonDocument.Parse(raw);
                 if (json.RootElement.TryGetProperty("message", out var message))
-                    throw new InvalidOperationException(message.GetString() ?? fallback);
-                if (json.RootElement.TryGetProperty("detail", out var detail))
-                    throw new InvalidOperationException(detail.GetString() ?? fallback);
-                if (json.RootElement.TryGetProperty("title", out var title))
-                    throw new InvalidOperationException(title.GetString() ?? fallback);
+                    serverMessage = message.GetString();
+                else if (json.RootElement.TryGetProperty("detail", out var detail))
+                    serverMessage = detail.GetString();
+                else if (json.RootElement.TryGetProperty("title", out var title))
+                    serverMessage = title.GetString();
             }
             catch (JsonException)
             {
-                // نستخدم الرسالة الافتراضية عندما لا تكون الاستجابة JSON.
+                serverMessage = raw.Length > 250 ? raw[..250] : raw;
             }
         }
-        throw new InvalidOperationException(fallback);
+
+        var status = $"HTTP {(int)response.StatusCode} ({response.ReasonPhrase})";
+        throw new InvalidOperationException(
+            string.IsNullOrWhiteSpace(serverMessage)
+                ? $"{fallback} {status}."
+                : $"{serverMessage} — {status}.");
     }
 }
