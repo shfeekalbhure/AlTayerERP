@@ -16,6 +16,10 @@ public partial class MainPage : ContentPage
         InitializeComponent();
         _authentication = authentication;
         _mobileHomeService = mobileHomeService;
+
+        CompanyPicker.ItemDisplayBinding = new Binding(nameof(LoginCompanyOptionDto.DisplayName));
+        BranchPicker.ItemDisplayBinding = new Binding(nameof(LoginBranchOptionDto.DisplayName));
+        YearPicker.ItemDisplayBinding = new Binding(nameof(LoginYearOptionDto.DisplayName));
     }
 
     protected override async void OnAppearing()
