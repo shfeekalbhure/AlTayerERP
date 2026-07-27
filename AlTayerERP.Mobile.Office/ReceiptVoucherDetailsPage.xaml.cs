@@ -1,16 +1,20 @@
 using AlTayerERP.Mobile.Office.Services;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace AlTayerERP.Mobile.Office;
 
 public partial class ReceiptVoucherDetailsPage : ContentPage
 {
     private readonly ReceiptVoucherService _service;
+    private readonly VoucherWorkflowService _workflow;
     private readonly long _voucherId;
+    private bool _isPosted;
 
     public ReceiptVoucherDetailsPage(ReceiptVoucherService service, long voucherId)
     {
         InitializeComponent();
         _service = service;
+        _workflow = IPlatformApplication.Current.Services.GetRequiredService<VoucherWorkflowService>();
         _voucherId = voucherId;
     }
 
@@ -30,6 +34,7 @@ public partial class ReceiptVoucherDetailsPage : ContentPage
         {
             var data = await _service.GetByIdAsync(_voucherId);
             var header = data.Header;
+            _isPosted = header.IsPosted;
             VoucherNoLabel.Text = header.VoucherNo;
             PostingStatusLabel.Text = header.IsPosted ? "الحالة: مرحّل" : "الحالة: غير مرحّل";
             ReceivedFromLabel.Text = $"استلمنا من: {header.ReceivedFromName ?? "—"}";
@@ -38,6 +43,8 @@ public partial class ReceiptVoucherDetailsPage : ContentPage
             CashAccountLabel.Text = $"الصندوق/البنك: {header.CashAccountDisplay}";
             DescriptionLabel.Text = $"البيان: {header.Description ?? "—"}";
             TotalLabel.Text = $"الإجمالي المحلي: {header.LocalTotal:N2}";
+            PostButton.IsVisible = !header.IsPosted;
+            UnpostButton.IsVisible = header.IsPosted;
 
             LinesPanel.Children.Clear();
             foreach (var line in data.Details.OrderBy(x => x.LineNo))
@@ -65,13 +72,62 @@ public partial class ReceiptVoucherDetailsPage : ContentPage
         }
         catch (Exception ex)
         {
-            MessageLabel.Text = ex.Message;
-            MessageLabel.IsVisible = true;
+            ShowMessage(ex.Message);
         }
         finally
         {
             BusyIndicator.IsRunning = false;
             BusyIndicator.IsVisible = false;
         }
+    }
+
+    private async void OnReviewClicked(object? sender, EventArgs e) =>
+        await ExecuteAsync(() => _workflow.ReviewAsync(_voucherId, "مراجعة من تطبيق الجوال"), "تمت مراجعة السند.");
+
+    private async void OnApproveClicked(object? sender, EventArgs e) =>
+        await ExecuteAsync(() => _workflow.ApproveAsync(_voucherId, "اعتماد من تطبيق الجوال"), "تم اعتماد السند.");
+
+    private async void OnReturnClicked(object? sender, EventArgs e)
+    {
+        var reason = await DisplayPromptAsync("إعادة للتصحيح", "أدخل سبب الإعادة:", "تنفيذ", "إلغاء");
+        if (string.IsNullOrWhiteSpace(reason)) return;
+        await ExecuteAsync(() => _workflow.ReturnForCorrectionAsync(_voucherId, reason), "تمت إعادة السند للتصحيح.");
+    }
+
+    private async void OnPostClicked(object? sender, EventArgs e) =>
+        await ExecuteAsync(() => _workflow.PostVoucherAsync(_voucherId, "ترحيل من تطبيق الجوال"), "تم ترحيل السند.");
+
+    private async void OnUnpostClicked(object? sender, EventArgs e)
+    {
+        if (!_isPosted) return;
+        var reason = await DisplayPromptAsync("فك الترحيل", "أدخل سبب فك الترحيل:", "تنفيذ", "إلغاء");
+        if (string.IsNullOrWhiteSpace(reason)) return;
+        await ExecuteAsync(() => _workflow.UnpostAsync(_voucherId, reason), "تم فك ترحيل السند.");
+    }
+
+    private async Task ExecuteAsync(Func<Task> action, string successMessage)
+    {
+        BusyIndicator.IsVisible = BusyIndicator.IsRunning = true;
+        MessageLabel.IsVisible = false;
+        try
+        {
+            await action();
+            await DisplayAlert("تمت العملية", successMessage, "موافق");
+            await LoadAsync();
+        }
+        catch (Exception ex)
+        {
+            ShowMessage(ex.Message);
+        }
+        finally
+        {
+            BusyIndicator.IsVisible = BusyIndicator.IsRunning = false;
+        }
+    }
+
+    private void ShowMessage(string message)
+    {
+        MessageLabel.Text = message;
+        MessageLabel.IsVisible = true;
     }
 }
