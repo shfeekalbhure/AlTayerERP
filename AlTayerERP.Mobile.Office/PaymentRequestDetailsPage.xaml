@@ -20,24 +20,23 @@
                     <Label x:Name="DateLabel" TextColor="#35566F" />
                     <Label x:Name="DescriptionLabel" TextColor="#35566F" />
                     <Label x:Name="TotalLabel" FontAttributes="Bold" TextColor="#17324D" />
+                    <Label x:Name="VoucherLinkLabel" TextColor="#198754" FontAttributes="Bold" IsVisible="False" />
                 </VerticalStackLayout>
             </Border>
 
             <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
-                <Button x:Name="EditButton"
-                        Grid.Column="0"
-                        Text="تعديل الطلب"
-                        BackgroundColor="#17324D"
-                        TextColor="White"
-                        Clicked="OnEditClicked"
-                        IsVisible="False" />
-                <Button x:Name="AttachmentsButton"
-                        Grid.Column="1"
-                        Text="المرفقات"
-                        BackgroundColor="#0B6B87"
-                        TextColor="White"
-                        Clicked="OnAttachmentsClicked" />
+                <Button x:Name="EditButton" Grid.Column="0" Text="تعديل الطلب" BackgroundColor="#17324D" TextColor="White" Clicked="OnEditClicked" IsVisible="False" />
+                <Button x:Name="AttachmentsButton" Grid.Column="1" Text="المرفقات" BackgroundColor="#0B6B87" TextColor="White" Clicked="OnAttachmentsClicked" />
             </Grid>
+
+            <Button x:Name="CreateVoucherButton"
+                    Text="إنشاء سند صرف"
+                    BackgroundColor="#198754"
+                    TextColor="White"
+                    HeightRequest="50"
+                    CornerRadius="12"
+                    Clicked="OnCreateVoucherClicked"
+                    IsVisible="False" />
 
             <Label Text="تفاصيل الحسابات" FontSize="18" FontAttributes="Bold" TextColor="#17324D" />
             <VerticalStackLayout x:Name="LinesPanel" Spacing="10" />
