@@ -15,9 +15,12 @@ public sealed class VoucherEntryService(HttpClient httpClient, SessionStorageSer
     public async Task<VoucherEntryReferencesDto> GetReferencesAsync(string type, CancellationToken cancellationToken = default)
     {
         var session = await GetSessionAsync();
-        using var request = CreateRequest(HttpMethod.Get,
-            $"api/mobile/voucher-entry-references?type={Uri.EscapeDataString(type)}",
-            session.AccessToken);
+        var normalized = type.Trim().ToUpperInvariant();
+        var url = normalized == "RECEIPT"
+            ? "api/mobile/payment-request-references?type=RECEIPT"
+            : $"api/mobile/voucher-entry-references?type={Uri.EscapeDataString(normalized)}";
+
+        using var request = CreateRequest(HttpMethod.Get, url, session.AccessToken);
 
         HttpResponseMessage response;
         try
