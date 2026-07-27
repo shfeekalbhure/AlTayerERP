@@ -47,6 +47,7 @@ public partial class NewVoucherPage : ContentPage
             CurrencyPicker.SelectedItem = _references.Currencies.FirstOrDefault(x => x.IsDefault)
                                           ?? _references.Currencies.FirstOrDefault(x => x.IsLocal)
                                           ?? _references.Currencies.FirstOrDefault();
+            RefreshLookupButtonTexts();
 
             var today = DateTime.Today;
             var period = _references.OpenPeriods.FirstOrDefault(x => today >= x.StartDate.Date && today <= x.EndDate.Date)
@@ -79,12 +80,25 @@ public partial class NewVoucherPage : ContentPage
     private void OnPartyChanged(object? sender, EventArgs e)
     {
         if (PartyPicker.SelectedItem is VoucherEntryPartyDto party)
+        {
             PartyNameEntry.Text = party.Name;
+            PartySearchButton.Text = party.DisplayName;
+        }
+        else
+        {
+            PartySearchButton.Text = "اختيار الطرف - اختياري 🔍";
+        }
     }
 
     private void OnCurrencyChanged(object? sender, EventArgs e)
     {
-        if (CurrencyPicker.SelectedItem is not VoucherEntryCurrencyDto currency) return;
+        if (CurrencyPicker.SelectedItem is not VoucherEntryCurrencyDto currency)
+        {
+            CurrencySearchButton.Text = "اختيار العملة 🔍";
+            return;
+        }
+
+        CurrencySearchButton.Text = currency.DisplayName;
         ExchangeRateEntry.Text = (currency.IsLocal ? 1m : currency.ExchangeRate).ToString(CultureInfo.InvariantCulture);
         ExchangeRateEntry.IsReadOnly = currency.IsLocal;
         ForeignAmountEntry.IsEnabled = !currency.IsLocal;
@@ -267,6 +281,9 @@ public partial class NewVoucherPage : ContentPage
         CurrencyPicker.SelectedItem = _references?.Currencies.FirstOrDefault(x => x.IsDefault)
                                       ?? _references?.Currencies.FirstOrDefault(x => x.IsLocal)
                                       ?? _references?.Currencies.FirstOrDefault();
+        AccountSearchButton.Text = "اختيار الحساب المقابل 🔍";
+        CostCenterSearchButton.Text = "اختيار مركز التكلفة - اختياري 🔍";
+        RefreshLookupButtonTexts();
         ForeignAmountEntry.Text = "0";
         LocalAmountEntry.Text = string.Empty;
         LineDescriptionEditor.Text = string.Empty;
