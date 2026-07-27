@@ -196,10 +196,6 @@ namespace AlTayerERP.Desktop
                 btnUndo.Enabled = false;
                 UseWaitCursor = true;
 
-                lblStatusApi.Text = isNewVoucher
-                    ? "API: جاري حفظ السند..."
-                    : "API: جاري حفظ التعديلات...";
-
                 CreateFinancialVoucherRequest request =
                    BuildCreateVoucherRequest();
 
@@ -227,9 +223,6 @@ namespace AlTayerERP.Desktop
 
                 if (!response.Success)
                 {
-                    lblStatusApi.Text =
-                        "API: متصل - فشلت العملية";
-
                     MessageBox.Show(
                         response.Message,
                         isNewVoucher
@@ -252,10 +245,6 @@ namespace AlTayerERP.Desktop
                 // معرفه الحقيقي ورقم القيد وبقية البيانات.
                 await SearchVoucherAsync(voucherNumber);
 
-                lblStatusApi.Text = "API: متصل";
-                lblStatusDatabase.Text =
-                    "قاعدة البيانات: متصلة";
-
                 MessageBox.Show(
                     response.Message,
                     isNewVoucher
@@ -269,8 +258,6 @@ namespace AlTayerERP.Desktop
             }
             catch (HttpRequestException ex)
             {
-                lblStatusApi.Text = "API: غير متصل";
-
                 MessageBox.Show(
                     $"تعذر الاتصال بالـ API.\n\n{ex.Message}",
                     "خطأ في الاتصال",
@@ -279,9 +266,6 @@ namespace AlTayerERP.Desktop
             }
             catch (TaskCanceledException)
             {
-                lblStatusApi.Text =
-                    "API: انتهت مهلة الاتصال";
-
                 MessageBox.Show(
                     "انتهت مهلة الاتصال بالـ API.",
                     "انتهاء مهلة الاتصال",
