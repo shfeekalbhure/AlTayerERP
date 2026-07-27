@@ -10,6 +10,8 @@ public partial class ReceiptVoucherDetailsPage : ContentPage
     private readonly VoucherJournalService _journalService;
     private readonly long _voucherId;
     private bool _isPosted;
+    private byte _approvalStatus;
+    private byte _reviewStatus;
 
     public ReceiptVoucherDetailsPage(ReceiptVoucherService service, long voucherId)
     {
@@ -28,8 +30,7 @@ public partial class ReceiptVoucherDetailsPage : ContentPage
 
     private async Task LoadAsync()
     {
-        BusyIndicator.IsVisible = true;
-        BusyIndicator.IsRunning = true;
+        BusyIndicator.IsVisible = BusyIndicator.IsRunning = true;
         MessageLabel.IsVisible = false;
 
         try
@@ -37,17 +38,20 @@ public partial class ReceiptVoucherDetailsPage : ContentPage
             var data = await _service.GetByIdAsync(_voucherId);
             var header = data.Header;
             _isPosted = header.IsPosted;
+            _approvalStatus = header.ApprovalStatus;
+            _reviewStatus = header.ReviewStatus;
+
             VoucherNoLabel.Text = header.VoucherNo;
-            PostingStatusLabel.Text = header.IsPosted ? "الحالة: مرحّل" : "الحالة: غير مرحّل";
+            PostingStatusLabel.Text = $"الحالة: {header.WorkflowStatus}";
             ReceivedFromLabel.Text = $"استلمنا من: {header.ReceivedFromName ?? "—"}";
             DateLabel.Text = $"التاريخ: {header.VoucherDate:yyyy/MM/dd}";
             ReferenceLabel.Text = $"المرجع: {header.ReferenceNo ?? "—"}";
             CashAccountLabel.Text = $"الصندوق/البنك: {header.CashAccountDisplay}";
             DescriptionLabel.Text = $"البيان: {header.Description ?? "—"}";
             TotalLabel.Text = $"الإجمالي المحلي: {header.LocalTotal:N2}";
-            PostButton.IsVisible = !header.IsPosted;
-            UnpostButton.IsVisible = header.IsPosted;
-            JournalButton.IsVisible = header.JournalEntryId.HasValue;
+            AuditLabel.Text = $"التعديلات: {header.EditCount} | الطباعة: {header.PrintCount} | الإنشاء: {header.CreatedAt:yyyy/MM/dd HH:mm}";
+
+            ApplyActionVisibility(header.IsPosted, header.ApprovalStatus, header.ReviewStatus);
 
             LinesPanel.Children.Clear();
             foreach (var line in data.Details.OrderBy(x => x.LineNo))
@@ -84,6 +88,18 @@ public partial class ReceiptVoucherDetailsPage : ContentPage
         }
     }
 
+    private void ApplyActionVisibility(bool isPosted, byte approvalStatus, byte reviewStatus)
+    {
+        ReviewButton.IsVisible = !isPosted && reviewStatus != 2;
+        ApproveButton.IsVisible = !isPosted && reviewStatus == 2 && approvalStatus != 2;
+        ReturnButton.IsVisible = !isPosted && approvalStatus != 2;
+        CancelApprovalButton.IsVisible = !isPosted && approvalStatus == 2;
+        PostButton.IsVisible = !isPosted && approvalStatus == 2;
+        UnpostButton.IsVisible = isPosted;
+        DeleteButton.IsVisible = !isPosted && approvalStatus != 2 && reviewStatus != 2;
+        JournalButton.IsVisible = isPosted;
+    }
+
     private async void OnReviewClicked(object? sender, EventArgs e) =>
         await ExecuteAsync(() => _workflow.ReviewAsync(_voucherId, "مراجعة من تطبيق الجوال"), "تمت مراجعة السند.");
 
@@ -97,6 +113,13 @@ public partial class ReceiptVoucherDetailsPage : ContentPage
         await ExecuteAsync(() => _workflow.ReturnForCorrectionAsync(_voucherId, reason), "تمت إعادة السند للتصحيح.");
     }
 
+    private async void OnCancelApprovalClicked(object? sender, EventArgs e)
+    {
+        var reason = await DisplayPromptAsync("إلغاء الاعتماد", "أدخل سبب إلغاء الاعتماد:", "تنفيذ", "إلغاء");
+        if (string.IsNullOrWhiteSpace(reason)) return;
+        await ExecuteAsync(() => _workflow.CancelApprovalAsync(_voucherId, reason), "تم إلغاء اعتماد السند.");
+    }
+
     private async void OnPostClicked(object? sender, EventArgs e) =>
         await ExecuteAsync(() => _workflow.PostVoucherAsync(_voucherId, "ترحيل من تطبيق الجوال"), "تم ترحيل السند.");
 
@@ -108,10 +131,24 @@ public partial class ReceiptVoucherDetailsPage : ContentPage
         await ExecuteAsync(() => _workflow.UnpostAsync(_voucherId, reason), "تم فك ترحيل السند.");
     }
 
+    private async void OnDeleteClicked(object? sender, EventArgs e)
+    {
+        var confirmed = await DisplayAlert("حذف سند القبض", "هل تريد حذف هذه المسودة؟", "نعم", "لا");
+        if (!confirmed) return;
+        await ExecuteAsync(async () =>
+        {
+            await _service.DeleteAsync(_voucherId);
+            await Navigation.PopAsync();
+        }, "تم حذف السند.", reloadAfter: false);
+    }
+
+    private async void OnPrintClicked(object? sender, EventArgs e) =>
+        await ExecuteAsync(() => _service.RecordPrintAsync(_voucherId), "تم تسجيل عملية الطباعة.");
+
     private async void OnJournalClicked(object? sender, EventArgs e) =>
         await Navigation.PushAsync(new VoucherJournalPage(_journalService, _voucherId));
 
-    private async Task ExecuteAsync(Func<Task> action, string successMessage)
+    private async Task ExecuteAsync(Func<Task> action, string successMessage, bool reloadAfter = true)
     {
         BusyIndicator.IsVisible = BusyIndicator.IsRunning = true;
         MessageLabel.IsVisible = false;
@@ -119,7 +156,7 @@ public partial class ReceiptVoucherDetailsPage : ContentPage
         {
             await action();
             await DisplayAlert("تمت العملية", successMessage, "موافق");
-            await LoadAsync();
+            if (reloadAfter) await LoadAsync();
         }
         catch (Exception ex)
         {
