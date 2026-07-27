@@ -7,133 +7,63 @@
     <ScrollView>
         <VerticalStackLayout Padding="16" Spacing="10">
             <Label x:Name="PeriodLabel" TextColor="#0B6B87" FontAttributes="Bold" />
+            <Button x:Name="RefreshReferencesButton"
+                    Text="تحديث القوائم ↻"
+                    HeightRequest="44"
+                    BackgroundColor="#18794E"
+                    TextColor="White"
+                    CornerRadius="10"
+                    Clicked="OnRefreshReferencesClicked" />
+            <Label x:Name="ReferencesStatusLabel"
+                   Text="اضغط تحديث القوائم للتحقق من البيانات."
+                   FontSize="12"
+                   TextColor="#7A8896"
+                   HorizontalTextAlignment="Center" />
+
             <Label Text="تاريخ السند" FontAttributes="Bold" TextColor="#17324D" />
             <DatePicker x:Name="VoucherDatePicker" BackgroundColor="White" TextColor="#17324D" />
 
             <Label Text="الصندوق أو البنك" FontAttributes="Bold" TextColor="#17324D" />
             <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
-                <Picker x:Name="SourcePicker"
-                        Title="اختر الصندوق أو البنك"
-                        BackgroundColor="White"
-                        TextColor="#17324D"
-                        ItemDisplayBinding="{Binding DisplayName}" />
-                <Button x:Name="SourceSearchButton"
-                        Grid.Column="1"
-                        Text="بحث 🔍"
-                        WidthRequest="88"
-                        BackgroundColor="#0B6B87"
-                        TextColor="White"
-                        Clicked="OnSelectSourceClicked" />
+                <Picker x:Name="SourcePicker" Title="اختر الصندوق أو البنك" BackgroundColor="White" TextColor="#17324D" ItemDisplayBinding="{Binding DisplayName}" />
+                <Button x:Name="SourceSearchButton" Grid.Column="1" Text="بحث 🔍" WidthRequest="88" BackgroundColor="#0B6B87" TextColor="White" Clicked="OnSelectSourceClicked" />
             </Grid>
-            <Label x:Name="SourceHelpLabel"
-                   Text="يمكن الاختيار مباشرة من المنسدلة أو البحث بالاسم."
-                   FontSize="12"
-                   TextColor="#7A8896" />
+            <Label x:Name="SourceHelpLabel" Text="يمكن الاختيار مباشرة من المنسدلة أو البحث بالاسم." FontSize="12" TextColor="#7A8896" />
 
             <Label Text="الطرف" FontAttributes="Bold" TextColor="#17324D" />
             <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
-                <Picker x:Name="PartyPicker"
-                        Title="اختر الطرف - اختياري"
-                        BackgroundColor="White"
-                        TextColor="#17324D"
-                        ItemDisplayBinding="{Binding DisplayName}"
-                        SelectedIndexChanged="OnPartyChanged" />
-                <Button x:Name="PartySearchButton"
-                        Grid.Column="1"
-                        Text="بحث 🔍"
-                        WidthRequest="88"
-                        BackgroundColor="#0B6B87"
-                        TextColor="White"
-                        Clicked="OnSelectPartyClicked" />
+                <Picker x:Name="PartyPicker" Title="اختر الطرف - اختياري" BackgroundColor="White" TextColor="#17324D" ItemDisplayBinding="{Binding DisplayName}" SelectedIndexChanged="OnPartyChanged" />
+                <Button x:Name="PartySearchButton" Grid.Column="1" Text="بحث 🔍" WidthRequest="88" BackgroundColor="#0B6B87" TextColor="White" Clicked="OnSelectPartyClicked" />
             </Grid>
-            <Entry x:Name="PartyNameEntry"
-                   Placeholder="استلمنا من"
-                   BackgroundColor="White"
-                   TextColor="#17324D"
-                   PlaceholderColor="#7A8896" />
+            <Entry x:Name="PartyNameEntry" Placeholder="استلمنا من" BackgroundColor="White" TextColor="#17324D" PlaceholderColor="#7A8896" />
 
             <Label Text="طريقة السداد" FontAttributes="Bold" TextColor="#17324D" />
             <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
-                <Picker x:Name="PaymentMethodPicker"
-                        Title="اختر طريقة السداد"
-                        BackgroundColor="White"
-                        TextColor="#17324D"
-                        ItemDisplayBinding="{Binding DisplayName}" />
-                <Button x:Name="PaymentMethodSearchButton"
-                        Grid.Column="1"
-                        Text="بحث 🔍"
-                        WidthRequest="88"
-                        BackgroundColor="#0B6B87"
-                        TextColor="White"
-                        Clicked="OnSelectPaymentMethodClicked" />
+                <Picker x:Name="PaymentMethodPicker" Title="اختر طريقة السداد" BackgroundColor="White" TextColor="#17324D" ItemDisplayBinding="{Binding DisplayName}" />
+                <Button x:Name="PaymentMethodSearchButton" Grid.Column="1" Text="بحث 🔍" WidthRequest="88" BackgroundColor="#0B6B87" TextColor="White" Clicked="OnSelectPaymentMethodClicked" />
             </Grid>
 
-            <Entry x:Name="ReferenceEntry"
-                   Placeholder="رقم المرجع - اختياري"
-                   BackgroundColor="White"
-                   TextColor="#17324D"
-                   PlaceholderColor="#7A8896" />
-            <Editor x:Name="DescriptionEditor"
-                    Placeholder="البيان"
-                    BackgroundColor="White"
-                    TextColor="#17324D"
-                    PlaceholderColor="#7A8896"
-                    MinimumHeightRequest="80"
-                    AutoSize="TextChanges" />
+            <Entry x:Name="ReferenceEntry" Placeholder="رقم المرجع - اختياري" BackgroundColor="White" TextColor="#17324D" PlaceholderColor="#7A8896" />
+            <Editor x:Name="DescriptionEditor" Placeholder="البيان" BackgroundColor="White" TextColor="#17324D" PlaceholderColor="#7A8896" MinimumHeightRequest="80" AutoSize="TextChanges" />
 
-            <Label Text="إضافة سطر محاسبي"
-                   FontSize="18"
-                   FontAttributes="Bold"
-                   TextColor="#17324D"
-                   Margin="0,8,0,0" />
+            <Label Text="إضافة سطر محاسبي" FontSize="18" FontAttributes="Bold" TextColor="#17324D" Margin="0,8,0,0" />
 
             <Label Text="الحساب المقابل" FontAttributes="Bold" TextColor="#17324D" />
             <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
-                <Picker x:Name="AccountPicker"
-                        Title="اختر الحساب المقابل"
-                        BackgroundColor="White"
-                        TextColor="#17324D"
-                        ItemDisplayBinding="{Binding DisplayName}" />
-                <Button x:Name="AccountSearchButton"
-                        Grid.Column="1"
-                        Text="بحث 🔍"
-                        WidthRequest="88"
-                        BackgroundColor="#0B6B87"
-                        TextColor="White"
-                        Clicked="OnSelectAccountClicked" />
+                <Picker x:Name="AccountPicker" Title="اختر الحساب المقابل" BackgroundColor="White" TextColor="#17324D" ItemDisplayBinding="{Binding DisplayName}" />
+                <Button x:Name="AccountSearchButton" Grid.Column="1" Text="بحث 🔍" WidthRequest="88" BackgroundColor="#0B6B87" TextColor="White" Clicked="OnSelectAccountClicked" />
             </Grid>
 
             <Label Text="مركز التكلفة" FontAttributes="Bold" TextColor="#17324D" />
             <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
-                <Picker x:Name="CostCenterPicker"
-                        Title="اختر مركز التكلفة - اختياري"
-                        BackgroundColor="White"
-                        TextColor="#17324D"
-                        ItemDisplayBinding="{Binding DisplayName}" />
-                <Button x:Name="CostCenterSearchButton"
-                        Grid.Column="1"
-                        Text="بحث 🔍"
-                        WidthRequest="88"
-                        BackgroundColor="#0B6B87"
-                        TextColor="White"
-                        Clicked="OnSelectCostCenterClicked" />
+                <Picker x:Name="CostCenterPicker" Title="اختر مركز التكلفة - اختياري" BackgroundColor="White" TextColor="#17324D" ItemDisplayBinding="{Binding DisplayName}" />
+                <Button x:Name="CostCenterSearchButton" Grid.Column="1" Text="بحث 🔍" WidthRequest="88" BackgroundColor="#0B6B87" TextColor="White" Clicked="OnSelectCostCenterClicked" />
             </Grid>
 
             <Label Text="العملة" FontAttributes="Bold" TextColor="#17324D" />
             <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
-                <Picker x:Name="CurrencyPicker"
-                        Title="اختر العملة"
-                        BackgroundColor="White"
-                        TextColor="#17324D"
-                        ItemDisplayBinding="{Binding DisplayName}"
-                        SelectedIndexChanged="OnCurrencyChanged" />
-                <Button x:Name="CurrencySearchButton"
-                        Grid.Column="1"
-                        Text="بحث 🔍"
-                        WidthRequest="88"
-                        BackgroundColor="#0B6B87"
-                        TextColor="White"
-                        Clicked="OnSelectCurrencyClicked" />
+                <Picker x:Name="CurrencyPicker" Title="اختر العملة" BackgroundColor="White" TextColor="#17324D" ItemDisplayBinding="{Binding DisplayName}" SelectedIndexChanged="OnCurrencyChanged" />
+                <Button x:Name="CurrencySearchButton" Grid.Column="1" Text="بحث 🔍" WidthRequest="88" BackgroundColor="#0B6B87" TextColor="White" Clicked="OnSelectCurrencyClicked" />
             </Grid>
 
             <Entry x:Name="ExchangeRateEntry" Placeholder="سعر الصرف" Keyboard="Numeric" BackgroundColor="White" TextColor="#17324D" />
