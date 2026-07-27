@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace AlTayerERP.API.Controllers
 {
-    /// <summary>إدارة الصناديق؛ ينشأ حساب الصندوق تلقائياً داخل معاملة واحدة.</summary>
+    /// <summary>إدارة الصناديق وربطها بدفتر الأستاذ وفق ضوابط محاسبية.</summary>
     [Authorize]
     [Route("api/[controller]")]
     [ApiController]
@@ -43,33 +43,78 @@ namespace AlTayerERP.API.Controllers
             var error = await RequireAsync(ScreenOperation.View);
             if (error != null || Session == null) return error!;
 
-            return Ok(await (from box in _context.Cash_Boxes.AsNoTracking()
-                             join account in _context.Chart_Of_Accounts.AsNoTracking() on box.Account_ID equals account.Account_ID into accounts
-                             from account in accounts.DefaultIfEmpty()
-                             where box.Company_ID == Session.Company_ID && box.Branch_ID == Session.Branch_ID
-                             orderby box.CashBox_Code
-                             select new
-                             {
-                                 box.Cash_Box_ID,
-                                 box.Company_ID,
-                                 box.Branch_ID,
-                                 Account_ID = account == null ? null : account.Parent_Account_ID,
-                                 Linked_Account_ID = box.Account_ID,
-                                 Account_Name_AR = account == null ? null : account.Account_Name_AR,
-                                 box.Currency_Code,
-                                 Code = box.CashBox_Code,
-                                 NameAR = box.Box_Name_AR,
-                                 NameEN = box.Box_Name_EN,
-                                 box.Opening_Balance,
-                                 box.Max_Limit,
-                                 box.Min_Limit,
-                                 box.Is_Active,
-                                 box.Notes,
-                                 box.Created_By,
-                                 box.Created_At,
-                                 box.Updated_By,
-                                 box.Updated_At
-                             }).ToListAsync());
+            var boxes = await (from box in _context.Cash_Boxes.AsNoTracking()
+                               join account in _context.Chart_Of_Accounts.AsNoTracking() on box.Account_ID equals account.Account_ID into accounts
+                               from account in accounts.DefaultIfEmpty()
+                               where box.Company_ID == Session.Company_ID && box.Branch_ID == Session.Branch_ID
+                               orderby box.CashBox_Code
+                               select new
+                               {
+                                   box.Cash_Box_ID,
+                                   box.Company_ID,
+                                   box.Branch_ID,
+                                   Account_ID = account == null ? null : account.Parent_Account_ID,
+                                   Linked_Account_ID = box.Account_ID,
+                                   Account_Name_AR = account == null ? null : account.Account_Name_AR,
+                                   box.Currency_Code,
+                                   Code = box.CashBox_Code,
+                                   NameAR = box.Box_Name_AR,
+                                   NameEN = box.Box_Name_EN,
+                                   box.Opening_Balance,
+                                   box.Max_Limit,
+                                   box.Min_Limit,
+                                   box.Is_Active,
+                                   box.Notes,
+                                   box.Created_By,
+                                   box.Created_At,
+                                   box.Updated_By,
+                                   box.Updated_At
+                               }).ToListAsync();
+
+            var accountIds = boxes.Select(x => x.Linked_Account_ID).Where(x => !string.IsNullOrWhiteSpace(x)).ToList();
+            var movements = await _context.Journal_Entry_Details.AsNoTracking()
+                .Where(x => accountIds.Contains(x.Account_ID)
+                            && x.JournalEntry.Is_Posted
+                            && x.JournalEntry.Is_Active
+                            && !x.JournalEntry.Is_Cancelled
+                            && !x.JournalEntry.Is_Reversed)
+                .GroupBy(x => x.Account_ID)
+                .Select(g => new
+                {
+                    Account_ID = g.Key,
+                    Current_Balance = g.Sum(x => x.Debit_Amount - x.Credit_Amount),
+                    Has_Posted_Movement = true
+                })
+                .ToDictionaryAsync(x => x.Account_ID);
+
+            return Ok(boxes.Select(box =>
+            {
+                movements.TryGetValue(box.Linked_Account_ID, out var movement);
+                return new
+                {
+                    box.Cash_Box_ID,
+                    box.Company_ID,
+                    box.Branch_ID,
+                    box.Account_ID,
+                    box.Linked_Account_ID,
+                    box.Account_Name_AR,
+                    box.Currency_Code,
+                    box.Code,
+                    box.NameAR,
+                    box.NameEN,
+                    box.Opening_Balance,
+                    Current_Balance = movement?.Current_Balance ?? 0m,
+                    Has_Posted_Movement = movement?.Has_Posted_Movement ?? false,
+                    box.Max_Limit,
+                    box.Min_Limit,
+                    box.Is_Active,
+                    box.Notes,
+                    box.Created_By,
+                    box.Created_At,
+                    box.Updated_By,
+                    box.Updated_At
+                };
+            }));
         }
 
         [HttpGet("{id}")]
@@ -97,6 +142,10 @@ namespace AlTayerERP.API.Controllers
             var validation = await ValidateAsync(dto, null);
             if (validation != null) return BadRequest(new { message = validation });
 
+            // الرصيد الافتتاحي لا ينشأ من شاشة التعريف؛ يجب إدخاله من مستند أرصدة افتتاحية مرحل.
+            if (dto.Opening_Balance != 0)
+                return BadRequest(new { message = "لا يسمح بإدخال رصيد افتتاحي من شاشة تعريف الصندوق. استخدم مستند الأرصدة الافتتاحية." });
+
             var parent = await _context.Chart_Of_Accounts.FirstAsync(x => x.Account_ID == dto.Account_ID && x.Company_ID == Session.Company_ID);
             await using var tx = await _context.Database.BeginTransactionAsync();
 
@@ -117,6 +166,7 @@ namespace AlTayerERP.API.Controllers
                 Currency_Code = dto.Currency_Code.Trim().ToUpperInvariant(),
                 Is_Active = dto.Is_Active,
                 Allow_ManualEntry = false,
+                System_Account = true,
                 Created_By = Session.User_ID.ToString(),
                 Created_At = DateTime.UtcNow
             };
@@ -132,7 +182,7 @@ namespace AlTayerERP.API.Controllers
                 CashBox_Code = await _numbers.GenerateCashBoxCodeAsync(Session.Company_ID),
                 Box_Name_AR = dto.Box_Name_AR.Trim(),
                 Box_Name_EN = Text(dto.Box_Name_EN),
-                Opening_Balance = dto.Opening_Balance,
+                Opening_Balance = 0,
                 Max_Limit = dto.Max_Limit,
                 Min_Limit = dto.Min_Limit,
                 Is_Active = dto.Is_Active,
@@ -159,21 +209,30 @@ namespace AlTayerERP.API.Controllers
             if (row == null) return NotFound(new { message = "الصندوق غير موجود في نطاق الفرع الحالي." });
 
             var account = await _context.Chart_Of_Accounts.FirstOrDefaultAsync(x => x.Account_ID == row.Account_ID && x.Company_ID == Session.Company_ID);
+            if (account == null) return BadRequest(new { message = "الحساب المرتبط بالصندوق غير موجود." });
+
+            // حساب الأب والرصيد الافتتاحي بيانات تأسيسية لا تعدل من شاشة التعريف.
+            if (!string.Equals(account.Parent_Account_ID, dto.Account_ID, StringComparison.Ordinal))
+                return BadRequest(new { message = "لا يمكن تغيير حساب الصناديق الأب بعد إنشاء الصندوق." });
+            if (dto.Opening_Balance != row.Opening_Balance)
+                return BadRequest(new { message = "لا يمكن تعديل الرصيد الافتتاحي من شاشة الصناديق؛ استخدم قيد تسوية أو مستند أرصدة افتتاحية." });
+
+            var hasPostedMovement = await HasPostedMovementAsync(row.Account_ID);
+            var requestedCurrency = dto.Currency_Code.Trim().ToUpperInvariant();
+            if (hasPostedMovement && !string.Equals(row.Currency_Code, requestedCurrency, StringComparison.OrdinalIgnoreCase))
+                return BadRequest(new { message = "لا يمكن تغيير عملة صندوق لديه حركات مالية مرحلة. أنشئ صندوقاً جديداً للعملة الأخرى." });
+
             var old = new { row.Box_Name_AR, row.Currency_Code, row.Is_Active, row.Max_Limit, row.Min_Limit };
-            if (account != null)
-            {
-                account.Account_Name_AR = dto.Box_Name_AR.Trim();
-                account.Account_Name_EN = Text(dto.Box_Name_EN);
-                account.Currency_Code = dto.Currency_Code.Trim().ToUpperInvariant();
-                account.Is_Active = dto.Is_Active;
-                account.Updated_By = Session.User_ID.ToString();
-                account.Updated_At = DateTime.UtcNow;
-            }
+            account.Account_Name_AR = dto.Box_Name_AR.Trim();
+            account.Account_Name_EN = Text(dto.Box_Name_EN);
+            account.Currency_Code = requestedCurrency;
+            account.Is_Active = dto.Is_Active;
+            account.Updated_By = Session.User_ID.ToString();
+            account.Updated_At = DateTime.UtcNow;
 
             row.Box_Name_AR = dto.Box_Name_AR.Trim();
             row.Box_Name_EN = Text(dto.Box_Name_EN);
-            row.Currency_Code = dto.Currency_Code.Trim().ToUpperInvariant();
-            row.Opening_Balance = dto.Opening_Balance;
+            row.Currency_Code = requestedCurrency;
             row.Max_Limit = dto.Max_Limit;
             row.Min_Limit = dto.Min_Limit;
             row.Is_Active = dto.Is_Active;
@@ -193,8 +252,15 @@ namespace AlTayerERP.API.Controllers
             var row = await _context.Cash_Boxes.FirstOrDefaultAsync(x => x.Cash_Box_ID == id && x.Company_ID == Session.Company_ID && x.Branch_ID == Session.Branch_ID);
             if (row == null) return NotFound(new { message = "الصندوق غير موجود في نطاق الفرع الحالي." });
             if (!row.Is_Active) return BadRequest(new { message = "الصندوق موقوف مسبقاً." });
-            if (await _context.Journal_Entry_Details.AnyAsync(x => x.Account_ID == row.Account_ID))
-                return BadRequest(new { message = "لا يمكن إيقاف صندوق له حركة مالية قبل إقفال عهدته." });
+
+            var unposted = await _context.Journal_Entry_Details.AsNoTracking().AnyAsync(x =>
+                x.Account_ID == row.Account_ID && x.JournalEntry.Is_Active && !x.JournalEntry.Is_Cancelled && !x.JournalEntry.Is_Posted);
+            if (unposted)
+                return BadRequest(new { message = "لا يمكن إيقاف الصندوق لوجود قيود أو سندات غير مرحلة مرتبطة به." });
+
+            var currentBalance = await GetCurrentBalanceAsync(row.Account_ID);
+            if (Math.Abs(currentBalance) > 0.009m)
+                return BadRequest(new { message = $"لا يمكن إيقاف الصندوق لأن رصيده الدفتري الحالي {currentBalance:N2}. يجب تصفير الرصيد وإقفال العهدة أولاً." });
 
             row.Is_Active = false;
             row.Updated_By = Session.User_ID.ToString();
@@ -208,7 +274,7 @@ namespace AlTayerERP.API.Controllers
             }
             _audit.Add(Session, HttpContext, "cash_boxes", row.Cash_Box_ID, "DEACTIVATE", new { Is_Active = true }, new { Is_Active = false }, reason);
             await _context.SaveChangesAsync();
-            return Ok(new { message = "تم إيقاف الصندوق وحسابه المرتبط دون حذف أي بيانات." });
+            return Ok(new { message = "تم إيقاف الصندوق وحسابه المرتبط بعد التحقق من أن رصيده صفر ولا توجد حركات معلقة." });
         }
 
         private async Task<string?> ValidateAsync(CreateCashBoxDto? dto, string? currentId)
@@ -221,8 +287,8 @@ namespace AlTayerERP.API.Controllers
                 return "حدود الصندوق غير صحيحة؛ يجب أن يكون الحد الأدنى أقل من أو يساوي الحد الأعلى.";
 
             var parent = await _context.Chart_Of_Accounts.AsNoTracking().FirstOrDefaultAsync(x => x.Account_ID == dto.Account_ID && x.Company_ID == Session.Company_ID);
-            if (parent == null || !parent.Is_Active || parent.Is_Postable)
-                return "حساب الصناديق الأب يجب أن يكون نشطاً وتجميعياً.";
+            if (parent == null || !parent.Is_Active || parent.Is_Postable || !parent.Is_Summary_Account)
+                return "حساب الصناديق الأب يجب أن يكون نشطاً وتجميعياً وغير قابل للترحيل.";
 
             var currency = dto.Currency_Code.Trim().ToUpperInvariant();
             if (!await _context.Currencies.AnyAsync(x => x.Company_ID == Session.Company_ID && x.Currency_Code == currency && x.Is_Active))
@@ -234,6 +300,23 @@ namespace AlTayerERP.API.Controllers
 
             return null;
         }
+
+        private async Task<bool> HasPostedMovementAsync(string accountId) =>
+            await _context.Journal_Entry_Details.AsNoTracking().AnyAsync(x =>
+                x.Account_ID == accountId
+                && x.JournalEntry.Is_Posted
+                && x.JournalEntry.Is_Active
+                && !x.JournalEntry.Is_Cancelled
+                && !x.JournalEntry.Is_Reversed);
+
+        private async Task<decimal> GetCurrentBalanceAsync(string accountId) =>
+            await _context.Journal_Entry_Details.AsNoTracking()
+                .Where(x => x.Account_ID == accountId
+                            && x.JournalEntry.Is_Posted
+                            && x.JournalEntry.Is_Active
+                            && !x.JournalEntry.Is_Cancelled
+                            && !x.JournalEntry.Is_Reversed)
+                .SumAsync(x => (decimal?)(x.Debit_Amount - x.Credit_Amount)) ?? 0m;
 
         private static string? Text(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
     }
