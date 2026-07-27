@@ -35,7 +35,7 @@ public partial class ReceiptVoucherDetailsPage : ContentPage
             ReceivedFromLabel.Text = $"استلمنا من: {header.ReceivedFromName ?? "—"}";
             DateLabel.Text = $"التاريخ: {header.VoucherDate:yyyy/MM/dd}";
             ReferenceLabel.Text = $"المرجع: {header.ReferenceNo ?? "—"}";
-            CashAccountLabel.Text = $"الصندوق/البنك: {header.CashAccountId}";
+            CashAccountLabel.Text = $"الصندوق/البنك: {header.CashAccountDisplay}";
             DescriptionLabel.Text = $"البيان: {header.Description ?? "—"}";
             TotalLabel.Text = $"الإجمالي المحلي: {header.LocalTotal:N2}";
 
@@ -53,10 +53,10 @@ public partial class ReceiptVoucherDetailsPage : ContentPage
                         Spacing = 5,
                         Children =
                         {
-                            new Label { Text = $"الحساب: {line.AccountId}", FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#17324D") },
+                            new Label { Text = $"الحساب: {line.AccountDisplay}", FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#17324D") },
                             new Label { Text = $"مدين: {line.DebitAmount:N2} | دائن: {line.CreditAmount:N2}", TextColor = Color.FromArgb("#35566F") },
-                            new Label { Text = $"العملة: {line.CurrencyId} | السعر: {line.ExchangeRate:N6}", FontSize = 12, TextColor = Color.FromArgb("#7A8896") },
-                            new Label { Text = string.IsNullOrWhiteSpace(line.CostCenterId) ? "بدون مركز تكلفة" : $"مركز التكلفة: {line.CostCenterId}", FontSize = 12, TextColor = Color.FromArgb("#7A8896") },
+                            new Label { Text = $"العملة: {line.CurrencyDisplay} | السعر: {line.ExchangeRate:N6}", FontSize = 12, TextColor = Color.FromArgb("#7A8896") },
+                            new Label { Text = string.IsNullOrWhiteSpace(line.CostCenterDisplay) ? "بدون مركز تكلفة" : $"مركز التكلفة: {line.CostCenterDisplay}", FontSize = 12, TextColor = Color.FromArgb("#7A8896") },
                             new Label { Text = line.Description ?? string.Empty, TextColor = Color.FromArgb("#35566F") }
                         }
                     }
