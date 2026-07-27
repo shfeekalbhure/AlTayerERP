@@ -40,6 +40,54 @@ namespace AlTayerERP.API.Controllers
             return await _authorization.IsAllowedAsync(Session, "ChartOfAccounts", operation) ? null : Forbid();
         }
 
+        [HttpGet("GetCashParentLookup")]
+        public async Task<IActionResult> GetCashParentLookup()
+        {
+            if (Session == null)
+                return Unauthorized(new { message = "انتهت الجلسة أو أنها غير صالحة." });
+
+            if (!await _authorization.IsAllowedAsync(Session, "CashBoxes", ScreenOperation.View))
+                return Forbid();
+
+            var rows = await _context.Chart_Of_Accounts.AsNoTracking()
+                .Where(x =>
+                    x.Company_ID == Session.Company_ID &&
+                    x.Is_Active &&
+                    !x.Is_Postable &&
+                    x.Is_Summary_Account &&
+                    (x.Account_Category == "Cash" ||
+                     x.Account_Name_AR.Contains("صندوق") ||
+                     x.Account_Name_AR.Contains("نقد")))
+                .OrderBy(x => x.Account_Code)
+                .Select(x => new
+                {
+                    x.Account_ID,
+                    x.Account_Code,
+                    x.Account_Name_AR
+                })
+                .ToListAsync();
+
+            if (rows.Count == 0)
+            {
+                rows = await _context.Chart_Of_Accounts.AsNoTracking()
+                    .Where(x =>
+                        x.Company_ID == Session.Company_ID &&
+                        x.Is_Active &&
+                        !x.Is_Postable &&
+                        x.Is_Summary_Account)
+                    .OrderBy(x => x.Account_Code)
+                    .Select(x => new
+                    {
+                        x.Account_ID,
+                        x.Account_Code,
+                        x.Account_Name_AR
+                    })
+                    .ToListAsync();
+            }
+
+            return Ok(rows);
+        }
+
         [HttpGet]
         public async Task<IActionResult> GetAccounts()
         {
@@ -240,25 +288,20 @@ namespace AlTayerERP.API.Controllers
 
         private static void Apply(ChartOfAccount row, CreateAccountDto dto, ChartOfAccount? parent)
         {
-            row.Parent_Account_ID = parent?.Account_ID;
-            row.Account_Level = parent == null ? 1 : parent.Account_Level + 1;
+            row.Parent_Account_ID = dto.Parent_Account_ID;
             row.Account_Name_AR = dto.Account_Name_AR;
             row.Account_Name_EN = dto.Account_Name_EN;
             row.Account_Type = dto.Account_Type;
-            row.Account_Category = string.IsNullOrWhiteSpace(dto.Account_Category) ? null : dto.Account_Category;
+            row.Account_Category = dto.Account_Category;
             row.Normal_Balance = dto.Normal_Balance;
+            row.Account_Level = parent == null ? 1 : parent.Account_Level + 1;
+            row.Is_Postable = dto.Is_Postable;
             row.Is_Summary_Account = dto.Is_Summary_Account;
-            row.Is_Postable = dto.Is_Summary_Account ? false : dto.Is_Postable;
-            row.Currency_Code = dto.Multi_Currency ? null : dto.Currency_Code;
-            row.Is_Active = dto.Is_Active;
-            row.Allow_ManualEntry = dto.Allow_ManualEntry;
             row.System_Account = dto.System_Account;
-            row.Requires_Party = dto.Requires_Party;
-            row.Requires_CostCenter = dto.Requires_CostCenter;
-            row.Requires_Project = dto.Requires_Project;
+            row.Allow_ManualEntry = dto.Allow_ManualEntry;
             row.Multi_Currency = dto.Multi_Currency;
-            row.Affects_Balance_Sheet = dto.Affects_Balance_Sheet;
-            row.Affects_Income_Statement = dto.Affects_Income_Statement;
+            row.Currency_Code = dto.Currency_Code;
+            row.Is_Active = dto.Is_Active;
             row.Notes = dto.Notes;
         }
     }
