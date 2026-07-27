@@ -9,35 +9,31 @@
             <Label x:Name="PeriodLabel" TextColor="#0B6B87" FontAttributes="Bold" />
             <DatePicker x:Name="VoucherDatePicker" BackgroundColor="White" TextColor="#17324D" />
 
-            <Button x:Name="SourceSearchButton"
-                    Text="اختيار الصندوق أو البنك 🔍"
-                    HorizontalOptions="Fill"
-                    HorizontalTextAlignment="Start"
-                    HeightRequest="54"
-                    BackgroundColor="White"
-                    TextColor="#17324D"
-                    BorderColor="#D9E2EC"
-                    BorderWidth="1"
-                    CornerRadius="8"
-                    Clicked="OnSelectSourceClicked" />
-            <Picker x:Name="SourcePicker"
-                    IsVisible="False"
-                    ItemDisplayBinding="{Binding DisplayName}" />
-            <Label x:Name="SourceHelpLabel"
-                   Text="اضغط للاختيار والبحث باسم الصندوق أو البنك."
-                   FontSize="12"
-                   TextColor="#7A8896" />
+            <Button x:Name="SourceSearchButton" Text="اختيار الصندوق أو البنك 🔍" HorizontalOptions="Fill" HorizontalTextAlignment="Start" HeightRequest="54" BackgroundColor="White" TextColor="#17324D" BorderColor="#D9E2EC" BorderWidth="1" CornerRadius="8" Clicked="OnSelectSourceClicked" />
+            <Picker x:Name="SourcePicker" IsVisible="False" ItemDisplayBinding="{Binding DisplayName}" />
+            <Label x:Name="SourceHelpLabel" Text="اضغط للاختيار والبحث باسم الصندوق أو البنك." FontSize="12" TextColor="#7A8896" />
 
-            <Picker x:Name="PartyPicker" Title="الطرف - اختياري" BackgroundColor="White" TextColor="#17324D" ItemDisplayBinding="{Binding DisplayName}" SelectedIndexChanged="OnPartyChanged" />
+            <Button x:Name="PartySearchButton" Text="اختيار الطرف - اختياري 🔍" HorizontalTextAlignment="Start" HeightRequest="52" BackgroundColor="White" TextColor="#17324D" BorderColor="#D9E2EC" BorderWidth="1" CornerRadius="8" Clicked="OnSelectPartyClicked" />
+            <Picker x:Name="PartyPicker" IsVisible="False" ItemDisplayBinding="{Binding DisplayName}" SelectedIndexChanged="OnPartyChanged" />
             <Entry x:Name="PartyNameEntry" Placeholder="اسم الطرف" BackgroundColor="White" TextColor="#17324D" PlaceholderColor="#7A8896" />
-            <Picker x:Name="PaymentMethodPicker" Title="طريقة السداد" BackgroundColor="White" TextColor="#17324D" ItemDisplayBinding="{Binding DisplayName}" />
+
+            <Button x:Name="PaymentMethodSearchButton" Text="اختيار طريقة السداد 🔍" HorizontalTextAlignment="Start" HeightRequest="52" BackgroundColor="White" TextColor="#17324D" BorderColor="#D9E2EC" BorderWidth="1" CornerRadius="8" Clicked="OnSelectPaymentMethodClicked" />
+            <Picker x:Name="PaymentMethodPicker" IsVisible="False" ItemDisplayBinding="{Binding DisplayName}" />
+
             <Entry x:Name="ReferenceEntry" Placeholder="رقم المرجع - اختياري" BackgroundColor="White" TextColor="#17324D" PlaceholderColor="#7A8896" />
             <Editor x:Name="DescriptionEditor" Placeholder="البيان" BackgroundColor="White" TextColor="#17324D" PlaceholderColor="#7A8896" MinimumHeightRequest="80" AutoSize="TextChanges" />
 
             <Label Text="إضافة سطر محاسبي" FontSize="18" FontAttributes="Bold" TextColor="#17324D" Margin="0,8,0,0" />
-            <Picker x:Name="AccountPicker" Title="الحساب المقابل" BackgroundColor="White" TextColor="#17324D" ItemDisplayBinding="{Binding DisplayName}" />
-            <Picker x:Name="CostCenterPicker" Title="مركز التكلفة - اختياري" BackgroundColor="White" TextColor="#17324D" ItemDisplayBinding="{Binding DisplayName}" />
-            <Picker x:Name="CurrencyPicker" Title="العملة" BackgroundColor="White" TextColor="#17324D" ItemDisplayBinding="{Binding DisplayName}" SelectedIndexChanged="OnCurrencyChanged" />
+
+            <Button x:Name="AccountSearchButton" Text="اختيار الحساب المقابل 🔍" HorizontalTextAlignment="Start" HeightRequest="52" BackgroundColor="White" TextColor="#17324D" BorderColor="#D9E2EC" BorderWidth="1" CornerRadius="8" Clicked="OnSelectAccountClicked" />
+            <Picker x:Name="AccountPicker" IsVisible="False" ItemDisplayBinding="{Binding DisplayName}" />
+
+            <Button x:Name="CostCenterSearchButton" Text="اختيار مركز التكلفة - اختياري 🔍" HorizontalTextAlignment="Start" HeightRequest="52" BackgroundColor="White" TextColor="#17324D" BorderColor="#D9E2EC" BorderWidth="1" CornerRadius="8" Clicked="OnSelectCostCenterClicked" />
+            <Picker x:Name="CostCenterPicker" IsVisible="False" ItemDisplayBinding="{Binding DisplayName}" />
+
+            <Button x:Name="CurrencySearchButton" Text="اختيار العملة 🔍" HorizontalTextAlignment="Start" HeightRequest="52" BackgroundColor="White" TextColor="#17324D" BorderColor="#D9E2EC" BorderWidth="1" CornerRadius="8" Clicked="OnSelectCurrencyClicked" />
+            <Picker x:Name="CurrencyPicker" IsVisible="False" ItemDisplayBinding="{Binding DisplayName}" SelectedIndexChanged="OnCurrencyChanged" />
+
             <Entry x:Name="ExchangeRateEntry" Placeholder="سعر الصرف" Keyboard="Numeric" BackgroundColor="White" TextColor="#17324D" />
             <Entry x:Name="ForeignAmountEntry" Placeholder="المبلغ الأجنبي" Keyboard="Numeric" Text="0" BackgroundColor="White" TextColor="#17324D" TextChanged="OnForeignAmountChanged" />
             <Entry x:Name="LocalAmountEntry" Placeholder="المبلغ المحلي" Keyboard="Numeric" BackgroundColor="White" TextColor="#17324D" />
