@@ -36,7 +36,6 @@ namespace AlTayerERP.API.Controllers
                     Group_Code = x.Group_Code,
                     Group_Name_AR = x.Group_Name_AR,
                     Group_Name_EN = x.Group_Name_EN,
-                    Group_Type = x.Group_Type,
                     Is_Default = x.Is_Default,
                     Show_In_Login = x.Show_In_Login,
                     Show_In_Tree = x.Show_In_Tree,
@@ -61,7 +60,6 @@ namespace AlTayerERP.API.Controllers
                     Group_Code = x.Group_Code,
                     Group_Name_AR = x.Group_Name_AR,
                     Group_Name_EN = x.Group_Name_EN,
-                    Group_Type = x.Group_Type,
                     Is_Default = x.Is_Default,
                     Show_In_Login = x.Show_In_Login,
                     Show_In_Tree = x.Show_In_Tree,
@@ -218,8 +216,8 @@ namespace AlTayerERP.API.Controllers
         private async Task<string?> ValidateAsync(CreateTenantGroupDto dto, string? excludeId, CancellationToken cancellationToken)
         {
             if (dto is null || string.IsNullOrWhiteSpace(dto.Group_Code) ||
-                string.IsNullOrWhiteSpace(dto.Group_Name_AR) || string.IsNullOrWhiteSpace(dto.Group_Type))
-                return "كود المجموعة والاسم العربي ونوع المجموعة حقول مطلوبة.";
+                string.IsNullOrWhiteSpace(dto.Group_Name_AR))
+                return "كود المجموعة والاسم العربي حقول مطلوبة.";
 
             var code = dto.Group_Code.Trim().ToUpperInvariant();
             if (await _context.Tenant_Groups.AnyAsync(x => x.Group_Code == code && x.Group_ID != excludeId, cancellationToken))
@@ -260,7 +258,6 @@ namespace AlTayerERP.API.Controllers
             group.Group_Code,
             group.Group_Name_AR,
             group.Group_Name_EN,
-            group.Group_Type,
             group.Is_Default,
             group.Show_In_Login,
             group.Show_In_Tree,
@@ -275,7 +272,6 @@ namespace AlTayerERP.API.Controllers
             group.Group_Name_AR = dto.Group_Name_AR.Trim();
             group.Group_Name_EN = dto.Group_Name_EN?.Trim() ?? string.Empty;
             group.Short_Name = dto.Group_Name_AR.Trim();
-            group.Group_Type = dto.Group_Type.Trim();
             group.Is_Default = dto.Is_Default;
             group.Show_In_Login = dto.Show_In_Login;
             group.Show_In_Tree = dto.Show_In_Tree;

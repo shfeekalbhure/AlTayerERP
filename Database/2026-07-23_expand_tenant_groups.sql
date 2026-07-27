@@ -4,8 +4,7 @@
 ALTER TABLE tenant_groups
     ADD COLUMN IF NOT EXISTS Group_Code VARCHAR(30) NULL AFTER Group_ID,
     ADD COLUMN IF NOT EXISTS Short_Name VARCHAR(100) NULL AFTER Group_Name_EN,
-    ADD COLUMN IF NOT EXISTS Group_Type VARCHAR(50) NULL AFTER Short_Name,
-    ADD COLUMN IF NOT EXISTS Parent_Group_ID VARCHAR(36) NULL AFTER Group_Type,
+    ADD COLUMN IF NOT EXISTS Parent_Group_ID VARCHAR(36) NULL AFTER Short_Name,
     ADD COLUMN IF NOT EXISTS Main_Company_ID VARCHAR(50) NULL AFTER Parent_Group_ID,
     ADD COLUMN IF NOT EXISTS Default_Currency_Code VARCHAR(10) NULL AFTER Main_Company_ID,
     ADD COLUMN IF NOT EXISTS Country_Name VARCHAR(100) NULL AFTER Default_Currency_Code,
@@ -32,14 +31,9 @@ UPDATE tenant_groups
 SET Short_Name = Group_Name_AR
 WHERE Short_Name IS NULL OR TRIM(Short_Name) = '';
 
-UPDATE tenant_groups
-SET Group_Type = 'مجموعة تجارية'
-WHERE Group_Type IS NULL OR TRIM(Group_Type) = '';
-
 ALTER TABLE tenant_groups
     MODIFY COLUMN Group_Code VARCHAR(30) NOT NULL,
-    MODIFY COLUMN Short_Name VARCHAR(100) NOT NULL,
-    MODIFY COLUMN Group_Type VARCHAR(50) NOT NULL;
+    MODIFY COLUMN Short_Name VARCHAR(100) NOT NULL;
 
 CREATE UNIQUE INDEX IF NOT EXISTS UX_Tenant_Groups_Group_Code ON tenant_groups (Group_Code);
 CREATE INDEX IF NOT EXISTS IX_Tenant_Groups_Parent ON tenant_groups (Parent_Group_ID);

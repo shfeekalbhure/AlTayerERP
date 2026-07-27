@@ -12,14 +12,12 @@ public sealed class FrmTenantGroups : BaseForm, IWorkspaceDirtyAware
     private readonly TextBox _code = Input();
     private readonly TextBox _nameAr = Input();
     private readonly TextBox _nameEn = Input();
-    private readonly ComboBox _type = Combo();
     private readonly CheckBox _active = new() { Text = "نشطة", Checked = true, Enabled = false, AutoSize = true };
     private readonly CheckBox _isDefault = new() { Text = "مجموعة افتراضية", AutoSize = true };
     private readonly CheckBox _showInLogin = new() { Text = "تظهر في شاشة اختيار الشركة", Checked = true, AutoSize = true };
     private readonly CheckBox _showInTree = new() { Text = "تظهر في شجرة النظام", Checked = true, AutoSize = true };
     private readonly TextBox _notes = new() { Multiline = true, ScrollBars = ScrollBars.Vertical };
     private readonly TextBox _search = new() { PlaceholderText = "ابحث بالكود أو الاسم…" };
-    private readonly ComboBox _filterType = Combo();
     private readonly ComboBox _filterStatus = Combo();
     private readonly Label _createdBy = AuditValue();
     private readonly Label _createdAt = AuditValue();
@@ -53,10 +51,6 @@ public sealed class FrmTenantGroups : BaseForm, IWorkspaceDirtyAware
         _deactivate = Button("إيقاف", async (_, _) => await ChangeStatusAsync(false), danger: true);
         _reactivate = Button("إعادة تفعيل", async (_, _) => await ChangeStatusAsync(true));
 
-        _type.DataSource = new[] { "مجموعة استثمارية", "مجموعة صناعية", "مجموعة خدمية", "مجموعة قابضة", "أخرى" };
-        _filterType.Items.Add("كل الأنواع");
-        _filterType.Items.AddRange(_type.Items.Cast<object>().ToArray());
-        _filterType.SelectedIndex = 0;
         _filterStatus.Items.AddRange(new object[] { "كل الحالات", "نشطة", "موقوفة" });
         _filterStatus.SelectedIndex = 0;
 
@@ -65,10 +59,9 @@ public sealed class FrmTenantGroups : BaseForm, IWorkspaceDirtyAware
         KeyDown += HandleKeys;
         _grid.SelectionChanged += async (_, _) => await BindSelectedAsync();
         _search.TextChanged += (_, _) => Filter();
-        _filterType.SelectedIndexChanged += (_, _) => Filter();
         _filterStatus.SelectedIndexChanged += (_, _) => Filter();
 
-        foreach (var control in new Control[] { _code, _nameAr, _nameEn, _type, _notes, _isDefault, _showInLogin, _showInTree })
+        foreach (var control in new Control[] { _code, _nameAr, _nameEn, _notes, _isDefault, _showInLogin, _showInTree })
         {
             control.TextChanged += (_, _) => MarkDirty();
             if (control is ComboBox combo) combo.SelectedIndexChanged += (_, _) => MarkDirty();
@@ -109,7 +102,9 @@ public sealed class FrmTenantGroups : BaseForm, IWorkspaceDirtyAware
         {
             Dock = DockStyle.Fill,
             FlowDirection = FlowDirection.RightToLeft,
+            RightToLeft = RightToLeft.Yes,
             WrapContents = false,
+            AutoScroll = true,
             Padding = new Padding(4),
             BackColor = Color.White
         };
@@ -130,7 +125,9 @@ public sealed class FrmTenantGroups : BaseForm, IWorkspaceDirtyAware
     {
         var table = FormTable(4);
         AddRow(table, 0, "كود المجموعة *", _code, "اسم المجموعة عربي *", _nameAr);
-        AddRow(table, 1, "اسم المجموعة إنجليزي", _nameEn, "نوع المجموعة *", _type);
+        table.Controls.Add(Caption("اسم المجموعة إنجليزي"), 0, 1);
+        table.Controls.Add(Field(_nameEn), 1, 1);
+        table.SetColumnSpan(_nameEn, 3);
 
         var settings = new FlowLayoutPanel
         {
@@ -152,26 +149,21 @@ public sealed class FrmTenantGroups : BaseForm, IWorkspaceDirtyAware
 
     private Control FilterBar()
     {
-        var bar = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 7, Padding = new Padding(6, 6, 6, 2) };
+        var bar = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 5, Padding = new Padding(6, 6, 6, 2), RightToLeft = RightToLeft.Yes };
         bar.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 70));
         bar.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
-        bar.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 70));
-        bar.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 160));
         bar.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 70));
         bar.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 130));
         bar.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 95));
         _search.Dock = DockStyle.Fill;
-        _filterType.Dock = DockStyle.Fill;
         _filterStatus.Dock = DockStyle.Fill;
         var apply = ToolbarButton("تطبيق", (_, _) => Filter(), Color.FromArgb(37, 99, 235));
         apply.Dock = DockStyle.Fill;
         bar.Controls.Add(Caption("بحث:"), 0, 0);
         bar.Controls.Add(_search, 1, 0);
-        bar.Controls.Add(Caption("النوع:"), 2, 0);
-        bar.Controls.Add(_filterType, 3, 0);
-        bar.Controls.Add(Caption("الحالة:"), 4, 0);
-        bar.Controls.Add(_filterStatus, 5, 0);
-        bar.Controls.Add(apply, 6, 0);
+        bar.Controls.Add(Caption("الحالة:"), 2, 0);
+        bar.Controls.Add(_filterStatus, 3, 0);
+        bar.Controls.Add(apply, 4, 0);
         return bar;
     }
 
@@ -196,9 +188,13 @@ public sealed class FrmTenantGroups : BaseForm, IWorkspaceDirtyAware
             _grid.DataSource = _groups.ToList();
             ClearForm();
         }
-        catch (Exception ex)
+        catch (HttpRequestException)
         {
-            MessageBox.Show("تعذر تحميل المجموعات التجارية.\n" + ex.Message, Text, MessageBoxButtons.OK, MessageBoxIcon.Error);
+            MessageBox.Show("تعذر تحميل المجموعات التجارية من الخدمة. تأكد من تشغيل الـ API واتصال قاعدة البيانات.", Text, MessageBoxButtons.OK, MessageBoxIcon.Error);
+        }
+        catch (Exception)
+        {
+            MessageBox.Show("حدث خطأ غير متوقع أثناء تحميل المجموعات التجارية.", Text, MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
         finally { _binding = false; }
     }
@@ -210,9 +206,9 @@ public sealed class FrmTenantGroups : BaseForm, IWorkspaceDirtyAware
             MessageBox.Show("اختر «تعديل» قبل الحفظ، أو استخدم «جديد» لإنشاء مجموعة.");
             return;
         }
-        if (string.IsNullOrWhiteSpace(_code.Text) || string.IsNullOrWhiteSpace(_nameAr.Text) || _type.SelectedItem is null)
+        if (string.IsNullOrWhiteSpace(_code.Text) || string.IsNullOrWhiteSpace(_nameAr.Text))
         {
-            MessageBox.Show("كود المجموعة والاسم العربي ونوع المجموعة حقول مطلوبة.");
+            MessageBox.Show("كود المجموعة والاسم العربي حقول مطلوبة.");
             return;
         }
 
@@ -224,7 +220,6 @@ public sealed class FrmTenantGroups : BaseForm, IWorkspaceDirtyAware
                 Group_Code = _code.Text.Trim(),
                 Group_Name_AR = _nameAr.Text.Trim(),
                 Group_Name_EN = CleanText(_nameEn.Text),
-                Group_Type = _type.Text,
                 Is_Default = _isDefault.Checked,
                 Show_In_Login = _showInLogin.Checked,
                 Show_In_Tree = _showInTree.Checked,
@@ -258,7 +253,6 @@ public sealed class FrmTenantGroups : BaseForm, IWorkspaceDirtyAware
             _code.Text = row.Group_Code;
             _nameAr.Text = row.Group_Name_AR;
             _nameEn.Text = row.Group_Name_EN;
-            _type.Text = row.Group_Type;
             _active.Checked = row.Is_Active;
             _isDefault.Checked = row.Is_Default;
             _showInLogin.Checked = row.Show_In_Login;
@@ -313,7 +307,6 @@ public sealed class FrmTenantGroups : BaseForm, IWorkspaceDirtyAware
         _grid.Columns.Add(Col(nameof(GroupRow.Group_Code), "كود المجموعة", 110));
         _grid.Columns.Add(Col(nameof(GroupRow.Group_Name_AR), "اسم المجموعة عربي", 220));
         _grid.Columns.Add(Col(nameof(GroupRow.Group_Name_EN), "اسم المجموعة إنجليزي", 190));
-        _grid.Columns.Add(Col(nameof(GroupRow.Group_Type), "نوع المجموعة", 150));
         _grid.Columns.Add(Col(nameof(GroupRow.Default_Text), "افتراضية", 90));
         _grid.Columns.Add(Col(nameof(GroupRow.Login_Text), "اختيار الشركة", 105));
         _grid.Columns.Add(Col(nameof(GroupRow.Tree_Text), "الشجرة", 90));
@@ -323,12 +316,10 @@ public sealed class FrmTenantGroups : BaseForm, IWorkspaceDirtyAware
     private void Filter()
     {
         var q = _search.Text.Trim();
-        var type = _filterType.Text;
         var status = _filterStatus.Text;
         _grid.DataSource = _groups.Where(x =>
-            (type == "كل الأنواع" || x.Group_Type == type) &&
             (status == "كل الحالات" || (status == "نشطة" && x.Is_Active) || (status == "موقوفة" && !x.Is_Active)) &&
-            (string.IsNullOrWhiteSpace(q) || $"{x.Group_Code} {x.Group_Name_AR} {x.Group_Name_EN} {x.Group_Type}".Contains(q, StringComparison.CurrentCultureIgnoreCase)))
+            (string.IsNullOrWhiteSpace(q) || $"{x.Group_Code} {x.Group_Name_AR} {x.Group_Name_EN}".Contains(q, StringComparison.CurrentCultureIgnoreCase)))
             .ToList();
     }
 
@@ -342,7 +333,6 @@ public sealed class FrmTenantGroups : BaseForm, IWorkspaceDirtyAware
             _nameAr.Clear();
             _nameEn.Clear();
             _notes.Clear();
-            _type.SelectedIndex = 0;
             _active.Checked = true;
             _isDefault.Checked = false;
             _showInLogin.Checked = true;
@@ -370,7 +360,7 @@ public sealed class FrmTenantGroups : BaseForm, IWorkspaceDirtyAware
 
     private void SetEditorEnabled(bool enabled)
     {
-        foreach (var control in new Control[] { _nameAr, _nameEn, _type, _notes, _isDefault, _showInLogin, _showInTree })
+        foreach (var control in new Control[] { _nameAr, _nameEn, _notes, _isDefault, _showInLogin, _showInTree })
             control.Enabled = enabled;
         _code.Enabled = enabled && string.IsNullOrWhiteSpace(_selectedId);
     }
@@ -387,8 +377,9 @@ public sealed class FrmTenantGroups : BaseForm, IWorkspaceDirtyAware
 
     private void HandleKeys(object? sender, KeyEventArgs e)
     {
-        if (e.Control && e.KeyCode == Keys.N) { ClearForm(); e.SuppressKeyPress = true; }
-        else if (e.Control && e.KeyCode == Keys.S) { _ = SaveAsync(); e.SuppressKeyPress = true; }
+        if (e.KeyCode == Keys.F2 || (e.Control && e.KeyCode == Keys.S)) { _ = SaveAsync(); e.SuppressKeyPress = true; }
+        else if (e.KeyCode == Keys.F3 || (e.Control && e.KeyCode == Keys.N)) { ClearForm(); e.SuppressKeyPress = true; }
+        else if (e.KeyCode == Keys.F4) { BeginEdit(); e.SuppressKeyPress = true; }
         else if (e.Control && e.KeyCode == Keys.F) { _search.Focus(); e.SuppressKeyPress = true; }
         else if (e.KeyCode == Keys.F5) { _ = LoadGroupsAsync(); e.SuppressKeyPress = true; }
         else if (e.KeyCode == Keys.Escape) { Close(); e.SuppressKeyPress = true; }
@@ -424,7 +415,7 @@ public sealed class FrmTenantGroups : BaseForm, IWorkspaceDirtyAware
             using var title = new Font("Segoe UI", 15F, FontStyle.Bold);
             using var body = new Font("Segoe UI", 11F);
             e.Graphics.DrawString("بيانات المجموعة التجارية", title, Brushes.Navy, 70, 70);
-            e.Graphics.DrawString($"الكود: {_code.Text}\nالاسم العربي: {_nameAr.Text}\nالاسم الإنجليزي: {_nameEn.Text}\nالنوع: {_type.Text}\nالحالة: {(_active.Checked ? "نشطة" : "موقوفة")}\nافتراضية: {(_isDefault.Checked ? "نعم" : "لا")}\nتظهر في اختيار الشركة: {(_showInLogin.Checked ? "نعم" : "لا")}\nتظهر في الشجرة: {(_showInTree.Checked ? "نعم" : "لا")}\nالملاحظة: {_notes.Text}", body, Brushes.Black, new RectangleF(70, 120, 700, 420));
+            e.Graphics.DrawString($"الكود: {_code.Text}\nالاسم العربي: {_nameAr.Text}\nالاسم الإنجليزي: {_nameEn.Text}\nالحالة: {(_active.Checked ? "نشطة" : "موقوفة")}\nافتراضية: {(_isDefault.Checked ? "نعم" : "لا")}\nتظهر في اختيار الشركة: {(_showInLogin.Checked ? "نعم" : "لا")}\nتظهر في الشجرة: {(_showInTree.Checked ? "نعم" : "لا")}\nالملاحظة: {_notes.Text}", body, Brushes.Black, new RectangleF(70, 120, 700, 420));
         };
         using var preview = new PrintPreviewDialog { Document = document, Width = 900, Height = 700, RightToLeft = RightToLeft.Yes };
         preview.ShowDialog(this);
@@ -466,10 +457,8 @@ public sealed class FrmTenantGroups : BaseForm, IWorkspaceDirtyAware
         table.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
         table.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 135));
         table.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
-        table.RowStyles.Add(new RowStyle(SizeType.Absolute, 42));
-        table.RowStyles.Add(new RowStyle(SizeType.Absolute, 42));
-        table.RowStyles.Add(new RowStyle(SizeType.Absolute, 42));
-        table.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+        for (var row = 0; row < rows; row++)
+            table.RowStyles.Add(new RowStyle(row == rows - 1 ? SizeType.Percent : SizeType.Absolute, row == rows - 1 ? 100 : 42));
         return table;
     }
     private static void AddRow(TableLayoutPanel table, int row, string caption1, Control field1, string caption2, Control field2)
@@ -506,7 +495,6 @@ public sealed class FrmTenantGroups : BaseForm, IWorkspaceDirtyAware
         public string Group_Code { get; set; } = string.Empty;
         public string Group_Name_AR { get; set; } = string.Empty;
         public string Group_Name_EN { get; set; } = string.Empty;
-        public string Group_Type { get; set; } = string.Empty;
         public bool Is_Default { get; set; }
         public bool Show_In_Login { get; set; }
         public bool Show_In_Tree { get; set; }

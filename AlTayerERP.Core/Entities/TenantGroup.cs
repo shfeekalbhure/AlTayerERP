@@ -17,7 +17,6 @@ namespace AlTayerERP.Core.Entities
         /// <summary>اسم المجموعة بالإنجليزية Group_Name_EN.</summary>
         public string Group_Name_EN { get; set; } = string.Empty;
         public string Short_Name { get; set; } = string.Empty;
-        public string Group_Type { get; set; } = string.Empty;
         /// <summary>تحدد مجموعة واحدة افتراضية لاستخدامها في إعدادات النظام.</summary>
         public bool Is_Default { get; set; }
         public string? Parent_Group_ID { get; set; }

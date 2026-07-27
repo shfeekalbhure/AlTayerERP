@@ -16,7 +16,7 @@ SET @sql = IF(
           AND column_name = 'Is_Default'
     ),
     'SELECT 1',
-    'ALTER TABLE tenant_groups ADD COLUMN Is_Default TINYINT(1) NOT NULL DEFAULT 0 AFTER Group_Type'
+    'ALTER TABLE tenant_groups ADD COLUMN Is_Default TINYINT(1) NOT NULL DEFAULT 0 AFTER Group_Name_EN'
 );
 PREPARE stmt FROM @sql;
 EXECUTE stmt;

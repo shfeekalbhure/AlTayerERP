@@ -6,7 +6,6 @@ namespace AlTayerERP.API.DTOs
         public string Group_Code { get; set; } = string.Empty;
         public string Group_Name_AR { get; set; } = string.Empty;
         public string? Group_Name_EN { get; set; }
-        public string Group_Type { get; set; } = string.Empty;
         public bool Is_Default { get; set; }
         public bool Show_In_Login { get; set; }
         public bool Show_In_Tree { get; set; }
