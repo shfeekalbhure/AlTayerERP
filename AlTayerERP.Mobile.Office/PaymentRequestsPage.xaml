@@ -40,7 +40,8 @@
                      Grid.Row="3"
                      Refreshing="OnRefreshing">
             <CollectionView x:Name="RequestsList"
-                            SelectionMode="None">
+                            SelectionMode="Single"
+                            SelectionChanged="OnRequestSelected">
                 <CollectionView.EmptyView>
                     <VerticalStackLayout Padding="20" Spacing="10">
                         <Label Text="لا توجد طلبات صرف مطابقة."
