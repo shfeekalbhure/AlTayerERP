@@ -1,14 +1,15 @@
-using System;
 using System.Windows.Forms;
 
 namespace AlTayerERP.Desktop
 {
     public partial class FrmCashBoxes
     {
-        protected override void OnShown(EventArgs e)
+        /// <summary>
+        /// يضبط سلوك منسدلات شاشة الصناديق.
+        /// تستدعى من نقطة التهيئة الموحدة في FrmCashBoxes.Completion.cs.
+        /// </summary>
+        private void ConfigureCashBoxDropdowns()
         {
-            base.OnShown(e);
-
             // الفرع مرتبط بفرع الجلسة، لكنه يبقى ظاهرًا وقابلاً لفتح القائمة
             // حتى لا يبدو للمستخدم أن المنسدلة متوقفة.
             cmbBranch.Enabled = true;
