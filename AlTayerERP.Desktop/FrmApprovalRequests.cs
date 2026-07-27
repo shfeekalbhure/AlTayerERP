@@ -203,8 +203,7 @@ public sealed class FrmApprovalRequests : BaseForm
 
         _selectedId = row.Approval_ID;
         _selectedStatus = row.Status ?? string.Empty;
-        _details.Text = $"نوع الطلب: {row.Request_Type ?? "—"}   |   المرجع: {row.Reference_No}   |   الجهة: {row.Entity_Name}\nالحالة: {row.Status_Display}   |   المبلغ: {row.Amount_Display}
-سبب الطلب: {row.Reason ?? "—"}";
+        _details.Text = $"نوع الطلب: {row.Request_Type ?? "—"}   |   المرجع: {row.Reference_No}   |   الجهة: {row.Entity_Name}\nالحالة: {row.Status_Display}   |   المبلغ: {row.Amount_Display}\nسبب الطلب: {row.Reason ?? "—"}";
         _reason.Clear();
         ApplyButtons();
     }
