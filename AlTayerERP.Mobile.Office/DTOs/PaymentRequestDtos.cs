@@ -7,6 +7,9 @@ public sealed class PaymentRequestListItemDto
     public DateTime Request_Date { get; set; }
     public string Status { get; set; } = string.Empty;
     public string Beneficiary_Name { get; set; } = string.Empty;
+    public string? Party_ID { get; set; }
+    public int? Payment_Method_ID { get; set; }
+    public string? Header_Reference_No { get; set; }
     public string? Description { get; set; }
     public decimal Approved_Local_Total { get; set; }
     public List<PaymentRequestLineItemDto> Details { get; set; } = [];
