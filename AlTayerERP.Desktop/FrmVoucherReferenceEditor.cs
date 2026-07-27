@@ -24,8 +24,13 @@ namespace AlTayerERP.Desktop
         private readonly HttpClient _client = ApiService.Client;
         private readonly Dictionary<string, Control> _inputs = new();
         private readonly TextBox _searchBox = new();
+        private readonly ComboBox _periodStatusFilter = new();
+        private readonly ComboBox _periodActivityFilter = new();
         private readonly Label _recordCount = new();
+        private readonly Label _auditInfo = new();
         private readonly Label _emptyState = new();
+        private Button? _closeFiscalPeriodButton;
+        private Button? _reopenFiscalPeriodButton;
         private readonly DataGridView _grid = new()
         {
             Dock = DockStyle.Fill,
@@ -161,8 +166,10 @@ namespace AlTayerERP.Desktop
 
             if (IsFiscalPeriodsScreen)
             {
-                toolbar.Controls.Add(CreateButton("فتح الفترة", Color.FromArgb(5, 122, 85), async (_, _) => await ChangeFiscalPeriodLifecycleAsync(reopen: true)));
-                toolbar.Controls.Add(CreateButton("إقفال الفترة", Color.FromArgb(190, 83, 24), async (_, _) => await ChangeFiscalPeriodLifecycleAsync(reopen: false)));
+                _reopenFiscalPeriodButton = CreateButton("فتح الفترة", Color.FromArgb(5, 122, 85), async (_, _) => await ChangeFiscalPeriodLifecycleAsync(reopen: true));
+                _closeFiscalPeriodButton = CreateButton("إقفال الفترة", Color.FromArgb(190, 83, 24), async (_, _) => await ChangeFiscalPeriodLifecycleAsync(reopen: false));
+                toolbar.Controls.Add(_reopenFiscalPeriodButton);
+                toolbar.Controls.Add(_closeFiscalPeriodButton);
             }
 
             toolbar.Controls.Add(CreateButton("تحديث  F5", Color.FromArgb(36, 99, 168), async (_, _) => await LoadAsync()));
@@ -182,7 +189,9 @@ namespace AlTayerERP.Desktop
                 Margin = new Padding(0, 0, 0, 6)
             };
 
-            _searchBox.PlaceholderText = "بحث سريع بالكود أو الاسم…";
+            _searchBox.PlaceholderText = IsFiscalPeriodsScreen
+                ? "بحث بالكود أو الاسم…"
+                : "بحث سريع بالكود أو الاسم…";
             _searchBox.Dock = DockStyle.Fill;
             _searchBox.BorderStyle = BorderStyle.FixedSingle;
             _searchBox.Font = new Font("Segoe UI", 10F);
@@ -190,11 +199,48 @@ namespace AlTayerERP.Desktop
             _searchBox.TextChanged += (_, _) => FilterGrid();
 
             card.Controls.Add(_searchBox);
+
+            if (IsFiscalPeriodsScreen)
+            {
+                var filters = new FlowLayoutPanel
+                {
+                    Dock = DockStyle.Right,
+                    AutoSize = true,
+                    WrapContents = false,
+                    FlowDirection = FlowDirection.RightToLeft,
+                    Padding = new Padding(4, 0, 8, 0)
+                };
+
+                _periodStatusFilter.DropDownStyle = ComboBoxStyle.DropDownList;
+                _periodStatusFilter.Width = 128;
+                _periodStatusFilter.Items.AddRange(new object[] { "كل الحالات", "مفتوحة", "مقفلة" });
+                _periodStatusFilter.SelectedIndex = 0;
+                _periodStatusFilter.SelectedIndexChanged += (_, _) => FilterGrid();
+
+                _periodActivityFilter.DropDownStyle = ComboBoxStyle.DropDownList;
+                _periodActivityFilter.Width = 128;
+                _periodActivityFilter.Items.AddRange(new object[] { "كل السجلات", "الفعالة فقط", "غير الفعالة فقط" });
+                _periodActivityFilter.SelectedIndex = 0;
+                _periodActivityFilter.SelectedIndexChanged += (_, _) => FilterGrid();
+
+                filters.Controls.Add(_periodActivityFilter);
+                filters.Controls.Add(_periodStatusFilter);
+                filters.Controls.Add(new Label
+                {
+                    Text = "تصفية:",
+                    Width = 48,
+                    TextAlign = ContentAlignment.MiddleRight,
+                    ForeColor = Color.FromArgb(55, 65, 81),
+                    Font = new Font("Segoe UI", 9F, FontStyle.Bold)
+                });
+                card.Controls.Add(filters);
+            }
+
             card.Controls.Add(new Label
             {
                 Text = "بحث",
                 Dock = DockStyle.Right,
-                Width = 72,
+                Width = 52,
                 TextAlign = ContentAlignment.MiddleRight,
                 ForeColor = Color.FromArgb(55, 65, 81),
                 Font = new Font("Segoe UI", 9F, FontStyle.Bold)
@@ -294,6 +340,16 @@ namespace AlTayerERP.Desktop
                     }
                 };
 
+                if (IsFiscalPeriodsScreen &&
+                    field.Kind == ReferenceEditorFieldKind.Date &&
+                    (field.Code == "Start_Date" || field.Code == "End_Date") &&
+                    input is DateTimePicker requiredDate)
+                {
+                    // تاريخا الفترة إلزاميان؛ لا نسمح بإرسال null إلى API.
+                    requiredDate.ShowCheckBox = false;
+                    requiredDate.Value = DateTime.Today;
+                }
+
                 ConfigureEditorInput(input);
 
                 _inputs[field.Code] = input;
@@ -385,15 +441,15 @@ namespace AlTayerERP.Desktop
             _recordCount.TextAlign = ContentAlignment.MiddleRight;
             _recordCount.Text = "عدد السجلات: 0";
 
-            footer.Controls.Add(_recordCount);
-            footer.Controls.Add(new Label
-            {
-                Text = "الحفظ محمي بصلاحيات مدير النظام",
-                Dock = DockStyle.Left,
-                ForeColor = Color.FromArgb(75, 85, 99),
-                TextAlign = ContentAlignment.MiddleLeft
-            });
+            _auditInfo.Dock = DockStyle.Fill;
+            _auditInfo.ForeColor = Color.FromArgb(75, 85, 99);
+            _auditInfo.TextAlign = ContentAlignment.MiddleLeft;
+            _auditInfo.Text = IsFiscalPeriodsScreen
+                ? "اختر فترة لعرض تاريخ الإنشاء وآخر تعديل."
+                : "الحفظ والتحقق محكومان بصلاحيات الشاشة.";
 
+            footer.Controls.Add(_auditInfo);
+            footer.Controls.Add(_recordCount);
             return footer;
         }
 
@@ -539,10 +595,33 @@ namespace AlTayerERP.Desktop
             var query = _searchBox.Text.Trim();
             foreach (DataGridViewRow row in _grid.Rows)
             {
-                row.Visible = string.IsNullOrWhiteSpace(query) ||
+                var matches = string.IsNullOrWhiteSpace(query) ||
                     row.Cells.Cast<DataGridViewCell>()
                         .Any(cell => (cell.Value?.ToString() ?? string.Empty)
                         .IndexOf(query, StringComparison.CurrentCultureIgnoreCase) >= 0);
+
+                if (matches && IsFiscalPeriodsScreen && row.Tag is Dictionary<string, JsonElement> period)
+                {
+                    var isClosed = ReadBoolean(period, "Is_Closed");
+                    var isActive = ReadBoolean(period, "Is_Active");
+                    var status = _periodStatusFilter.SelectedItem?.ToString();
+                    var activity = _periodActivityFilter.SelectedItem?.ToString();
+
+                    matches &= status switch
+                    {
+                        "مفتوحة" => !isClosed,
+                        "مقفلة" => isClosed,
+                        _ => true
+                    };
+                    matches &= activity switch
+                    {
+                        "الفعالة فقط" => isActive,
+                        "غير الفعالة فقط" => !isActive,
+                        _ => true
+                    };
+                }
+
+                row.Visible = matches;
             }
 
             _emptyState.Visible = _grid.Rows.Cast<DataGridViewRow>().All(row => !row.Visible);
@@ -599,16 +678,12 @@ namespace AlTayerERP.Desktop
             }
 
             ConfigureFiscalPeriodLifecycleInputs();
+            UpdateAuditFooter(row);
         }
 
         private async Task SaveAsync()
         {
-            if (!CurrentSession.Is_System_Admin)
-            {
-                MessageBox.Show("إدارة هذه القائمة مخصصة لمدير النظام.", Text, MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                return;
-            }
-
+            // لا نتخذ قرار الصلاحية من العميل؛ API هو المصدر الملزم لصلاحيات View/Add/Edit.
             var required = _fields
                 .Where(field => field.Kind == ReferenceEditorFieldKind.Text &&
 (field.Code.EndsWith("_Code", StringComparison.Ordinal) ||
@@ -636,6 +711,8 @@ namespace AlTayerERP.Desktop
                     NumericUpDown number => number.DecimalPlaces == 0
                         ? Convert.ToInt32(number.Value)
                         : number.Value,
+                    DateTimePicker datePicker when IsFiscalPeriodsScreen &&
+                                                   (field.Code == "Start_Date" || field.Code == "End_Date") => datePicker.Value.Date,
                     DateTimePicker datePicker => datePicker.Checked ? datePicker.Value.Date : null,
                     ComboBox comboBox => comboBox.SelectedItem?.ToString(),
                     TextBox textBox => textBox.Text.Trim(),
@@ -683,7 +760,8 @@ namespace AlTayerERP.Desktop
                         break;
                     case DateTimePicker datePicker:
                         datePicker.Value = DateTime.Today;
-                        datePicker.Checked = false;
+                        datePicker.Checked = IsFiscalPeriodsScreen &&
+                                             (field.Code == "Start_Date" || field.Code == "End_Date");
                         break;
                     case ComboBox comboBox when comboBox.Items.Count > 0:
                         comboBox.SelectedIndex = 0;
@@ -696,6 +774,9 @@ namespace AlTayerERP.Desktop
 
             _grid.ClearSelection();
             ConfigureFiscalPeriodLifecycleInputs();
+            _auditInfo.Text = IsFiscalPeriodsScreen
+                ? "اختر فترة لعرض تاريخ الإنشاء وآخر تعديل."
+                : "الحفظ والتحقق محكومان بصلاحيات الشاشة.";
         }
 
         private bool IsFiscalPeriodsScreen =>
@@ -722,6 +803,40 @@ namespace AlTayerERP.Desktop
 
             if (_inputs.TryGetValue("Close_Reason", out var closeReason))
                 closeReason.Enabled = false;
+
+            var isClosed = _inputs.TryGetValue("Is_Closed", out var state) &&
+                           state is CheckBox stateCheck && stateCheck.Checked;
+            var hasSelectedPeriod = _selectedId is int periodId && periodId > 0;
+            if (_closeFiscalPeriodButton != null)
+                _closeFiscalPeriodButton.Enabled = hasSelectedPeriod && !isClosed;
+            if (_reopenFiscalPeriodButton != null)
+                _reopenFiscalPeriodButton.Enabled = hasSelectedPeriod && isClosed;
+        }
+
+        private void UpdateAuditFooter(Dictionary<string, JsonElement> row)
+        {
+            if (!IsFiscalPeriodsScreen)
+                return;
+
+            var created = ReadAuditDate(row, "Created_At");
+            var updated = ReadAuditDate(row, "Updated_At");
+            _auditInfo.Text = $"أنشئ في: {created}   |   آخر تعديل: {updated}";
+        }
+
+        private static string ReadAuditDate(Dictionary<string, JsonElement> row, string property)
+        {
+            return row.TryGetValue(property, out var value) &&
+                   value.ValueKind == JsonValueKind.String &&
+                   DateTime.TryParse(value.GetString(), out var date)
+                ? date.ToString("yyyy/MM/dd HH:mm")
+                : "—";
+        }
+
+        private static bool ReadBoolean(Dictionary<string, JsonElement> row, string property)
+        {
+            return row.TryGetValue(property, out var value) &&
+                   (value.ValueKind == JsonValueKind.True ||
+                    (value.ValueKind == JsonValueKind.String && bool.TryParse(value.GetString(), out var flag) && flag));
         }
 
         private async Task ChangeFiscalPeriodLifecycleAsync(bool reopen)
