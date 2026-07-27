@@ -29,7 +29,9 @@ public sealed class ReceiptVoucherHeaderDto
     public string? Description { get; set; }
     public string? ReferenceNo { get; set; }
     public string CashAccountId { get; set; } = string.Empty;
+    public string CashAccountDisplay { get; set; } = string.Empty;
     public int CurrencyId { get; set; }
+    public string CurrencyDisplay { get; set; } = string.Empty;
     public decimal ExchangeRate { get; set; }
     public decimal Amount { get; set; }
     public decimal ForeignTotal { get; set; }
@@ -42,8 +44,11 @@ public sealed class ReceiptVoucherLineDto
 {
     public int LineNo { get; set; }
     public string AccountId { get; set; } = string.Empty;
+    public string AccountDisplay { get; set; } = string.Empty;
     public string? CostCenterId { get; set; }
+    public string? CostCenterDisplay { get; set; }
     public int CurrencyId { get; set; }
+    public string CurrencyDisplay { get; set; } = string.Empty;
     public decimal ExchangeRate { get; set; }
     public decimal ForeignAmount { get; set; }
     public decimal LocalAmount { get; set; }
