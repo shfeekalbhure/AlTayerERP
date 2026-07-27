@@ -26,6 +26,7 @@ public static class MauiProgram
         builder.Services.AddSingleton<MobileHomeService>();
         builder.Services.AddSingleton<PaymentRequestService>();
         builder.Services.AddSingleton<PaymentRequestReferenceService>();
+        builder.Services.AddSingleton<PaymentRequestAttachmentService>();
         builder.Services.AddTransient<MainPage>();
 
 #if DEBUG
