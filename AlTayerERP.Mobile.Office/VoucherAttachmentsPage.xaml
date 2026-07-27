@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="AlTayerERP.Mobile.Office.VoucherAttachmentsPage"
+             FlowDirection="RightToLeft"
+             BackgroundColor="#F6F8FB"
+             Title="مرفقات سند القبض">
+    <Grid RowDefinitions="Auto,Auto,*" Padding="16" RowSpacing="12">
+        <Button Text="+ إضافة مرفق"
+                BackgroundColor="#0B6B87"
+                TextColor="White"
+                HeightRequest="48"
+                CornerRadius="12"
+                Clicked="OnUploadClicked" />
+        <ActivityIndicator x:Name="BusyIndicator"
+                           Grid.Row="1"
+                           Color="#0B6B87"
+                           IsVisible="False"
+                           IsRunning="False" />
+        <CollectionView x:Name="AttachmentsList"
+                        Grid.Row="2"
+                        SelectionMode="None">
+            <CollectionView.EmptyView>
+                <Label Text="لا توجد مرفقات لهذا السند."
+                       HorizontalTextAlignment="Center"
+                       TextColor="#7A8896"
+                       Padding="20" />
+            </CollectionView.EmptyView>
+            <CollectionView.ItemTemplate>
+                <DataTemplate>
+                    <Border Margin="0,0,0,10"
+                            Padding="14"
+                            Stroke="#D9E2EC"
+                            BackgroundColor="White"
+                            StrokeShape="RoundRectangle 14">
+                        <Grid RowDefinitions="Auto,Auto,Auto"
+                              ColumnDefinitions="*,Auto,Auto"
+                              ColumnSpacing="8"
+                              RowSpacing="5">
+                            <Label Text="{Binding Name}"
+                                   FontAttributes="Bold"
+                                   TextColor="#17324D"
+                                   LineBreakMode="TailTruncation" />
+                            <Button Grid.Column="1"
+                                    Text="فتح"
+                                    FontSize="12"
+                                    BackgroundColor="#35566F"
+                                    TextColor="White"
+                                    CommandParameter="{Binding}"
+                                    Clicked="OnOpenClicked" />
+                            <Button Grid.Column="2"
+                                    Text="حذف"
+                                    FontSize="12"
+                                    BackgroundColor="#B42318"
+                                    TextColor="White"
+                                    CommandParameter="{Binding}"
+                                    Clicked="OnDeleteClicked" />
+                            <Label Grid.Row="1"
+                                   Grid.ColumnSpan="3"
+                                   Text="{Binding SizeDisplay}"
+                                   FontSize="12"
+                                   TextColor="#7A8896" />
+                            <Label Grid.Row="2"
+                                   Grid.ColumnSpan="3"
+                                   Text="{Binding Notes}"
+                                   FontSize="12"
+                                   TextColor="#35566F"
+                                   LineBreakMode="WordWrap" />
+                        </Grid>
+                    </Border>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+    </Grid>
+</ContentPage>
