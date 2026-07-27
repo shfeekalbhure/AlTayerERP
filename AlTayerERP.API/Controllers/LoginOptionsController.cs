@@ -37,17 +37,28 @@ public sealed class LoginOptionsController : ControllerBase
     [HttpGet("LoginCompanies")]
     public async Task<IActionResult> GetLoginCompanies(CancellationToken cancellationToken)
     {
-        var companies = await (
-                from company in _context.Companies.AsNoTracking()
-                join group in _context.Tenant_Groups.AsNoTracking()
-                    on company.Group_ID equals group.Group_ID
-                where company.Is_Active && group.Is_Active && group.Show_In_Login
-                orderby group.Is_Default descending, company.Company_Name_AR
-                select new LoginCompanyOptionDto
+        var companies = await _context.Companies
+            .AsNoTracking()
+            .Join(
+                _context.Tenant_Groups.AsNoTracking(),
+                companyEntity => companyEntity.Group_ID,
+                groupEntity => groupEntity.Group_ID,
+                (companyEntity, groupEntity) => new
                 {
-                    Company_ID = company.Company_ID,
-                    Company_Name = company.Company_Name_AR
+                    Company = companyEntity,
+                    Group = groupEntity
                 })
+            .Where(x =>
+                x.Company.Is_Active &&
+                x.Group.Is_Active &&
+                x.Group.Show_In_Login)
+            .OrderByDescending(x => x.Group.Is_Default)
+            .ThenBy(x => x.Company.Company_Name_AR)
+            .Select(x => new LoginCompanyOptionDto
+            {
+                Company_ID = x.Company.Company_ID,
+                Company_Name = x.Company.Company_Name_AR
+            })
             .ToListAsync(cancellationToken);
 
         return Ok(companies);
