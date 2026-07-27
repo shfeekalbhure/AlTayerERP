@@ -46,27 +46,48 @@ public sealed class MobileVoucherEntryReferencesController : ControllerBase
         if (voucherType == null || draftStatus == null)
             return Conflict(new { message = "نوع السند أو حالة المسودة غير مهيأة." });
 
-        var cashBoxes = await _db.Cash_Boxes.AsNoTracking()
-            .Where(x => x.Company_ID == session.Company_ID && x.Branch_ID == session.Branch_ID && x.Is_Active)
-            .OrderBy(x => x.Box_Name_AR)
-            .Select(x => new
+        var cashBoxes = await (
+            from box in _db.Cash_Boxes.AsNoTracking()
+            join account in _db.Chart_Of_Accounts.AsNoTracking()
+                on box.Account_ID equals account.Account_ID
+            where box.Company_ID == session.Company_ID &&
+                  box.Branch_ID == session.Branch_ID &&
+                  box.Is_Active &&
+                  box.Account_ID != null && box.Account_ID != "" &&
+                  account.Company_ID == session.Company_ID &&
+                  account.Is_Active && account.Is_Postable && !account.Is_Summary_Account
+            orderby box.Box_Name_AR
+            select new
             {
-                accountId = x.Account_ID,
+                accountId = box.Account_ID,
                 sourceType = "CASH",
-                displayName = x.CashBox_Code + " - " + x.Box_Name_AR
+                displayName = box.CashBox_Code + " - " + box.Box_Name_AR + " | " +
+                              account.Account_Code + " - " + account.Account_Name_AR
             }).ToListAsync(cancellationToken);
 
-        var banks = await _db.Bank_Accounts.AsNoTracking()
-            .Where(x => x.Company_ID == session.Company_ID && x.Is_Active && x.GL_Account != null && x.GL_Account != "")
-            .OrderBy(x => x.Bank_Name_AR)
-            .Select(x => new
+        var banks = await (
+            from bank in _db.Bank_Accounts.AsNoTracking()
+            join account in _db.Chart_Of_Accounts.AsNoTracking()
+                on bank.GL_Account equals account.Account_ID
+            where bank.Company_ID == session.Company_ID &&
+                  bank.Is_Active &&
+                  bank.GL_Account != null && bank.GL_Account != "" &&
+                  account.Company_ID == session.Company_ID &&
+                  account.Is_Active && account.Is_Postable && !account.Is_Summary_Account
+            orderby bank.Bank_Name_AR
+            select new
             {
-                accountId = x.GL_Account!,
+                accountId = bank.GL_Account!,
                 sourceType = "BANK",
-                displayName = x.Bank_Name_AR + " - " + x.Account_No
+                displayName = bank.Bank_Name_AR + " - " + bank.Account_No + " | " +
+                              account.Account_Code + " - " + account.Account_Name_AR
             }).ToListAsync(cancellationToken);
 
-        var sources = cashBoxes.Concat(banks).ToList();
+        var sources = cashBoxes.Concat(banks)
+            .GroupBy(x => new { x.accountId, x.sourceType, x.displayName })
+            .Select(x => x.Key)
+            .OrderBy(x => x.displayName)
+            .ToList();
 
         var accounts = await _db.Chart_Of_Accounts.AsNoTracking()
             .Where(x => x.Company_ID == session.Company_ID && x.Is_Active && x.Is_Postable && !x.Is_Summary_Account)
@@ -110,6 +131,21 @@ public sealed class MobileVoucherEntryReferencesController : ControllerBase
             .Select(x => new { startDate = x.Start_Date.Date, endDate = x.End_Date.Date })
             .ToListAsync(cancellationToken);
 
-        return Ok(new { voucherType, draftStatus, sources, accounts, costCenters, currencies, parties, paymentMethods, openPeriods });
+        return Ok(new
+        {
+            voucherType,
+            draftStatus,
+            sources,
+            sourceCount = sources.Count,
+            sourceMessage = sources.Count == 0
+                ? "لا توجد صناديق أو بنوك فعالة مرتبطة بحساب مالي قابل للترحيل ضمن نطاق الجلسة."
+                : null,
+            accounts,
+            costCenters,
+            currencies,
+            parties,
+            paymentMethods,
+            openPeriods
+        });
     }
 }
