@@ -89,12 +89,23 @@ public sealed class MobileReceiptVouchersController : ControllerBase
             .Select(x => new { x.Currency_Code, x.Currency_Name_AR })
             .SingleOrDefaultAsync(cancellationToken);
 
+        var partyName = string.IsNullOrWhiteSpace(voucher.Party_ID)
+            ? null
+            : await _db.Parties.AsNoTracking()
+                .Where(x => x.Party_ID == voucher.Party_ID && x.Company_ID == session.Company_ID)
+                .Select(x => x.Party_Name_AR)
+                .SingleOrDefaultAsync(cancellationToken);
+
+        var receivedFromName = !string.IsNullOrWhiteSpace(voucher.Received_From_Name)
+            ? voucher.Received_From_Name
+            : partyName;
+
         var header = new
         {
             voucherId = voucher.Voucher_ID,
             voucherNo = voucher.Voucher_No,
             voucherDate = voucher.Voucher_Date,
-            receivedFromName = voucher.Received_From_Name,
+            receivedFromName,
             description = voucher.Description,
             referenceNo = voucher.Reference_No,
             cashAccountId = voucher.Cash_Account_ID,
