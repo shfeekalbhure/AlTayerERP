@@ -25,17 +25,18 @@
                 </VerticalStackLayout>
             </Border>
 
-            <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto" ColumnSpacing="8" RowSpacing="8">
-                <Button x:Name="ReviewButton" Grid.Row="0" Grid.Column="0" Text="مراجعة" BackgroundColor="#0B6B87" TextColor="White" Clicked="OnReviewClicked" />
-                <Button x:Name="ApproveButton" Grid.Row="0" Grid.Column="1" Text="اعتماد" BackgroundColor="#17324D" TextColor="White" Clicked="OnApproveClicked" />
-                <Button x:Name="ReturnButton" Grid.Row="1" Grid.Column="0" Text="إعادة للتصحيح" BackgroundColor="#B7791F" TextColor="White" Clicked="OnReturnClicked" />
-                <Button x:Name="CancelApprovalButton" Grid.Row="1" Grid.Column="1" Text="إلغاء الاعتماد" BackgroundColor="#8B5E34" TextColor="White" IsVisible="False" Clicked="OnCancelApprovalClicked" />
-                <Button x:Name="PostButton" Grid.Row="2" Grid.Column="0" Text="ترحيل" BackgroundColor="#18794E" TextColor="White" Clicked="OnPostClicked" />
-                <Button x:Name="UnpostButton" Grid.Row="2" Grid.Column="1" Text="فك الترحيل" BackgroundColor="#B42318" TextColor="White" IsVisible="False" Clicked="OnUnpostClicked" />
-                <Button x:Name="DeleteButton" Grid.Row="3" Grid.Column="0" Text="حذف المسودة" BackgroundColor="#B42318" TextColor="White" Clicked="OnDeleteClicked" />
-                <Button x:Name="PrintButton" Grid.Row="3" Grid.Column="1" Text="تسجيل طباعة" BackgroundColor="#35566F" TextColor="White" Clicked="OnPrintClicked" />
-                <Button x:Name="AttachmentsButton" Grid.Row="4" Grid.ColumnSpan="2" Text="مرفقات سند القبض" BackgroundColor="#0B6B87" TextColor="White" Clicked="OnAttachmentsClicked" />
-                <Button x:Name="JournalButton" Grid.Row="5" Grid.ColumnSpan="2" Text="استعراض القيد المحاسبي" BackgroundColor="#35566F" TextColor="White" IsVisible="False" Clicked="OnJournalClicked" />
+            <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto" ColumnSpacing="8" RowSpacing="8">
+                <Button x:Name="EditButton" Grid.Row="0" Grid.ColumnSpan="2" Text="تعديل سند القبض" BackgroundColor="#0B6B87" TextColor="White" Clicked="OnEditClicked" />
+                <Button x:Name="ReviewButton" Grid.Row="1" Grid.Column="0" Text="مراجعة" BackgroundColor="#0B6B87" TextColor="White" Clicked="OnReviewClicked" />
+                <Button x:Name="ApproveButton" Grid.Row="1" Grid.Column="1" Text="اعتماد" BackgroundColor="#17324D" TextColor="White" Clicked="OnApproveClicked" />
+                <Button x:Name="ReturnButton" Grid.Row="2" Grid.Column="0" Text="إعادة للتصحيح" BackgroundColor="#B7791F" TextColor="White" Clicked="OnReturnClicked" />
+                <Button x:Name="CancelApprovalButton" Grid.Row="2" Grid.Column="1" Text="إلغاء الاعتماد" BackgroundColor="#8B5E34" TextColor="White" IsVisible="False" Clicked="OnCancelApprovalClicked" />
+                <Button x:Name="PostButton" Grid.Row="3" Grid.Column="0" Text="ترحيل" BackgroundColor="#18794E" TextColor="White" Clicked="OnPostClicked" />
+                <Button x:Name="UnpostButton" Grid.Row="3" Grid.Column="1" Text="فك الترحيل" BackgroundColor="#B42318" TextColor="White" IsVisible="False" Clicked="OnUnpostClicked" />
+                <Button x:Name="DeleteButton" Grid.Row="4" Grid.Column="0" Text="حذف المسودة" BackgroundColor="#B42318" TextColor="White" Clicked="OnDeleteClicked" />
+                <Button x:Name="PrintButton" Grid.Row="4" Grid.Column="1" Text="تسجيل طباعة" BackgroundColor="#35566F" TextColor="White" Clicked="OnPrintClicked" />
+                <Button x:Name="AttachmentsButton" Grid.Row="5" Grid.ColumnSpan="2" Text="مرفقات سند القبض" BackgroundColor="#0B6B87" TextColor="White" Clicked="OnAttachmentsClicked" />
+                <Button x:Name="JournalButton" Grid.Row="6" Grid.ColumnSpan="2" Text="استعراض القيد المحاسبي" BackgroundColor="#35566F" TextColor="White" IsVisible="False" Clicked="OnJournalClicked" />
             </Grid>
 
             <Label Text="التوزيع المحاسبي" FontSize="18" FontAttributes="Bold" TextColor="#17324D" />
