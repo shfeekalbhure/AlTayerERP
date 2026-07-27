@@ -24,6 +24,7 @@ namespace AlTayerERP.Desktop
                 return;
 
             _completionInitialized = true;
+            ConfigureCashBoxDropdowns();
             InitializeCashBoxCompletionControls();
 
             try
@@ -84,7 +85,6 @@ namespace AlTayerERP.Desktop
                 cmbBranch.DisplayMember = nameof(BranchCashLookup.Branch_Name);
                 cmbBranch.ValueMember = nameof(BranchCashLookup.Branch_ID);
                 cmbBranch.SelectedValue = CurrentSession.Branch_ID;
-                cmbBranch.Enabled = true;
 
                 cmbCurrency.DataSource = lookups.Currencies ?? new List<CurrencyCashLookup>();
                 cmbCurrency.DisplayMember = nameof(CurrencyCashLookup.Currency_Name_AR);
@@ -115,7 +115,7 @@ namespace AlTayerERP.Desktop
                 return;
             }
 
-            var reason = "إعادة تفعيل من شاشة الصناديق";
+            const string reason = "إعادة تفعيل من شاشة الصناديق";
             if (MessageBox.Show(
                     "هل تريد إعادة تفعيل الصندوق وحسابه المحاسبي المرتبط؟",
                     "تأكيد إعادة التفعيل",
