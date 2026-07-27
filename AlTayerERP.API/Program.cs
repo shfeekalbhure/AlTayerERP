@@ -8,9 +8,6 @@ using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// ====================================================================
-// [1] قراءة نص الاتصال وتسجيل قاعدة البيانات بمحرك Pomelo MySQL
-// ====================================================================
 var connectionString =
     builder.Configuration.GetConnectionString("DefaultConnection")
     ?? throw new InvalidOperationException(
@@ -24,9 +21,6 @@ builder.Services.AddDbContext<AppDbContext>(options =>
     )
 );
 
-// ====================================================================
-// [2] تسجيل سياسة CORS لربط العملاء المحليين بالـ API
-// ====================================================================
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AlTayerERPClients", policy =>
@@ -42,9 +36,6 @@ builder.Services.AddCors(options =>
     });
 });
 
-// ====================================================================
-// [3] تسجيل خدمات النظام الحالية
-// ====================================================================
 builder.Services.AddScoped<NumberGeneratorService>();
 builder.Services.AddScoped<CostCenterNumberService>();
 builder.Services.AddScoped<CashBoxNumberService>();
@@ -53,6 +44,7 @@ builder.Services.AddScoped<FinancialPolicyService>();
 builder.Services.AddScoped<AccountNumberService>();
 builder.Services.AddScoped<SystemScreenCatalogSeeder>();
 builder.Services.AddScoped<VoucherReferenceDataSeeder>();
+builder.Services.AddScoped<PaymentRequestSchemaInitializer>();
 builder.Services.AddSingleton<ServerSessionService>();
 builder.Services.AddScoped<TokenService>();
 builder.Services.AddScoped<LoginSecurityService>();
@@ -67,9 +59,6 @@ builder.Services
         _ => { });
 builder.Services.AddAuthorization();
 
-// ====================================================================
-// [4] تسجيل خدمات المحرك المالي
-// ====================================================================
 builder.Services.AddScoped<VoucherValidationService>();
 builder.Services.AddScoped<VoucherAuditService>();
 builder.Services.AddScoped<VoucherApprovalService>();
@@ -77,9 +66,6 @@ builder.Services.AddScoped<FinancialVoucherService>();
 builder.Services.AddScoped<JournalEntryInquiryService>();
 builder.Services.AddScoped<VoucherPostingService>();
 
-// ====================================================================
-// [5] تسجيل Controllers وSwagger
-// ====================================================================
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
@@ -88,8 +74,12 @@ var app = builder.Build();
 
 using (var scope = app.Services.CreateScope())
 {
+    var paymentRequestSchema = scope.ServiceProvider.GetRequiredService<PaymentRequestSchemaInitializer>();
+    await paymentRequestSchema.EnsureCreatedAsync();
+
     var screenCatalogSeeder = scope.ServiceProvider.GetRequiredService<SystemScreenCatalogSeeder>();
     await screenCatalogSeeder.EnsureSeededAsync();
+
     var voucherReferenceSeeder = scope.ServiceProvider.GetRequiredService<VoucherReferenceDataSeeder>();
     await voucherReferenceSeeder.EnsureSeededAsync();
 }
@@ -100,8 +90,6 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-// في الإنتاج نفرض HTTPS. أثناء التطوير المحلي للهاتف الحقيقي نسمح بـ HTTP
-// على شبكة Wi-Fi حتى لا تفشل شهادة التطوير غير الموثوقة على عنوان IP.
 if (!app.Environment.IsDevelopment())
 {
     app.UseHttpsRedirection();
@@ -110,7 +98,6 @@ if (!app.Environment.IsDevelopment())
 app.UseCors("AlTayerERPClients");
 app.UseAuthentication();
 
-// نقطة الدخول والتجديد والصحة وقوائم شاشة الدخول فقط عامة.
 app.Use(async (context, next) =>
 {
     var path = context.Request.Path;
