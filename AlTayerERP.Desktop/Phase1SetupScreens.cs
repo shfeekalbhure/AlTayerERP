@@ -506,7 +506,7 @@ namespace AlTayerERP.Desktop
             new("Period_Name", "اسم الفترة"),
             new("Start_Date", "تاريخ البداية", ReferenceEditorFieldKind.Date),
             new("End_Date", "تاريخ النهاية", ReferenceEditorFieldKind.Date),
-            new("Is_Closed", "مقفلة", ReferenceEditorFieldKind.Boolean),
+            new("Is_Closed", "الحالة", ReferenceEditorFieldKind.Boolean),
             new("Close_Date", "تاريخ الإقفال", ReferenceEditorFieldKind.Date),
             new("Close_Reason", "سبب الإقفال"),
             new("Is_Active", "فعالة", ReferenceEditorFieldKind.Boolean, DefaultBoolean: true)) { }
