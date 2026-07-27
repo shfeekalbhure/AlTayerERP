@@ -99,7 +99,7 @@ public partial class NewPaymentRequestPage : ContentPage
 
         dto = new CreatePaymentRequestDto
         {
-            Request_Date = RequestDatePicker.Date,
+            Request_Date = RequestDatePicker.Date ?? DateTime.Today,
             Beneficiary_Name = BeneficiaryEntry.Text.Trim(),
             Party_ID = Clean(PartyIdEntry.Text),
             Header_Reference_No = Clean(ReferenceEntry.Text),
