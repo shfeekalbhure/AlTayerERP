@@ -23,12 +23,21 @@
                 </VerticalStackLayout>
             </Border>
 
-            <Button x:Name="EditButton"
-                    Text="تعديل الطلب"
-                    BackgroundColor="#17324D"
-                    TextColor="White"
-                    Clicked="OnEditClicked"
-                    IsVisible="False" />
+            <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
+                <Button x:Name="EditButton"
+                        Grid.Column="0"
+                        Text="تعديل الطلب"
+                        BackgroundColor="#17324D"
+                        TextColor="White"
+                        Clicked="OnEditClicked"
+                        IsVisible="False" />
+                <Button x:Name="AttachmentsButton"
+                        Grid.Column="1"
+                        Text="المرفقات"
+                        BackgroundColor="#0B6B87"
+                        TextColor="White"
+                        Clicked="OnAttachmentsClicked" />
+            </Grid>
 
             <Label Text="تفاصيل الحسابات" FontSize="18" FontAttributes="Bold" TextColor="#17324D" />
             <VerticalStackLayout x:Name="LinesPanel" Spacing="10" />
