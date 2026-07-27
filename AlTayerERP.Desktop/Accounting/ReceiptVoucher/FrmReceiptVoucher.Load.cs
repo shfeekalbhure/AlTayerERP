@@ -233,10 +233,8 @@ namespace AlTayerERP.Desktop
 
         private void LoadCurrentSession()
         {
-            lblCompanyName.Text = $"الشركة : {CurrentSession.Company_Name}";
-            lblCurrentBranch.Text = $"الفرع : {CurrentSession.Branch_Name}";
-            lblFiscalYear.Text = $"السنة المالية : {CurrentSession.Year_Name}";
-            lblCurrentUser.Text = $"المستخدم : {CurrentSession.Full_Name}";
+            // بيانات الشركة والاتصال تظهر مرة واحدة في الشاشة الرئيسية فقط.
+            // يبقى في السند تدقيق الإنشاء الذي يخص هذا المستند تحديداً.
             txtCreatedBy.Text = CurrentSession.Full_Name;
             txtCreatedDate.Text = DateTime.Now.ToString("yyyy/MM/dd hh:mm tt");
         }
@@ -493,11 +491,10 @@ namespace AlTayerERP.Desktop
 
         private void UpdateStatusBar(string apiStatus, string dbStatus, string licenseStatus)
         {
-            lblStatusApi.Text = $"API: {apiStatus}";
-            lblStatusDatabase.Text = $"قاعدة البيانات: {dbStatus}";
-            lblStatusLicense.Text = $"الترخيص: {licenseStatus}";
-            lblVersion.Text = "الإصدار: 1.0.0";
-            lblStatusTime.Text = DateTime.Now.ToString("yyyy/MM/dd hh:mm tt");
+            // شريط حالة الاتصال موحد في الشاشة الرئيسية ولا يتكرر داخل سند القبض.
+            _ = apiStatus;
+            _ = dbStatus;
+            _ = licenseStatus;
         }
 
         private static void ShowError(string message, Exception ex)
