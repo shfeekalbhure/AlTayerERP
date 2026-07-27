@@ -8,7 +8,26 @@
         <VerticalStackLayout Padding="16" Spacing="10">
             <Label x:Name="PeriodLabel" TextColor="#0B6B87" FontAttributes="Bold" />
             <DatePicker x:Name="VoucherDatePicker" BackgroundColor="White" TextColor="#17324D" />
-            <Picker x:Name="SourcePicker" Title="الصندوق أو البنك" BackgroundColor="White" TextColor="#17324D" ItemDisplayBinding="{Binding DisplayName}" />
+
+            <Button x:Name="SourceSearchButton"
+                    Text="اختيار الصندوق أو البنك 🔍"
+                    HorizontalOptions="Fill"
+                    HorizontalTextAlignment="Start"
+                    HeightRequest="54"
+                    BackgroundColor="White"
+                    TextColor="#17324D"
+                    BorderColor="#D9E2EC"
+                    BorderWidth="1"
+                    CornerRadius="8"
+                    Clicked="OnSelectSourceClicked" />
+            <Picker x:Name="SourcePicker"
+                    IsVisible="False"
+                    ItemDisplayBinding="{Binding DisplayName}" />
+            <Label x:Name="SourceHelpLabel"
+                   Text="اضغط للاختيار والبحث باسم الصندوق أو البنك."
+                   FontSize="12"
+                   TextColor="#7A8896" />
+
             <Picker x:Name="PartyPicker" Title="الطرف - اختياري" BackgroundColor="White" TextColor="#17324D" ItemDisplayBinding="{Binding DisplayName}" SelectedIndexChanged="OnPartyChanged" />
             <Entry x:Name="PartyNameEntry" Placeholder="اسم الطرف" BackgroundColor="White" TextColor="#17324D" PlaceholderColor="#7A8896" />
             <Picker x:Name="PaymentMethodPicker" Title="طريقة السداد" BackgroundColor="White" TextColor="#17324D" ItemDisplayBinding="{Binding DisplayName}" />
