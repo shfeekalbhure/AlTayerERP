@@ -36,9 +36,11 @@
 		</EmbeddedResource>
 	</ItemGroup>
 
-	<!-- الشاشة الرئيسية لسند القبض -->
+	<!-- الشاشة الرئيسية لسند القبض: هذا هو الملف الوحيد الذي يفتح في المصمم. -->
 	<ItemGroup>
-		<Compile Update="Accounting\ReceiptVoucher\FrmReceiptVoucher.cs" />
+		<Compile Update="Accounting\ReceiptVoucher\FrmReceiptVoucher.cs">
+			<SubType>Form</SubType>
+		</Compile>
 
 		<Compile Update="Accounting\ReceiptVoucher\FrmReceiptVoucher.Designer.cs">
 			<DependentUpon>FrmReceiptVoucher.cs</DependentUpon>
@@ -86,6 +88,27 @@
 		</Compile>
 
 		<Compile Update="Accounting\ReceiptVoucher\FrmReceiptVoucher.Search.cs">
+			<AutoGen>False</AutoGen>
+			<DesignTime>False</DesignTime>
+		</Compile>
+		<!-- FrmReceiptVoucher.Actions.cs: جزء برمجي تابع للنموذج وليس ملف تصميم مستقل. -->
+		<Compile Update="Accounting\ReceiptVoucher\FrmReceiptVoucher.Actions.cs">
+			<DependentUpon>FrmReceiptVoucher.cs</DependentUpon>
+			<SubType>Code</SubType>
+			<AutoGen>False</AutoGen>
+			<DesignTime>False</DesignTime>
+		</Compile>
+		<!-- FrmReceiptVoucher.Mode.cs: جزء برمجي تابع للنموذج وليس ملف تصميم مستقل. -->
+		<Compile Update="Accounting\ReceiptVoucher\FrmReceiptVoucher.Mode.cs">
+			<DependentUpon>FrmReceiptVoucher.cs</DependentUpon>
+			<SubType>Code</SubType>
+			<AutoGen>False</AutoGen>
+			<DesignTime>False</DesignTime>
+		</Compile>
+		<!-- FrmReceiptVoucher.Shortcuts.cs: جزء برمجي تابع للنموذج وليس ملف تصميم مستقل. -->
+		<Compile Update="Accounting\ReceiptVoucher\FrmReceiptVoucher.Shortcuts.cs">
+			<DependentUpon>FrmReceiptVoucher.cs</DependentUpon>
+			<SubType>Code</SubType>
 			<AutoGen>False</AutoGen>
 			<DesignTime>False</DesignTime>
 		</Compile>
