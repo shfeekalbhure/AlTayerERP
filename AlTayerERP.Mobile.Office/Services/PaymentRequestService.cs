@@ -35,6 +35,26 @@ public sealed class PaymentRequestService(HttpClient httpClient, SessionStorageS
     public Task<PaymentRequestListItemDto> UpdateAsync(long id, CreatePaymentRequestDto dto, CancellationToken cancellationToken = default) =>
         SaveAsync(HttpMethod.Put, $"api/payment-requests/{id}", dto, "تعذر تحديث طلب الصرف.", cancellationToken);
 
+    public async Task<List<PaymentVoucherSourceDto>> GetPaymentVoucherSourcesAsync(CancellationToken cancellationToken = default)
+    {
+        var session = await GetSessionAsync();
+        using var request = CreateRequest(HttpMethod.Get, "api/mobile/payment-voucher-sources", session.AccessToken);
+        using var response = await httpClient.SendAsync(request, cancellationToken);
+        await EnsureSuccessAsync(response, "تعذر تحميل الصناديق والحسابات البنكية.", cancellationToken);
+        return await response.Content.ReadFromJsonAsync<List<PaymentVoucherSourceDto>>(cancellationToken: cancellationToken) ?? [];
+    }
+
+    public async Task<CreatePaymentVoucherResponseDto> CreatePaymentVoucherAsync(long requestId, string cashAccountId, CancellationToken cancellationToken = default)
+    {
+        var session = await GetSessionAsync();
+        using var request = CreateRequest(HttpMethod.Post, $"api/payment-requests/{requestId}/create-payment-voucher", session.AccessToken);
+        request.Content = JsonContent.Create(new { Cash_Account_ID = cashAccountId });
+        using var response = await httpClient.SendAsync(request, cancellationToken);
+        await EnsureSuccessAsync(response, "تعذر إنشاء سند الصرف.", cancellationToken);
+        return await response.Content.ReadFromJsonAsync<CreatePaymentVoucherResponseDto>(cancellationToken: cancellationToken)
+               ?? throw new InvalidOperationException("استجابة إنشاء سند الصرف غير صالحة.");
+    }
+
     private async Task<PaymentRequestListItemDto> SaveAsync(HttpMethod method, string url, CreatePaymentRequestDto dto, string fallback, CancellationToken cancellationToken)
     {
         var session = await GetSessionAsync();
