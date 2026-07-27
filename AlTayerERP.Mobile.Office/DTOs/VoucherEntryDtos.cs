@@ -5,6 +5,8 @@ public sealed class VoucherEntryReferencesDto
     public VoucherEntryTypeDto VoucherType { get; set; } = new();
     public VoucherEntryStatusDto DraftStatus { get; set; } = new();
     public List<VoucherEntrySourceDto> Sources { get; set; } = [];
+    public int SourceCount { get; set; }
+    public string? SourceMessage { get; set; }
     public List<VoucherEntryLookupDto> Accounts { get; set; } = [];
     public List<VoucherEntryLookupDto> CostCenters { get; set; } = [];
     public List<VoucherEntryCurrencyDto> Currencies { get; set; } = [];
