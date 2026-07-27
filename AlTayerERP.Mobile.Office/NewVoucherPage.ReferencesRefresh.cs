@@ -6,8 +6,20 @@ public partial class NewVoucherPage
 {
     private async void OnRefreshReferencesClicked(object? sender, EventArgs e)
     {
-        _loaded = false;
-        await LoadReferencesAsync();
+        RefreshReferencesButton.IsEnabled = false;
+        ReferencesStatusLabel.Text = "جارٍ تحميل القوائم...";
+        ReferencesStatusLabel.TextColor = Color.FromArgb("#0B6B87");
+
+        try
+        {
+            _loaded = false;
+            await LoadReferencesAsync();
+            ApplyReferencesDiagnostics();
+        }
+        finally
+        {
+            RefreshReferencesButton.IsEnabled = true;
+        }
     }
 
     private void ApplyReferencesDiagnostics()
