@@ -161,6 +161,30 @@ namespace AlTayerERP.Infrastructure.Data
             {
                 entity.ToTable("tenant_groups");
                 entity.HasKey(e => e.Group_ID);
+
+                // الحقول التالية كانت جزءاً من نموذج قديم للمجموعة ولا توجد في
+                // جدول المرحلة الحالية. بيانات التدقيق تُحفظ في audit_logs.
+                entity.Ignore(e => e.Short_Name);
+                entity.Ignore(e => e.Parent_Group_ID);
+                entity.Ignore(e => e.Main_Company_ID);
+                entity.Ignore(e => e.Default_Currency_Code);
+                entity.Ignore(e => e.Country_Name);
+                entity.Ignore(e => e.City_Name);
+                entity.Ignore(e => e.Short_Address);
+                entity.Ignore(e => e.Phone);
+                entity.Ignore(e => e.Email);
+                entity.Ignore(e => e.Manager_Name);
+                entity.Ignore(e => e.Sort_Order);
+                entity.Ignore(e => e.Updated_At);
+                entity.Ignore(e => e.Created_By);
+                entity.Ignore(e => e.Updated_By);
+                entity.Ignore(e => e.Edit_Count);
+                entity.Ignore(e => e.Stopped_By);
+                entity.Ignore(e => e.Stopped_At);
+                entity.Ignore(e => e.Stopped_Reason);
+                entity.Ignore(e => e.Reactivated_By);
+                entity.Ignore(e => e.Reactivated_At);
+                entity.Ignore(e => e.Reactivate_Reason);
             });
 
             // إعدادات جدول الشركات وتحديد المفتاح الرئيسي

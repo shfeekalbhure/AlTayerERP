@@ -78,25 +78,31 @@ namespace AlTayerERP.API.Controllers
             var validation = await ValidateAsync(dto, null, cancellationToken);
             if (validation is not null) return BadRequest(validation);
 
-            await using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
-            if (dto.Is_Default)
-                await ClearOtherDefaultsAsync(null, cancellationToken);
-
-            var group = new TenantGroup
+            try
             {
-                Group_ID = Guid.NewGuid().ToString(),
-                Created_At = DateTime.UtcNow,
-                Created_By = session.User_ID,
-                Edit_Count = 0,
-                Is_Active = true
-            };
-            Map(dto, group);
-            _context.Tenant_Groups.Add(group);
-            AddAuditLog(session, group, "INSERT", null, BuildSnapshot(group));
-            await _context.SaveChangesAsync(cancellationToken);
-            await transaction.CommitAsync(cancellationToken);
+                await using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
+                if (dto.Is_Default)
+                    await ClearOtherDefaultsAsync(null, cancellationToken);
 
-            return CreatedAtAction(nameof(GetGroup), new { id = group.Group_ID }, group);
+                var group = new TenantGroup
+                {
+                    Group_ID = Guid.NewGuid().ToString(),
+                    Created_At = DateTime.UtcNow,
+                    Is_Active = true
+                };
+                Map(dto, group);
+                _context.Tenant_Groups.Add(group);
+                AddAuditLog(session, group, "INSERT", null, BuildSnapshot(group));
+                await _context.SaveChangesAsync(cancellationToken);
+                await transaction.CommitAsync(cancellationToken);
+
+                return CreatedAtAction(nameof(GetGroup), new { id = group.Group_ID }, group);
+            }
+            catch (DbUpdateException)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError,
+                    "تعذر حفظ المجموعة التجارية بسبب عدم توافق بنية البيانات. راجع مسؤول النظام.");
+            }
         }
 
         [HttpPut("{id}")]
@@ -117,9 +123,6 @@ namespace AlTayerERP.API.Controllers
 
             var oldValues = BuildSnapshot(group);
             Map(dto, group);
-            group.Updated_At = DateTime.UtcNow;
-            group.Updated_By = session.User_ID;
-            group.Edit_Count += 1;
             AddAuditLog(session, group, "UPDATE", oldValues, BuildSnapshot(group));
             await _context.SaveChangesAsync(cancellationToken);
             await transaction.CommitAsync(cancellationToken);
@@ -142,13 +145,7 @@ namespace AlTayerERP.API.Controllers
             group.Is_Active = false;
             group.Show_In_Login = false;
             group.Show_In_Tree = false;
-            group.Updated_At = DateTime.UtcNow;
-            group.Updated_By = session.User_ID;
-            group.Stopped_By = session.User_ID;
-            group.Stopped_At = DateTime.UtcNow;
-            group.Stopped_Reason = dto.Reason.Trim();
-            group.Edit_Count += 1;
-            AddAuditLog(session, group, "DEACTIVATE", oldValues, BuildSnapshot(group));
+            AddAuditLog(session, group, "DEACTIVATE", oldValues, BuildSnapshot(group), dto.Reason.Trim());
             await _context.SaveChangesAsync(cancellationToken);
             return Ok(new { message = "تم إيقاف المجموعة التجارية دون حذف تاريخها." });
         }
@@ -164,13 +161,7 @@ namespace AlTayerERP.API.Controllers
 
             var oldValues = BuildSnapshot(group);
             group.Is_Active = true;
-            group.Updated_At = DateTime.UtcNow;
-            group.Updated_By = session.User_ID;
-            group.Reactivated_By = session.User_ID;
-            group.Reactivated_At = DateTime.UtcNow;
-            group.Reactivate_Reason = dto.Reason.Trim();
-            group.Edit_Count += 1;
-            AddAuditLog(session, group, "REACTIVATE", oldValues, BuildSnapshot(group));
+            AddAuditLog(session, group, "REACTIVATE", oldValues, BuildSnapshot(group), dto.Reason.Trim());
             await _context.SaveChangesAsync(cancellationToken);
             return Ok(group);
         }
@@ -233,7 +224,7 @@ namespace AlTayerERP.API.Controllers
             foreach (var item in defaults) item.Is_Default = false;
         }
 
-        private void AddAuditLog(ServerSession session, TenantGroup group, string action, string? oldValues, string newValues)
+        private void AddAuditLog(ServerSession session, TenantGroup group, string action, string? oldValues, string newValues, string? reason = null)
         {
             _context.Audit_Logs.Add(new AlTayerERP.Core.Entities.Accounting.AuditLog
             {
@@ -248,7 +239,9 @@ namespace AlTayerERP.API.Controllers
                 Action_Channel = "DESKTOP",
                 Device_Name = Request.Headers["X-Device-ID"].ToString(),
                 IP_Address = HttpContext.Connection.RemoteIpAddress?.ToString(),
-                Notes = "إدارة المجموعات التجارية"
+                Notes = string.IsNullOrWhiteSpace(reason)
+                    ? "إدارة المجموعات التجارية"
+                    : $"إدارة المجموعات التجارية - السبب: {reason}"
             });
         }
 
@@ -262,8 +255,7 @@ namespace AlTayerERP.API.Controllers
             group.Show_In_Login,
             group.Show_In_Tree,
             group.Is_Active,
-            group.Notes,
-            group.Edit_Count
+            group.Notes
         });
 
         private static void Map(CreateTenantGroupDto dto, TenantGroup group)
@@ -271,7 +263,6 @@ namespace AlTayerERP.API.Controllers
             group.Group_Code = dto.Group_Code.Trim().ToUpperInvariant();
             group.Group_Name_AR = dto.Group_Name_AR.Trim();
             group.Group_Name_EN = dto.Group_Name_EN?.Trim() ?? string.Empty;
-            group.Short_Name = dto.Group_Name_AR.Trim();
             group.Is_Default = dto.Is_Default;
             group.Show_In_Login = dto.Show_In_Login;
             group.Show_In_Tree = dto.Show_In_Tree;
