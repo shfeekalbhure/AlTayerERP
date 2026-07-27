@@ -33,6 +33,7 @@ public static class MauiProgram
         builder.Services.AddSingleton<DocumentSearchService>();
         builder.Services.AddSingleton<TrialBalanceService>();
         builder.Services.AddSingleton<GeneralLedgerService>();
+        builder.Services.AddSingleton<VoucherEntryService>();
         builder.Services.AddTransient<MainPage>();
 
 #if DEBUG
