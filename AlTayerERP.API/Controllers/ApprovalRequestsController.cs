@@ -104,10 +104,26 @@ public sealed class ApprovalRequestsController : ControllerBase
         if (!allowedStatuses.Contains(row.Status, StringComparer.OrdinalIgnoreCase))
             return Conflict(new { message = "الحالة الحالية لا تسمح بهذه العملية." });
 
+        // فصل الواجبات: مقدم الطلب لا يراجع أو يعتمد أو يرفض طلبه بنفسه.
+        // الطلبات القديمة التي لا تحتوي هوية مقدم الطلب تبقى قابلة للمعالجة.
+        if (!string.IsNullOrWhiteSpace(row.Requested_By) &&
+            string.Equals(row.Requested_By, Session().User_ID.ToString(), StringComparison.OrdinalIgnoreCase))
+            return Conflict(new { message = "لا يمكن لمقدم الطلب تنفيذ قرار على طلبه. اختر مستخدماً مخولاً آخر." });
+
         var before = new { row.Status, row.Approved_By, row.Approved_At, row.Approval_Notes };
         row.Status = target.ToString();
-        row.Approved_By = Session().User_ID.ToString();
-        row.Approved_At = DateTime.UtcNow;
+        // بيانات الاعتماد لا تسجل إلا عند الاعتماد النهائي؛ المراجعة والرفض
+        // والإرجاع توثق في سجل التدقيق ولا ينبغي أن تظهر كاعتماد.
+        if (target == ApprovalStatus.Approved)
+        {
+            row.Approved_By = Session().User_ID.ToString();
+            row.Approved_At = DateTime.UtcNow;
+        }
+        else
+        {
+            row.Approved_By = null;
+            row.Approved_At = null;
+        }
         row.Approval_Notes = string.IsNullOrWhiteSpace(reason) ? row.Approval_Notes : reason.Trim();
 
         _audit.Add(Session(), HttpContext, "approval_requests", row.Approval_ID.ToString(), auditAction,
