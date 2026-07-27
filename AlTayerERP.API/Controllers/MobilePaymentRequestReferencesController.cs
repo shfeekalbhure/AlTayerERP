@@ -70,6 +70,19 @@ public sealed class MobilePaymentRequestReferencesController : ControllerBase
             })
             .ToListAsync(cancellationToken);
 
-        return Ok(new { accounts, costCenters, currencies });
+        var openPeriods = await _db.Fiscal_Periods.AsNoTracking()
+            .Where(x => x.Branch_ID == session.Branch_ID &&
+                        x.Fiscal_Year_ID == session.Year_ID &&
+                        x.Is_Active && !x.Is_Closed)
+            .OrderBy(x => x.Start_Date)
+            .Select(x => new
+            {
+                startDate = x.Start_Date.Date,
+                endDate = x.End_Date.Date,
+                displayName = x.Start_Date.ToString("yyyy/MM/dd") + " - " + x.End_Date.ToString("yyyy/MM/dd")
+            })
+            .ToListAsync(cancellationToken);
+
+        return Ok(new { accounts, costCenters, currencies, openPeriods });
     }
 }
