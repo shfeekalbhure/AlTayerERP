@@ -29,6 +29,7 @@ public static class MauiProgram
         builder.Services.AddSingleton<PaymentRequestAttachmentService>();
         builder.Services.AddSingleton<PaymentVoucherService>();
         builder.Services.AddSingleton<ReceiptVoucherService>();
+        builder.Services.AddSingleton<JournalVoucherService>();
         builder.Services.AddTransient<MainPage>();
 
 #if DEBUG
