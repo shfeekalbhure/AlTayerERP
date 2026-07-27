@@ -3,7 +3,8 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="AlTayerERP.Mobile.Office.NewVoucherPage"
              FlowDirection="RightToLeft"
-             BackgroundColor="#F6F8FB">
+             BackgroundColor="#F6F8FB"
+             Loaded="OnLookupPageLoaded">
     <ScrollView>
         <VerticalStackLayout Padding="16" Spacing="10">
             <Label x:Name="PeriodLabel" TextColor="#0B6B87" FontAttributes="Bold" />
