@@ -73,7 +73,7 @@ namespace AlTayerERP.Desktop
                 Padding = new Padding(10)
             };
             shell.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
-            shell.RowStyles.Add(new RowStyle(SizeType.Absolute, 0));
+            shell.RowStyles.Add(new RowStyle(SizeType.Absolute, 58));
             shell.RowStyles.Add(new RowStyle(SizeType.Absolute, 54));
             shell.RowStyles.Add(new RowStyle(SizeType.Absolute, 40));
             shell.RowStyles.Add(new RowStyle(SizeType.AutoSize));
@@ -98,10 +98,10 @@ namespace AlTayerERP.Desktop
             var header = new Panel
             {
                 Dock = DockStyle.Fill,
-                BackColor = SystemColors.Control,
-                Height = 0,
-                Visible = false,
-                Padding = Padding.Empty,
+                BackColor = Color.FromArgb(27, 62, 104),
+                Height = 58,
+                Visible = true,
+                Padding = new Padding(14, 4, 14, 4),
                 Margin = new Padding(0, 0, 0, 8)
             };
 
@@ -146,7 +146,9 @@ namespace AlTayerERP.Desktop
         {
             var toolbar = new FlowLayoutPanel
             {
-                Dock = DockStyle.Fill,
+                Dock = DockStyle.Right,
+                AutoSize = true,
+                AutoSizeMode = AutoSizeMode.GrowAndShrink,
                 BackColor = SystemColors.Control,
                 BorderStyle = BorderStyle.None,
                 Padding = new Padding(8),
@@ -156,9 +158,16 @@ namespace AlTayerERP.Desktop
             };
 
             toolbar.Controls.Add(CreateButton("إغلاق  Esc", Color.FromArgb(107, 114, 128), (_, _) => Close()));
+
+            if (IsFiscalPeriodsScreen)
+            {
+                toolbar.Controls.Add(CreateButton("فتح الفترة", Color.FromArgb(5, 122, 85), async (_, _) => await ChangeFiscalPeriodLifecycleAsync(reopen: true)));
+                toolbar.Controls.Add(CreateButton("إقفال الفترة", Color.FromArgb(190, 83, 24), async (_, _) => await ChangeFiscalPeriodLifecycleAsync(reopen: false)));
+            }
+
             toolbar.Controls.Add(CreateButton("تحديث  F5", Color.FromArgb(36, 99, 168), async (_, _) => await LoadAsync()));
-            toolbar.Controls.Add(CreateButton("حفظ  Ctrl+S", Color.FromArgb(22, 125, 84), async (_, _) => await SaveAsync()));
-            toolbar.Controls.Add(CreateButton("جديد  F2", Color.FromArgb(28, 125, 184), (_, _) => ClearEditor()));
+            toolbar.Controls.Add(CreateButton("حفظ  F2", Color.FromArgb(22, 125, 84), async (_, _) => await SaveAsync()));
+            toolbar.Controls.Add(CreateButton("جديد  F3", Color.FromArgb(28, 125, 184), (_, _) => ClearEditor()));
             return toolbar;
         }
 
@@ -208,7 +217,9 @@ namespace AlTayerERP.Desktop
 
             var title = new Label
             {
-                Text = "بيانات السجل",
+                Text = IsFiscalPeriodsScreen
+                    ? $"بيانات الفترة المالية  —  السنة المالية الحالية: {CurrentSession.Year_Name ?? CurrentSession.Year_ID.ToString()}"
+                    : "بيانات السجل",
                 Dock = DockStyle.Top,
                 Height = 27,
                 ForeColor = Color.FromArgb(27, 62, 104),
@@ -292,7 +303,7 @@ namespace AlTayerERP.Desktop
                 _grid.Columns.Add(new DataGridViewTextBoxColumn
                 {
                     Name = field.Code,
-                    HeaderText = field.Caption,
+                    HeaderText = IsFiscalPeriodsScreen && field.Code == "Is_Closed" ? "الحالة" : field.Caption,
                     DataPropertyName = field.Code,
                     AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill
                 });
@@ -300,6 +311,8 @@ namespace AlTayerERP.Desktop
 
             card.Controls.Add(editor);
             card.Controls.Add(title);
+
+            ConfigureFiscalPeriodLifecycleInputs();
             return card;
         }
 
@@ -452,7 +465,21 @@ namespace AlTayerERP.Desktop
                     foreach (var field in _fields)
                     {
                         if (row.TryGetValue(field.Code, out var value))
-                            gridRow.Cells[field.Code].Value = ReadJsonValue(value);
+                        {
+                            var display = ReadJsonValue(value);
+                            if (IsFiscalPeriodsScreen && field.Code == "Is_Closed")
+                            {
+                                var closed = value.ValueKind == JsonValueKind.True ||
+                                             (value.ValueKind == JsonValueKind.String && bool.TryParse(value.GetString(), out var parsed) && parsed);
+                                display = closed ? "مقفلة" : "مفتوحة";
+                                gridRow.Cells[field.Code].Style.ForeColor = closed
+                                    ? Color.FromArgb(185, 28, 28)
+                                    : Color.FromArgb(5, 122, 85);
+                                gridRow.Cells[field.Code].Style.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+                            }
+
+                            gridRow.Cells[field.Code].Value = display;
+                        }
                     }
                 }
 
@@ -570,6 +597,8 @@ namespace AlTayerERP.Desktop
                         break;
                 }
             }
+
+            ConfigureFiscalPeriodLifecycleInputs();
         }
 
         private async Task SaveAsync()
@@ -666,11 +695,132 @@ namespace AlTayerERP.Desktop
             }
 
             _grid.ClearSelection();
+            ConfigureFiscalPeriodLifecycleInputs();
+        }
+
+        private bool IsFiscalPeriodsScreen =>
+            string.Equals(_endpoint, "FiscalPeriods", StringComparison.OrdinalIgnoreCase);
+
+        /// <summary>
+        /// حقول حالة الإقفال سجلٌ معلوماتي فقط. لا تُعدل مباشرة؛ إذ تُغيّر عبر
+        /// زري الإقفال/الفتح حتى يبقى السبب والتدقيق إلزاميين على الخادم.
+        /// </summary>
+        private void ConfigureFiscalPeriodLifecycleInputs()
+        {
+            if (!IsFiscalPeriodsScreen)
+                return;
+
+            if (_inputs.TryGetValue("Is_Closed", out var closed))
+            {
+                closed.Enabled = false;
+                if (closed is CheckBox check)
+                    check.Text = check.Checked ? "مقفلة" : "مفتوحة";
+            }
+
+            if (_inputs.TryGetValue("Close_Date", out var closeDate))
+                closeDate.Enabled = false;
+
+            if (_inputs.TryGetValue("Close_Reason", out var closeReason))
+                closeReason.Enabled = false;
+        }
+
+        private async Task ChangeFiscalPeriodLifecycleAsync(bool reopen)
+        {
+            if (_selectedId is not int periodId || periodId <= 0)
+            {
+                MessageBox.Show("اختر الفترة المطلوبة من الجدول أولاً.", Text, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            var reason = PromptForReason(reopen ? "سبب إعادة فتح الفترة" : "سبب إقفال الفترة");
+            if (string.IsNullOrWhiteSpace(reason))
+                return;
+
+            try
+            {
+                UseWaitCursor = true;
+                var action = reopen ? "Reopen" : "Close";
+                using var response = await _client.PostAsJsonAsync($"{_endpoint}/{periodId}/{action}", new { Reason = reason });
+                if (!response.IsSuccessStatusCode)
+                    throw new InvalidOperationException(await response.Content.ReadAsStringAsync());
+
+                MessageBox.Show(reopen ? "تمت إعادة فتح الفترة بنجاح." : "تم إقفال الفترة بنجاح.",
+                    Text, MessageBoxButtons.OK, MessageBoxIcon.Information);
+                await LoadAsync();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("تعذر تنفيذ الإجراء. تحقق من الصلاحية وحالة الفترة والمستندات المعلقة.\n\n" + ex.Message,
+                    Text, MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+            finally
+            {
+                UseWaitCursor = false;
+            }
+        }
+
+        private string? PromptForReason(string title)
+        {
+            using var dialog = new Form
+            {
+                Text = title,
+                StartPosition = FormStartPosition.CenterParent,
+                RightToLeft = RightToLeft.Yes,
+                RightToLeftLayout = true,
+                Font = new Font("Segoe UI", 10F),
+                ClientSize = new Size(470, 170),
+                MinimizeBox = false,
+                MaximizeBox = false,
+                FormBorderStyle = FormBorderStyle.FixedDialog
+            };
+
+            var label = new Label
+            {
+                Text = "السبب إلزامي ويسجل في سجل التدقيق:",
+                Dock = DockStyle.Top,
+                Height = 32,
+                Padding = new Padding(12, 8, 12, 0),
+                TextAlign = ContentAlignment.MiddleRight
+            };
+            var reason = new TextBox
+            {
+                Dock = DockStyle.Top,
+                Height = 54,
+                Multiline = true,
+                TextAlign = HorizontalAlignment.Right,
+                Margin = new Padding(12),
+                MaxLength = 500
+            };
+            var confirm = new Button { Text = "تأكيد", DialogResult = DialogResult.OK, Width = 100, Height = 32 };
+            var cancel = new Button { Text = "إلغاء", DialogResult = DialogResult.Cancel, Width = 100, Height = 32 };
+            var buttons = new FlowLayoutPanel
+            {
+                Dock = DockStyle.Bottom,
+                Height = 46,
+                FlowDirection = FlowDirection.RightToLeft,
+                Padding = new Padding(12, 6, 12, 6)
+            };
+            buttons.Controls.Add(confirm);
+            buttons.Controls.Add(cancel);
+            dialog.Controls.Add(buttons);
+            dialog.Controls.Add(reason);
+            dialog.Controls.Add(label);
+            dialog.AcceptButton = confirm;
+            dialog.CancelButton = cancel;
+
+            return dialog.ShowDialog(this) == DialogResult.OK && !string.IsNullOrWhiteSpace(reason.Text)
+                ? reason.Text.Trim()
+                : null;
         }
 
         private void FrmVoucherReferenceEditor_KeyDown(object? sender, KeyEventArgs e)
         {
             if (e.KeyCode == Keys.F2)
+            {
+                _ = SaveAsync();
+                e.SuppressKeyPress = true;
+            }
+            else if (e.KeyCode == Keys.F3)
             {
                 ClearEditor();
                 e.SuppressKeyPress = true;
