@@ -15,8 +15,6 @@ public partial class ReceiptVoucherDetailsPage : ContentPage
     private readonly long _voucherId;
     private ReceiptVoucherDetailsDto? _currentVoucher;
     private bool _isPosted;
-    private byte _approvalStatus;
-    private byte _reviewStatus;
 
     public ReceiptVoucherDetailsPage(ReceiptVoucherService service, long voucherId)
     {
@@ -47,8 +45,6 @@ public partial class ReceiptVoucherDetailsPage : ContentPage
             _currentVoucher = data;
             var header = data.Header;
             _isPosted = header.IsPosted;
-            _approvalStatus = header.ApprovalStatus;
-            _reviewStatus = header.ReviewStatus;
 
             VoucherNoLabel.Text = header.VoucherNo;
             PostingStatusLabel.Text = $"الحالة: {header.WorkflowStatus}";
@@ -99,15 +95,19 @@ public partial class ReceiptVoucherDetailsPage : ContentPage
 
     private void ApplyActionVisibility(bool isPosted, byte approvalStatus, byte reviewStatus)
     {
-        var canEdit = !isPosted && approvalStatus != 2 && reviewStatus != 2;
-        EditButton.IsVisible = canEdit;
-        ReviewButton.IsVisible = !isPosted && reviewStatus != 2;
-        ApproveButton.IsVisible = !isPosted && reviewStatus == 2 && approvalStatus != 2;
-        ReturnButton.IsVisible = !isPosted && approvalStatus != 2;
-        CancelApprovalButton.IsVisible = !isPosted && approvalStatus == 2;
-        PostButton.IsVisible = !isPosted && approvalStatus == 2;
+        var isDraft = !isPosted && approvalStatus != 2 && reviewStatus == 0;
+        var isReturned = !isPosted && approvalStatus != 2 && reviewStatus == 3;
+        var isReviewed = !isPosted && approvalStatus != 2 && reviewStatus == 2;
+        var isApproved = !isPosted && approvalStatus == 2;
+
+        EditButton.IsVisible = isDraft || isReturned;
+        DeleteButton.IsVisible = isDraft || isReturned;
+        ReviewButton.IsVisible = isDraft;
+        ReturnButton.IsVisible = isReviewed;
+        ApproveButton.IsVisible = isReviewed;
+        CancelApprovalButton.IsVisible = isApproved;
+        PostButton.IsVisible = isApproved;
         UnpostButton.IsVisible = isPosted;
-        DeleteButton.IsVisible = canEdit;
         JournalButton.IsVisible = isPosted;
         AttachmentsButton.IsVisible = true;
         PrintButton.IsVisible = true;
