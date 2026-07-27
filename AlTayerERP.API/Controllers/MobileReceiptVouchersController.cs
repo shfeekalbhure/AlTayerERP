@@ -70,44 +70,76 @@ public sealed class MobileReceiptVouchersController : ControllerBase
             .Select(x => x.Voucher_Type_ID)
             .SingleOrDefaultAsync(cancellationToken);
 
-        var header = await _db.Financial_Voucher_Headers.AsNoTracking()
-            .Where(x => x.Voucher_ID == voucherId && x.Voucher_Type_ID == typeId &&
-                        x.Branch_ID == session.Branch_ID.ToString() && x.Fiscal_Year_ID == session.Year_ID && x.Is_Active)
-            .Select(x => new
-            {
-                voucherId = x.Voucher_ID,
-                voucherNo = x.Voucher_No,
-                voucherDate = x.Voucher_Date,
-                receivedFromName = x.Received_From_Name,
-                description = x.Description,
-                referenceNo = x.Reference_No,
-                cashAccountId = x.Cash_Account_ID,
-                currencyId = x.Currency_ID,
-                exchangeRate = x.Exchange_Rate,
-                amount = x.Amount,
-                foreignTotal = x.Foreign_Total,
-                localTotal = x.Local_Total,
-                isPosted = x.Is_Posted,
-                journalEntryId = x.Journal_Entry_ID
-            }).SingleOrDefaultAsync(cancellationToken);
+        var voucher = await _db.Financial_Voucher_Headers.AsNoTracking()
+            .SingleOrDefaultAsync(x => x.Voucher_ID == voucherId && x.Voucher_Type_ID == typeId &&
+                                       x.Branch_ID == session.Branch_ID.ToString() &&
+                                       x.Fiscal_Year_ID == session.Year_ID && x.Is_Active,
+                                  cancellationToken);
 
-        if (header == null) return NotFound(new { message = "سند القبض غير موجود ضمن الفرع والسنة الحالية." });
+        if (voucher == null)
+            return NotFound(new { message = "سند القبض غير موجود ضمن الفرع والسنة الحالية." });
 
-        var details = await _db.Financial_Voucher_Details.AsNoTracking()
-            .Where(x => x.Voucher_ID == voucherId)
-            .OrderBy(x => x.Line_No)
-            .Select(x => new
+        var cashAccount = await _db.Chart_Of_Accounts.AsNoTracking()
+            .Where(x => x.Account_ID == voucher.Cash_Account_ID && x.Company_ID == session.Company_ID)
+            .Select(x => new { x.Account_Code, x.Account_Name_AR })
+            .SingleOrDefaultAsync(cancellationToken);
+
+        var headerCurrency = await _db.Currencies.AsNoTracking()
+            .Where(x => x.Currency_ID == voucher.Currency_ID && x.Company_ID == session.Company_ID)
+            .Select(x => new { x.Currency_Code, x.Currency_Name_AR })
+            .SingleOrDefaultAsync(cancellationToken);
+
+        var header = new
+        {
+            voucherId = voucher.Voucher_ID,
+            voucherNo = voucher.Voucher_No,
+            voucherDate = voucher.Voucher_Date,
+            receivedFromName = voucher.Received_From_Name,
+            description = voucher.Description,
+            referenceNo = voucher.Reference_No,
+            cashAccountId = voucher.Cash_Account_ID,
+            cashAccountDisplay = cashAccount == null
+                ? voucher.Cash_Account_ID
+                : cashAccount.Account_Code + " - " + cashAccount.Account_Name_AR,
+            currencyId = voucher.Currency_ID,
+            currencyDisplay = headerCurrency == null
+                ? voucher.Currency_ID.ToString()
+                : headerCurrency.Currency_Code + " - " + headerCurrency.Currency_Name_AR,
+            exchangeRate = voucher.Exchange_Rate,
+            amount = voucher.Amount,
+            foreignTotal = voucher.Foreign_Total,
+            localTotal = voucher.Local_Total,
+            isPosted = voucher.Is_Posted,
+            journalEntryId = voucher.Journal_Entry_ID
+        };
+
+        var details = await (
+            from d in _db.Financial_Voucher_Details.AsNoTracking()
+            join a in _db.Chart_Of_Accounts.AsNoTracking() on d.Account_ID equals a.Account_ID into accounts
+            from a in accounts.DefaultIfEmpty()
+            join c in _db.Currencies.AsNoTracking() on d.Currency_ID equals c.Currency_ID into currencies
+            from c in currencies.DefaultIfEmpty()
+            join cc in _db.Cost_Centers.AsNoTracking() on d.Cost_Center_ID equals cc.Cost_Center_ID into centers
+            from cc in centers.DefaultIfEmpty()
+            where d.Voucher_ID == voucherId
+            orderby d.Line_No
+            select new
             {
-                lineNo = x.Line_No,
-                accountId = x.Account_ID,
-                costCenterId = x.Cost_Center_ID,
-                currencyId = x.Currency_ID,
-                exchangeRate = x.Exchange_Rate,
-                foreignAmount = x.Foreign_Amount,
-                localAmount = x.Local_Amount,
-                debitAmount = x.Debit_Amount,
-                creditAmount = x.Credit_Amount,
-                description = x.Description
+                lineNo = d.Line_No,
+                accountId = d.Account_ID,
+                accountDisplay = a == null ? d.Account_ID : a.Account_Code + " - " + a.Account_Name_AR,
+                costCenterId = d.Cost_Center_ID,
+                costCenterDisplay = d.Cost_Center_ID == null
+                    ? null
+                    : cc == null ? d.Cost_Center_ID : cc.Center_Code + " - " + cc.Center_Name_AR,
+                currencyId = d.Currency_ID,
+                currencyDisplay = c == null ? d.Currency_ID.ToString() : c.Currency_Code + " - " + c.Currency_Name_AR,
+                exchangeRate = d.Exchange_Rate,
+                foreignAmount = d.Foreign_Amount,
+                localAmount = d.Local_Amount,
+                debitAmount = d.Debit_Amount,
+                creditAmount = d.Credit_Amount,
+                description = d.Description
             }).ToListAsync(cancellationToken);
 
         return Ok(new { header, details });
