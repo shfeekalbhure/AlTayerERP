@@ -29,29 +29,31 @@ public sealed class PaymentRequestService(HttpClient httpClient, SessionStorageS
                ?? throw new InvalidOperationException("استجابة تفاصيل طلب الصرف غير صالحة.");
     }
 
-    public async Task<PaymentRequestListItemDto> CreateAsync(CreatePaymentRequestDto dto, CancellationToken cancellationToken = default)
+    public Task<PaymentRequestListItemDto> CreateAsync(CreatePaymentRequestDto dto, CancellationToken cancellationToken = default) =>
+        SaveAsync(HttpMethod.Post, "api/payment-requests", dto, "تعذر حفظ طلب الصرف.", cancellationToken);
+
+    public Task<PaymentRequestListItemDto> UpdateAsync(long id, CreatePaymentRequestDto dto, CancellationToken cancellationToken = default) =>
+        SaveAsync(HttpMethod.Put, $"api/payment-requests/{id}", dto, "تعذر تحديث طلب الصرف.", cancellationToken);
+
+    private async Task<PaymentRequestListItemDto> SaveAsync(HttpMethod method, string url, CreatePaymentRequestDto dto, string fallback, CancellationToken cancellationToken)
     {
         var session = await GetSessionAsync();
-        using var request = CreateRequest(HttpMethod.Post, "api/payment-requests", session.AccessToken);
+        using var request = CreateRequest(method, url, session.AccessToken);
         request.Content = JsonContent.Create(dto);
         using var response = await httpClient.SendAsync(request, cancellationToken);
-        await EnsureSuccessAsync(response, "تعذر حفظ طلب الصرف.", cancellationToken);
+        await EnsureSuccessAsync(response, fallback, cancellationToken);
         return await response.Content.ReadFromJsonAsync<PaymentRequestListItemDto>(cancellationToken: cancellationToken)
                ?? throw new InvalidOperationException("استجابة حفظ طلب الصرف غير صالحة.");
     }
 
     public Task SubmitAsync(long id, CancellationToken cancellationToken = default) =>
         PostAsync($"api/payment-requests/{id}/submit", null, "تعذر إرسال طلب الصرف للمراجعة.", cancellationToken);
-
     public Task ReviewAsync(long id, string reason, CancellationToken cancellationToken = default) =>
         PostAsync($"api/payment-requests/{id}/review", new { reason }, "تعذر تحويل الطلب للاعتماد.", cancellationToken);
-
     public Task ApproveAsync(long id, string reason, CancellationToken cancellationToken = default) =>
         PostAsync($"api/payment-requests/{id}/approve", new { reason }, "تعذر اعتماد طلب الصرف.", cancellationToken);
-
     public Task RejectAsync(long id, string reason, CancellationToken cancellationToken = default) =>
         PostAsync($"api/payment-requests/{id}/reject", new { reason }, "تعذر رفض طلب الصرف.", cancellationToken);
-
     public Task ReturnAsync(long id, string reason, CancellationToken cancellationToken = default) =>
         PostAsync($"api/payment-requests/{id}/return", new { reason }, "تعذر إعادة طلب الصرف.", cancellationToken);
 
