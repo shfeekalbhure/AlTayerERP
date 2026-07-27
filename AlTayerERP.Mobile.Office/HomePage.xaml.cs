@@ -98,6 +98,9 @@ public partial class HomePage : ContentPage
     private async void OnDocumentSearchClicked(object? sender, EventArgs e) =>
         await Navigation.PushAsync(new DocumentSearchPage(_documentSearchService));
 
+    private async void OnApprovalRequestsClicked(object? sender, EventArgs e) =>
+        await Navigation.PushAsync(new ApprovalRequestsPage(_paymentRequestService));
+
     private async void OnLogoutClicked(object? sender, EventArgs e)
     {
         var confirmed = await DisplayAlert("تسجيل الخروج", "هل تريد إنهاء الجلسة؟", "نعم", "لا");
