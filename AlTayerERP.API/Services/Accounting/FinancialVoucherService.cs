@@ -14,6 +14,9 @@ namespace AlTayerERP.API.Services.Accounting
     /// </summary>
     public class FinancialVoucherService
     {
+        // يستخدم عند قراءة حسابات السند من قواعد MySQL ذات Collation مختلط.
+        private const string CanonicalMySqlCollation = "utf8mb4_unicode_ci";
+
         private readonly AppDbContext _context;
         private readonly VoucherValidationService _validator;
 
@@ -247,7 +250,8 @@ namespace AlTayerERP.API.Services.Accounting
 
             #region جلب إعداد الترقيم
             var setting = await _context.Numbering_Settings
-                .FirstOrDefaultAsync(x => x.Document_Type == documentType && x.Is_Active);
+                // يحمي توليد الرقم الرسمي من اختلاف ترميز Document_Type بين قواعد البيانات.
+                .FirstOrDefaultAsync(x => EF.Functions.Collate(x.Document_Type, CanonicalMySqlCollation) == documentType && x.Is_Active);
 
             if (setting == null)
             {
@@ -896,7 +900,8 @@ namespace AlTayerERP.API.Services.Accounting
                    
                     Cash_Account_Name =
                  _context.Chart_Of_Accounts
-                   .Where(a => a.Account_ID == voucher.Cash_Account_ID)
+                   // قراءة اسم حساب الصندوق بالترميز الموحد لتفادي تعطل استعراض السند المحفوظ.
+                   .Where(a => EF.Functions.Collate(a.Account_ID, CanonicalMySqlCollation) == voucher.Cash_Account_ID)
                    .Select(a => a.Account_Name_AR)
                    .FirstOrDefault() ?? string.Empty,
 
@@ -1042,7 +1047,8 @@ namespace AlTayerERP.API.Services.Accounting
 
                             Account_Name =
                           _context.Chart_Of_Accounts
-                         .Where(a => a.Account_ID == x.Account_ID)
+                         // قراءة أسماء تفاصيل القيد بالترميز الموحد.
+                         .Where(a => EF.Functions.Collate(a.Account_ID, CanonicalMySqlCollation) == x.Account_ID)
                          .Select(a => a.Account_Name_AR)
                           .FirstOrDefault() ?? string.Empty,
 
