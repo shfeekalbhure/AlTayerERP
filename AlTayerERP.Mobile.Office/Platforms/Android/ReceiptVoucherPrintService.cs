@@ -103,7 +103,7 @@ public sealed class ReceiptVoucherPrintService : IReceiptVoucherPrintService
     }
 
     private static async Task<AndroidWebView> CreateReadyWebViewAsync(
-        Android.App.Activity activity,
+        global::Android.App.Activity activity,
         ReceiptVoucherDetailsDto voucher,
         CancellationToken cancellationToken)
     {
