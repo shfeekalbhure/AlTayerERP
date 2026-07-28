@@ -16,9 +16,9 @@ public sealed class VoucherEntryService(HttpClient httpClient, SessionStorageSer
     {
         var session = await GetSessionAsync();
         var normalized = type.Trim().ToUpperInvariant();
-        var url = normalized is "RECEIPT" or "PAYMENT"
-            ? $"api/mobile/payment-request-references?type={Uri.EscapeDataString(normalized)}"
-            : $"api/mobile/voucher-entry-references?type={Uri.EscapeDataString(normalized)}";
+        // لسندات القبض والصرف نستخدم نقطة النهاية الخاصة بالسندات، لا قوائم طلب الصرف.
+        // هذه النقطة تعتمد الشركة الفعلية للفرع وتتحقق من ارتباط الصندوق أو البنك بحساب مالي صالح.
+        var url = $"api/mobile/voucher-entry-references?type={Uri.EscapeDataString(normalized)}";
 
         using var request = CreateRequest(HttpMethod.Get, url, session.AccessToken);
 

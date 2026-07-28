@@ -58,5 +58,15 @@ public partial class NewVoucherPage
             SourceHelpLabel.Text = _references.SourceMessage ?? "لا توجد صناديق أو بنوك متاحة للفرع الحالي.";
             SourceHelpLabel.TextColor = Color.FromArgb("#B42318");
         }
+
+        var missingLists = new List<string>();
+        if (accounts == 0) missingLists.Add("الحسابات المقابلة");
+        if (currencies == 0) missingLists.Add("العملات");
+        if (methods == 0) missingLists.Add("طرق السداد");
+
+        if (missingLists.Count > 0)
+        {
+            ShowStatus($"القوائم التالية فارغة: {string.Join("، ", missingLists)}. أكمل تهيئتها ثم اضغط تحديث القوائم.");
+        }
     }
 }

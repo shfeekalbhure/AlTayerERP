@@ -19,7 +19,13 @@ public partial class NewVoucherPage
         SourcePicker.SelectedIndexChanged += (_, _) =>
         {
             if (SourcePicker.SelectedItem is VoucherEntrySourceDto source)
+            {
                 SourceSearchButton.Text = $"{source.DisplayName}  ✓";
+                SourceHelpLabel.Text = source.SourceType.Equals("BANK", StringComparison.OrdinalIgnoreCase)
+                    ? "تم اختيار حساب بنكي. اضغط للتغيير أو البحث من جديد."
+                    : "تم اختيار صندوق. اضغط للتغيير أو البحث من جديد.";
+                SourceHelpLabel.TextColor = Color.FromArgb("#18794E");
+            }
         };
 
         RefreshLookupButtonTexts();
@@ -27,7 +33,7 @@ public partial class NewVoucherPage
 
     private async void OnSelectPartyClicked(object? sender, EventArgs e)
     {
-        if (_references == null) { ShowStatus("لم يتم تحميل الأطراف بعد."); return; }
+        if (_references == null) { ShowStatus("لم يتم تحميل قائمة الأطراف بعد."); return; }
         var selected = await SelectOptionAsync("اختيار الطرف", _references.Parties.Select(x => new VoucherOption(x.Id, x.DisplayName)), true);
         if (selected == null) return;
         if (string.IsNullOrWhiteSpace(selected.Id))
@@ -43,7 +49,7 @@ public partial class NewVoucherPage
 
     private async void OnSelectPaymentMethodClicked(object? sender, EventArgs e)
     {
-        if (_references == null) { ShowStatus("لم يتم تحميل طرق السداد بعد."); return; }
+        if (_references == null) { ShowStatus("لم يتم تحميل قائمة طرق السداد بعد."); return; }
         var selected = await SelectOptionAsync("اختيار طريقة السداد", _references.PaymentMethods.Select(x => new VoucherOption(x.Id.ToString(), x.DisplayName)), true);
         if (selected == null) return;
         if (string.IsNullOrWhiteSpace(selected.Id))
@@ -59,7 +65,7 @@ public partial class NewVoucherPage
 
     private async void OnSelectAccountClicked(object? sender, EventArgs e)
     {
-        if (_references == null) { ShowStatus("لم يتم تحميل الحسابات بعد."); return; }
+        if (_references == null) { ShowStatus("لم يتم تحميل قائمة الحسابات المقابلة بعد."); return; }
         var selected = await SelectOptionAsync("اختيار الحساب المقابل", _references.Accounts.Select(x => new VoucherOption(x.Id, x.DisplayName)));
         if (selected == null) return;
         var account = _references.Accounts.FirstOrDefault(x => x.Id == selected.Id);
@@ -69,7 +75,7 @@ public partial class NewVoucherPage
 
     private async void OnSelectCostCenterClicked(object? sender, EventArgs e)
     {
-        if (_references == null) { ShowStatus("لم يتم تحميل مراكز التكلفة بعد."); return; }
+        if (_references == null) { ShowStatus("لم يتم تحميل قائمة مراكز التكلفة بعد."); return; }
         var selected = await SelectOptionAsync("اختيار مركز التكلفة", _references.CostCenters.Select(x => new VoucherOption(x.Id, x.DisplayName)), true);
         if (selected == null) return;
         if (string.IsNullOrWhiteSpace(selected.Id))
@@ -85,7 +91,7 @@ public partial class NewVoucherPage
 
     private async void OnSelectCurrencyClicked(object? sender, EventArgs e)
     {
-        if (_references == null) { ShowStatus("لم يتم تحميل العملات بعد."); return; }
+        if (_references == null) { ShowStatus("لم يتم تحميل قائمة العملات بعد."); return; }
         var selected = await SelectOptionAsync("اختيار العملة", _references.Currencies.Select(x => new VoucherOption(x.Id.ToString(), x.DisplayName)));
         if (selected == null) return;
         var currency = _references.Currencies.FirstOrDefault(x => x.Id.ToString() == selected.Id);

@@ -22,6 +22,7 @@ public partial class NewVoucherPage : ContentPage
         PartyNameEntry.Placeholder = _type == "RECEIPT" ? "استلمنا من" : "اسم المستفيد";
         LinesList.ItemsSource = _lines;
         VoucherDatePicker.Date = DateTime.Today;
+        OnLookupPageLoaded(this, EventArgs.Empty);
     }
 
     protected override async void OnAppearing()
@@ -48,6 +49,7 @@ public partial class NewVoucherPage : ContentPage
                                           ?? _references.Currencies.FirstOrDefault(x => x.IsLocal)
                                           ?? _references.Currencies.FirstOrDefault();
             RefreshLookupButtonTexts();
+            ApplyReferencesDiagnostics();
 
             var today = DateTime.Today;
             var period = _references.OpenPeriods.FirstOrDefault(x => today >= x.StartDate.Date && today <= x.EndDate.Date)
