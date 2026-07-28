@@ -145,11 +145,11 @@ public sealed class GeographicReferencesController : ControllerBase
         dto.Notes = CleanOptional(dto.Notes);
 
         if (dto.ISO2 is not null && (dto.ISO2.Length != 2 || !IsEnglishLetters(dto.ISO2)))
-            return BadRequest("رمز ISO2 يجب أن يتكون من حرفين إنجليزيين فقط.");
+            return BadRequest("رمز ISO2 يجب أن يتكون من حرفين إنجليزيين فقط دون مسافات داخلية.");
         if (dto.ISO3 is not null && (dto.ISO3.Length != 3 || !IsEnglishLetters(dto.ISO3)))
-            return BadRequest("رمز ISO3 يجب أن يتكون من ثلاثة أحرف إنجليزية فقط.");
+            return BadRequest("رمز ISO3 يجب أن يتكون من ثلاثة أحرف إنجليزية فقط دون مسافات داخلية.");
         if (dto.Currency_Code is not null && (dto.Currency_Code.Length != 3 || !IsEnglishLetters(dto.Currency_Code)))
-            return BadRequest("رمز العملة يجب أن يتكون من ثلاثة أحرف إنجليزية فقط.");
+            return BadRequest("رمز العملة يجب أن يتكون من ثلاثة أحرف إنجليزية فقط دون مسافات داخلية.");
         if (dto.Phone_Code is not null && !IsValidInternationalPhoneCode(dto.Phone_Code))
             return BadRequest("مفتاح الاتصال الدولي يجب أن يبدأ بعلامة + ويتبعها أرقام فقط دون مسافات أو رموز أخرى.");
 
@@ -444,10 +444,13 @@ public sealed class GeographicReferencesController : ControllerBase
     private static string? CleanOptional(string? value) =>
         string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 
+    /// <summary>
+    /// يزيل المسافات الخارجية فقط ويحافظ على أي مسافة داخلية كي يرفضها التحقق اللاحق.
+    /// </summary>
     private static string? NormalizeIso(string? value)
     {
         if (string.IsNullOrWhiteSpace(value)) return null;
-        return new string(value.Where(c => !char.IsWhiteSpace(c)).ToArray()).ToUpperInvariant();
+        return value.Trim().ToUpperInvariant();
     }
 
     private static bool IsEnglishLetters(string value) =>
