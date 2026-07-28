@@ -81,6 +81,17 @@ public sealed class MobilePaymentRequestReferencesController : ControllerBase
             })
             .ToListAsync(cancellationToken);
 
+        var paymentMethods = await _db.Payment_Methods.AsNoTracking()
+            .Where(x => x.Is_Active)
+            .OrderBy(x => x.Sort_Order)
+            .ThenBy(x => x.Payment_Method_Name_AR)
+            .Select(x => new
+            {
+                id = x.Payment_Method_ID,
+                displayName = x.Payment_Method_Name_AR
+            })
+            .ToListAsync(cancellationToken);
+
         var openPeriods = await _db.Fiscal_Periods.AsNoTracking()
             .Where(x => x.Branch_ID == session.Branch_ID &&
                         x.Fiscal_Year_ID == session.Year_ID &&
@@ -95,7 +106,7 @@ public sealed class MobilePaymentRequestReferencesController : ControllerBase
             .ToListAsync(cancellationToken);
 
         if (!isVoucher)
-            return Ok(new { accounts, costCenters, currencies, openPeriods });
+            return Ok(new { accounts, costCenters, currencies, paymentMethods, openPeriods });
 
         var cashBoxes = await _db.Cash_Boxes.AsNoTracking()
             .Where(x => x.Company_ID == session.Company_ID &&
@@ -138,16 +149,6 @@ public sealed class MobilePaymentRequestReferencesController : ControllerBase
                 id = x.Party_ID,
                 displayName = x.Party_Code + " - " + x.Party_Name_AR,
                 name = x.Party_Name_AR
-            })
-            .ToListAsync(cancellationToken);
-
-        var paymentMethods = await _db.Payment_Methods.AsNoTracking()
-            .Where(x => x.Is_Active)
-            .OrderBy(x => x.Payment_Method_Name_AR)
-            .Select(x => new
-            {
-                id = x.Payment_Method_ID,
-                displayName = x.Payment_Method_Name_AR
             })
             .ToListAsync(cancellationToken);
 
