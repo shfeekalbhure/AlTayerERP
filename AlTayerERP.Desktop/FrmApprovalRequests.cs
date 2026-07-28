@@ -16,6 +16,8 @@ public sealed class FrmApprovalRequests : BaseForm
     private readonly Label _details = new() { AutoSize = false, BorderStyle = BorderStyle.FixedSingle };
     private readonly Label _count = new() { AutoSize = false, TextAlign = ContentAlignment.MiddleLeft };
     private readonly DataGridView _grid = new();
+    // حقول تدقيق معروضة للقراءة فقط وتُملأ من الصف المحدد.
+    private readonly Dictionary<string, Label> _auditValues = new();
     private int _selectedId;
     private string _selectedStatus = string.Empty;
     private Button _review = null!, _approve = null!, _reject = null!, _return = null!;
@@ -43,7 +45,7 @@ public sealed class FrmApprovalRequests : BaseForm
         {
             Dock = DockStyle.Fill,
             ColumnCount = 1,
-            RowCount = 4,
+            RowCount = 5,
             Padding = new Padding(10),
             BackColor = Color.FromArgb(244, 247, 251)
         };
@@ -52,12 +54,15 @@ public sealed class FrmApprovalRequests : BaseForm
         // زيادة بطاقة التفاصيل بمقدار يقارب 2 سم حتى تظهر بيانات الطلب وسبب القرار بوضوح.
         // تنخفض مساحة القائمة بالقدر نفسه، وتبقى قابلة للتمدد مع حجم النافذة.
         shell.RowStyles.Add(new RowStyle(SizeType.Absolute, 168));
-        shell.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+        // تقليل ارتفاع الجدول 3 سم تقريباً (114px) لإظهار التدقيق والإعدادات تحته.
+        shell.RowStyles.Add(new RowStyle(SizeType.Absolute, 342));
+        shell.RowStyles.Add(new RowStyle(SizeType.Absolute, 114));
 
         shell.Controls.Add(new BrandHeaderControl(Text), 0, 0);
         shell.Controls.Add(BuildToolbar(), 0, 1);
         shell.Controls.Add(BuildDecisionCard(), 0, 2);
         shell.Controls.Add(BuildGridCard(), 0, 3);
+        shell.Controls.Add(BuildAuditFooter(), 0, 4);
         Controls.Add(shell);
 
         _status.Items.AddRange(new object[]
@@ -163,6 +168,133 @@ public sealed class FrmApprovalRequests : BaseForm
         return Card("قائمة طلبات الاعتماد", _grid);
     }
 
+    /// <summary>
+    /// يعرض أسفل الجدول بيانات الإنشاء والتعديل وإعدادات الطلب المختار.
+    /// </summary>
+    private Control BuildAuditFooter()
+    {
+        var footer = new TableLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            ColumnCount = 2,
+            RowCount = 1,
+            Padding = new Padding(0, 6, 0, 0)
+        };
+        footer.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 55));
+        footer.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 45));
+
+        var audit = new FlowLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            FlowDirection = FlowDirection.RightToLeft,
+            WrapContents = false,
+            BackColor = Color.White,
+            BorderStyle = BorderStyle.FixedSingle,
+            Padding = new Padding(7)
+        };
+        AddAuditField(audit, "Requested_By", "أنشئ بواسطة");
+        AddAuditField(audit, "Requested_At_Display", "تاريخ الإنشاء");
+        AddAuditField(audit, "Approved_By", "عُدّل/اعتمد بواسطة");
+        AddAuditField(audit, "Approved_At_Display", "تاريخ التعديل");
+        AddAuditField(audit, "Edit_Count", "عدد التعديلات");
+        AddAuditField(audit, "Print_Count", "عدد الطباعة");
+
+        var settings = new Panel
+        {
+            Dock = DockStyle.Fill,
+            BackColor = Color.FromArgb(248, 250, 252),
+            BorderStyle = BorderStyle.FixedSingle,
+            Padding = new Padding(10)
+        };
+        settings.Controls.Add(new Label
+        {
+            Name = "lblRequestSettings",
+            Text = "إعدادات الطلب: —",
+            Dock = DockStyle.Fill,
+            TextAlign = ContentAlignment.MiddleRight,
+            ForeColor = Color.FromArgb(31, 58, 92),
+            Font = new Font("Segoe UI", 9F, FontStyle.Bold)
+        });
+        settings.Controls.Add(new Label
+        {
+            Text = "إعدادات الطلب",
+            Dock = DockStyle.Top,
+            Height = 23,
+            TextAlign = ContentAlignment.MiddleRight,
+            ForeColor = Color.FromArgb(27, 62, 104),
+            Font = new Font("Segoe UI", 9.5F, FontStyle.Bold)
+        });
+
+        footer.Controls.Add(audit, 0, 0);
+        footer.Controls.Add(settings, 1, 0);
+        return footer;
+    }
+
+    private void AddAuditField(FlowLayoutPanel parent, string key, string caption)
+    {
+        var card = new Panel
+        {
+            Width = 145,
+            Height = 77,
+            Margin = new Padding(3, 0, 3, 0),
+            Padding = new Padding(5, 3, 5, 3),
+            BorderStyle = BorderStyle.FixedSingle,
+            BackColor = Color.FromArgb(248, 250, 252)
+        };
+        card.Controls.Add(new Label
+        {
+            Text = caption,
+            Dock = DockStyle.Top,
+            Height = 22,
+            TextAlign = ContentAlignment.MiddleRight,
+            ForeColor = Color.FromArgb(75, 85, 99)
+        });
+        var value = new Label
+        {
+            Text = "—",
+            Dock = DockStyle.Fill,
+            TextAlign = ContentAlignment.MiddleRight,
+            ForeColor = Color.FromArgb(31, 41, 55),
+            Font = new Font("Segoe UI", 8.5F, FontStyle.Bold)
+        };
+        _auditValues[key] = value;
+        card.Controls.Add(value);
+        parent.Controls.Add(card);
+    }
+
+    private void UpdateAuditFooter(ApprovalRow row)
+    {
+        SetAuditValue("Requested_By", row.Requested_By);
+        SetAuditValue("Requested_At_Display", row.Requested_At_Display);
+        SetAuditValue("Approved_By", row.Approved_By);
+        SetAuditValue("Approved_At_Display", row.Approved_At_Display);
+        SetAuditValue("Edit_Count", row.Edit_Count.ToString());
+        SetAuditValue("Print_Count", row.Print_Count.ToString());
+
+        var settings = Controls.Find("lblRequestSettings", true).FirstOrDefault() as Label;
+        if (settings != null)
+        {
+            settings.Text = $"نوع الطلب: {row.Request_Type ?? "—"}   |   نوع المرجع: {row.Reference_Type ?? "—"}\n" +
+                            $"الجهة: {row.Entity_Type ?? "—"} / {row.Entity_ID ?? "—"}   |   العملة: {row.Currency_Code ?? "—"}";
+        }
+    }
+
+    private void SetAuditValue(string key, string? value)
+    {
+        if (_auditValues.TryGetValue(key, out var label))
+            label.Text = string.IsNullOrWhiteSpace(value) ? "—" : value;
+    }
+
+    private void ResetAuditFooter()
+    {
+        foreach (var value in _auditValues.Values)
+            value.Text = "—";
+
+        var settings = Controls.Find("lblRequestSettings", true).FirstOrDefault() as Label;
+        if (settings != null)
+            settings.Text = "إعدادات الطلب: —";
+    }
+
     private async Task LoadRowsAsync()
     {
         try
@@ -175,6 +307,7 @@ public sealed class FrmApprovalRequests : BaseForm
             _selectedId = 0;
             _selectedStatus = string.Empty;
             _details.Text = "اختر طلباً لعرض التفاصيل.";
+            ResetAuditFooter();
             _count.Text = $"عدد الطلبات الظاهرة: {rows.Count}";
             ApplyButtons();
         }
@@ -205,6 +338,7 @@ public sealed class FrmApprovalRequests : BaseForm
         _selectedStatus = row.Status ?? string.Empty;
         _details.Text = $"نوع الطلب: {row.Request_Type ?? "—"}   |   المرجع: {row.Reference_No}   |   الجهة: {row.Entity_Name}\nالحالة: {row.Status_Display}   |   المبلغ: {row.Amount_Display}\nسبب الطلب: {row.Reason ?? "—"}";
         _reason.Clear();
+        UpdateAuditFooter(row);
         ApplyButtons();
     }
 
@@ -295,11 +429,17 @@ public sealed class FrmApprovalRequests : BaseForm
         public string? Status { get; set; }
         public string? Requested_By { get; set; }
         public DateTime Requested_At { get; set; }
+        public string? Approved_By { get; set; }
+        public DateTime? Approved_At { get; set; }
+        public string? Approval_Notes { get; set; }
+        public int Edit_Count { get; set; }
+        public int Print_Count { get; set; }
 
         public string Reference_No => string.IsNullOrWhiteSpace(Reference_ID) ? "—" : Reference_ID;
         public string Entity_Name => string.IsNullOrWhiteSpace(Entity_ID) ? "—" : Entity_ID;
         public string Amount_Display => Amount.HasValue ? $"{Amount.Value:N2} {Currency_Code}" : "—";
         public string Requested_At_Display => Requested_At == default ? "—" : Requested_At.ToLocalTime().ToString("yyyy/MM/dd HH:mm");
+        public string Approved_At_Display => Approved_At.HasValue ? Approved_At.Value.ToLocalTime().ToString("yyyy/MM/dd HH:mm") : "—";
         public string Status_Display => Status switch
         {
             "Pending" => "بانتظار الإجراء",
