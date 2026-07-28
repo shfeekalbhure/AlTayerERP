@@ -29,12 +29,15 @@ namespace AlTayerERP.API.Controllers
             return Ok(await q.OrderBy(x=>x.Party_Code).ToListAsync());
         }
         [HttpPost]
-        public async Task<IActionResult> Save([FromBody] SavePartyRequest r)
+        public async Task<IActionResult> Save([FromBody] SavePartyRequest? r)
         {
+            if (r == null)
+                return BadRequest(new { message = "بيانات الطرف المالي مطلوبة." });
+
             var op=string.IsNullOrWhiteSpace(r.Party_ID)?ScreenOperation.Add:ScreenOperation.Edit;
             var e=await RequireAsync(op);if(e!=null||Session==null)return e!;
             var type=r.Party_Type?.Trim().ToUpperInvariant();
-            if(r==null||string.IsNullOrWhiteSpace(r.Party_Code)||string.IsNullOrWhiteSpace(r.Party_Name_AR)||!new[]{"CUSTOMER","VENDOR","EMPLOYEE","DRIVER","REPRESENTATIVE","AGENT","OTHER"}.Contains(type))
+            if(string.IsNullOrWhiteSpace(r.Party_Code)||string.IsNullOrWhiteSpace(r.Party_Name_AR)||!new[]{"CUSTOMER","VENDOR","EMPLOYEE","DRIVER","REPRESENTATIVE","AGENT","OTHER"}.Contains(type))
                 return BadRequest(new {message="الكود والاسم العربي ونوع طرف صالح حقول مطلوبة."});
             var code=r.Party_Code.Trim().ToUpperInvariant();
             var party=string.IsNullOrWhiteSpace(r.Party_ID)?null:await _context.Parties.FirstOrDefaultAsync(x=>x.Party_ID==r.Party_ID&&x.Company_ID==Session.Company_ID);
