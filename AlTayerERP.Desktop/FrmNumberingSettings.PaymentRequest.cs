@@ -14,16 +14,15 @@ namespace AlTayerERP.Desktop
         private const string PaymentRequestCode = "PAYMENT_REQUEST";
         private bool _paymentRequestNumberingHooksApplied;
 
-        protected override void OnShown(EventArgs e)
+        protected override void OnLoad(EventArgs e)
         {
-            base.OnShown(e);
+            base.OnLoad(e);
 
             if (_paymentRequestNumberingHooksApplied)
                 return;
 
             _paymentRequestNumberingHooksApplied = true;
 
-            // نستبدل معالجي الحفظ والتعديل بغلاف يحول الاسم العربي إلى الكود الصحيح.
             btnSave.Click -= btnSave_Click;
             btnSave.Click += PaymentRequestSave_Click;
 
@@ -44,7 +43,6 @@ namespace AlTayerERP.Desktop
             if (!string.Equals(cmbDocumentType.Text, PaymentRequestArabic, StringComparison.Ordinal))
                 return;
 
-            // الإعداد المقترح يعتمد نطاق الفرع والسنة، وهو النطاق المعتمد لطلبات الصرف.
             txtPrefix.Text = "PRQ";
             numDigitsCount.Value = 6;
             cmbResetType.Text = "حسب الفرع والسنة";
@@ -134,11 +132,9 @@ namespace AlTayerERP.Desktop
             var useYear = chkUseYear.Checked;
             var active = chkIsActive.Checked;
 
-            // BuildNumberingObject يقرأ Text مباشرة؛ لذلك نحوله مؤقتاً قبل بدء الطلب.
             cmbDocumentType.Text = PaymentRequestCode;
             action();
 
-            // إعادة العرض العربي والإعدادات دون التأثير على البيانات التي أُرسلت إلى API.
             cmbDocumentType.Text = PaymentRequestArabic;
             txtPrefix.Text = prefix;
             numDigitsCount.Value = digits;
