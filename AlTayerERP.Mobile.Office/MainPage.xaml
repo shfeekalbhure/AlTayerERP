@@ -27,7 +27,9 @@
                                     Title="اختر الشركة"
                                     TextColor="#17324D"
                                     TitleColor="#7A8896"
-                                    BackgroundColor="White" />
+                                    BackgroundColor="White"
+                                    ItemDisplayBinding="{Binding DisplayName}"
+                                    SelectedIndexChanged="OnCredentialsChanged" />
                         </Border>
                         <Label x:Name="CompaniesStatusLabel"
                                Text="جاري تحميل الشركات..."
@@ -41,14 +43,16 @@
                                PlaceholderColor="#7A8896"
                                BackgroundColor="White"
                                ReturnType="Next"
-                               ClearButtonVisibility="WhileEditing" />
+                               ClearButtonVisibility="WhileEditing"
+                               TextChanged="OnCredentialsChanged" />
                         <Entry x:Name="PasswordEntry"
                                Placeholder="كلمة المرور"
                                TextColor="#17324D"
                                PlaceholderColor="#7A8896"
                                BackgroundColor="White"
                                IsPassword="True"
-                               ReturnType="Done" />
+                               ReturnType="Done"
+                               TextChanged="OnCredentialsChanged" />
                         <Button x:Name="LoadOptionsButton"
                                 Text="متابعة واختيار الفرع والسنة"
                                 TextColor="White"
@@ -71,7 +75,9 @@
                                     Title="اختر الفرع"
                                     TextColor="#17324D"
                                     TitleColor="#7A8896"
-                                    BackgroundColor="White" />
+                                    BackgroundColor="White"
+                                    ItemDisplayBinding="{Binding DisplayName}"
+                                    SelectedIndexChanged="OnContextChanged" />
                         </Border>
 
                         <Border Stroke="#D9E2EC" BackgroundColor="White" Padding="4" StrokeShape="RoundRectangle 10">
@@ -79,7 +85,9 @@
                                     Title="اختر السنة المالية"
                                     TextColor="#17324D"
                                     TitleColor="#7A8896"
-                                    BackgroundColor="White" />
+                                    BackgroundColor="White"
+                                    ItemDisplayBinding="{Binding DisplayName}"
+                                    SelectedIndexChanged="OnContextChanged" />
                         </Border>
 
                         <Button x:Name="LoginButton"
@@ -88,6 +96,7 @@
                                 BackgroundColor="#0B6B87"
                                 HeightRequest="52"
                                 CornerRadius="12"
+                                IsEnabled="False"
                                 Clicked="OnLoginClicked" />
                         <Button Text="رجوع لتعديل بيانات الحساب"
                                 BackgroundColor="Transparent"
