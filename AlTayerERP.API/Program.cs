@@ -8,6 +8,13 @@ using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// ملف محلي اختياري لاتصال قاعدة البيانات. يبقى خارج Git وفق .gitignore.
+builder.Configuration.AddJsonFile(
+    "appsettings.Local.json",
+    optional: true,
+    reloadOnChange: false
+);
+
 var connectionString =
     builder.Configuration.GetConnectionString("DefaultConnection")
     ?? throw new InvalidOperationException(
