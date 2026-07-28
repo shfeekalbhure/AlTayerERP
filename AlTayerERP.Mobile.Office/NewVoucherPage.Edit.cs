@@ -131,9 +131,25 @@ public partial class NewVoucherPage
             ShowStatus("اسم المستلم منه مطلوب.");
             return;
         }
+        if (PaymentMethodPicker.SelectedItem is not VoucherEntryPaymentMethodDto method)
+        {
+            ShowStatus("اختر طريقة السداد.");
+            return;
+        }
+        var accountingText = Clean(DescriptionEditor.Text);
+        if (accountingText == null)
+        {
+            ShowStatus("البيان المحاسبي مطلوب.");
+            return;
+        }
         if (_lines.Count == 0)
         {
             ShowStatus("أضف سطراً محاسبياً واحداً على الأقل.");
+            return;
+        }
+        if (_lines.Any(x => string.Equals(x.AccountId, source.AccountId, StringComparison.Ordinal)))
+        {
+            ShowStatus("لا يمكن استخدام حساب الصندوق أو البنك نفسه كحساب مقابل.");
             return;
         }
 
@@ -165,7 +181,7 @@ public partial class NewVoucherPage
                 Local_Amount = total,
                 Debit_Amount = total,
                 Credit_Amount = 0m,
-                Description = Clean(DescriptionEditor.Text),
+                Description = accountingText,
                 Line_Type = 1
             }
         };
@@ -193,7 +209,6 @@ public partial class NewVoucherPage
         }
 
         var party = PartyPicker.SelectedItem as VoucherEntryPartyDto;
-        var method = PaymentMethodPicker.SelectedItem as VoucherEntryPaymentMethodDto;
         var dto = new UpdateMobileVoucherDto
         {
             Voucher_ID = _editVoucherId,
@@ -204,14 +219,15 @@ public partial class NewVoucherPage
             Cash_Account_ID = source.AccountId,
             Party_ID = party?.Id,
             Received_From_Name = PartyNameEntry.Text.Trim(),
-            Payment_Method_ID = method?.Id,
+            Payment_Method_ID = method.Id,
             Currency_ID = localCurrency.Id,
             Exchange_Rate = 1m,
             Amount = total,
             Foreign_Total = 0m,
             Local_Total = total,
             Reference_No = Clean(ReferenceEntry.Text),
-            Description = Clean(DescriptionEditor.Text),
+            Against_Text = accountingText,
+            Description = accountingText,
             Requires_Approval = true,
             Details = details
         };
