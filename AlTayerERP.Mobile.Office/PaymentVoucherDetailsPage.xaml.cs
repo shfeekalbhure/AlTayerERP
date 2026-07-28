@@ -141,11 +141,11 @@ public partial class PaymentVoucherDetailsPage : ContentPage
             var printable = ToPrintableVoucher(_currentVoucher!);
             if (exportPdf)
             {
-                var result = await _printService.ExportPdfAsync(printable);
-                if (await DisplayAlert("تم التصدير", $"تم حفظ {result.FileName} في مجلد التنزيلات / AlTayerERP.", "فتح الملف", "موافق"))
+                var result = await _printService.ExportPdfAsync(printable, VoucherPdfExportOptions.PaymentVoucher);
+                if (await DisplayAlert("تم التصدير", $"تم حفظ {result.FileName} في Downloads/AlTayerERP/PaymentVouchers.", "فتح الملف", "موافق"))
                     await Launcher.Default.OpenAsync(new Uri(result.ContentUri));
             }
-            else await _printService.PrintAsync(printable);
+            else await _printService.PrintAsync(printable, VoucherPdfExportOptions.PaymentVoucher);
             await _service.RecordPrintAsync(_voucherId);
             await LoadAsync();
         }

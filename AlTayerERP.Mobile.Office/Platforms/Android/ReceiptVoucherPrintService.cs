@@ -18,14 +18,18 @@ public sealed class ReceiptVoucherPrintService : IReceiptVoucherPrintService
 {
     private static AndroidWebView? _activePrintView;
 
-    public async Task PrintAsync(ReceiptVoucherDetailsDto voucher, CancellationToken cancellationToken = default)
+    public async Task PrintAsync(
+        ReceiptVoucherDetailsDto voucher,
+        VoucherPdfExportOptions? options = null,
+        CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(voucher);
+        options ??= VoucherPdfExportOptions.ReceiptVoucher;
 
         var activity = Platform.CurrentActivity
             ?? throw new InvalidOperationException("تعذر الوصول إلى شاشة Android الحالية للطباعة.");
 
-        var html = BuildHtml(voucher);
+        var html = BuildHtml(voucher, options);
         var webView = new AndroidWebView(activity);
         webView.Settings.JavaScriptEnabled = false;
         webView.Settings.DefaultTextEncodingName = "utf-8";
@@ -51,14 +55,16 @@ public sealed class ReceiptVoucherPrintService : IReceiptVoucherPrintService
     }
 
     /// <summary>
-    /// يحول نفس القالب المستخدم في الطباعة إلى PDF ويحفظه في Downloads/AlTayerERP/سندات القبض.
+    /// يحول نفس القالب المستخدم في الطباعة إلى PDF ويحفظه في مجلد السند المطلوب.
     /// لا يحتاج التطبيق إلى إذن تخزين في إصدارات Android الحديثة لأنه يستخدم MediaStore.
     /// </summary>
     public async Task<ReceiptVoucherPdfExportResult> ExportPdfAsync(
         ReceiptVoucherDetailsDto voucher,
+        VoucherPdfExportOptions? options = null,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(voucher);
+        options ??= VoucherPdfExportOptions.ReceiptVoucher;
 
         var activity = Platform.CurrentActivity
             ?? throw new InvalidOperationException("تعذر الوصول إلى شاشة Android الحالية لتصدير PDF.");
@@ -72,7 +78,7 @@ public sealed class ReceiptVoucherPrintService : IReceiptVoucherPrintService
 
         if (Build.VERSION.SdkInt >= BuildVersionCodes.Q)
             values.Put(MediaStore.IMediaColumns.RelativePath,
-                global::Android.OS.Environment.DirectoryDownloads + "/AlTayerERP/ReceiptVouchers");
+                global::Android.OS.Environment.DirectoryDownloads + "/AlTayerERP/" + options.DownloadsFolder);
 
         var uri = resolver.Insert(MediaStore.Downloads.ExternalContentUri, values)
             ?? throw new InvalidOperationException("تعذر إنشاء ملف PDF في ذاكرة الهاتف.");
@@ -83,7 +89,7 @@ public sealed class ReceiptVoucherPrintService : IReceiptVoucherPrintService
             // بهذه الطريقة يحفظ التطبيق الملف فعلياً في Downloads دون الحاجة لحوار الطباعة.
             using var destination = resolver.OpenOutputStream(uri)
                 ?? throw new InvalidOperationException("تعذر فتح ملف PDF للتصدير.");
-            WritePdfDocument(destination, voucher, cancellationToken);
+            WritePdfDocument(destination, voucher, options, cancellationToken);
 
             return new ReceiptVoucherPdfExportResult(fileName, uri.ToString());
         }
@@ -106,13 +112,17 @@ public sealed class ReceiptVoucherPrintService : IReceiptVoucherPrintService
         var loaded = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         webView.SetWebViewClient(new PrintWebViewClient(loaded));
         _activePrintView = webView;
-        webView.LoadDataWithBaseURL(null, BuildHtml(voucher), "text/html", "utf-8", null);
+        webView.LoadDataWithBaseURL(null, BuildHtml(voucher, VoucherPdfExportOptions.ReceiptVoucher), "text/html", "utf-8", null);
         using var registration = cancellationToken.Register(() => loaded.TrySetCanceled(cancellationToken));
         await loaded.Task;
         return webView;
     }
 
-    private static void WritePdfDocument(Stream destination, ReceiptVoucherDetailsDto voucher, CancellationToken cancellationToken)
+    private static void WritePdfDocument(
+        Stream destination,
+        ReceiptVoucherDetailsDto voucher,
+        VoucherPdfExportOptions options,
+        CancellationToken cancellationToken)
     {
         using var document = new global::Android.Graphics.Pdf.PdfDocument();
         var pageInfo = new global::Android.Graphics.Pdf.PdfDocument.PageInfo.Builder(595, 842, 1).Create();
@@ -123,6 +133,7 @@ public sealed class ReceiptVoucherPrintService : IReceiptVoucherPrintService
         using var linePaint = new global::Android.Graphics.Paint { Color = global::Android.Graphics.Color.Rgb(143, 161, 179), StrokeWidth = 1f };
         var h = voucher.Header;
         var y = 48f;
+        DrawCompanyLogo(canvas, h.CompanyLogoDataUri);
         canvas.DrawText(string.IsNullOrWhiteSpace(h.CompanyName) ? "مكتب الطائر السعيد للنقل" : h.CompanyName, 555, y, titlePaint);
         y += 30;
         canvas.DrawText(h.DocumentTitle, 555, y, titlePaint);
@@ -131,7 +142,7 @@ public sealed class ReceiptVoucherPrintService : IReceiptVoucherPrintService
         y += 24;
         canvas.DrawLine(40, y, 555, y, linePaint);
         y += 24;
-        canvas.DrawText($"الطرف: {h.ReceivedFromName ?? "—"}", 555, y, textPaint);
+        canvas.DrawText($"{options.PartyLabel}: {h.ReceivedFromName ?? "—"}", 555, y, textPaint);
         y += 22;
         canvas.DrawText($"الصندوق/البنك: {h.CashAccountDisplay}    العملة: {h.CurrencyDisplay}", 555, y, textPaint);
         y += 22;
@@ -152,11 +163,40 @@ public sealed class ReceiptVoucherPrintService : IReceiptVoucherPrintService
             canvas.DrawText($"{line.AccountDisplay}   {line.DebitAmount:N2}   {line.CreditAmount:N2}", 555, y, textPaint);
             y += 20;
         }
+        y = Math.Min(y + 42, 800);
+        canvas.DrawLine(40, y, 555, y, linePaint);
+        y += 18;
+        canvas.DrawText(options.RecipientSignatureLabel, 500, y, textPaint);
+        canvas.DrawText(options.AccountantSignatureLabel, 300, y, textPaint);
+        canvas.DrawText(options.ApproverSignatureLabel, 105, y, textPaint);
         document.FinishPage(page);
         document.WriteTo(destination);
     }
 
-    private static string BuildHtml(ReceiptVoucherDetailsDto voucher)
+    /// <summary>يرسم شعار الشركة من data URI داخل ملف PDF المحفوظ، لا في معاينة HTML فقط.</summary>
+    private static void DrawCompanyLogo(global::Android.Graphics.Canvas canvas, string? logoDataUri)
+    {
+        if (string.IsNullOrWhiteSpace(logoDataUri)) return;
+
+        try
+        {
+            var base64 = logoDataUri.Contains(',')
+                ? logoDataUri[(logoDataUri.IndexOf(',') + 1)..]
+                : logoDataUri;
+            var bytes = Convert.FromBase64String(base64);
+            using var bitmap = global::Android.Graphics.BitmapFactory.DecodeByteArray(bytes, 0, bytes.Length);
+            if (bitmap == null) return;
+
+            var target = new global::Android.Graphics.Rect(42, 18, 112, 88);
+            canvas.DrawBitmap(bitmap, null, target, null);
+        }
+        catch (FormatException)
+        {
+            // عدم صحة الشعار لا يمنع حفظ السند؛ تبقى بيانات الترويسة ظاهرة.
+        }
+    }
+
+    private static string BuildHtml(ReceiptVoucherDetailsDto voucher, VoucherPdfExportOptions options)
     {
         var h = voucher.Header;
         var companyName = string.IsNullOrWhiteSpace(h.CompanyName) ? "مكتب الطائر السعيد للنقل" : h.CompanyName;
@@ -220,7 +260,7 @@ table.lines { width:100%; border-collapse:collapse; margin-top:16px; font-size:1
   </div>
 </div>
 <table class="meta">
-<tr><td colspan="2"><span class="label">الطرف:</span> {{E(h.ReceivedFromName ?? "—")}}</td></tr>
+<tr><td colspan="2"><span class="label">{{E(options.PartyLabel)}}:</span> {{E(h.ReceivedFromName ?? "—")}}</td></tr>
 <tr><td><span class="label">الصندوق/البنك:</span> {{E(h.CashAccountDisplay)}}</td><td><span class="label">العملة:</span> {{E(h.CurrencyDisplay)}}</td></tr>
 <tr><td><span class="label">المرجع:</span> {{E(h.ReferenceNo ?? "—")}}</td><td><span class="label">الحالة:</span> {{E(h.WorkflowStatus)}}</td></tr>
 <tr><td colspan="2"><span class="label">البيان:</span> {{E(h.Description ?? "—")}}</td></tr>
@@ -230,7 +270,7 @@ table.lines { width:100%; border-collapse:collapse; margin-top:16px; font-size:1
 <thead><tr><th>#</th><th>الحساب</th><th>مركز التكلفة</th><th>العملة</th><th>مدين</th><th>دائن</th><th>البيان</th></tr></thead>
 <tbody>{{rows}}</tbody>
 </table>
-<div class="footer"><div class="sign">المستلم</div><div class="sign">المحاسب</div><div class="sign">المعتمد</div></div>
+<div class="footer"><div class="sign">{{E(options.RecipientSignatureLabel)}}</div><div class="sign">{{E(options.AccountantSignatureLabel)}}</div><div class="sign">{{E(options.ApproverSignatureLabel)}}</div></div>
 <div class="small">تم إنشاء هذه النسخة من تطبيق المكتب — عدد مرات الطباعة المسجل قبل هذه العملية: {{h.PrintCount}}</div>
 </body>
 </html>
