@@ -4,6 +4,7 @@ using Android.Content;
 using Android.OS;
 using Android.Print;
 using Android.Provider;
+using Android.Runtime;
 using AlTayerERP.Mobile.Office.DTOs;
 using AlTayerERP.Mobile.Office.Services;
 using Microsoft.Maui.ApplicationModel;
@@ -11,7 +12,6 @@ using AndroidWebView = Android.Webkit.WebView;
 using AndroidWebViewClient = Android.Webkit.WebViewClient;
 using AndroidWebResourceRequest = Android.Webkit.IWebResourceRequest;
 using AndroidWebResourceError = Android.Webkit.WebResourceError;
-using Java.Lang;
 
 namespace AlTayerERP.Mobile.Office.Platforms.Android;
 
@@ -74,7 +74,7 @@ public sealed class ReceiptVoucherPrintService : IReceiptVoucherPrintService
 
         if (Build.VERSION.SdkInt >= BuildVersionCodes.Q)
             values.Put(MediaStore.IMediaColumns.RelativePath,
-                Android.OS.Environment.DirectoryDownloads + "/AlTayerERP/ReceiptVouchers");
+                global::Android.OS.Environment.DirectoryDownloads + "/AlTayerERP/ReceiptVouchers");
 
         var uri = resolver.Insert(MediaStore.Downloads.ExternalContentUri, values)
             ?? throw new InvalidOperationException("تعذر إنشاء ملف PDF في ذاكرة الهاتف.");
@@ -143,7 +143,7 @@ public sealed class ReceiptVoucherPrintService : IReceiptVoucherPrintService
         var logoHtml = string.IsNullOrWhiteSpace(h.CompanyLogoDataUri)
             ? "<div class=\"logo-placeholder\">شعار الشركة</div>"
             : $"<img class=\"logo\" src=\"{E(h.CompanyLogoDataUri)}\" alt=\"شعار الشركة\" />";
-        var rows = new StringBuilder();
+        var rows = new System.Text.StringBuilder();
         foreach (var line in voucher.Details.OrderBy(x => x.LineNo))
         {
             rows.Append("<tr>")
@@ -236,18 +236,20 @@ table.lines { width:100%; border-collapse:collapse; margin-top:16px; font-size:1
         }
     }
 
-    private sealed class PdfLayoutCallback(TaskCompletionSource completion) : PrintDocumentAdapter.LayoutResultCallback
+    private sealed class PdfLayoutCallback(TaskCompletionSource completion)
+        : PrintDocumentAdapter.LayoutResultCallback(IntPtr.Zero, JniHandleOwnership.DoNotTransfer)
     {
         public override void OnLayoutFinished(PrintDocumentInfo? info, bool changed) => completion.TrySetResult();
-        public override void OnLayoutFailed(ICharSequence? error) =>
+        public override void OnLayoutFailed(Java.Lang.ICharSequence? error) =>
             completion.TrySetException(new InvalidOperationException(error?.ToString() ?? "تعذر تجهيز ملف PDF."));
         public override void OnLayoutCancelled() => completion.TrySetCanceled();
     }
 
-    private sealed class PdfWriteCallback(TaskCompletionSource completion) : PrintDocumentAdapter.WriteResultCallback
+    private sealed class PdfWriteCallback(TaskCompletionSource completion)
+        : PrintDocumentAdapter.WriteResultCallback(IntPtr.Zero, JniHandleOwnership.DoNotTransfer)
     {
         public override void OnWriteFinished(PageRange[]? pages) => completion.TrySetResult();
-        public override void OnWriteFailed(ICharSequence? error) =>
+        public override void OnWriteFailed(Java.Lang.ICharSequence? error) =>
             completion.TrySetException(new InvalidOperationException(error?.ToString() ?? "تعذر تصدير ملف PDF."));
         public override void OnWriteCancelled() => completion.TrySetCanceled();
     }
