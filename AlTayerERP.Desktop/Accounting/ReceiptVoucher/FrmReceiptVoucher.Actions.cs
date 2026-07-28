@@ -176,7 +176,8 @@ namespace AlTayerERP.Desktop
                 // تأكيد الحذف وتصفير الواجهة لتجهيز سند جديد
                 MessageBox.Show("تم حذف سند القبض بنجاح.", "نجاح", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 NewVoucher();
-                await GenerateVoucherNumberAsync();
+                // بعد الحذف تُفتح مسودة قابلة للإدخال؛ الرقم يصدر من الخادم عند الحفظ فقط.
+                SetNewMode();
             }
             catch (Exception ex)
             {
