@@ -5,6 +5,7 @@ public sealed class PaymentRequestReferencesDto
     public List<PaymentRequestReferenceItemDto> Accounts { get; set; } = [];
     public List<PaymentRequestReferenceItemDto> CostCenters { get; set; } = [];
     public List<PaymentRequestCurrencyDto> Currencies { get; set; } = [];
+    public List<PaymentRequestMethodDto> PaymentMethods { get; set; } = [];
     public List<PaymentRequestOpenPeriodDto> OpenPeriods { get; set; } = [];
 }
 
@@ -13,6 +14,12 @@ public sealed class PaymentRequestReferenceItemDto
     public string Id { get; set; } = string.Empty;
     public string Code { get; set; } = string.Empty;
     public string Name { get; set; } = string.Empty;
+    public string DisplayName { get; set; } = string.Empty;
+}
+
+public sealed class PaymentRequestMethodDto
+{
+    public int Id { get; set; }
     public string DisplayName { get; set; } = string.Empty;
 }
 
