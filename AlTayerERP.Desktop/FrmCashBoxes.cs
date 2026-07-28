@@ -13,79 +13,172 @@ using System.Windows.Forms;
 
 namespace AlTayerERP.Desktop
 {
+    /// <summary>
+    /// شاشة تعريف الصناديق وربطها بالحسابات والعملات ضمن نطاق جلسة المستخدم.
+    /// جميع الحركات المالية تبقى في السندات ودفتر الأستاذ، ولا تنشأ من شاشة التعريف.
+    /// </summary>
     public partial class FrmCashBoxes : Form
     {
         private readonly HttpClient _client = ApiService.Client;
         private readonly string _baseUrl = ApiService.BaseUrl;
-        private string _selectedCashBoxId = "";
-        private List<CashBoxModel> _cashBoxesCache = new();
+        private readonly ErrorProvider _errors = new();
+        private readonly ToolTip _toolTip = new();
+
+        private readonly List<CashBoxModel> _cashBoxes = new();
+        private string _selectedCashBoxId = string.Empty;
         private bool _isBinding;
+        private bool _isBusy;
+        private bool _masterDataReady;
         private int _printRowIndex;
+        private Button? _btnReactivate;
+        private Label? _lblCurrentBalance;
 
         public FrmCashBoxes()
         {
             InitializeComponent();
-
-            // حدث Load مربوط في ملف المصمم؛ لا يعاد ربطه هنا حتى لا تحمل الشاشة والمنسدلات مرتين.
-            btnNew.Click += btnNew_Click;
-            btnSave.Click += btnSave_Click;
-            btnEdit.Click += btnEdit_Click;
-            btnDelete.Click += btnDelete_Click;
-            btnSearch.Click += btnSearch_Click;
-            btnRefresh.Click += btnRefresh_Click;
-            btnPrint.Click += btnPrint_Click;
-            btnClose.Click += btnClose_Click;
-            dgvCashBoxes.CellClick += dgvCashBoxes_CellClick;
-            cmbAccount.SelectedIndexChanged += cmbAccount_SelectedIndexChanged;
-            txtSearch.TextChanged += (_, _) => ApplySearch();
-
-            cmbBranch.DropDownStyle = ComboBoxStyle.DropDownList;
-            cmbCurrency.DropDownStyle = ComboBoxStyle.DropDownList;
-            cmbAccount.DropDownStyle = ComboBoxStyle.DropDownList;
-            txtCashBoxCode.ReadOnly = true;
-            btnDelete.Text = "إيقاف";
+            ConfigureScreen();
+            WireEvents();
         }
+
+        #region نماذج المنسدلات
 
         public sealed class BranchCashLookup
         {
             public int Branch_ID { get; set; }
-            public string Branch_Name { get; set; } = "";
+            public string Branch_Name { get; set; } = string.Empty;
         }
 
         public sealed class CurrencyCashLookup
         {
-            public string Currency_Code { get; set; } = "";
-            public string Currency_Name_AR { get; set; } = "";
+            public string Currency_Code { get; set; } = string.Empty;
+            public string Currency_Name_AR { get; set; } = string.Empty;
         }
 
         public sealed class AccountCashLookup
         {
-            public string Account_ID { get; set; } = "";
-            public string Account_Name_AR { get; set; } = "";
+            public string Account_ID { get; set; } = string.Empty;
+            public string Account_Name_AR { get; set; } = string.Empty;
         }
 
-        private async void FrmCashBoxes_Load(object? sender, EventArgs e)
+        private sealed class CashBoxLookupsResponse
         {
-            try
-            {
-                SetBusy(true);
-                _isBinding = true;
-                SetupGrid();
-                await LoadBranchesAsync();
-                await LoadCurrenciesAsync();
-                await LoadAccountsAsync();
-                await LoadCashBoxesAsync();
-                ClearForm();
-            }
-            catch (Exception ex)
-            {
-                ShowError("تعذر فتح شاشة الصناديق", ex);
-            }
-            finally
-            {
-                _isBinding = false;
-                SetBusy(false);
-            }
+            public List<BranchCashLookup>? Branches { get; set; }
+            public List<CurrencyCashLookup>? Currencies { get; set; }
+            public List<AccountCashLookup>? Accounts { get; set; }
+        }
+
+        #endregion
+
+        #region التهيئة
+
+        private void ConfigureScreen()
+        {
+            RightToLeft = RightToLeft.Yes;
+            RightToLeftLayout = true;
+            KeyPreview = true;
+            StartPosition = FormStartPosition.CenterParent;
+
+            _errors.ContainerControl = this;
+            _errors.BlinkStyle = ErrorBlinkStyle.NeverBlink;
+
+            cmbBranch.DropDownStyle = ComboBoxStyle.DropDownList;
+            cmbCurrency.DropDownStyle = ComboBoxStyle.DropDownList;
+            cmbAccount.DropDownStyle = ComboBoxStyle.DropDownList;
+            ConfigureDropdown(cmbBranch, 180, 8);
+            ConfigureDropdown(cmbCurrency, 220, 10);
+            ConfigureDropdown(cmbAccount, 260, 12);
+
+            txtCashBoxCode.ReadOnly = true;
+            txtCashBoxCode.TabStop = false;
+            txtCashBoxNameAR.MaxLength = 200;
+            txtCashBoxNameEN.MaxLength = 200;
+            txtNotes.MaxLength = 1000;
+            txtSearch.MaxLength = 200;
+
+            ConfigureMoney(numOpeningBalance);
+            ConfigureMoney(numMinimumLimit);
+            ConfigureMoney(numMaximumLimit);
+            numOpeningBalance.Enabled = false;
+            chkIsActive.Enabled = false;
+
+            txtCashBoxNameAR.TabIndex = 0;
+            txtCashBoxNameEN.TabIndex = 1;
+            cmbBranch.TabIndex = 2;
+            cmbCurrency.TabIndex = 3;
+            cmbAccount.TabIndex = 4;
+            numMinimumLimit.TabIndex = 5;
+            numMaximumLimit.TabIndex = 6;
+            txtNotes.TabIndex = 7;
+
+            txtCashBoxCode.AccessibleName = "كود الصندوق";
+            txtCashBoxNameAR.AccessibleName = "اسم الصندوق بالعربية";
+            txtCashBoxNameEN.AccessibleName = "اسم الصندوق بالإنجليزية";
+            cmbBranch.AccessibleName = "الفرع";
+            cmbCurrency.AccessibleName = "عملة الصندوق";
+            cmbAccount.AccessibleName = "حساب الصناديق الأب";
+            numOpeningBalance.AccessibleName = "الرصيد الافتتاحي";
+            numMinimumLimit.AccessibleName = "الحد الأدنى";
+            numMaximumLimit.AccessibleName = "الحد الأعلى";
+            txtNotes.AccessibleName = "ملاحظات الصندوق";
+            dgvCashBoxes.AccessibleName = "قائمة الصناديق";
+
+            btnDelete.Text = "إيقاف";
+            AcceptButton = btnSave;
+            CancelButton = btnClose;
+
+            SetupGrid();
+            CreateCurrentBalanceLabel();
+            CreateReactivateButton();
+
+            _toolTip.SetToolTip(numOpeningBalance,
+                "الرصيد الافتتاحي ينشأ من مستند أرصدة افتتاحية أو قيد مرحل، وليس من شاشة تعريف الصندوق.");
+            _toolTip.SetToolTip(cmbAccount,
+                "حساب الصناديق الأب يثبت بعد إنشاء الصندوق.");
+            _toolTip.SetToolTip(cmbCurrency,
+                "يمكن تغيير العملة فقط قبل وجود أول حركة مالية مرحلة.");
+        }
+
+        private void WireEvents()
+        {
+            btnNew.Click += btnNew_Click;
+            btnSave.Click += btnSave_Click;
+            btnEdit.Click += btnEdit_Click;
+            btnDelete.Click += btnDelete_Click;
+            btnSearch.Click += (_, _) => ApplySearch();
+            btnRefresh.Click += btnRefresh_Click;
+            btnPrint.Click += btnPrint_Click;
+            btnClose.Click += (_, _) => Close();
+
+            dgvCashBoxes.CellClick += dgvCashBoxes_CellClick;
+            dgvCashBoxes.CellFormatting += dgvCashBoxes_CellFormatting;
+            dgvCashBoxes.DataBindingComplete += (_, _) => dgvCashBoxes.ClearSelection();
+            dgvCashBoxes.SelectionChanged += (_, _) => UpdateActionState();
+
+            txtSearch.TextChanged += (_, _) => ApplySearch();
+            txtCashBoxNameAR.TextChanged += (_, _) => _errors.SetError(txtCashBoxNameAR, string.Empty);
+            cmbCurrency.SelectedIndexChanged += (_, _) => _errors.SetError(cmbCurrency, string.Empty);
+            cmbAccount.SelectedIndexChanged += cmbAccount_SelectedIndexChanged;
+            numMinimumLimit.ValueChanged += (_, _) => ValidateLimitsInline();
+            numMaximumLimit.ValueChanged += (_, _) => ValidateLimitsInline();
+
+            KeyDown += FrmCashBoxes_KeyDown;
+            FormClosing += FrmCashBoxes_FormClosing;
+        }
+
+        private static void ConfigureDropdown(ComboBox combo, int height, int items)
+        {
+            combo.IntegralHeight = false;
+            combo.DropDownHeight = height;
+            combo.MaxDropDownItems = items;
+        }
+
+        private static void ConfigureMoney(NumericUpDown control)
+        {
+            control.DecimalPlaces = 2;
+            control.ThousandsSeparator = true;
+            control.Minimum = 0m;
+            control.Maximum = 999999999999m;
+            control.TextAlign = HorizontalAlignment.Left;
         }
 
         private void SetupGrid()
@@ -93,151 +186,248 @@ namespace AlTayerERP.Desktop
             dgvCashBoxes.AutoGenerateColumns = false;
             dgvCashBoxes.AllowUserToAddRows = false;
             dgvCashBoxes.AllowUserToDeleteRows = false;
+            dgvCashBoxes.AllowUserToResizeRows = false;
             dgvCashBoxes.ReadOnly = true;
-            dgvCashBoxes.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
             dgvCashBoxes.MultiSelect = false;
+            dgvCashBoxes.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
+            dgvCashBoxes.RowHeadersVisible = false;
+            dgvCashBoxes.RowTemplate.Height = 30;
+            dgvCashBoxes.ColumnHeadersHeight = 36;
+            dgvCashBoxes.StandardTab = true;
         }
 
-        private async Task LoadBranchesAsync()
+        private void CreateCurrentBalanceLabel()
         {
-            var data = await _client.GetFromJsonAsync<List<BranchCashLookup>>(
-                $"{_baseUrl}Branches/GetActiveBranchesLookup?companyId={CurrentSession.Company_ID}") ?? new();
+            if (_lblCurrentBalance != null)
+                return;
 
-            var currentBranch = data.FirstOrDefault(x => x.Branch_ID == CurrentSession.Branch_ID);
-            cmbBranch.DataSource = currentBranch == null
-                ? new List<BranchCashLookup>()
-                : new List<BranchCashLookup> { currentBranch };
-            cmbBranch.DisplayMember = nameof(BranchCashLookup.Branch_Name);
-            cmbBranch.ValueMember = nameof(BranchCashLookup.Branch_ID);
-            cmbBranch.Enabled = false;
-
-            if (currentBranch == null)
-                throw new InvalidOperationException("الفرع الحالي غير موجود ضمن الفروع الفعالة.");
+            _lblCurrentBalance = new Label
+            {
+                Name = "lblCurrentBalance",
+                Text = "الرصيد الدفتري الحالي: 0.00",
+                AutoSize = false,
+                Height = 28,
+                Width = Math.Max(220, grpAdditionalData.ClientSize.Width - 36),
+                Left = 18,
+                Top = Math.Max(20, grpAdditionalData.ClientSize.Height - 38),
+                Anchor = AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Bottom,
+                TextAlign = ContentAlignment.MiddleRight,
+                Font = new Font(Font, FontStyle.Bold),
+                ForeColor = Color.FromArgb(31, 78, 121)
+            };
+            grpAdditionalData.Controls.Add(_lblCurrentBalance);
+            _lblCurrentBalance.BringToFront();
         }
 
-        private async Task LoadCurrenciesAsync()
+        private void CreateReactivateButton()
         {
-            var data = await _client.GetFromJsonAsync<List<CurrencyCashLookup>>(
-                $"{_baseUrl}Currencies/GetLookup?companyId={CurrentSession.Company_ID}") ?? new();
+            if (_btnReactivate != null)
+                return;
 
-            cmbCurrency.DataSource = data;
-            cmbCurrency.DisplayMember = nameof(CurrencyCashLookup.Currency_Name_AR);
-            cmbCurrency.ValueMember = nameof(CurrencyCashLookup.Currency_Code);
-            cmbCurrency.SelectedIndex = -1;
+            _btnReactivate = new Button
+            {
+                Name = "btnReactivateCashBox",
+                Text = "إعادة تفعيل",
+                Size = btnDelete.Size,
+                Location = btnDelete.Location,
+                Font = btnDelete.Font,
+                BackColor = Color.FromArgb(230, 247, 237),
+                ForeColor = Color.FromArgb(20, 108, 67),
+                FlatStyle = FlatStyle.Flat,
+                Visible = false
+            };
+            _btnReactivate.FlatAppearance.BorderColor = Color.FromArgb(82, 183, 136);
+            _btnReactivate.Click += btnReactivate_Click;
 
-            if (data.Count == 0)
-                throw new InvalidOperationException("لا توجد عملات فعالة. يجب تعريف عملة فعالة أولاً.");
+            btnDelete.Parent?.Controls.Add(_btnReactivate);
+            _btnReactivate.BringToFront();
         }
 
-        private async Task LoadAccountsAsync()
+        #endregion
+
+        #region التحميل والمنسدلات
+
+        private async void FrmCashBoxes_Load(object? sender, EventArgs e)
         {
-            var data = await _client.GetFromJsonAsync<List<AccountCashLookup>>(
-                $"{_baseUrl}ChartOfAccounts/GetCashParentLookup?companyId={CurrentSession.Company_ID}") ?? new();
+            await ReloadScreenAsync(showReferenceWarning: true);
+        }
 
-            cmbAccount.DataSource = data;
-            cmbAccount.DisplayMember = nameof(AccountCashLookup.Account_Name_AR);
-            cmbAccount.ValueMember = nameof(AccountCashLookup.Account_ID);
-            cmbAccount.SelectedIndex = -1;
+        private async Task ReloadScreenAsync(bool showReferenceWarning)
+        {
+            try
+            {
+                SetBusy(true);
+                await LoadUnifiedLookupsAsync(showReferenceWarning);
+                await LoadCashBoxesAsync();
+                ClearForm();
+            }
+            catch (Exception ex)
+            {
+                ShowError("تعذر تحميل شاشة الصناديق", ex);
+            }
+            finally
+            {
+                SetBusy(false);
+                UpdateActionState();
+            }
+        }
 
-            if (data.Count == 0)
-                throw new InvalidOperationException("لا يوجد حساب صناديق أب نشط وتجميعي في دليل الحسابات.");
+        private async Task LoadUnifiedLookupsAsync(bool showReferenceWarning)
+        {
+            var response = await _client.GetAsync($"{_baseUrl}CashBoxes/Lookups");
+            if (!response.IsSuccessStatusCode)
+            {
+                await ShowApiErrorAsync(response, "تعذر تحميل بيانات الصناديق المرجعية");
+                BindEmptyLookups();
+                return;
+            }
+
+            var lookups = await response.Content.ReadFromJsonAsync<CashBoxLookupsResponse>();
+            if (lookups == null)
+            {
+                BindEmptyLookups();
+                return;
+            }
+
+            var branches = lookups.Branches ?? new List<BranchCashLookup>();
+            var currencies = lookups.Currencies ?? new List<CurrencyCashLookup>();
+            var accounts = lookups.Accounts ?? new List<AccountCashLookup>();
+
+            _isBinding = true;
+            try
+            {
+                cmbBranch.DataSource = branches;
+                cmbBranch.DisplayMember = nameof(BranchCashLookup.Branch_Name);
+                cmbBranch.ValueMember = nameof(BranchCashLookup.Branch_ID);
+                cmbBranch.SelectedValue = CurrentSession.Branch_ID;
+
+                cmbCurrency.DataSource = currencies;
+                cmbCurrency.DisplayMember = nameof(CurrencyCashLookup.Currency_Name_AR);
+                cmbCurrency.ValueMember = nameof(CurrencyCashLookup.Currency_Code);
+                cmbCurrency.SelectedIndex = -1;
+
+                cmbAccount.DataSource = accounts;
+                cmbAccount.DisplayMember = nameof(AccountCashLookup.Account_Name_AR);
+                cmbAccount.ValueMember = nameof(AccountCashLookup.Account_ID);
+                cmbAccount.SelectedIndex = -1;
+            }
+            finally
+            {
+                _isBinding = false;
+            }
+
+            _masterDataReady = branches.Count > 0 && currencies.Count > 0 && accounts.Count > 0;
+            SetReferenceErrors(branches.Count, currencies.Count, accounts.Count);
+
+            if (!_masterDataReady && showReferenceWarning)
+            {
+                MessageBox.Show(
+                    "فتحت شاشة الصناديق، لكن إنشاء صندوق جديد يتطلب فرعًا فعالًا، وعملة فعالة، وحساب صناديق أب نشطًا وتجميعيًا. بعد استكمالها اضغط تحديث.",
+                    "بيانات مرجعية ناقصة",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Information);
+            }
+        }
+
+        private void BindEmptyLookups()
+        {
+            cmbBranch.DataSource = new List<BranchCashLookup>();
+            cmbCurrency.DataSource = new List<CurrencyCashLookup>();
+            cmbAccount.DataSource = new List<AccountCashLookup>();
+            _masterDataReady = false;
+            SetReferenceErrors(0, 0, 0);
+        }
+
+        private void SetReferenceErrors(int branchCount, int currencyCount, int accountCount)
+        {
+            _errors.SetError(cmbBranch, branchCount == 0 ? "فرع الجلسة غير متاح أو موقوف." : string.Empty);
+            _errors.SetError(cmbCurrency, currencyCount == 0 ? "لا توجد عملات فعالة للشركة الحالية." : string.Empty);
+            _errors.SetError(cmbAccount, accountCount == 0
+                ? "لا يوجد حساب صناديق أب نشط وتجميعي. عرّف الحساب في دليل الحسابات ثم اضغط تحديث."
+                : string.Empty);
         }
 
         private async Task LoadCashBoxesAsync()
         {
-            _cashBoxesCache = await _client.GetFromJsonAsync<List<CashBoxModel>>(
-                $"{_baseUrl}CashBoxes") ?? new();
+            var response = await _client.GetAsync($"{_baseUrl}CashBoxes");
+            if (!response.IsSuccessStatusCode)
+            {
+                await ShowApiErrorAsync(response, "تعذر تحميل الصناديق");
+                return;
+            }
+
+            var data = await response.Content.ReadFromJsonAsync<List<CashBoxModel>>() ?? new();
+            _cashBoxes.Clear();
+            _cashBoxes.AddRange(data);
             ApplySearch();
         }
+
+        #endregion
+
+        #region العمليات
 
         private async void btnNew_Click(object? sender, EventArgs e)
         {
             ClearForm();
+            if (!_masterDataReady)
+            {
+                MessageBox.Show("استكمل الفرع والعملة وحساب الصناديق الأب أولًا.", "بيانات مرجعية ناقصة",
+                    MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
+
             await GenerateNextCodeAsync();
             txtCashBoxNameAR.Focus();
         }
 
         private async void btnSave_Click(object? sender, EventArgs e)
         {
-            if (!ValidateForm()) return;
+            if (!_masterDataReady || !ValidateForm())
+                return;
 
-            try
-            {
-                SetBusy(true);
-                var response = await _client.PostAsJsonAsync($"{_baseUrl}CashBoxes", BuildRequest());
-                if (!response.IsSuccessStatusCode)
-                {
-                    await ShowApiErrorAsync(response, "تعذر حفظ الصندوق");
-                    return;
-                }
-
-                MessageBox.Show("تم حفظ الصندوق بنجاح.", "الصناديق", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                await LoadCashBoxesAsync();
-                ClearForm();
-            }
-            catch (Exception ex)
-            {
-                ShowError("حدث خطأ أثناء حفظ الصندوق", ex);
-            }
-            finally
-            {
-                SetBusy(false);
-            }
+            await ExecuteWriteAsync(
+                () => _client.PostAsJsonAsync($"{_baseUrl}CashBoxes", BuildRequest()),
+                "تم حفظ الصندوق بنجاح.",
+                "تعذر حفظ الصندوق");
         }
 
         private async void btnEdit_Click(object? sender, EventArgs e)
         {
             if (string.IsNullOrWhiteSpace(_selectedCashBoxId))
             {
-                MessageBox.Show("اختر صندوقاً من الجدول أولاً.", "تنبيه", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                MessageBox.Show("اختر صندوقًا من الجدول أولًا.", "تنبيه", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
-            if (!ValidateForm()) return;
+            if (!ValidateForm())
+                return;
 
-            try
-            {
-                SetBusy(true);
-                var response = await _client.PutAsJsonAsync($"{_baseUrl}CashBoxes/{_selectedCashBoxId}", BuildRequest());
-                if (!response.IsSuccessStatusCode)
-                {
-                    await ShowApiErrorAsync(response, "تعذر تعديل الصندوق");
-                    return;
-                }
-
-                MessageBox.Show("تم تعديل الصندوق بنجاح.", "الصناديق", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                await LoadCashBoxesAsync();
-                ClearForm();
-            }
-            catch (Exception ex)
-            {
-                ShowError("حدث خطأ أثناء تعديل الصندوق", ex);
-            }
-            finally
-            {
-                SetBusy(false);
-            }
+            await ExecuteWriteAsync(
+                () => _client.PutAsJsonAsync($"{_baseUrl}CashBoxes/{_selectedCashBoxId}", BuildRequest()),
+                "تم تعديل الصندوق بنجاح.",
+                "تعذر تعديل الصندوق");
         }
 
         private async void btnDelete_Click(object? sender, EventArgs e)
         {
             if (string.IsNullOrWhiteSpace(_selectedCashBoxId))
             {
-                MessageBox.Show("اختر صندوقاً من الجدول أولاً.", "تنبيه", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                MessageBox.Show("اختر صندوقًا من الجدول أولًا.", "تنبيه", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
 
-            if (MessageBox.Show(
-                    "سيتم إيقاف الصندوق وحسابه المرتبط دون حذف البيانات. هل تريد المتابعة؟",
-                    "تأكيد إيقاف الصندوق",
-                    MessageBoxButtons.YesNo,
-                    MessageBoxIcon.Question) != DialogResult.Yes)
+            var reason = PromptReason("سبب إيقاف الصندوق", "أدخل سبب الإيقاف:");
+            if (string.IsNullOrWhiteSpace(reason))
+                return;
+
+            if (MessageBox.Show("سيتم إيقاف الصندوق وحسابه المرتبط دون حذف تاريخه. هل تريد المتابعة؟",
+                    "تأكيد الإيقاف", MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes)
                 return;
 
             try
             {
                 SetBusy(true);
-                var reason = Uri.EscapeDataString("إيقاف من شاشة الصناديق");
-                var response = await _client.DeleteAsync($"{_baseUrl}CashBoxes/{_selectedCashBoxId}?reason={reason}");
+                var response = await _client.DeleteAsync(
+                    $"{_baseUrl}CashBoxes/{_selectedCashBoxId}?reason={Uri.EscapeDataString(reason)}");
                 if (!response.IsSuccessStatusCode)
                 {
                     await ShowApiErrorAsync(response, "تعذر إيقاف الصندوق");
@@ -255,123 +445,80 @@ namespace AlTayerERP.Desktop
             finally
             {
                 SetBusy(false);
+                UpdateActionState();
             }
         }
 
-        private async void btnRefresh_Click(object? sender, EventArgs e)
+        private async void btnReactivate_Click(object? sender, EventArgs e)
         {
+            if (string.IsNullOrWhiteSpace(_selectedCashBoxId))
+                return;
+
+            var reason = PromptReason("سبب إعادة التفعيل", "أدخل سبب إعادة تفعيل الصندوق:");
+            if (string.IsNullOrWhiteSpace(reason))
+                return;
+
             try
             {
                 SetBusy(true);
+                var response = await _client.PostAsJsonAsync(
+                    $"{_baseUrl}CashBoxes/{_selectedCashBoxId}/reactivate",
+                    new { Reason = reason });
+                if (!response.IsSuccessStatusCode)
+                {
+                    await ShowApiErrorAsync(response, "تعذر إعادة تفعيل الصندوق");
+                    return;
+                }
+
+                MessageBox.Show("تمت إعادة تفعيل الصندوق وحسابه المرتبط بنجاح.", "الصناديق",
+                    MessageBoxButtons.OK, MessageBoxIcon.Information);
                 await LoadCashBoxesAsync();
                 ClearForm();
             }
             catch (Exception ex)
             {
-                ShowError("تعذر تحديث بيانات الصناديق", ex);
+                ShowError("حدث خطأ أثناء إعادة التفعيل", ex);
             }
             finally
             {
                 SetBusy(false);
+                UpdateActionState();
             }
         }
 
-        private void btnPrint_Click(object? sender, EventArgs e)
+        private async void btnRefresh_Click(object? sender, EventArgs e) =>
+            await ReloadScreenAsync(showReferenceWarning: false);
+
+        private async Task ExecuteWriteAsync(Func<Task<HttpResponseMessage>> operation, string successMessage, string errorTitle)
         {
-            if (dgvCashBoxes.Rows.Count == 0)
+            try
             {
-                MessageBox.Show("لا توجد بيانات للطباعة.", "الطباعة", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                return;
-            }
-
-            using var document = new PrintDocument
-            {
-                DocumentName = "قائمة الصناديق",
-                DefaultPageSettings = { Landscape = true }
-            };
-            document.PrintPage += PrintCashBoxesPage;
-
-            using var preview = new PrintPreviewDialog
-            {
-                Document = document,
-                Width = 1100,
-                Height = 750,
-                StartPosition = FormStartPosition.CenterParent
-            };
-
-            _printRowIndex = 0;
-            preview.ShowDialog(this);
-        }
-
-        private void PrintCashBoxesPage(object? sender, PrintPageEventArgs e)
-        {
-            var graphics = e.Graphics;
-            if (graphics == null) return;
-
-            using var titleFont = new Font("Segoe UI", 16F, FontStyle.Bold);
-            using var headerFont = new Font("Segoe UI", 9F, FontStyle.Bold);
-            using var rowFont = new Font("Segoe UI", 8F);
-            using var pen = new Pen(Color.Black);
-
-            var bounds = e.MarginBounds;
-            graphics.DrawString("قائمة الصناديق", titleFont, Brushes.Black, bounds.Left, bounds.Top);
-            var y = bounds.Top + 45;
-
-            var printableColumns = dgvCashBoxes.Columns
-                .Cast<DataGridViewColumn>()
-                .Where(x => x.Visible)
-                .ToList();
-
-            if (printableColumns.Count == 0) return;
-
-            var columnWidth = Math.Max(80, bounds.Width / printableColumns.Count);
-            var rowHeight = 30;
-            var x = bounds.Right - columnWidth;
-
-            foreach (var column in printableColumns)
-            {
-                var rect = new Rectangle(x, y, columnWidth, rowHeight);
-                graphics.DrawRectangle(pen, rect);
-                graphics.DrawString(column.HeaderText, headerFont, Brushes.Black, rect, CenteredStringFormat());
-                x -= columnWidth;
-            }
-
-            y += rowHeight;
-            while (_printRowIndex < dgvCashBoxes.Rows.Count)
-            {
-                var row = dgvCashBoxes.Rows[_printRowIndex];
-                x = bounds.Right - columnWidth;
-
-                foreach (var column in printableColumns)
+                SetBusy(true);
+                var response = await operation();
+                if (!response.IsSuccessStatusCode)
                 {
-                    var rect = new Rectangle(x, y, columnWidth, rowHeight);
-                    graphics.DrawRectangle(pen, rect);
-                    var value = row.Cells[column.Index].FormattedValue?.ToString() ?? "";
-                    graphics.DrawString(value, rowFont, Brushes.Black, rect, CenteredStringFormat());
-                    x -= columnWidth;
-                }
-
-                y += rowHeight;
-                _printRowIndex++;
-
-                if (y + rowHeight > bounds.Bottom)
-                {
-                    e.HasMorePages = _printRowIndex < dgvCashBoxes.Rows.Count;
+                    await ShowApiErrorAsync(response, errorTitle);
                     return;
                 }
-            }
 
-            e.HasMorePages = false;
-            _printRowIndex = 0;
+                MessageBox.Show(successMessage, "الصناديق", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                await LoadCashBoxesAsync();
+                ClearForm();
+            }
+            catch (Exception ex)
+            {
+                ShowError(errorTitle, ex);
+            }
+            finally
+            {
+                SetBusy(false);
+                UpdateActionState();
+            }
         }
 
-        private static StringFormat CenteredStringFormat() => new()
-        {
-            Alignment = StringAlignment.Center,
-            LineAlignment = StringAlignment.Center,
-            Trimming = StringTrimming.EllipsisCharacter,
-            FormatFlags = StringFormatFlags.DirectionRightToLeft
-        };
+        #endregion
+
+        #region اختيار السجل والبحث
 
         private void dgvCashBoxes_CellClick(object? sender, DataGridViewCellEventArgs e)
         {
@@ -384,87 +531,208 @@ namespace AlTayerERP.Desktop
                 _selectedCashBoxId = row.ID;
                 txtCashBoxCode.Text = row.Code;
                 txtCashBoxNameAR.Text = row.NameAR;
-                txtCashBoxNameEN.Text = row.NameEN ?? "";
-                chkIsActive.Checked = row.IsActive;
+                txtCashBoxNameEN.Text = row.NameEN ?? string.Empty;
                 cmbBranch.SelectedValue = CurrentSession.Branch_ID;
                 cmbCurrency.SelectedValue = row.Currency_Code;
                 cmbAccount.SelectedValue = row.Account_ID;
                 SetNumericValue(numOpeningBalance, row.Opening_Balance);
-                SetNumericValue(numMaximumLimit, row.Max_Limit);
                 SetNumericValue(numMinimumLimit, row.Min_Limit);
-                txtNotes.Text = row.Notes ?? "";
+                SetNumericValue(numMaximumLimit, row.Max_Limit);
+                chkIsActive.Checked = row.IsActive;
+                txtNotes.Text = row.Notes ?? string.Empty;
+
+                cmbAccount.Enabled = false;
+                cmbCurrency.Enabled = !row.Has_Posted_Movement;
+                UpdateBalanceLabel(row);
             }
             finally
             {
                 _isBinding = false;
             }
-        }
 
-        private void btnSearch_Click(object? sender, EventArgs e) => ApplySearch();
+            UpdateActionState();
+        }
 
         private void ApplySearch()
         {
             var text = txtSearch.Text.Trim();
             var rows = string.IsNullOrWhiteSpace(text)
-                ? _cashBoxesCache
-                : _cashBoxesCache.Where(x =>
-                    Contains(x.Code, text) ||
-                    Contains(x.NameAR, text) ||
-                    Contains(x.NameEN, text) ||
-                    Contains(x.Account_Name_AR, text) ||
-                    Contains(x.Currency_Code, text)).ToList();
+                ? _cashBoxes.ToList()
+                : _cashBoxes.Where(x =>
+                    Contains(x.Code, text) || Contains(x.NameAR, text) || Contains(x.NameEN, text) ||
+                    Contains(x.Account_Name_AR, text) || Contains(x.Currency_Code, text)).ToList();
 
             dgvCashBoxes.DataSource = null;
             dgvCashBoxes.DataSource = rows;
         }
 
-        private void btnClose_Click(object? sender, EventArgs e) => Close();
-
-        private CashBoxModel BuildRequest()
+        private void dgvCashBoxes_CellFormatting(object? sender, DataGridViewCellFormattingEventArgs e)
         {
-            return new CashBoxModel
+            if (e.RowIndex < 0 || dgvCashBoxes.Rows[e.RowIndex].DataBoundItem is not CashBoxModel row)
+                return;
+
+            var style = dgvCashBoxes.Rows[e.RowIndex].DefaultCellStyle;
+            style.ForeColor = row.IsActive ? SystemColors.ControlText : Color.DimGray;
+            style.BackColor = row.IsActive ? Color.White : Color.FromArgb(245, 245, 245);
+
+            var property = dgvCashBoxes.Columns[e.ColumnIndex].DataPropertyName;
+            if (property is "Opening_Balance" or "Current_Balance" or "Max_Limit" or "Min_Limit" && e.Value is decimal amount)
             {
-                Company_ID = CurrentSession.Company_ID,
-                Branch_ID = CurrentSession.Branch_ID,
-                Code = txtCashBoxCode.Text.Trim(),
-                NameAR = txtCashBoxNameAR.Text.Trim(),
-                NameEN = NullIfWhiteSpace(txtCashBoxNameEN.Text),
-                Account_ID = cmbAccount.SelectedValue?.ToString() ?? "",
-                Currency_Code = cmbCurrency.SelectedValue?.ToString() ?? "",
-                Opening_Balance = numOpeningBalance.Value,
-                Max_Limit = numMaximumLimit.Value,
-                Min_Limit = numMinimumLimit.Value,
-                IsActive = chkIsActive.Checked,
-                Notes = NullIfWhiteSpace(txtNotes.Text)
-            };
+                e.Value = amount.ToString("N2");
+                e.FormattingApplied = true;
+            }
         }
+
+        #endregion
+
+        #region التحقق والحالة
+
+        private CashBoxModel BuildRequest() => new()
+        {
+            Company_ID = CurrentSession.Company_ID,
+            Branch_ID = CurrentSession.Branch_ID,
+            Code = txtCashBoxCode.Text.Trim(),
+            NameAR = txtCashBoxNameAR.Text.Trim(),
+            NameEN = NullIfWhiteSpace(txtCashBoxNameEN.Text),
+            Account_ID = cmbAccount.SelectedValue?.ToString() ?? string.Empty,
+            Currency_Code = cmbCurrency.SelectedValue?.ToString() ?? string.Empty,
+            Opening_Balance = 0m,
+            Min_Limit = numMinimumLimit.Value,
+            Max_Limit = numMaximumLimit.Value,
+            IsActive = true,
+            Notes = NullIfWhiteSpace(txtNotes.Text)
+        };
 
         private bool ValidateForm()
         {
-            if (string.IsNullOrWhiteSpace(txtCashBoxNameAR.Text))
-                return ValidationError("أدخل اسم الصندوق العربي.", txtCashBoxNameAR);
-            if (cmbAccount.SelectedValue == null)
-                return ValidationError("اختر حساب الصناديق الأب.", cmbAccount);
-            if (cmbCurrency.SelectedValue == null)
-                return ValidationError("اختر عملة الصندوق.", cmbCurrency);
-            if (numOpeningBalance.Value < 0)
-                return ValidationError("الرصيد الافتتاحي لا يمكن أن يكون سالباً.", numOpeningBalance);
-            if (numMinimumLimit.Value < 0 || numMaximumLimit.Value < 0)
-                return ValidationError("حدود الصندوق لا يمكن أن تكون سالبة.", numMinimumLimit);
-            if (numMinimumLimit.Value > numMaximumLimit.Value)
-                return ValidationError("الحد الأدنى يجب ألا يتجاوز الحد الأعلى.", numMinimumLimit);
+            _errors.Clear();
+            var valid = true;
 
-            var duplicate = _cashBoxesCache.Any(x =>
-                x.ID != _selectedCashBoxId &&
+            if (string.IsNullOrWhiteSpace(txtCashBoxNameAR.Text))
+            {
+                _errors.SetError(txtCashBoxNameAR, "اسم الصندوق العربي مطلوب.");
+                valid = false;
+            }
+            if (cmbAccount.SelectedValue == null)
+            {
+                _errors.SetError(cmbAccount, "اختر حساب الصناديق الأب.");
+                valid = false;
+            }
+            if (cmbCurrency.SelectedValue == null)
+            {
+                _errors.SetError(cmbCurrency, "اختر عملة الصندوق.");
+                valid = false;
+            }
+            if (numMinimumLimit.Value > numMaximumLimit.Value)
+            {
+                ValidateLimitsInline();
+                valid = false;
+            }
+
+            var duplicate = _cashBoxes.Any(x => x.ID != _selectedCashBoxId &&
                 string.Equals(x.NameAR?.Trim(), txtCashBoxNameAR.Text.Trim(), StringComparison.OrdinalIgnoreCase));
             if (duplicate)
-                return ValidationError("يوجد صندوق آخر بالاسم نفسه في الفرع الحالي.", txtCashBoxNameAR);
+            {
+                _errors.SetError(txtCashBoxNameAR, "يوجد صندوق آخر بالاسم نفسه في الفرع الحالي.");
+                valid = false;
+            }
 
-            return true;
+            if (!valid)
+                MessageBox.Show("راجع الحقول المعلّمة ثم أعد المحاولة.", "بيانات غير مكتملة",
+                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
+
+            return valid;
         }
+
+        private void ValidateLimitsInline()
+        {
+            var message = numMinimumLimit.Value > numMaximumLimit.Value
+                ? "الحد الأدنى يجب ألا يتجاوز الحد الأعلى."
+                : string.Empty;
+            _errors.SetError(numMinimumLimit, message);
+            _errors.SetError(numMaximumLimit, message);
+        }
+
+        private void ClearForm()
+        {
+            _isBinding = true;
+            try
+            {
+                _selectedCashBoxId = string.Empty;
+                txtCashBoxCode.Clear();
+                txtCashBoxNameAR.Clear();
+                txtCashBoxNameEN.Clear();
+                txtNotes.Clear();
+                cmbBranch.SelectedValue = CurrentSession.Branch_ID;
+                cmbCurrency.SelectedIndex = -1;
+                cmbAccount.SelectedIndex = -1;
+                cmbAccount.Enabled = true;
+                cmbCurrency.Enabled = true;
+                numOpeningBalance.Value = 0m;
+                numMinimumLimit.Value = 0m;
+                numMaximumLimit.Value = 0m;
+                chkIsActive.Checked = true;
+                dgvCashBoxes.ClearSelection();
+                _errors.Clear();
+                UpdateBalanceLabel(null);
+            }
+            finally
+            {
+                _isBinding = false;
+            }
+
+            UpdateActionState();
+        }
+
+        private void UpdateActionState()
+        {
+            var selected = dgvCashBoxes.CurrentRow?.DataBoundItem as CashBoxModel;
+            var hasSelection = selected != null && !string.IsNullOrWhiteSpace(selected.ID);
+            var isActive = selected?.IsActive ?? true;
+
+            btnNew.Enabled = !_isBusy;
+            btnSave.Enabled = !_isBusy && _masterDataReady && !hasSelection;
+            btnEdit.Enabled = !_isBusy && hasSelection && isActive;
+            btnDelete.Visible = !hasSelection || isActive;
+            btnDelete.Enabled = !_isBusy && hasSelection && isActive;
+            btnSearch.Enabled = !_isBusy;
+            btnRefresh.Enabled = !_isBusy;
+            btnPrint.Enabled = !_isBusy;
+
+            if (_btnReactivate != null)
+            {
+                _btnReactivate.Visible = hasSelection && !isActive;
+                _btnReactivate.Enabled = !_isBusy && hasSelection && !isActive;
+            }
+        }
+
+        private void SetBusy(bool busy)
+        {
+            _isBusy = busy;
+            UseWaitCursor = busy;
+            UpdateActionState();
+        }
+
+        private void UpdateBalanceLabel(CashBoxModel? row)
+        {
+            if (_lblCurrentBalance == null)
+                return;
+
+            _lblCurrentBalance.Text = row == null
+                ? "الرصيد الدفتري الحالي: 0.00"
+                : $"الرصيد الدفتري الحالي: {row.Current_Balance:N2} {row.Currency_Code}";
+            _lblCurrentBalance.ForeColor = row?.Current_Balance < 0
+                ? Color.Firebrick
+                : Color.FromArgb(31, 78, 121);
+        }
+
+        #endregion
+
+        #region توليد الكود والطباعة
 
         private async void cmbAccount_SelectedIndexChanged(object? sender, EventArgs e)
         {
+            _errors.SetError(cmbAccount, string.Empty);
             if (_isBinding || cmbAccount.SelectedValue == null || !string.IsNullOrWhiteSpace(_selectedCashBoxId))
                 return;
             if (string.IsNullOrWhiteSpace(txtCashBoxCode.Text))
@@ -473,58 +741,102 @@ namespace AlTayerERP.Desktop
 
         private async Task GenerateNextCodeAsync()
         {
-            try
+            var response = await _client.GetAsync($"{_baseUrl}CashBoxes/GetNextCode");
+            if (!response.IsSuccessStatusCode)
             {
-                var response = await _client.GetAsync($"{_baseUrl}CashBoxes/GetNextCode");
-                if (!response.IsSuccessStatusCode)
+                await ShowApiErrorAsync(response, "تعذر توليد كود الصندوق");
+                return;
+            }
+            txtCashBoxCode.Text = (await response.Content.ReadAsStringAsync()).Trim().Trim('"');
+        }
+
+        private void btnPrint_Click(object? sender, EventArgs e)
+        {
+            if (dgvCashBoxes.Rows.Count == 0)
+            {
+                MessageBox.Show("لا توجد بيانات للطباعة.", "الطباعة", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
+
+            using var document = new PrintDocument { DocumentName = "قائمة الصناديق" };
+            document.DefaultPageSettings.Landscape = true;
+            document.PrintPage += PrintCashBoxesPage;
+            using var preview = new PrintPreviewDialog
+            {
+                Document = document,
+                Width = 1100,
+                Height = 750,
+                StartPosition = FormStartPosition.CenterParent
+            };
+            _printRowIndex = 0;
+            preview.ShowDialog(this);
+        }
+
+        private void PrintCashBoxesPage(object? sender, PrintPageEventArgs e)
+        {
+            if (e.Graphics == null)
+                return;
+
+            using var titleFont = new Font("Segoe UI", 16F, FontStyle.Bold);
+            using var headerFont = new Font("Segoe UI", 9F, FontStyle.Bold);
+            using var rowFont = new Font("Segoe UI", 8F);
+            using var pen = new Pen(Color.Black);
+            using var format = new StringFormat
+            {
+                Alignment = StringAlignment.Center,
+                LineAlignment = StringAlignment.Center,
+                Trimming = StringTrimming.EllipsisCharacter,
+                FormatFlags = StringFormatFlags.DirectionRightToLeft
+            };
+
+            var bounds = e.MarginBounds;
+            e.Graphics.DrawString("قائمة الصناديق", titleFont, Brushes.Black, bounds.Left, bounds.Top);
+            var columns = dgvCashBoxes.Columns.Cast<DataGridViewColumn>().Where(x => x.Visible).ToList();
+            if (columns.Count == 0)
+                return;
+
+            var width = Math.Max(80, bounds.Width / columns.Count);
+            const int height = 30;
+            var y = bounds.Top + 45;
+
+            DrawPrintRow(e.Graphics, columns.Select(x => x.HeaderText), bounds.Right, y, width, height, headerFont, pen, format);
+            y += height;
+
+            while (_printRowIndex < dgvCashBoxes.Rows.Count)
+            {
+                var row = dgvCashBoxes.Rows[_printRowIndex];
+                DrawPrintRow(e.Graphics, columns.Select(x => row.Cells[x.Index].FormattedValue?.ToString() ?? string.Empty),
+                    bounds.Right, y, width, height, rowFont, pen, format);
+                y += height;
+                _printRowIndex++;
+
+                if (y + height > bounds.Bottom)
                 {
-                    await ShowApiErrorAsync(response, "تعذر توليد كود الصندوق");
+                    e.HasMorePages = _printRowIndex < dgvCashBoxes.Rows.Count;
                     return;
                 }
-                txtCashBoxCode.Text = (await response.Content.ReadAsStringAsync()).Trim().Trim('"');
             }
-            catch (Exception ex)
+
+            e.HasMorePages = false;
+            _printRowIndex = 0;
+        }
+
+        private static void DrawPrintRow(Graphics graphics, IEnumerable<string> values, int right, int y,
+            int width, int height, Font font, Pen pen, StringFormat format)
+        {
+            var x = right - width;
+            foreach (var value in values)
             {
-                ShowError("تعذر توليد كود الصندوق", ex);
+                var rect = new Rectangle(x, y, width, height);
+                graphics.DrawRectangle(pen, rect);
+                graphics.DrawString(value, font, Brushes.Black, rect, format);
+                x -= width;
             }
         }
 
-        private void ClearForm()
-        {
-            _isBinding = true;
-            try
-            {
-                _selectedCashBoxId = "";
-                txtCashBoxCode.Clear();
-                txtCashBoxNameAR.Clear();
-                txtCashBoxNameEN.Clear();
-                txtNotes.Clear();
-                cmbBranch.SelectedValue = CurrentSession.Branch_ID;
-                cmbCurrency.SelectedIndex = -1;
-                cmbAccount.SelectedIndex = -1;
-                numOpeningBalance.Value = 0;
-                numMaximumLimit.Value = 0;
-                numMinimumLimit.Value = 0;
-                chkIsActive.Checked = true;
-                dgvCashBoxes.ClearSelection();
-            }
-            finally
-            {
-                _isBinding = false;
-            }
-        }
+        #endregion
 
-        private void SetBusy(bool busy)
-        {
-            btnNew.Enabled = !busy;
-            btnSave.Enabled = !busy;
-            btnEdit.Enabled = !busy;
-            btnDelete.Enabled = !busy;
-            btnSearch.Enabled = !busy;
-            btnRefresh.Enabled = !busy;
-            btnPrint.Enabled = !busy;
-            UseWaitCursor = busy;
-        }
+        #region مساعدات عامة
 
         private async Task ShowApiErrorAsync(HttpResponseMessage response, string title)
         {
@@ -536,35 +848,79 @@ namespace AlTayerERP.Desktop
                 if (json.RootElement.TryGetProperty("message", out var value))
                     message = value.GetString() ?? raw;
             }
-            catch (JsonException) { }
+            catch (JsonException)
+            {
+                // تعرض الاستجابة النصية كما هي عندما لا تكون JSON.
+            }
             MessageBox.Show(message, title, MessageBoxButtons.OK, MessageBoxIcon.Warning);
         }
-
-        private static bool ValidationError(string message, Control control)
-        {
-            MessageBox.Show(message, "تنبيه", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-            control.Focus();
-            return false;
-        }
-
-        private static void SetNumericValue(NumericUpDown control, decimal value)
-        {
-            control.Value = Math.Min(control.Maximum, Math.Max(control.Minimum, value));
-        }
-
-        private static bool Contains(string? source, string value) =>
-            !string.IsNullOrWhiteSpace(source) && source.Contains(value, StringComparison.OrdinalIgnoreCase);
 
         private static string? NullIfWhiteSpace(string? value) =>
             string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 
+        private static bool Contains(string? source, string value) =>
+            !string.IsNullOrWhiteSpace(source) && source.Contains(value, StringComparison.OrdinalIgnoreCase);
+
+        private static void SetNumericValue(NumericUpDown control, decimal value) =>
+            control.Value = Math.Min(control.Maximum, Math.Max(control.Minimum, value));
+
         private static void ShowError(string title, Exception ex) =>
             MessageBox.Show($"{title}: {ex.Message}", "خطأ", MessageBoxButtons.OK, MessageBoxIcon.Error);
 
+        private static string? PromptReason(string title, string labelText)
+        {
+            using var dialog = new Form
+            {
+                Text = title,
+                Width = 480,
+                Height = 210,
+                StartPosition = FormStartPosition.CenterParent,
+                RightToLeft = RightToLeft.Yes,
+                RightToLeftLayout = true,
+                FormBorderStyle = FormBorderStyle.FixedDialog,
+                MaximizeBox = false,
+                MinimizeBox = false
+            };
+            var label = new Label { Text = labelText, AutoSize = true, Right = 440, Top = 20 };
+            var text = new TextBox { Multiline = true, Width = 420, Height = 75, Left = 25, Top = 45, MaxLength = 500 };
+            var ok = new Button { Text = "موافق", DialogResult = DialogResult.OK, Width = 90, Left = 255, Top = 130 };
+            var cancel = new Button { Text = "إلغاء", DialogResult = DialogResult.Cancel, Width = 90, Left = 155, Top = 130 };
+            dialog.Controls.AddRange(new Control[] { label, text, ok, cancel });
+            dialog.AcceptButton = ok;
+            dialog.CancelButton = cancel;
+
+            return dialog.ShowDialog() == DialogResult.OK && !string.IsNullOrWhiteSpace(text.Text)
+                ? text.Text.Trim()
+                : null;
+        }
+
+        private void FrmCashBoxes_KeyDown(object? sender, KeyEventArgs e)
+        {
+            if (e.Control && e.KeyCode == Keys.N) btnNew.PerformClick();
+            else if (e.Control && e.KeyCode == Keys.S) btnSave.PerformClick();
+            else if (e.Control && e.KeyCode == Keys.F) { txtSearch.Focus(); txtSearch.SelectAll(); }
+            else if (e.KeyCode == Keys.F5) btnRefresh.PerformClick();
+            else if (e.KeyCode == Keys.Escape && !_isBusy) Close();
+            else return;
+            e.SuppressKeyPress = true;
+        }
+
+        private void FrmCashBoxes_FormClosing(object? sender, FormClosingEventArgs e)
+        {
+            if (!_isBusy)
+                return;
+            e.Cancel = true;
+            MessageBox.Show("انتظر حتى تكتمل العملية الحالية قبل إغلاق الشاشة.", "عملية قيد التنفيذ",
+                MessageBoxButtons.OK, MessageBoxIcon.Information);
+        }
+
+        // معالجات متوافقة مع ملف المصمم الحالي.
         private void chkIsActive_CheckedChanged(object sender, EventArgs e) { }
         private void groupBox3_Enter(object sender, EventArgs e) { }
         private void groupBox4_Enter(object sender, EventArgs e) { }
         private void label11_Click(object sender, EventArgs e) { }
         private void label3_Click(object sender, EventArgs e) { }
+
+        #endregion
     }
 }
