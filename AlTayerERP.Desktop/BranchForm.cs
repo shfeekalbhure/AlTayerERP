@@ -8,6 +8,7 @@ using System.Net.Http.Json;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using Microsoft.VisualBasic.FileIO;
 using AlTayerERP.Desktop.Services;
 using AlTayerERP.Desktop.Common;
 
@@ -676,7 +677,179 @@ namespace AlTayerERP.Desktop
             }
         }
 
-        private void btnImport_Click(object sender, EventArgs e) => MessageBox.Show("يرجى تحديد ملف الإكسل (CSV) المعتمد لاستيراد الفروع دفعة واحدة.", "استيراد البيانات", MessageBoxButtons.OK, MessageBoxIcon.Asterisk);
+        /// <summary>
+        /// استيراد فروع من ملف CSV. يجب أن تكون الأعمدة بالترتيب:
+        /// Branch_Code,Branch_Name,Branch_Name_EN,Branch_Type,Parent_Branch_Code,City_ID,
+        /// Address,Manager_Name,Phone,Mobile,Email,Website,Notes,Allow_Credit,Allow_Percentage.
+        /// لا يمر أي صف إلا من خلال API ليطبق التحقق والتدقيق الهرمي نفسه المستخدم في الحفظ اليدوي.
+        /// </summary>
+        private async void btnImport_Click(object sender, EventArgs e)
+        {
+            if (cmbCompanies.SelectedValue is null || _defaultCurrencyId <= 0)
+            {
+                MessageBox.Show("اختر الشركة وانتظر تحميل عملتها قبل الاستيراد.", "استيراد الفروع", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            using var dialog = new OpenFileDialog
+            {
+                Title = "اختيار ملف فروع CSV",
+                Filter = "ملف CSV (*.csv)|*.csv",
+                Multiselect = false
+            };
+            if (dialog.ShowDialog(this) != DialogResult.OK) return;
+
+            List<BranchImportRow> rows;
+            try
+            {
+                rows = ReadBranchImportFile(dialog.FileName);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("تعذر قراءة ملف الاستيراد:\n" + ex.Message, "استيراد الفروع", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+
+            if (rows.Count == 0)
+            {
+                MessageBox.Show("الملف لا يحتوي على سجلات صالحة للاستيراد.", "استيراد الفروع", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            var errors = new List<string>();
+            var importedCodes = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+            var existingCodes = _branchesList
+                .Where(x => !string.IsNullOrWhiteSpace(x.Branch_Code))
+                .ToDictionary(x => x.Branch_Code!, x => x.Branch_ID, StringComparer.OrdinalIgnoreCase);
+
+            foreach (var row in rows)
+            {
+                var validation = ValidateImportRow(row, existingCodes, importedCodes);
+                if (validation is not null)
+                {
+                    errors.Add($"السطر {row.RowNumber}: {validation}");
+                    continue;
+                }
+
+                int? parentId = null;
+                if (!string.IsNullOrWhiteSpace(row.ParentBranchCode))
+                {
+                    if (!importedCodes.TryGetValue(row.ParentBranchCode, out var importedParentId) &&
+                        !existingCodes.TryGetValue(row.ParentBranchCode, out importedParentId))
+                    {
+                        errors.Add($"السطر {row.RowNumber}: كود الفرع الأب غير موجود. يجب أن يكون موجوداً أو وارداً في سطر سابق.");
+                        continue;
+                    }
+                    parentId = importedParentId;
+                }
+
+                var request = new
+                {
+                    Company_ID = cmbCompanies.SelectedValue.ToString() ?? string.Empty,
+                    Branch_Code = row.BranchCode,
+                    Branch_Name = row.BranchName,
+                    Branch_Name_EN = row.BranchNameEn,
+                    Branch_Type = row.BranchType,
+                    Parent_Branch_ID = parentId,
+                    City_ID = row.CityId,
+                    Address = row.Address,
+                    Manager_Name = row.ManagerName,
+                    Phone = row.Phone,
+                    Mobile = row.Mobile,
+                    Email = row.Email,
+                    Website = row.Website,
+                    Notes = row.Notes,
+                    Allow_Credit = row.AllowCredit,
+                    Allow_Percentage = row.AllowPercentage,
+                    Currency_ID = _defaultCurrencyId
+                };
+
+                try
+                {
+                    using var response = await _client.PostAsJsonAsync($"{_baseUrl}Branches", request);
+                    if (!response.IsSuccessStatusCode)
+                    {
+                        errors.Add($"السطر {row.RowNumber}: {await response.Content.ReadAsStringAsync()}");
+                        continue;
+                    }
+
+                    var saved = await response.Content.ReadFromJsonAsync<BranchListModel>();
+                    if (saved?.Branch_ID > 0 && !string.IsNullOrWhiteSpace(row.BranchCode))
+                        importedCodes[row.BranchCode] = saved.Branch_ID;
+                }
+                catch (Exception ex)
+                {
+                    errors.Add($"السطر {row.RowNumber}: {ex.Message}");
+                }
+            }
+
+            await LoadBranchesAsync();
+            var successCount = rows.Count - errors.Count;
+            var message = $"تم استيراد {successCount} من {rows.Count} سجل.";
+            if (errors.Count > 0)
+                message += "\n\nالأخطاء:\n" + string.Join("\n", errors.Take(12)) + (errors.Count > 12 ? "\n..." : string.Empty);
+            MessageBox.Show(message, "استيراد الفروع", MessageBoxButtons.OK,
+                errors.Count == 0 ? MessageBoxIcon.Information : MessageBoxIcon.Warning);
+        }
+
+        private List<BranchImportRow> ReadBranchImportFile(string filePath)
+        {
+            var rows = new List<BranchImportRow>();
+            using var parser = new TextFieldParser(filePath, Encoding.UTF8)
+            {
+                TextFieldType = FieldType.Delimited,
+                Delimiters = new[] { "," },
+                HasFieldsEnclosedInQuotes = true,
+                TrimWhiteSpace = true
+            };
+            if (!parser.EndOfData) parser.ReadFields(); // رأس الملف.
+
+            var rowNumber = 1;
+            while (!parser.EndOfData)
+            {
+                rowNumber++;
+                var fields = parser.ReadFields() ?? Array.Empty<string>();
+                if (fields.All(string.IsNullOrWhiteSpace)) continue;
+                if (fields.Length < 6) throw new InvalidOperationException($"السطر {rowNumber} لا يحتوي على الأعمدة الستة الإلزامية.");
+
+                rows.Add(new BranchImportRow
+                {
+                    RowNumber = rowNumber,
+                    BranchCode = ReadField(fields, 0),
+                    BranchName = ReadField(fields, 1),
+                    BranchNameEn = ReadField(fields, 2),
+                    BranchType = ReadField(fields, 3),
+                    ParentBranchCode = ReadField(fields, 4),
+                    CityId = int.TryParse(ReadField(fields, 5), out var cityId) ? cityId : 0,
+                    Address = ReadField(fields, 6),
+                    ManagerName = ReadField(fields, 7),
+                    Phone = ReadField(fields, 8),
+                    Mobile = ReadField(fields, 9),
+                    Email = ReadField(fields, 10),
+                    Website = ReadField(fields, 11),
+                    Notes = ReadField(fields, 12),
+                    AllowCredit = ParseImportBoolean(ReadField(fields, 13)),
+                    AllowPercentage = ParseImportBoolean(ReadField(fields, 14))
+                });
+            }
+            return rows;
+        }
+
+        private string? ValidateImportRow(BranchImportRow row, IReadOnlyDictionary<string, int> existingCodes, IReadOnlyDictionary<string, int> importedCodes)
+        {
+            if (string.IsNullOrWhiteSpace(row.BranchName)) return "اسم الفرع بالعربية مطلوب.";
+            if (row.CityId <= 0 || !_cities.Any(x => x.City_ID == row.CityId)) return "City_ID غير صحيح أو المدينة موقوفة.";
+            if (string.IsNullOrWhiteSpace(row.BranchType) || !_branchTypes.Any(x =>
+                string.Equals(x.Branch_Type_Name_AR, row.BranchType, StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(x.Branch_Type_Code, row.BranchType, StringComparison.OrdinalIgnoreCase)))
+                return "نوع الفرع غير صحيح.";
+            if (!string.IsNullOrWhiteSpace(row.BranchCode) && (existingCodes.ContainsKey(row.BranchCode) || importedCodes.ContainsKey(row.BranchCode)))
+                return "كود الفرع مكرر داخل الشركة أو داخل ملف الاستيراد.";
+            return null;
+        }
+
+        private static string ReadField(IReadOnlyList<string> fields, int index) => index < fields.Count ? fields[index].Trim() : string.Empty;
+        private static bool ParseImportBoolean(string value) => value.Equals("1") || value.Equals("true", StringComparison.OrdinalIgnoreCase) || value.Equals("نعم");
 
         private void PrintDocument_PrintPage(object sender, System.Drawing.Printing.PrintPageEventArgs e)
         {
@@ -787,5 +960,25 @@ namespace AlTayerERP.Desktop
         public int? Country_ID { get; set; }
         public int? Governorate_ID { get; set; }
         public int? City_ID { get; set; }
+    }
+
+    internal sealed class BranchImportRow
+    {
+        public int RowNumber { get; set; }
+        public string BranchCode { get; set; } = string.Empty;
+        public string BranchName { get; set; } = string.Empty;
+        public string BranchNameEn { get; set; } = string.Empty;
+        public string BranchType { get; set; } = string.Empty;
+        public string ParentBranchCode { get; set; } = string.Empty;
+        public int CityId { get; set; }
+        public string Address { get; set; } = string.Empty;
+        public string ManagerName { get; set; } = string.Empty;
+        public string Phone { get; set; } = string.Empty;
+        public string Mobile { get; set; } = string.Empty;
+        public string Email { get; set; } = string.Empty;
+        public string Website { get; set; } = string.Empty;
+        public string Notes { get; set; } = string.Empty;
+        public bool AllowCredit { get; set; }
+        public bool AllowPercentage { get; set; }
     }
 }
