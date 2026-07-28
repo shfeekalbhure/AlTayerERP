@@ -16,8 +16,8 @@ public sealed class VoucherEntryService(HttpClient httpClient, SessionStorageSer
     {
         var session = await GetSessionAsync();
         var normalized = type.Trim().ToUpperInvariant();
-        var url = normalized == "RECEIPT"
-            ? "api/mobile/payment-request-references?type=RECEIPT"
+        var url = normalized is "RECEIPT" or "PAYMENT"
+            ? $"api/mobile/payment-request-references?type={Uri.EscapeDataString(normalized)}"
             : $"api/mobile/voucher-entry-references?type={Uri.EscapeDataString(normalized)}";
 
         using var request = CreateRequest(HttpMethod.Get, url, session.AccessToken);
@@ -111,7 +111,7 @@ public sealed class VoucherEntryService(HttpClient httpClient, SessionStorageSer
         using var request = CreateRequest(HttpMethod.Put, $"api/FinancialVoucher/{dto.Voucher_ID}", session.AccessToken);
         request.Content = JsonContent.Create(dto, options: JsonOptions);
         using var response = await httpClient.SendAsync(request, cancellationToken);
-        await EnsureSuccessAsync(response, "تعذر تعديل سند القبض.", cancellationToken);
+        await EnsureSuccessAsync(response, "تعذر تعديل السند.", cancellationToken);
     }
 
     public async Task<StoredSessionDto> GetSessionAsync() =>
