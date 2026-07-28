@@ -7,6 +7,8 @@ public sealed class VoucherEntryReferencesDto
     public List<VoucherEntrySourceDto> Sources { get; set; } = [];
     public int SourceCount { get; set; }
     public string? SourceMessage { get; set; }
+    /// <summary>رسائل تشخيص مراحل الصلاحية والبيانات التي اجتازها تحميل القوائم.</summary>
+    public List<string> PermissionDiagnostics { get; set; } = [];
     public List<VoucherEntryLookupDto> Accounts { get; set; } = [];
     public List<VoucherEntryLookupDto> CostCenters { get; set; } = [];
     public List<VoucherEntryCurrencyDto> Currencies { get; set; } = [];

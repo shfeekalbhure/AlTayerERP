@@ -64,6 +64,7 @@ public sealed class VoucherEntryService(HttpClient httpClient, SessionStorageSer
             result.Parties ??= [];
             result.PaymentMethods ??= [];
             result.OpenPeriods ??= [];
+            result.PermissionDiagnostics ??= [];
 
             var allCoreListsEmpty = result.Sources.Count == 0 &&
                                     result.Accounts.Count == 0 &&
@@ -142,6 +143,15 @@ public sealed class VoucherEntryService(HttpClient httpClient, SessionStorageSer
                     serverMessage = detail.GetString();
                 else if (json.RootElement.TryGetProperty("title", out var title))
                     serverMessage = title.GetString();
+
+                if (json.RootElement.TryGetProperty("permissionDiagnostics", out var diagnostics) &&
+                    diagnostics.ValueKind == JsonValueKind.Array)
+                {
+                    var passed = diagnostics.EnumerateArray()
+                        .Select(x => x.GetString())
+                        .Where(x => !string.IsNullOrWhiteSpace(x));
+                    serverMessage = string.Join(Environment.NewLine, passed.Append(serverMessage).Where(x => !string.IsNullOrWhiteSpace(x)));
+                }
             }
             catch (JsonException)
             {

@@ -26,12 +26,24 @@ public sealed class MobileVoucherEntryReferencesController : ControllerBase
         if (HttpContext.Items["ServerSession"] is not ServerSession session)
             return Unauthorized(new { message = "انتهت الجلسة أو أنها غير صالحة." });
 
+        var diagnostics = new List<string>
+        {
+            "✓ تم اجتياز صلاحية الجلسة: جلسة الخادم صالحة.",
+            $"✓ تم تحديد نطاق الجلسة: الشركة {session.Company_ID}، الفرع {session.Branch_ID}، السنة {session.Year_ID}."
+        };
+
         var normalized = type?.Trim().ToUpperInvariant();
         var screenCode = normalized == "RECEIPT" ? "ReceiptVoucher" : normalized == "PAYMENT" ? "PaymentVoucher" : null;
         if (screenCode == null) return BadRequest(new { message = "نوع السند غير صحيح." });
 
         if (!await _authorization.IsAllowedAsync(session, screenCode, ScreenOperation.Add, cancellationToken))
-            return Forbid();
+            return StatusCode(StatusCodes.Status403Forbidden, new
+            {
+                message = $"✕ توقّف تحميل المنسدلات: لا توجد صلاحية الإضافة {screenCode}.Add لهذا المستخدم.",
+                permissionDiagnostics = diagnostics
+            });
+
+        diagnostics.Add($"✓ تم اجتياز الصلاحية: {screenCode}.Add.");
 
         // نحدد الشركة من الفرع الموثوق في قاعدة البيانات، لأن قيمة Company_ID في
         // الجلسة القديمة قد تحتوي اختلاف تنسيق أو مسافات فتؤدي إلى قوائم فارغة كلها.
@@ -43,6 +55,7 @@ public sealed class MobileVoucherEntryReferencesController : ControllerBase
         trustedCompanyId = string.IsNullOrWhiteSpace(trustedCompanyId)
             ? session.Company_ID.Trim()
             : trustedCompanyId.Trim();
+        diagnostics.Add($"✓ تم اجتياز نطاق الفرع: الشركة المعتمدة للفرع هي {trustedCompanyId}.");
 
         var voucherType = await _db.Voucher_Types.AsNoTracking()
             .Where(x => x.Is_Active && x.Voucher_Type_Code == normalized)
@@ -56,6 +69,8 @@ public sealed class MobileVoucherEntryReferencesController : ControllerBase
 
         if (voucherType == null || draftStatus == null)
             return Conflict(new { message = "نوع السند أو حالة المسودة غير مهيأة." });
+
+        diagnostics.Add($"✓ تم اجتياز التهيئة: نوع السند {normalized} وحالة DRAFT متاحان.");
 
         var activeCashBoxes = await _db.Cash_Boxes.AsNoTracking()
             .Where(x => x.Company_ID.Trim() == trustedCompanyId &&
@@ -175,6 +190,7 @@ public sealed class MobileVoucherEntryReferencesController : ControllerBase
             sourceMessage = sources.Count == 0
                 ? "لا توجد صناديق أو بنوك فعالة لها حساب مرتبط ضمن الشركة والفرع الحاليين."
                 : null,
+            permissionDiagnostics = diagnostics,
             accounts,
             accountCount = accounts.Count,
             costCenters,

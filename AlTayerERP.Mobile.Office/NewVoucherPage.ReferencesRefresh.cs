@@ -38,8 +38,10 @@ public partial class NewVoucherPage
         var parties = _references.Parties?.Count ?? 0;
         var methods = _references.PaymentMethods?.Count ?? 0;
 
-        ReferencesStatusLabel.Text =
-            $"الصناديق/البنوك: {sources} | الحسابات: {accounts} | العملات: {currencies} | الأطراف: {parties} | طرق السداد: {methods} | مراكز التكلفة: {centers}";
+        var counts = $"الصناديق/البنوك: {sources} | الحسابات: {accounts} | العملات: {currencies} | الأطراف: {parties} | طرق السداد: {methods} | مراكز التكلفة: {centers}";
+        ReferencesStatusLabel.Text = _references.PermissionDiagnostics.Count == 0
+            ? counts
+            : string.Join(Environment.NewLine, _references.PermissionDiagnostics.Append(counts));
 
         var allEmpty = sources == 0 && accounts == 0 && currencies == 0 && parties == 0 && methods == 0 && centers == 0;
         ReferencesStatusLabel.TextColor = allEmpty
