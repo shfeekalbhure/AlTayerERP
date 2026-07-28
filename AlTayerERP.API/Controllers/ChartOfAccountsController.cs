@@ -22,36 +22,6 @@ namespace AlTayerERP.API.Controllers
         private static readonly HashSet<string> AllowedControlTypes = new(StringComparer.OrdinalIgnoreCase)
             { "Customer", "Vendor", "Employee", "Other" };
 
-        private static readonly Dictionary<string, HashSet<string>> AllowedCategories =
-            new(StringComparer.OrdinalIgnoreCase)
-            {
-                ["Asset"] = new(StringComparer.OrdinalIgnoreCase)
-                {
-                    "Cash", "Bank", "Receivable", "Customer", "Inventory", "FixedAsset",
-                    "RightOfUseAsset", "Advance", "Prepayment", "TaxAsset", "OtherAsset", "Asset"
-                },
-                ["Liability"] = new(StringComparer.OrdinalIgnoreCase)
-                {
-                    "Payable", "Vendor", "AccruedLiability", "Loan", "LeaseLiability",
-                    "TaxPayable", "Provision", "OtherLiability", "Liability"
-                },
-                ["Equity"] = new(StringComparer.OrdinalIgnoreCase)
-                {
-                    "Capital", "Reserve", "RetainedEarnings", "Drawings", "OtherEquity", "Equity"
-                },
-                ["Revenue"] = new(StringComparer.OrdinalIgnoreCase)
-                {
-                    "TransportRevenue", "ShippingRevenue", "TicketRevenue", "ServiceRevenue",
-                    "OtherRevenue", "Revenue"
-                },
-                ["Expense"] = new(StringComparer.OrdinalIgnoreCase)
-                {
-                    "FuelExpense", "SalaryExpense", "MaintenanceExpense", "RentExpense",
-                    "OperatingExpense", "AdministrativeExpense", "FinanceCost", "TaxExpense",
-                    "DepreciationExpense", "OtherExpense", "Expense"
-                }
-            };
-
         private readonly AppDbContext _context;
         private readonly AccountNumberService _numbers;
         private readonly ScreenAuthorizationService _authorization;
@@ -90,13 +60,19 @@ namespace AlTayerERP.API.Controllers
             if (!await _authorization.IsAllowedAsync(Session, "CashBoxes", ScreenOperation.View))
                 return Forbid();
 
+            var cashCodes = await _context.Set<AccountCategory>().AsNoTracking()
+                .Where(x => x.Company_ID == Session.Company_ID &&
+                            x.Account_Type == "Asset" && x.Is_Active &&
+                            (x.Category_Code == "Cash" || x.Category_Code == "Bank"))
+                .Select(x => x.Category_Code)
+                .ToListAsync();
+
             var rows = await _context.Chart_Of_Accounts.AsNoTracking()
-                .Where(x =>
-                    x.Company_ID == Session.Company_ID &&
-                    x.Is_Active && !x.Is_Postable && x.Is_Summary_Account &&
-                    (x.Account_Category == "Cash" ||
-                     x.Account_Name_AR.Contains("صندوق") ||
-                     x.Account_Name_AR.Contains("نقد")))
+                .Where(x => x.Company_ID == Session.Company_ID &&
+                            x.Is_Active && !x.Is_Postable && x.Is_Summary_Account &&
+                            (cashCodes.Contains(x.Account_Category) ||
+                             x.Account_Name_AR.Contains("صندوق") ||
+                             x.Account_Name_AR.Contains("نقد")))
                 .OrderBy(x => x.Account_Code)
                 .Select(x => new { x.Account_ID, x.Account_Code, x.Account_Name_AR })
                 .ToListAsync();
@@ -105,7 +81,7 @@ namespace AlTayerERP.API.Controllers
             {
                 rows = await _context.Chart_Of_Accounts.AsNoTracking()
                     .Where(x => x.Company_ID == Session.Company_ID && x.Is_Active &&
-                                !x.Is_Postable && x.Is_Summary_Account)
+                                !x.Is_Postable && x.Is_Summary_Account && x.Account_Type == "Asset")
                     .OrderBy(x => x.Account_Code)
                     .Select(x => new { x.Account_ID, x.Account_Code, x.Account_Name_AR })
                     .ToListAsync();
@@ -132,12 +108,10 @@ namespace AlTayerERP.API.Controllers
             var error = await RequireAsync(ScreenOperation.View);
             if (error != null || Session == null) return error!;
 
-            // هذا الـLookup مخصص للإدخال اليدوي؛ لذلك يستبعد الحسابات الرقابية.
             return Ok(await _context.Chart_Of_Accounts.AsNoTracking()
-                .Where(x =>
-                    x.Company_ID == Session.Company_ID &&
-                    x.Is_Active && x.Is_Postable && !x.Is_Summary_Account &&
-                    !x.Is_Control_Account && x.Allow_ManualEntry)
+                .Where(x => x.Company_ID == Session.Company_ID &&
+                            x.Is_Active && x.Is_Postable && !x.Is_Summary_Account &&
+                            !x.Is_Control_Account && x.Allow_ManualEntry)
                 .OrderBy(x => x.Account_Code)
                 .Select(x => new
                 {
@@ -173,15 +147,16 @@ namespace AlTayerERP.API.Controllers
             Normalize(dto);
             ApplyAutomaticRules(dto, hasChildren: false);
 
-            var validation = await ValidateAsync(dto, null);
+            string? validation = await ValidateAsync(dto, null);
             if (validation != null)
                 return BadRequest(new { message = validation });
 
-            var parent = await ParentAsync(dto.Parent_Account_ID);
+            ChartOfAccount? parent = await ParentAsync(dto.Parent_Account_ID);
             if (parent != null)
             {
                 parent.Is_Postable = false;
                 parent.Is_Summary_Account = true;
+                parent.Allow_ManualEntry = false;
                 parent.Updated_By = Session.User_ID.ToString();
                 parent.Updated_At = DateTime.UtcNow;
             }
@@ -235,7 +210,7 @@ namespace AlTayerERP.API.Controllers
 
             ApplyAutomaticRules(dto, hasChildren);
 
-            var validation = await ValidateAsync(dto, row);
+            string? validation = await ValidateAsync(dto, row);
             if (validation != null)
                 return BadRequest(new { message = validation });
 
@@ -243,21 +218,24 @@ namespace AlTayerERP.API.Controllers
                 return BadRequest(new { message = "لا يمكن نقل حساب سبق استخدامه في قيود محاسبية إلى أب آخر." });
             if (hasMovement && !string.Equals(row.Account_Type, dto.Account_Type, StringComparison.OrdinalIgnoreCase))
                 return BadRequest(new { message = "لا يمكن تغيير نوع حساب سبق استخدامه في قيود محاسبية." });
+            if (hasMovement && !string.Equals(row.Account_Category, dto.Account_Category, StringComparison.OrdinalIgnoreCase))
+                return BadRequest(new { message = "لا يمكن تغيير تصنيف حساب سبق استخدامه في قيود محاسبية." });
             if (hasMovement && row.Is_Control_Account != dto.Is_Control_Account)
                 return BadRequest(new { message = "لا يمكن تغيير صفة الحساب الرقابي بعد استخدام الحساب في قيود محاسبية." });
             if (row.System_Account && !dto.System_Account)
                 return BadRequest(new { message = "لا يمكن إلغاء صفة حساب النظام." });
 
-            var parent = await ParentAsync(dto.Parent_Account_ID);
+            ChartOfAccount? parent = await ParentAsync(dto.Parent_Account_ID);
             if (parent != null)
             {
                 parent.Is_Postable = false;
                 parent.Is_Summary_Account = true;
+                parent.Allow_ManualEntry = false;
                 parent.Updated_By = Session.User_ID.ToString();
                 parent.Updated_At = DateTime.UtcNow;
             }
 
-            var old = AuditShape(row);
+            object old = AuditShape(row);
             Apply(row, dto, parent);
             row.Account_Path = BuildAccountPath(parent, row.Account_Code);
             row.Updated_By = Session.User_ID.ToString();
@@ -291,6 +269,7 @@ namespace AlTayerERP.API.Controllers
                 return BadRequest(new { message = "لا يمكن إيقاف حساب مستخدم في قيود محاسبية." });
 
             row.Is_Active = false;
+            row.Allow_ManualEntry = false;
             row.Updated_By = Session.User_ID.ToString();
             row.Updated_At = DateTime.UtcNow;
 
@@ -312,11 +291,25 @@ namespace AlTayerERP.API.Controllers
             if (!AllowedTypes.Contains(dto.Account_Type)) return "نوع الحساب غير معتمد.";
             if (!AllowedBalances.Contains(dto.Normal_Balance))
                 return "طبيعة الحساب يجب أن تكون Debit أو Credit.";
-            if (!AllowedCategories.TryGetValue(dto.Account_Type, out var categories) ||
-                !categories.Contains(dto.Account_Category))
+
+            AccountCategory? category = await _context.Set<AccountCategory>().AsNoTracking()
+                .FirstOrDefaultAsync(x =>
+                    x.Company_ID == Session.Company_ID &&
+                    x.Category_Code == dto.Account_Category);
+
+            if (category == null)
+                return "تصنيف الحساب غير موجود ضمن الشركة الحالية.";
+            if (!category.Is_Active)
+                return "تصنيف الحساب المحدد موقوف.";
+            if (!string.Equals(category.Account_Type, dto.Account_Type, StringComparison.OrdinalIgnoreCase))
                 return "التصنيف المحدد لا يتوافق مع نوع الحساب.";
+            if (!string.Equals(category.Normal_Balance, dto.Normal_Balance, StringComparison.OrdinalIgnoreCase))
+                return "طبيعة الحساب لا تتوافق مع التصنيف المحدد.";
+
             if (dto.Is_Summary_Account && dto.Is_Postable)
                 return "الحساب التجميعي لا يمكن أن يكون قابلاً للترحيل.";
+            if (dto.Is_Summary_Account && dto.Allow_ManualEntry)
+                return "الحساب التجميعي لا يسمح بالقيد اليدوي.";
 
             if (dto.Is_Control_Account)
             {
@@ -349,7 +342,7 @@ namespace AlTayerERP.API.Controllers
 
             bool duplicateName = await _context.Chart_Of_Accounts.AsNoTracking().AnyAsync(x =>
                 x.Company_ID == Session.Company_ID &&
-                x.Account_ID != (current == null ? "" : current.Account_ID) &&
+                x.Account_ID != (current == null ? string.Empty : current.Account_ID) &&
                 x.Parent_Account_ID == dto.Parent_Account_ID &&
                 x.Account_Name_AR == dto.Account_Name_AR);
             if (duplicateName)
@@ -385,6 +378,9 @@ namespace AlTayerERP.API.Controllers
             dto.Is_Summary_Account = hasChildren || !isSubAccount;
             dto.Normal_Balance = DefaultBalanceForType(dto.Account_Type);
 
+            if (dto.Is_Summary_Account)
+                dto.Allow_ManualEntry = false;
+
             if (dto.Is_Control_Account)
                 dto.Allow_ManualEntry = false;
             else
@@ -394,7 +390,7 @@ namespace AlTayerERP.API.Controllers
         private async Task<ChartOfAccount?> ParentAsync(string? id) =>
             string.IsNullOrWhiteSpace(id) || Session == null
                 ? null
-                : await _context.Chart_Of_Accounts.FirstAsync(x =>
+                : await _context.Chart_Of_Accounts.FirstOrDefaultAsync(x =>
                     x.Account_ID == id && x.Company_ID == Session.Company_ID);
 
         private async Task<bool> IsDescendantAsync(string candidateParentId, string accountId)
