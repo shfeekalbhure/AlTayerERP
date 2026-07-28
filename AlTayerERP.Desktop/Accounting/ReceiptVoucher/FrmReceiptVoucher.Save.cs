@@ -330,15 +330,7 @@ namespace AlTayerERP.Desktop
                 return false;
             }
 
-            // التحقق من أن رقم السند تم توليده بشكل صحيح ولا يحتوي على نصوص أخطاء أو حالة جاري التحميل
-            if (string.IsNullOrWhiteSpace(txtVoucherNo.Text)
-                || txtVoucherNo.Text.Contains("جاري", StringComparison.OrdinalIgnoreCase)
-                || txtVoucherNo.Text.Contains("تعذر", StringComparison.OrdinalIgnoreCase))
-            {
-                errorMessage = "رقم السند غير جاهز.\nاضغط زر جديد لتوليد رقم صحيح.";
-                txtVoucherNo.Focus();
-                return false;
-            }
+            // رقم السند لا يدخل من المستخدم ولا يُحجز داخل الشاشة؛ يصدره الخادم بعد نجاح الحفظ.
 
             // التحقق من اختيار نوع السند المالي من القائمة المنسدلة
             if (cmbVoucherType.SelectedValue == null)
