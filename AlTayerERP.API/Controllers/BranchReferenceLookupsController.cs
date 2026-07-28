@@ -36,23 +36,10 @@ public sealed class BranchReferenceLookupsController : ControllerBase
             .Select(x => new { x.Currency_ID, x.Currency_Code, x.Currency_Name_AR, x.Is_Local_Currency, x.Is_Default })
             .ToListAsync();
 
-        var branchTypes = new List<object>();
-        var connection = _db.Database.GetDbConnection();
-        await EnsureOpenAsync(connection);
-        await using var command = connection.CreateCommand();
-        command.CommandText = "SELECT Branch_Type_ID, Branch_Type_Code, Branch_Type_Name_AR FROM branch_types WHERE Is_Active=1 ORDER BY Sort_Order, Branch_Type_Name_AR";
+        List<object> branchTypes;
         try
         {
-            await using var reader = await command.ExecuteReaderAsync();
-            while (await reader.ReadAsync())
-            {
-                branchTypes.Add(new
-                {
-                    Branch_Type_ID = reader.GetInt32(0),
-                    Branch_Type_Code = reader.IsDBNull(1) ? string.Empty : reader.GetString(1),
-                    Branch_Type_Name_AR = reader.IsDBNull(2) ? string.Empty : reader.GetString(2)
-                });
-            }
+            branchTypes = await LoadBranchTypesAsync();
         }
         catch (DbException)
         {
@@ -60,6 +47,58 @@ public sealed class BranchReferenceLookupsController : ControllerBase
         }
 
         return Ok(new { BranchTypes = branchTypes, Currencies = currencies });
+    }
+
+    /// <summary>قائمة نوع الفرع مستقلة كي تستطيع الواجهة تحديد سبب فشل هذه المنسدلة بدقة.</summary>
+    [HttpGet("branch-types")]
+    public async Task<IActionResult> GetBranchTypes()
+    {
+        if (!TryGetAdmin(out _)) return Forbid();
+        try
+        {
+            return Ok(await LoadBranchTypesAsync());
+        }
+        catch (DbException)
+        {
+            return Conflict("جدول أنواع الفروع غير مهيأ. شغّل ترقية branch_types أولاً.");
+        }
+    }
+
+    /// <summary>قائمة عملات الشركة مستقلة كي تظهر رسالة خاصة بعملة الشركة عند الفشل.</summary>
+    [HttpGet("currencies")]
+    public async Task<IActionResult> GetCurrencies([FromQuery] string companyId)
+    {
+        if (!TryGetAdmin(out _)) return Forbid();
+        if (string.IsNullOrWhiteSpace(companyId)) return BadRequest("معرف الشركة مطلوب.");
+        if (!await _db.Companies.AsNoTracking().AnyAsync(x => x.Company_ID == companyId.Trim() && x.Is_Active))
+            return NotFound("الشركة غير موجودة أو موقوفة.");
+
+        return Ok(await _db.Currencies.AsNoTracking()
+            .Where(x => x.Company_ID == companyId.Trim() && x.Is_Active)
+            .OrderByDescending(x => x.Is_Local_Currency)
+            .ThenBy(x => x.Currency_Code)
+            .Select(x => new { x.Currency_ID, x.Currency_Code, x.Currency_Name_AR, x.Is_Local_Currency, x.Is_Default })
+            .ToListAsync());
+    }
+
+    private async Task<List<object>> LoadBranchTypesAsync()
+    {
+        var branchTypes = new List<object>();
+        var connection = _db.Database.GetDbConnection();
+        await EnsureOpenAsync(connection);
+        await using var command = connection.CreateCommand();
+        command.CommandText = "SELECT Branch_Type_ID, Branch_Type_Code, Branch_Type_Name_AR FROM branch_types WHERE Is_Active=1 ORDER BY Sort_Order, Branch_Type_Name_AR";
+        await using var reader = await command.ExecuteReaderAsync();
+        while (await reader.ReadAsync())
+        {
+            branchTypes.Add(new
+            {
+                Branch_Type_ID = reader.GetInt32(0),
+                Branch_Type_Code = reader.IsDBNull(1) ? string.Empty : reader.GetString(1),
+                Branch_Type_Name_AR = reader.IsDBNull(2) ? string.Empty : reader.GetString(2)
+            });
+        }
+        return branchTypes;
     }
 
     private static async Task EnsureOpenAsync(DbConnection connection)

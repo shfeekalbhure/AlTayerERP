@@ -75,38 +75,62 @@ namespace AlTayerERP.Desktop
             cmbBranchType.SelectedIndex = -1;
         }
 
-        /// <summary>
-        /// قوائم النوع والعملة تؤخذ من الخادم للشركة المحددة؛ لا تستخدم قيماً ثابتة
-        /// لأن Currency_ID = 1 لا يصلح في الشركات متعددة العملات.
-        /// </summary>
+        /// <summary>تحميل كل قائمة مستقلة كي تظهر للمستخدم رسالة تخص المنسدلة التي تعذر تحميلها فقط.</summary>
         private async Task LoadBranchReferenceDataAsync(string? companyId)
         {
             ClearBranchTypes();
             _defaultCurrencyId = 0;
             if (string.IsNullOrWhiteSpace(companyId)) return;
 
+            await LoadBranchTypesAsync();
+            await LoadCompanyCurrenciesAsync(companyId);
+        }
+
+        /// <summary>تحميل قائمة أنواع الفروع فقط.</summary>
+        private async Task LoadBranchTypesAsync()
+        {
             try
             {
-                var url = $"{_baseUrl}branch-reference-lookups?companyId={Uri.EscapeDataString(companyId)}";
-                var lookup = await _client.GetFromJsonAsync<BranchReferenceLookupResponse>(url);
-                _branchTypes = lookup?.BranchTypes ?? new List<BranchTypeLookupModel>();
+                _branchTypes = await _client.GetFromJsonAsync<List<BranchTypeLookupModel>>(
+                    $"{_baseUrl}branch-reference-lookups/branch-types") ?? new List<BranchTypeLookupModel>();
                 cmbBranchType.DataSource = _branchTypes;
                 cmbBranchType.DisplayMember = nameof(BranchTypeLookupModel.Branch_Type_Name_AR);
                 cmbBranchType.ValueMember = nameof(BranchTypeLookupModel.Branch_Type_Code);
                 cmbBranchType.SelectedIndex = -1;
-
-                var currency = lookup?.Currencies.FirstOrDefault(x => x.Is_Default)
-                    ?? lookup?.Currencies.FirstOrDefault(x => x.Is_Local_Currency)
-                    ?? lookup?.Currencies.FirstOrDefault();
-                _defaultCurrencyId = currency?.Currency_ID ?? 0;
+                if (_branchTypes.Count == 0)
+                    MessageBox.Show("لا توجد أنواع فروع نشطة. أضف نوع فرع أو فعّله ثم أعد المحاولة.", "قائمة أنواع الفروع", MessageBoxButtons.OK, MessageBoxIcon.Warning);
             }
             catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
             {
-                MessageBox.Show("خدمة أنواع الفروع والعملات غير موجودة في API المشغّل. حدّث مشروع API ثم أعد تشغيله.", "الفروع", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                MessageBox.Show("تعذر تحميل قائمة أنواع الفروع لأن خدمة أنواع الفروع غير موجودة في API المشغّل. حدّث API ثم أعد تشغيله.", "قائمة أنواع الفروع", MessageBoxButtons.OK, MessageBoxIcon.Warning);
             }
             catch (Exception ex)
             {
-                MessageBox.Show("تعذر تحميل أنواع الفروع والعملات:\n" + ex.Message, "الفروع", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                MessageBox.Show("تعذر تحميل قائمة أنواع الفروع:\n" + ex.Message, "قائمة أنواع الفروع", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
+        }
+
+        /// <summary>تحميل عملات الشركة المختارة فقط، واختيار العملة الافتراضية تلقائياً.</summary>
+        private async Task LoadCompanyCurrenciesAsync(string companyId)
+        {
+            try
+            {
+                var currencies = await _client.GetFromJsonAsync<List<CurrencyLookupModel>>(
+                    $"{_baseUrl}branch-reference-lookups/currencies?companyId={Uri.EscapeDataString(companyId)}") ?? new List<CurrencyLookupModel>();
+                var currency = currencies.FirstOrDefault(x => x.Is_Default)
+                    ?? currencies.FirstOrDefault(x => x.Is_Local_Currency)
+                    ?? currencies.FirstOrDefault();
+                _defaultCurrencyId = currency?.Currency_ID ?? 0;
+                if (_defaultCurrencyId <= 0)
+                    MessageBox.Show("لا توجد عملة نشطة للشركة المختارة. أضف عملة افتراضية للشركة ثم أعد المحاولة.", "قائمة عملات الشركة", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
+            catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+            {
+                MessageBox.Show("تعذر تحميل قائمة عملات الشركة لأن الشركة أو خدمة العملات غير موجودة في API المشغّل.", "قائمة عملات الشركة", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("تعذر تحميل قائمة عملات الشركة:\n" + ex.Message, "قائمة عملات الشركة", MessageBoxButtons.OK, MessageBoxIcon.Warning);
             }
         }
 
@@ -126,7 +150,7 @@ namespace AlTayerERP.Desktop
             }
             catch (Exception ex)
             {
-                MessageBox.Show("فشل تحميل الشركات:\n" + ex.Message);
+                MessageBox.Show("تعذر تحميل قائمة الشركات:\n" + ex.Message, "قائمة الشركات", MessageBoxButtons.OK, MessageBoxIcon.Warning);
             }
             finally
             {
