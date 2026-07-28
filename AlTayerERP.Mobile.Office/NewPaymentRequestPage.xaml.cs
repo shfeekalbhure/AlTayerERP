@@ -54,12 +54,16 @@ public partial class NewPaymentRequestPage : ContentPage
             AccountPicker.ItemsSource = _references.Accounts;
             CostCenterPicker.ItemsSource = _references.CostCenters;
             CurrencyPicker.ItemsSource = _references.Currencies;
+            PaymentMethodPicker.ItemsSource = _references.PaymentMethods;
+
             CurrencyPicker.SelectedItem = _references.Currencies.FirstOrDefault(x => x.IsDefault)
                                           ?? _references.Currencies.FirstOrDefault(x => x.IsLocal)
                                           ?? _references.Currencies.FirstOrDefault();
 
-            ApplyOpenPeriods();
+            if (_references.PaymentMethods.Count == 1)
+                PaymentMethodPicker.SelectedItem = _references.PaymentMethods[0];
 
+            ApplyOpenPeriods();
             if (_editingRequest != null)
                 PopulateForEdit();
 
@@ -80,10 +84,7 @@ public partial class NewPaymentRequestPage : ContentPage
 
     private void ApplyOpenPeriods()
     {
-        var periods = _references?.OpenPeriods
-            .OrderBy(x => x.StartDate)
-            .ToList() ?? [];
-
+        var periods = _references?.OpenPeriods.OrderBy(x => x.StartDate).ToList() ?? [];
         _hasOpenPeriod = periods.Count > 0;
         RequestDatePicker.IsEnabled = _hasOpenPeriod;
 
@@ -105,8 +106,7 @@ public partial class NewPaymentRequestPage : ContentPage
 
         RequestDatePicker.Date = matchingPeriod != null
             ? requestedDate
-            : DateTime.Today.Date >= selectedPeriod.StartDate.Date &&
-              DateTime.Today.Date <= selectedPeriod.EndDate.Date
+            : selectedPeriod.Contains(DateTime.Today)
                 ? DateTime.Today.Date
                 : selectedPeriod.StartDate.Date;
 
@@ -121,14 +121,17 @@ public partial class NewPaymentRequestPage : ContentPage
 
     private void PopulateForEdit()
     {
-        if (_editingRequest == null || _references == null) return;
+        if (_editingRequest == null || _references == null)
+            return;
 
         BeneficiaryEntry.Text = _editingRequest.Beneficiary_Name;
         PartyIdEntry.Text = _editingRequest.Party_ID;
         ReferenceEntry.Text = _editingRequest.Header_Reference_No;
         DescriptionEditor.Text = _editingRequest.Description;
-        _lines.Clear();
+        PaymentMethodPicker.SelectedItem = _references.PaymentMethods
+            .FirstOrDefault(x => x.Id == _editingRequest.Payment_Method_ID);
 
+        _lines.Clear();
         foreach (var line in _editingRequest.Details.OrderBy(x => x.Line_No))
         {
             var account = _references.Accounts.FirstOrDefault(x => x.Id == line.Account_ID);
@@ -153,15 +156,13 @@ public partial class NewPaymentRequestPage : ContentPage
         UpdateTotal();
     }
 
-    private async void OnSaveDraftClicked(object? sender, EventArgs e) =>
-        await SaveAsync(false);
-
-    private async void OnSaveAndSubmitClicked(object? sender, EventArgs e) =>
-        await SaveAsync(true);
+    private async void OnSaveDraftClicked(object? sender, EventArgs e) => await SaveAsync(false);
+    private async void OnSaveAndSubmitClicked(object? sender, EventArgs e) => await SaveAsync(true);
 
     private void OnCurrencyChanged(object? sender, EventArgs e)
     {
-        if (CurrencyPicker.SelectedItem is not PaymentRequestCurrencyDto currency) return;
+        if (CurrencyPicker.SelectedItem is not PaymentRequestCurrencyDto currency)
+            return;
 
         ExchangeRateEntry.Text = currency.IsLocal
             ? "1"
@@ -176,8 +177,7 @@ public partial class NewPaymentRequestPage : ContentPage
             RecalculateLocalAmount();
     }
 
-    private void OnForeignAmountChanged(object? sender, TextChangedEventArgs e) =>
-        RecalculateLocalAmount();
+    private void OnForeignAmountChanged(object? sender, TextChangedEventArgs e) => RecalculateLocalAmount();
 
     private void RecalculateLocalAmount()
     {
@@ -216,9 +216,7 @@ public partial class NewPaymentRequestPage : ContentPage
         }
     }
 
-    private bool TryBuildCurrentLine(
-        out PaymentRequestDraftLine? line,
-        out string message)
+    private bool TryBuildCurrentLine(out PaymentRequestDraftLine? line, out string message)
     {
         line = null;
         message = string.Empty;
@@ -299,6 +297,12 @@ public partial class NewPaymentRequestPage : ContentPage
             return;
         }
 
+        if (PaymentMethodPicker.SelectedItem is not PaymentRequestMethodDto paymentMethod)
+        {
+            ShowStatus("اختر طريقة السداد.");
+            return;
+        }
+
         if (_lines.Count == 0)
         {
             ShowStatus("أضف سطر صرف واحداً على الأقل.");
@@ -310,7 +314,7 @@ public partial class NewPaymentRequestPage : ContentPage
             Request_Date = requestDate,
             Beneficiary_Name = BeneficiaryEntry.Text.Trim(),
             Party_ID = Clean(PartyIdEntry.Text),
-            Payment_Method_ID = _editingRequest?.Payment_Method_ID,
+            Payment_Method_ID = paymentMethod.Id,
             Header_Reference_No = Clean(ReferenceEntry.Text),
             Description = Clean(DescriptionEditor.Text),
             Lines = _lines.Select(x => new CreatePaymentRequestLineDto
@@ -386,6 +390,7 @@ public partial class NewPaymentRequestPage : ContentPage
         AccountPicker.IsEnabled = !busy;
         CostCenterPicker.IsEnabled = !busy;
         CurrencyPicker.IsEnabled = !busy;
+        PaymentMethodPicker.IsEnabled = !busy;
         RequestDatePicker.IsEnabled = !busy && _hasOpenPeriod;
     }
 
