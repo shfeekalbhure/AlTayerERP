@@ -33,21 +33,31 @@ public sealed class PaymentRequestAttachmentsController : ControllerBase
         HttpContext.Items["ServerSession"] as ServerSession
         ?? throw new InvalidOperationException("جلسة الخادم غير متاحة.");
 
+    // المرفقات جزء من شاشة طلب الصرف وليست شاشة مستقلة في كتالوج الصلاحيات.
     private Task<bool> Allowed(ScreenOperation operation) =>
-        _auth.IsExplicitlyAllowedAsync(Session(), "PaymentRequestAttachments", operation);
+        _auth.IsExplicitlyAllowedAsync(Session(), "PaymentRequest", operation);
 
-    private Task<bool> RequestExists(long id) =>
-        _db.Payment_Requests.AnyAsync(x =>
+    private Task<PaymentRequest?> FindRequest(long id, bool tracked = false)
+    {
+        var query = _db.Payment_Requests.Where(x =>
             x.Payment_Request_ID == id &&
             x.Company_ID == Session().Company_ID &&
             x.Branch_ID == Session().Branch_ID &&
             x.Fiscal_Year_ID == Session().Year_ID);
 
+        return tracked
+            ? query.SingleOrDefaultAsync()
+            : query.AsNoTracking().SingleOrDefaultAsync();
+    }
+
+    private static bool CanEditAttachments(PaymentRequest request) =>
+        request.Status is "DRAFT" or "RETURNED";
+
     [HttpGet]
     public async Task<IActionResult> List(long requestId)
     {
         if (!await Allowed(ScreenOperation.View)) return Forbid();
-        if (!await RequestExists(requestId)) return NotFound();
+        if (await FindRequest(requestId) == null) return NotFound();
 
         return Ok(await _db.Payment_Request_Attachments
             .Where(x => x.Payment_Request_ID == requestId &&
@@ -88,8 +98,13 @@ public sealed class PaymentRequestAttachmentsController : ControllerBase
     [RequestSizeLimit(20 * 1024 * 1024)]
     public async Task<IActionResult> Upload(long requestId, IFormFile file)
     {
-        if (!await Allowed(ScreenOperation.Add)) return Forbid();
-        if (!await RequestExists(requestId)) return NotFound();
+        if (!await Allowed(ScreenOperation.Edit)) return Forbid();
+
+        var request = await FindRequest(requestId);
+        if (request == null) return NotFound();
+        if (!CanEditAttachments(request))
+            return Conflict(new { message = "لا يمكن إضافة مرفقات بعد إرسال طلب الصرف للمراجعة." });
+
         if (file == null || file.Length == 0 || file.Length > 20 * 1024 * 1024)
             return BadRequest(new { message = "ملف المرفق غير صالح أو يتجاوز 20MB." });
 
@@ -133,9 +148,14 @@ public sealed class PaymentRequestAttachmentsController : ControllerBase
     [HttpDelete("{attachmentId:long}")]
     public async Task<IActionResult> Delete(long requestId, long attachmentId, [FromQuery] string reason)
     {
-        if (!await Allowed(ScreenOperation.Delete)) return Forbid();
+        if (!await Allowed(ScreenOperation.Edit)) return Forbid();
         if (string.IsNullOrWhiteSpace(reason))
             return BadRequest(new { message = "سبب حذف المرفق إلزامي." });
+
+        var request = await FindRequest(requestId);
+        if (request == null) return NotFound();
+        if (!CanEditAttachments(request))
+            return Conflict(new { message = "لا يمكن حذف مرفقات بعد إرسال طلب الصرف للمراجعة." });
 
         var row = await _db.Payment_Request_Attachments.SingleOrDefaultAsync(x =>
             x.Payment_Request_Attachment_ID == attachmentId &&
