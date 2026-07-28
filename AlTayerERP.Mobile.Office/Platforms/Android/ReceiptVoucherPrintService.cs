@@ -43,7 +43,7 @@ public sealed class ReceiptVoucherPrintService : IReceiptVoucherPrintService
             ?? throw new InvalidOperationException("خدمة الطباعة غير متاحة على الجهاز.");
 
         var header = voucher.Header;
-        var jobName = $"Receipt-{Safe(header.VoucherNo)}";
+        var jobName = $"{Safe(header.DocumentFilePrefix)}-{Safe(header.VoucherNo)}";
         var adapter = webView.CreatePrintDocumentAdapter(jobName);
         printManager.Print(jobName, adapter, new PrintAttributes.Builder()
             .SetMediaSize(PrintAttributes.MediaSize.IsoA4)
@@ -65,7 +65,7 @@ public sealed class ReceiptVoucherPrintService : IReceiptVoucherPrintService
             ?? throw new InvalidOperationException("تعذر الوصول إلى شاشة Android الحالية لتصدير PDF.");
 
         var webView = await CreateReadyWebViewAsync(activity, voucher, cancellationToken);
-        var fileName = $"سند_قبض_{Safe(voucher.Header.VoucherNo)}_{DateTime.Now:yyyyMMdd_HHmmss}.pdf";
+        var fileName = $"{Safe(voucher.Header.DocumentTitle)}_{Safe(voucher.Header.VoucherNo)}_{DateTime.Now:yyyyMMdd_HHmmss}.pdf";
         var resolver = activity.ContentResolver
             ?? throw new InvalidOperationException("تعذر الوصول إلى ذاكرة الهاتف.");
         var values = new ContentValues();
@@ -193,14 +193,14 @@ table.lines { width:100%; border-collapse:collapse; margin-top:16px; font-size:1
     {{logoHtml}}
     <div class="header-text">
       <div class="brand">{{E(companyName)}}</div>
-      <div class="title">سند قبض</div>
+      <div class="title">{{E(h.DocumentTitle)}}</div>
       <div class="small">الفرع: {{E(h.BranchName)}}</div>
     </div>
     <div class="small"><b>رقم السند:</b> {{E(h.VoucherNo)}}<br/><b>التاريخ:</b> {{h.VoucherDate:yyyy/MM/dd}}</div>
   </div>
 </div>
 <table class="meta">
-<tr><td colspan="2"><span class="label">استلمنا من:</span> {{E(h.ReceivedFromName ?? "—")}}</td></tr>
+<tr><td colspan="2"><span class="label">الطرف:</span> {{E(h.ReceivedFromName ?? "—")}}</td></tr>
 <tr><td><span class="label">الصندوق/البنك:</span> {{E(h.CashAccountDisplay)}}</td><td><span class="label">العملة:</span> {{E(h.CurrencyDisplay)}}</td></tr>
 <tr><td><span class="label">المرجع:</span> {{E(h.ReferenceNo ?? "—")}}</td><td><span class="label">الحالة:</span> {{E(h.WorkflowStatus)}}</td></tr>
 <tr><td colspan="2"><span class="label">البيان:</span> {{E(h.Description ?? "—")}}</td></tr>

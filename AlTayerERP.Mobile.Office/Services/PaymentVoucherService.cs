@@ -30,6 +30,23 @@ public sealed class PaymentVoucherService(HttpClient httpClient, SessionStorageS
                ?? throw new InvalidOperationException("استجابة تفاصيل سند الصرف غير صالحة.");
     }
 
+    public async Task DeleteAsync(long voucherId, CancellationToken cancellationToken = default)
+    {
+        var session = await GetSessionAsync();
+        using var request = CreateRequest(HttpMethod.Delete, $"api/FinancialVoucher/{voucherId}", session.AccessToken);
+        using var response = await httpClient.SendAsync(request, cancellationToken);
+        await EnsureSuccessAsync(response, "تعذر حذف سند الصرف.", cancellationToken);
+    }
+
+    public async Task RecordPrintAsync(long voucherId, CancellationToken cancellationToken = default)
+    {
+        var session = await GetSessionAsync();
+        using var request = CreateRequest(HttpMethod.Post, $"api/FinancialVoucher/{voucherId}/record-print", session.AccessToken);
+        request.Content = JsonContent.Create(new { Action_Channel = "MOBILE", Device_Name = DeviceInfo.Name });
+        using var response = await httpClient.SendAsync(request, cancellationToken);
+        await EnsureSuccessAsync(response, "تعذر تسجيل طباعة سند الصرف.", cancellationToken);
+    }
+
     private async Task<StoredSessionDto> GetSessionAsync() =>
         await sessionStorage.GetAsync() ?? throw new InvalidOperationException("لا توجد جلسة دخول محفوظة.");
 

@@ -26,6 +26,9 @@ public sealed class ReceiptVoucherDetailsDto
 
 public sealed class ReceiptVoucherHeaderDto
 {
+    /// <summary>عنوان السند داخل قالب الطباعة؛ يبقى سند قبض افتراضياً.</summary>
+    public string DocumentTitle { get; set; } = "سند قبض";
+    public string DocumentFilePrefix { get; set; } = "Receipt";
     public long VoucherId { get; set; }
     public string VoucherNo { get; set; } = string.Empty;
     public DateTime VoucherDate { get; set; }
