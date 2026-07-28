@@ -28,10 +28,16 @@ public sealed class MobilePaymentRequestReferencesController : ControllerBase
 
         var normalized = type?.Trim().ToUpperInvariant();
         var isReceipt = normalized == "RECEIPT";
+        var isPayment = normalized == "PAYMENT";
+        var isVoucher = isReceipt || isPayment;
 
-        var allowed = isReceipt
-            ? await _authorization.IsAllowedAsync(session, "ReceiptVoucher", ScreenOperation.Add, cancellationToken)
-            : await _authorization.IsExplicitlyAllowedAsync(session, "PaymentRequest", ScreenOperation.View, cancellationToken);
+        bool allowed;
+        if (isReceipt)
+            allowed = await _authorization.IsAllowedAsync(session, "ReceiptVoucher", ScreenOperation.Add, cancellationToken);
+        else if (isPayment)
+            allowed = await _authorization.IsAllowedAsync(session, "PaymentVoucher", ScreenOperation.Add, cancellationToken);
+        else
+            allowed = await _authorization.IsExplicitlyAllowedAsync(session, "PaymentRequest", ScreenOperation.View, cancellationToken);
 
         if (!allowed)
             return Forbid();
@@ -88,7 +94,7 @@ public sealed class MobilePaymentRequestReferencesController : ControllerBase
             })
             .ToListAsync(cancellationToken);
 
-        if (!isReceipt)
+        if (!isVoucher)
             return Ok(new { accounts, costCenters, currencies, openPeriods });
 
         var cashBoxes = await _db.Cash_Boxes.AsNoTracking()
@@ -145,8 +151,9 @@ public sealed class MobilePaymentRequestReferencesController : ControllerBase
             })
             .ToListAsync(cancellationToken);
 
+        var voucherTypeCode = isReceipt ? "RECEIPT" : "PAYMENT";
         var voucherType = await _db.Voucher_Types.AsNoTracking()
-            .Where(x => x.Is_Active && x.Voucher_Type_Code == "RECEIPT")
+            .Where(x => x.Is_Active && x.Voucher_Type_Code == voucherTypeCode)
             .Select(x => new { id = x.Voucher_Type_ID, code = x.Voucher_Type_Code, name = x.Voucher_Type_Name_AR })
             .SingleOrDefaultAsync(cancellationToken);
 
@@ -156,7 +163,7 @@ public sealed class MobilePaymentRequestReferencesController : ControllerBase
             .SingleOrDefaultAsync(cancellationToken);
 
         if (voucherType == null || draftStatus == null)
-            return Conflict(new { message = "نوع سند القبض أو حالة المسودة غير مهيأة." });
+            return Conflict(new { message = $"نوع سند {(isReceipt ? "القبض" : "الصرف")} أو حالة المسودة غير مهيأة." });
 
         return Ok(new
         {
