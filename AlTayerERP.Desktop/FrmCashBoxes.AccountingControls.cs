@@ -14,12 +14,6 @@ namespace AlTayerERP.Desktop
         private readonly ToolTip _cashBoxAccountingToolTip = new();
         private Label? _lblCurrentBalanceValue;
 
-        protected override void OnShown(EventArgs e)
-        {
-            base.OnShown(e);
-            ApplyCashBoxAccountingControls();
-        }
-
         private void ApplyCashBoxAccountingControls()
         {
             if (_accountingControlsApplied || IsDisposed)
@@ -27,7 +21,6 @@ namespace AlTayerERP.Desktop
 
             _accountingControlsApplied = true;
 
-            // الرصيد الافتتاحي لا يدخل أو يعدل من شاشة التعريف.
             numOpeningBalance.Enabled = false;
             numOpeningBalance.TabStop = false;
             _cashBoxAccountingToolTip.SetToolTip(
@@ -43,7 +36,6 @@ namespace AlTayerERP.Desktop
                 "يمكن تغيير العملة فقط قبل وجود أول حركة مالية مرحلة على الصندوق.");
 
             CreateCurrentBalanceIndicator();
-
             dgvCashBoxes.CellClick += ApplyAccountingLocksFromGrid;
             btnNew.Click += ResetAccountingLocksForNew;
         }
@@ -81,13 +73,8 @@ namespace AlTayerERP.Desktop
                 return;
             }
 
-            // حساب الأب تأسيسي ويقفل بعد إنشاء الصندوق.
             cmbAccount.Enabled = false;
-
-            // العملة تقفل بعد أول حركة مرحلة، وتبقى قابلة للتعديل قبل ذلك فقط.
             cmbCurrency.Enabled = !row.Has_Posted_Movement;
-
-            // الرصيد الافتتاحي لا يعدل مطلقاً من شاشة التعريف.
             numOpeningBalance.Enabled = false;
 
             if (_lblCurrentBalanceValue != null)
