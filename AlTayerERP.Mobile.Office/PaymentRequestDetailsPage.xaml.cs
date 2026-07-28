@@ -41,7 +41,7 @@ public partial class PaymentRequestDetailsPage : ContentPage
 
             VoucherLinkLabel.IsVisible = _request.Payment_Voucher_ID.HasValue;
             VoucherLinkLabel.Text = _request.Payment_Voucher_ID.HasValue
-                ? $"سند الصرف المرتبط: {_request.Payment_Voucher_ID.Value}"
+                ? $"سند الصرف المرتبط: {_request.Payment_Voucher_ID.Value} — اضغط لفتح السند"
                 : string.Empty;
 
             LinesPanel.Children.Clear();
@@ -152,6 +152,19 @@ public partial class PaymentRequestDetailsPage : ContentPage
 
     private async void OnAttachmentsClicked(object? sender, EventArgs e) =>
         await Navigation.PushAsync(new PaymentRequestAttachmentsPage(_attachmentService, _requestId));
+
+    /// <summary>يفتح السند المتولد من طلب الصرف نفسه بدلاً من عرض معرفه كنص فقط.</summary>
+    private async void OnLinkedVoucherTapped(object? sender, TappedEventArgs e)
+    {
+        if (_request?.Payment_Voucher_ID is not long voucherId)
+        {
+            ShowMessage("لا يوجد سند صرف مرتبط بهذا الطلب.");
+            return;
+        }
+
+        var voucherService = IPlatformApplication.Current.Services.GetRequiredService<PaymentVoucherService>();
+        await Navigation.PushAsync(new PaymentVoucherDetailsPage(voucherService, voucherId));
+    }
 
     private async void OnSubmitClicked(object? sender, EventArgs e) =>
         await ExecuteAsync(() => _service.SubmitAsync(_requestId), "تم إرسال الطلب للمراجعة.", false);

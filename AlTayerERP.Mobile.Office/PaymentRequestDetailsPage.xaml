@@ -20,7 +20,11 @@
                     <Label x:Name="DateLabel" TextColor="#35566F" />
                     <Label x:Name="DescriptionLabel" TextColor="#35566F" />
                     <Label x:Name="TotalLabel" FontAttributes="Bold" TextColor="#17324D" />
-                    <Label x:Name="VoucherLinkLabel" TextColor="#198754" FontAttributes="Bold" IsVisible="False" />
+                    <Label x:Name="VoucherLinkLabel" TextColor="#198754" FontAttributes="Bold" IsVisible="False">
+                        <Label.GestureRecognizers>
+                            <TapGestureRecognizer Tapped="OnLinkedVoucherTapped" />
+                        </Label.GestureRecognizers>
+                    </Label>
                 </VerticalStackLayout>
             </Border>
 
