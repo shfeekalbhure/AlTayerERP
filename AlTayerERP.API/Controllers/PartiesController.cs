@@ -39,6 +39,24 @@ namespace AlTayerERP.API.Controllers
                     .OrderBy(x=>x.Action_At)
                     .ToListAsync();
 
+            // تحويل رقم المستخدم المخزن في التدقيق إلى اسمه الظاهر للمستخدم.
+            var auditUserIds = auditLogs
+                .Select(x=>x.User_ID)
+                .Where(x=>int.TryParse(x, out _))
+                .Select(x=>int.Parse(x!))
+                .Distinct()
+                .ToList();
+            var userNames = auditUserIds.Count == 0
+                ? new Dictionary<int, string>()
+                : await _context.Users.AsNoTracking()
+                    .Where(x=>x.Company_ID==Session.Company_ID && auditUserIds.Contains(x.User_ID))
+                    .ToDictionaryAsync(x=>x.User_ID, x=>x.Full_Name);
+
+            string UserName(string? userId) =>
+                int.TryParse(userId, out var id) && userNames.TryGetValue(id, out var name)
+                    ? name
+                    : string.IsNullOrWhiteSpace(userId) ? "—" : userId;
+
             return Ok(parties.Select(party =>
             {
                 var logs = auditLogs.Where(x=>x.Record_ID==party.Party_ID).ToList();
@@ -63,8 +81,8 @@ namespace AlTayerERP.API.Controllers
                     party.Is_Active,
                     party.Created_At,
                     party.Updated_At,
-                    Created_By = created?.User_ID ?? party.Created_By ?? "—",
-                    Updated_By = updated?.User_ID ?? party.Updated_By ?? "—",
+                    Created_By = UserName(created?.User_ID ?? party.Created_By),
+                    Updated_By = UserName(updated?.User_ID ?? party.Updated_By),
                     Edit_Count = logs.Count(x=>x.Action_Type=="UPDATE"),
                     // لا توجد عملية طباعة للأطراف حالياً؛ يظهر العداد صفراً بوضوح.
                     Print_Count = 0
@@ -90,9 +108,27 @@ namespace AlTayerERP.API.Controllers
             if(id!=null&&await _context.Parties.AnyAsync(x=>x.Company_ID==Session.Company_ID&&x.Identity_No==id&&x.Party_ID!=(party==null?"":party.Party_ID)))return Conflict(new {message="رقم الهوية/السجل مستخدم مسبقاً."});
             if(!string.IsNullOrWhiteSpace(r.Account_ID)&&!await _context.Chart_Of_Accounts.AnyAsync(x=>x.Company_ID==Session.Company_ID&&x.Account_ID==r.Account_ID&&x.Is_Active&&x.Is_Postable))return BadRequest(new {message="الحساب الرقابي المختار غير فعّال أو غير قابل للترحيل."});
             var old=party==null?null:new {party.Party_Code,party.Party_Name_AR,party.Party_Type,party.Account_ID,party.Is_Active};
-            if(party==null){party=new Party{Party_ID=Guid.NewGuid().ToString("N"),Company_ID=Session.Company_ID,Created_At=DateTime.UtcNow,Created_By=Session.User_ID.ToString()};_context.Parties.Add(party);}
-            party.Party_Code=code;party.Party_Name_AR=r.Party_Name_AR.Trim();party.Party_Name_EN=Text(r.Party_Name_EN);party.Party_Type=type!;
-            party.Mobile_No=Text(r.Mobile_No);party.Phone_No=Text(r.Phone_No);party.Identity_No=id;party.Tax_No=Text(r.Tax_No);party.Address=Text(r.Address);party.Account_ID=Text(r.Account_ID);party.Credit_Limit=Math.Max(0,r.Credit_Limit);party.Notes=Text(r.Notes);party.Is_Active=r.Is_Active;party.Updated_At=DateTime.UtcNow;party.Updated_By=Session.User_ID.ToString();
+            var isNew = party == null;
+            if(isNew)
+            {
+                // الإنشاء يسجل في حقول الإنشاء فقط؛ حقول التعديل لا تملأ قبل أول تعديل حقيقي.
+                party=new Party
+                {
+                    Party_ID=Guid.NewGuid().ToString("N"),
+                    Company_ID=Session.Company_ID,
+                    Created_At=DateTime.UtcNow,
+                    Created_By=Session.User_ID.ToString()
+                };
+                _context.Parties.Add(party);
+            }
+            party!.Party_Code=code;party.Party_Name_AR=r.Party_Name_AR.Trim();party.Party_Name_EN=Text(r.Party_Name_EN);party.Party_Type=type!;
+            party.Mobile_No=Text(r.Mobile_No);party.Phone_No=Text(r.Phone_No);party.Identity_No=id;party.Tax_No=Text(r.Tax_No);party.Address=Text(r.Address);party.Account_ID=Text(r.Account_ID);party.Credit_Limit=Math.Max(0,r.Credit_Limit);party.Notes=Text(r.Notes);party.Is_Active=r.Is_Active;
+            if (!isNew)
+            {
+                // التعديل فقط هو الذي يحدّث بيانات آخر تعديل.
+                party.Updated_At=DateTime.UtcNow;
+                party.Updated_By=Session.User_ID.ToString();
+            }
             _audit.Add(Session,HttpContext,"parties",party.Party_ID,old==null?"CREATE":"UPDATE",old,new {party.Party_Code,party.Party_Name_AR,party.Party_Type,party.Account_ID,party.Is_Active});
             await _context.SaveChangesAsync();return Ok(new {message=old==null?"تمت إضافة الطرف المالي.":"تم تعديل الطرف المالي.",party.Party_ID});
         }
