@@ -1,6 +1,5 @@
 using System.Drawing;
 using System.Net.Http.Json;
-using System.Text.Json;
 using System.Windows.Forms;
 
 namespace AlTayerERP.Desktop;
@@ -276,8 +275,6 @@ public partial class BranchForm
             Address = txtLocation.Text.Trim(),
             Branch_Type = type.Branch_Type_Name_AR,
             Parent_Branch_ID = cmbParentBranch.SelectedValue is null ? (int?)null : Convert.ToInt32(cmbParentBranch.SelectedValue),
-            Country_ID = countryId,
-            Governorate_ID = governorateId,
             City_ID = cityId,
             Manager_Name = cmbManager.Text.Trim(),
             Phone = txtPhone.Text.Trim(),
@@ -299,35 +296,10 @@ public partial class BranchForm
             return;
         }
 
-        var branchId = edit ? _selectedBranchId : await ReadBranchIdAsync(response);
-        if (branchId <= 0)
-        {
-            MessageBox.Show("تم حفظ الفرع، لكن تعذر قراءة رقمه لحفظ الموقع الجغرافي.", Text, MessageBoxButtons.OK, MessageBoxIcon.Warning);
-            return;
-        }
-        var geographyResponse = await _client.PutAsJsonAsync($"{_baseUrl}branch-geography/{branchId}", new
-        {
-            Country_ID = countryId,
-            Governorate_ID = governorateId,
-            City_ID = cityId
-        });
-        if (!geographyResponse.IsSuccessStatusCode)
-        {
-            MessageBox.Show("تم حفظ بيانات الفرع، لكن تعذر حفظ الموقع الجغرافي. تأكد من تشغيل ترقية 2026-07-25_add_branch_geography.sql.\n\n" + await geographyResponse.Content.ReadAsStringAsync(), Text, MessageBoxButtons.OK, MessageBoxIcon.Warning);
-            return;
-        }
-
+        // الخادم يحفظ الدولة والمحافظة والمدينة في نفس معاملة حفظ الفرع اعتماداً على City_ID.
+        // لا نكرر الاستدعاء إلى branch-geography حتى لا يحدث حفظ جزئي أو تعارض بين عمليتين.
         await LoadBranchesAsync(cmbCompanies.SelectedValue?.ToString());
         MessageBox.Show(edit ? "تم تعديل بيانات الفرع وموقعه بنجاح." : "تم حفظ الفرع وموقعه بنجاح.");
-    }
-
-    private static async Task<int> ReadBranchIdAsync(HttpResponseMessage response)
-    {
-        using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
-        foreach (var property in document.RootElement.EnumerateObject())
-            if (property.Name.Equals("Branch_ID", StringComparison.OrdinalIgnoreCase) || property.Name.Equals("branch_ID", StringComparison.OrdinalIgnoreCase))
-                return property.Value.GetInt32();
-        return 0;
     }
 
     private async Task BindUnifiedReferencesAsync()
