@@ -1,46 +1,42 @@
-﻿namespace AlTayerERP.API.DTOs
+namespace AlTayerERP.API.DTOs
 {
-    // ======================================================
-    // نموذج استقبال بيانات الشركة القادمة من شاشة الشركة
-    // هذا الكلاس لا يحفظ في قاعدة البيانات مباشرة
-    // بل يستقبل البيانات من الواجهة ثم يرسلها للـ Controller
-    // ======================================================
-    public class CreateCompanyDto
+    /// <summary>
+    /// نموذج بيانات الشركة المقبول من الواجهة.
+    /// حقول الحالة والتدقيق لا تُقبل من العميل؛ الإيقاف وإعادة التفعيل لهما مساران مستقلان.
+    /// </summary>
+    public sealed class CreateCompanyDto
     {
-        // رقم المجموعة التجارية التي تتبع لها الشركة
+        /// <summary>معرّف المجموعة التجارية النشطة التابعة لها الشركة.</summary>
         public string Group_ID { get; set; } = string.Empty;
 
-        // اسم الشركة باللغة العربية
+        /// <summary>اسم الشركة باللغة العربية.</summary>
         public string Company_Name_AR { get; set; } = string.Empty;
 
-        // اسم الشركة باللغة الإنجليزية
+        /// <summary>اسم الشركة باللغة الإنجليزية.</summary>
         public string Company_Name_EN { get; set; } = string.Empty;
 
-        // رمز الشركة المختصر
+        /// <summary>بادئة مختصرة تستخدم في ترقيم مستندات الشركة، وليست كود الشركة الداخلي.</summary>
         public string Company_Prefix { get; set; } = string.Empty;
 
-        // نوع النشاط
+        /// <summary>نوع النشاط.</summary>
         public string? Activity_Type { get; set; }
 
-        // الرقم الضريبي
+        /// <summary>الرقم الضريبي.</summary>
         public string? Tax_Number { get; set; }
 
-        // رقم الهاتف
+        /// <summary>رقم الهاتف.</summary>
         public string? Phone { get; set; }
 
-        // رقم الجوال
+        /// <summary>رقم الجوال.</summary>
         public string? Mobile { get; set; }
 
-        // البريد الإلكتروني
+        /// <summary>البريد الإلكتروني.</summary>
         public string? Email { get; set; }
 
-        // عنوان الشركة
+        /// <summary>عنوان الشركة.</summary>
         public string? Address { get; set; }
 
-        // شعار الشركة
+        /// <summary>شعار الشركة.</summary>
         public byte[]? Company_Logo { get; set; }
-
-        // حالة الشركة
-        public bool Is_Active { get; set; } = true;
     }
 }
