@@ -32,6 +32,10 @@ namespace AlTayerERP.Desktop
         private int _printRowIndex;
         private Button? _btnReactivate;
         private Label? _lblCurrentBalance;
+        private GroupBox? _grpAudit;
+        private Label? _lblCreatedAudit;
+        private Label? _lblUpdatedAudit;
+        private Label? _lblCountersAudit;
 
         public FrmCashBoxes()
         {
@@ -65,6 +69,16 @@ namespace AlTayerERP.Desktop
             public List<BranchCashLookup>? Branches { get; set; }
             public List<CurrencyCashLookup>? Currencies { get; set; }
             public List<AccountCashLookup>? Accounts { get; set; }
+        }
+
+        private sealed class CashBoxAuditSummary
+        {
+            public string? Created_By { get; set; }
+            public DateTime? Created_At { get; set; }
+            public string? Updated_By { get; set; }
+            public DateTime? Updated_At { get; set; }
+            public int Edit_Count { get; set; }
+            public int Print_Count { get; set; }
         }
 
         #endregion
@@ -129,6 +143,7 @@ namespace AlTayerERP.Desktop
             SetupGrid();
             CreateCurrentBalanceLabel();
             CreateReactivateButton();
+            CreateAuditPanel();
 
             _toolTip.SetToolTip(numOpeningBalance,
                 "الرصيد الافتتاحي ينشأ من مستند أرصدة افتتاحية أو قيد مرحل، وليس من شاشة تعريف الصندوق.");
@@ -242,6 +257,55 @@ namespace AlTayerERP.Desktop
             btnDelete.Parent?.Controls.Add(_btnReactivate);
             _btnReactivate.BringToFront();
         }
+
+        /// <summary>يعرض بيانات الإنشاء والتعديل والعدادات أسفل الشاشة من دون جعلها قابلة للتعديل.</summary>
+        private void CreateAuditPanel()
+        {
+            if (_grpAudit != null)
+                return;
+
+            _grpAudit = new GroupBox
+            {
+                Name = "grpCashBoxAudit",
+                Text = "بيانات الإنشاء والتعديل والعدادات",
+                Dock = DockStyle.Bottom,
+                Height = 102,
+                RightToLeft = RightToLeft.Yes,
+                Padding = new Padding(10)
+            };
+            var layout = new TableLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                ColumnCount = 3,
+                RowCount = 1,
+                RightToLeft = RightToLeft.Yes
+            };
+            layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 33.34F));
+            layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 33.33F));
+            layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 33.33F));
+
+            _lblCreatedAudit = CreateAuditCard("بيانات الإنشاء");
+            _lblUpdatedAudit = CreateAuditCard("بيانات التعديل");
+            _lblCountersAudit = CreateAuditCard("العدادات");
+            layout.Controls.Add(_lblCreatedAudit, 0, 0);
+            layout.Controls.Add(_lblUpdatedAudit, 1, 0);
+            layout.Controls.Add(_lblCountersAudit, 2, 0);
+            _grpAudit.Controls.Add(layout);
+            Controls.Add(_grpAudit);
+            Controls.SetChildIndex(_grpAudit, 0);
+            UpdateAuditPanel(null);
+        }
+
+        private static Label CreateAuditCard(string title) => new()
+        {
+            Dock = DockStyle.Fill,
+            BorderStyle = BorderStyle.FixedSingle,
+            Text = title,
+            TextAlign = ContentAlignment.MiddleRight,
+            Padding = new Padding(10, 6, 10, 6),
+            Margin = new Padding(5),
+            ForeColor = Color.FromArgb(31, 78, 121)
+        };
 
         #endregion
 
@@ -520,7 +584,7 @@ namespace AlTayerERP.Desktop
 
         #region اختيار السجل والبحث
 
-        private void dgvCashBoxes_CellClick(object? sender, DataGridViewCellEventArgs e)
+        private async void dgvCashBoxes_CellClick(object? sender, DataGridViewCellEventArgs e)
         {
             if (e.RowIndex < 0 || dgvCashBoxes.Rows[e.RowIndex].DataBoundItem is not CashBoxModel row)
                 return;
@@ -551,6 +615,7 @@ namespace AlTayerERP.Desktop
             }
 
             UpdateActionState();
+            await LoadAuditSummaryAsync(row.ID);
         }
 
         private void ApplySearch()
@@ -675,6 +740,7 @@ namespace AlTayerERP.Desktop
                 dgvCashBoxes.ClearSelection();
                 _errors.Clear();
                 UpdateBalanceLabel(null);
+                UpdateAuditPanel(null);
             }
             finally
             {
@@ -725,6 +791,47 @@ namespace AlTayerERP.Desktop
                 ? Color.Firebrick
                 : Color.FromArgb(31, 78, 121);
         }
+
+        private async Task LoadAuditSummaryAsync(string cashBoxId)
+        {
+            try
+            {
+                var response = await _client.GetAsync($"{_baseUrl}CashBoxes/{cashBoxId}/audit-summary");
+                if (!response.IsSuccessStatusCode)
+                {
+                    UpdateAuditPanel(null);
+                    return;
+                }
+
+                var summary = await response.Content.ReadFromJsonAsync<CashBoxAuditSummary>();
+                if (cashBoxId == _selectedCashBoxId)
+                    UpdateAuditPanel(summary);
+            }
+            catch
+            {
+                // لا تمنع بيانات التدقيق استعمال شاشة الصناديق عند تعذر تحميلها.
+                UpdateAuditPanel(null);
+            }
+        }
+
+        private void UpdateAuditPanel(CashBoxAuditSummary? summary)
+        {
+            if (_lblCreatedAudit == null || _lblUpdatedAudit == null || _lblCountersAudit == null)
+                return;
+
+            _lblCreatedAudit.Text = summary == null
+                ? "بيانات الإنشاء\nأنشئ بواسطة: —\nتاريخ الإنشاء: —"
+                : $"بيانات الإنشاء\nأنشئ بواسطة: {summary.Created_By ?? "غير متاح"}\nتاريخ الإنشاء: {FormatAuditDate(summary.Created_At)}";
+            _lblUpdatedAudit.Text = summary == null || summary.Updated_At == null
+                ? "بيانات التعديل\nعُدّل بواسطة: —\nتاريخ التعديل: —"
+                : $"بيانات التعديل\nعُدّل بواسطة: {summary.Updated_By ?? "غير متاح"}\nتاريخ التعديل: {FormatAuditDate(summary.Updated_At)}";
+            _lblCountersAudit.Text = summary == null
+                ? "العدادات\nعدد التعديلات: 0\nعدد الطباعة: 0"
+                : $"العدادات\nعدد التعديلات: {summary.Edit_Count}\nعدد الطباعة: {summary.Print_Count}";
+        }
+
+        private static string FormatAuditDate(DateTime? value) =>
+            value?.ToLocalTime().ToString("yyyy/MM/dd HH:mm") ?? "—";
 
         #endregion
 
@@ -778,9 +885,14 @@ namespace AlTayerERP.Desktop
         {
             try
             {
-                var response = await _client.PostAsync($"{_baseUrl}CashBoxes/print", null);
+                var endpoint = string.IsNullOrWhiteSpace(_selectedCashBoxId)
+                    ? $"{_baseUrl}CashBoxes/print"
+                    : $"{_baseUrl}CashBoxes/{_selectedCashBoxId}/print";
+                var response = await _client.PostAsync(endpoint, null);
                 if (!response.IsSuccessStatusCode)
                     await ShowApiErrorAsync(response, "تعذر تسجيل عملية الطباعة");
+                else if (!string.IsNullOrWhiteSpace(_selectedCashBoxId))
+                    await LoadAuditSummaryAsync(_selectedCashBoxId);
             }
             catch (Exception ex)
             {
