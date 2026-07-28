@@ -21,10 +21,6 @@ CREATE TABLE IF NOT EXISTS database_alignment_findings
 
 TRUNCATE TABLE database_alignment_findings;
 
--- =========================================================
--- 1) الجداول المطلوبة بواسطة AppDbContext
--- =========================================================
-
 INSERT INTO database_alignment_findings
 (Check_Code, Severity, Object_Name, Finding_Message, Finding_Count)
 SELECT 'REQ_TABLE_MISSING', 'CRITICAL', required.Table_Name,
@@ -78,10 +74,6 @@ LEFT JOIN information_schema.tables t
       AND t.table_name = required.Table_Name
 WHERE t.table_name IS NULL;
 
--- =========================================================
--- 2) جداول قديمة أو مكررة
--- =========================================================
-
 INSERT INTO database_alignment_findings
 (Check_Code, Severity, Object_Name, Finding_Message, Finding_Count)
 SELECT 'LEGACY_TABLE', 'WARNING', t.table_name,
@@ -92,17 +84,7 @@ LEFT JOIN information_schema.tables ts
        ON ts.table_schema = t.table_schema
       AND ts.table_name = t.table_name
 WHERE t.table_schema = DATABASE()
-  AND t.table_name IN
-  (
-      'branches',
-      'voucher_headers',
-      'voucher_details',
-      'currency_exchange_rates'
-  );
-
--- =========================================================
--- 3) اختلافات أنواع Company_ID
--- =========================================================
+  AND t.table_name IN ('branches','voucher_headers','voucher_details','currency_exchange_rates');
 
 INSERT INTO database_alignment_findings
 (Check_Code, Severity, Object_Name, Finding_Message, Finding_Count)
@@ -117,10 +99,6 @@ WHERE table_schema = DATABASE()
   AND column_name = 'Company_ID'
   AND (data_type <> 'varchar' OR character_maximum_length <> 50);
 
--- =========================================================
--- 4) اختلافات أنواع Branch_ID في الجداول الحالية
--- =========================================================
-
 INSERT INTO database_alignment_findings
 (Check_Code, Severity, Object_Name, Finding_Message, Finding_Count)
 SELECT 'BRANCH_ID_TYPE', 'HIGH', CONCAT(table_name, '.', column_name),
@@ -129,18 +107,9 @@ SELECT 'BRANCH_ID_TYPE', 'HIGH', CONCAT(table_name, '.', column_name),
 FROM information_schema.columns
 WHERE table_schema = DATABASE()
   AND column_name = 'Branch_ID'
-  AND table_name IN
-  (
-      'financial_voucher_headers',
-      'journal_entry_headers',
-      'payment_requests',
-      'fiscal_periods',
-      'numbering_settings',
-      'numbering_counters'
-  )
+  AND table_name IN ('financial_voucher_headers','journal_entry_headers','payment_requests','fiscal_periods','numbering_settings','numbering_counters')
   AND data_type NOT IN ('int', 'bigint');
 
--- قيم Branch_ID غير رقمية في السندات الحالية.
 INSERT INTO database_alignment_findings
 (Check_Code, Severity, Object_Name, Finding_Message, Finding_Count)
 SELECT 'INVALID_BRANCH_VALUE', 'CRITICAL', 'financial_voucher_headers.Branch_ID',
@@ -162,10 +131,6 @@ WHERE h.Branch_ID IS NOT NULL
   AND TRIM(h.Branch_ID) REGEXP '^[0-9]+$'
   AND b.Branch_ID IS NULL
 HAVING COUNT(*) > 0;
-
--- =========================================================
--- 5) فهرس أرقام السندات
--- =========================================================
 
 INSERT INTO database_alignment_findings
 (Check_Code, Severity, Object_Name, Finding_Message, Finding_Count)
@@ -190,10 +155,6 @@ FROM
     HAVING COUNT(*) > 1
 ) d
 HAVING COUNT(*) > 0;
-
--- =========================================================
--- 6) مطابقة bank_accounts مع الكيان الحالي
--- =========================================================
 
 INSERT INTO database_alignment_findings
 (Check_Code, Severity, Object_Name, Finding_Message, Finding_Count)
@@ -224,16 +185,14 @@ WHERE table_schema = DATABASE()
   AND column_name = 'Bank_Account_ID'
   AND NOT (data_type = 'int' AND extra LIKE '%auto_increment%');
 
--- =========================================================
--- 7) الحسابات والقيم اليتيمة
--- =========================================================
-
 INSERT INTO database_alignment_findings
 (Check_Code, Severity, Object_Name, Finding_Message, Finding_Count)
 SELECT 'ORPHAN_ACCOUNT_VOUCHER', 'CRITICAL', 'financial_voucher_details.Account_ID',
        'توجد تفاصيل سندات تشير إلى حساب غير موجود.', COUNT(*)
 FROM financial_voucher_details d
-LEFT JOIN chart_of_accounts a ON a.Account_ID = d.Account_ID
+LEFT JOIN chart_of_accounts a
+       ON CONVERT(a.Account_ID USING utf8mb4) COLLATE utf8mb4_unicode_ci
+        = CONVERT(d.Account_ID USING utf8mb4) COLLATE utf8mb4_unicode_ci
 WHERE a.Account_ID IS NULL
 HAVING COUNT(*) > 0;
 
@@ -242,7 +201,9 @@ INSERT INTO database_alignment_findings
 SELECT 'ORPHAN_ACCOUNT_JOURNAL', 'CRITICAL', 'journal_entry_details.Account_ID',
        'توجد تفاصيل قيود تشير إلى حساب غير موجود.', COUNT(*)
 FROM journal_entry_details d
-LEFT JOIN chart_of_accounts a ON a.Account_ID = d.Account_ID
+LEFT JOIN chart_of_accounts a
+       ON CONVERT(a.Account_ID USING utf8mb4) COLLATE utf8mb4_unicode_ci
+        = CONVERT(d.Account_ID USING utf8mb4) COLLATE utf8mb4_unicode_ci
 WHERE a.Account_ID IS NULL
 HAVING COUNT(*) > 0;
 
@@ -251,7 +212,9 @@ INSERT INTO database_alignment_findings
 SELECT 'INVALID_ACCOUNT_PARENT', 'CRITICAL', 'chart_of_accounts.Parent_Account_ID',
        'توجد حسابات تشير إلى حساب أب غير موجود.', COUNT(*)
 FROM chart_of_accounts c
-LEFT JOIN chart_of_accounts p ON p.Account_ID = c.Parent_Account_ID
+LEFT JOIN chart_of_accounts p
+       ON CONVERT(p.Account_ID USING utf8mb4) COLLATE utf8mb4_unicode_ci
+        = CONVERT(c.Parent_Account_ID USING utf8mb4) COLLATE utf8mb4_unicode_ci
 WHERE c.Parent_Account_ID IS NOT NULL
   AND TRIM(c.Parent_Account_ID) <> ''
   AND p.Account_ID IS NULL
@@ -264,10 +227,6 @@ SELECT 'SUMMARY_POSTABLE', 'HIGH', 'chart_of_accounts',
 FROM chart_of_accounts
 WHERE Is_Summary_Account = 1 AND Is_Postable = 1
 HAVING COUNT(*) > 0;
-
--- =========================================================
--- 8) العملات
--- =========================================================
 
 INSERT INTO database_alignment_findings
 (Check_Code, Severity, Object_Name, Finding_Message, Finding_Count)
@@ -308,10 +267,6 @@ FROM
 ) x
 HAVING COUNT(*) > 0;
 
--- =========================================================
--- 9) الفترات والسنوات
--- =========================================================
-
 INSERT INTO database_alignment_findings
 (Check_Code, Severity, Object_Name, Finding_Message, Finding_Count)
 SELECT 'ORPHAN_FISCAL_YEAR_VOUCHER', 'CRITICAL', 'financial_voucher_headers.Fiscal_Year_ID',
@@ -333,10 +288,6 @@ JOIN fiscal_periods p2
  AND p1.Start_Date <= p2.End_Date
  AND p2.Start_Date <= p1.End_Date
 HAVING COUNT(*) > 0;
-
--- =========================================================
--- 10) نتائج عامة
--- =========================================================
 
 SELECT Severity, COUNT(*) AS Findings
 FROM database_alignment_findings
