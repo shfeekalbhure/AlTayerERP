@@ -881,7 +881,8 @@ namespace AlTayerERP.Desktop
                 MaximizeBox = false,
                 MinimizeBox = false
             };
-            var label = new Label { Text = labelText, AutoSize = true, Right = 440, Top = 20 };
+            // خاصية Right للقراءة فقط؛ نحدد موضع البداية عبر Left.
+            var label = new Label { Text = labelText, AutoSize = true, Left = 25, Top = 20 };
             var text = new TextBox { Multiline = true, Width = 420, Height = 75, Left = 25, Top = 45, MaxLength = 500 };
             var ok = new Button { Text = "موافق", DialogResult = DialogResult.OK, Width = 90, Left = 255, Top = 130 };
             var cancel = new Button { Text = "إلغاء", DialogResult = DialogResult.Cancel, Width = 90, Left = 155, Top = 130 };
