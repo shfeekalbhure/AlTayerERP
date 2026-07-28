@@ -7,7 +7,7 @@ namespace AlTayerERP.API.Services
     /// </summary>
     public static class SystemScreenCatalogDefinition
     {
-        public static readonly IReadOnlyList<SystemScreenDefinition> Items = new[]
+        public static readonly IReadOnlyList<SystemScreenDefinition> Items = new SystemScreenDefinition[]
         {
             new("TenantGroups", "المجموعات التجارية", "الإدارة العامة", 5),
             new("Companies", "الشركات", "الإدارة العامة", 10),
