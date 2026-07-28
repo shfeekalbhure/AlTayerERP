@@ -22,8 +22,51 @@ namespace AlTayerERP.API.Controllers
         [HttpGet]
         public async Task<IActionResult> Get()
         {
-            var e=await RequireAsync(ScreenOperation.View); if(e!=null||Session==null)return e!;
-            return Ok(await _context.Fiscal_Periods.AsNoTracking().Where(x=>x.Company_ID==Session.Company_ID&&x.Branch_ID==Session.Branch_ID&&x.Fiscal_Year_ID==Session.Year_ID).OrderBy(x=>x.Start_Date).ToListAsync());
+            var e = await RequireAsync(ScreenOperation.View);
+            if (e != null || Session == null) return e!;
+
+            var periods = await _context.Fiscal_Periods.AsNoTracking()
+                .Where(x => x.Company_ID == Session.Company_ID &&
+                            x.Branch_ID == Session.Branch_ID &&
+                            x.Fiscal_Year_ID == Session.Year_ID)
+                .OrderBy(x => x.Start_Date)
+                .ToListAsync();
+
+            // مصدر بيانات الإنشاء والتعديل هو سجل التدقيق، لا قيم مرسلة من سطح المكتب.
+            var recordIds = periods.Select(x => x.Fiscal_Period_ID.ToString()).ToList();
+            var auditLogs = recordIds.Count == 0
+                ? new List<AlTayerERP.Core.Entities.Accounting.AuditLog>()
+                : await _context.Audit_Logs.AsNoTracking()
+                    .Where(x => x.Table_Name == "fiscal_periods" && recordIds.Contains(x.Record_ID))
+                    .OrderBy(x => x.Action_At)
+                    .ToListAsync();
+
+            return Ok(periods.Select(period =>
+            {
+                var logs = auditLogs.Where(x => x.Record_ID == period.Fiscal_Period_ID.ToString()).ToList();
+                var created = logs.FirstOrDefault(x => x.Action_Type == "CREATE");
+                var modified = logs.LastOrDefault(x => x.Action_Type == "UPDATE");
+
+                return new
+                {
+                    period.Fiscal_Period_ID,
+                    period.Period_Code,
+                    period.Period_Name,
+                    period.Start_Date,
+                    period.End_Date,
+                    period.Is_Closed,
+                    period.Close_Date,
+                    period.Close_Reason,
+                    period.Is_Active,
+                    period.Created_At,
+                    period.Updated_At,
+                    Created_By = created?.User_ID ?? "—",
+                    Updated_By = modified?.User_ID ?? "—",
+                    Edit_Count = logs.Count(x => x.Action_Type == "UPDATE"),
+                    // هذه الشاشة لا تتضمن طباعة حتى الآن؛ العداد يظهر صفراً بوضوح.
+                    Print_Count = 0
+                };
+            }));
         }
         [HttpPost]
         public async Task<IActionResult> Save([FromBody] SaveFiscalPeriodRequest? r)
