@@ -750,7 +750,7 @@ namespace AlTayerERP.Desktop
             txtCashBoxCode.Text = (await response.Content.ReadAsStringAsync()).Trim().Trim('"');
         }
 
-        private void btnPrint_Click(object? sender, EventArgs e)
+        private async void btnPrint_Click(object? sender, EventArgs e)
         {
             if (dgvCashBoxes.Rows.Count == 0)
             {
@@ -770,6 +770,22 @@ namespace AlTayerERP.Desktop
             };
             _printRowIndex = 0;
             preview.ShowDialog(this);
+            await RegisterPrintAsync();
+        }
+
+        /// <summary>يسجل فتح معاينة الطباعة في سجل التدقيق دون تعطيل المستخدم عند تعذر التسجيل.</summary>
+        private async Task RegisterPrintAsync()
+        {
+            try
+            {
+                var response = await _client.PostAsync($"{_baseUrl}CashBoxes/print", null);
+                if (!response.IsSuccessStatusCode)
+                    await ShowApiErrorAsync(response, "تعذر تسجيل عملية الطباعة");
+            }
+            catch (Exception ex)
+            {
+                ShowError("تعذر تسجيل عملية الطباعة", ex);
+            }
         }
 
         private void PrintCashBoxesPage(object? sender, PrintPageEventArgs e)
