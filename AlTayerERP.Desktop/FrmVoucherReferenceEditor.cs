@@ -31,6 +31,7 @@ namespace AlTayerERP.Desktop
         private DateTime? _fiscalYearEnd;
         // شاشة الفترات تحتاج مساحة إضافية لحقول التواريخ والإقفال، بخلاف القوائم المرجعية الأخرى.
         private bool IsFiscalPeriods => string.Equals(_endpoint, "FiscalPeriods", StringComparison.OrdinalIgnoreCase);
+        private bool IsParties => string.Equals(_endpoint, "Parties", StringComparison.OrdinalIgnoreCase);
         private readonly DataGridView _grid = new()
         {
             Dock = DockStyle.Fill,
@@ -245,7 +246,11 @@ namespace AlTayerERP.Desktop
                 // يبقى ارتفاع الحاوية ثابتاً؛ نعوض تقليل البطاقات من المساحة السفلية.
                 Padding = IsFiscalPeriods
                     ? new Padding(14, 10, 14, 124)
-                    : new Padding(14, 10, 14, 10),
+                    : IsParties
+                        // تكبير حاوية بيانات الأطراف المالية 4 سم تقريباً (152px)
+                        // يخفض مساحة الجدول بنفس المقدار مع الحفاظ على ترتيب الحقول.
+                        ? new Padding(14, 10, 14, 162)
+                        : new Padding(14, 10, 14, 10),
                 Margin = new Padding(0, 0, 0, 8)
             };
 
@@ -693,7 +698,7 @@ namespace AlTayerERP.Desktop
                         }
                         break;
                     case ComboBox comboBox:
-                        var selected = ReadJsonValue(json);
+                        var selected = GetChoiceDisplayValue(field, ReadJsonValue(json));
                         var matchingOption = comboBox.Items.Cast<object>()
                             .FirstOrDefault(item =>
                                 string.Equals(item?.ToString(), selected, StringComparison.OrdinalIgnoreCase) ||
@@ -852,7 +857,7 @@ namespace AlTayerERP.Desktop
         private async Task SaveAsync()
         {
             // صلاحيات الفترات (إضافة/تعديل/اعتماد) يحسمها API، لا شرط محلي عام.
-            if (!IsFiscalPeriods && !CurrentSession.Is_System_Admin)
+            if (!IsFiscalPeriods && !IsParties && !CurrentSession.Is_System_Admin)
             {
                 MessageBox.Show("إدارة هذه القائمة مخصصة لمدير النظام.", Text, MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
@@ -877,6 +882,9 @@ namespace AlTayerERP.Desktop
             if (IsFiscalPeriods && !ValidateFiscalPeriodDates())
                 return;
 
+            if (IsParties && !ValidatePartyInput())
+                return;
+
             var payload = new Dictionary<string, object?> { [_idProperty] = _selectedId ?? _newIdValue };
 
             foreach (var field in _fields)
@@ -890,7 +898,7 @@ namespace AlTayerERP.Desktop
                         ? Convert.ToInt32(number.Value)
                         : number.Value,
                     DateTimePicker datePicker => datePicker.Checked ? datePicker.Value.Date : null,
-                    ComboBox comboBox => comboBox.SelectedItem?.ToString(),
+                    ComboBox comboBox => GetChoicePayloadValue(field, comboBox.SelectedItem?.ToString()),
                     TextBox textBox => textBox.Text.Trim(),
                     _ => null
                 };
@@ -918,6 +926,60 @@ namespace AlTayerERP.Desktop
             {
                 UseWaitCursor = false;
             }
+        }
+
+        /// <summary>
+        /// يحول مسميات أنواع الأطراف العربية إلى الرموز المعتمدة في API.
+        /// </summary>
+        private string? GetChoicePayloadValue(ReferenceEditorField field, string? selected)
+        {
+            if (!IsParties || field.Code != "Party_Type" || string.IsNullOrWhiteSpace(selected))
+                return selected;
+
+            return selected.Trim() switch
+            {
+                "عميل" => "CUSTOMER",
+                "مورد" => "VENDOR",
+                "موظف" => "EMPLOYEE",
+                "سائق" => "DRIVER",
+                "مندوب" => "REPRESENTATIVE",
+                "وكيل" => "AGENT",
+                "جهة حكومية" => "OTHER",
+                "أخرى" => "OTHER",
+                _ => selected.Trim()
+            };
+        }
+
+        private string GetChoiceDisplayValue(ReferenceEditorField field, string value)
+        {
+            if (!IsParties || field.Code != "Party_Type")
+                return value;
+
+            return value.Trim().ToUpperInvariant() switch
+            {
+                "CUSTOMER" => "عميل",
+                "VENDOR" => "مورد",
+                "EMPLOYEE" => "موظف",
+                "DRIVER" => "سائق",
+                "REPRESENTATIVE" => "مندوب",
+                "AGENT" => "وكيل",
+                "OTHER" => "أخرى",
+                _ => value
+            };
+        }
+
+        private bool ValidatePartyInput()
+        {
+            if (_inputs.TryGetValue("Party_Type", out var input) &&
+                input is ComboBox partyType &&
+                partyType.SelectedItem == null)
+            {
+                MessageBox.Show("اختر نوع الطرف المالي.", Text, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                partyType.Focus();
+                return false;
+            }
+
+            return true;
         }
 
         /// <summary>
