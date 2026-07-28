@@ -8,8 +8,7 @@ using System.Windows.Forms;
 namespace AlTayerERP.Desktop
 {
     /// <summary>
-    /// استكمال شاشة الصناديق دون المساس بملف المصمم:
-    /// تحميل موحد للمنسدلات، إعادة التفعيل، وحالة الأزرار.
+    /// نقطة التهيئة الموحدة لشاشة الصناديق.
     /// </summary>
     public partial class FrmCashBoxes
     {
@@ -18,15 +17,16 @@ namespace AlTayerERP.Desktop
 
         protected override async void OnLoad(EventArgs e)
         {
+            if (!_completionInitialized)
+            {
+                _completionInitialized = true;
+                ConfigureCashBoxDropdowns();
+                ApplyCashBoxAccountingControls();
+                ApplyCashBoxDeliveryReadiness();
+                InitializeCashBoxCompletionControls();
+            }
+
             base.OnLoad(e);
-
-            if (_completionInitialized)
-                return;
-
-            _completionInitialized = true;
-            ConfigureCashBoxDropdowns();
-            ApplyCashBoxAccountingControls();
-            InitializeCashBoxCompletionControls();
 
             try
             {
@@ -46,6 +46,9 @@ namespace AlTayerERP.Desktop
 
         private void InitializeCashBoxCompletionControls()
         {
+            if (_btnReactivateCashBox != null)
+                return;
+
             _btnReactivateCashBox = new Button
             {
                 Name = "btnReactivateCashBox",
@@ -56,7 +59,8 @@ namespace AlTayerERP.Desktop
                 ForeColor = Color.FromArgb(20, 108, 67),
                 FlatStyle = FlatStyle.Flat,
                 UseVisualStyleBackColor = false,
-                Visible = false
+                Visible = false,
+                AccessibleName = "إعادة تفعيل الصندوق"
             };
             _btnReactivateCashBox.FlatAppearance.BorderColor = Color.FromArgb(82, 183, 136);
             _btnReactivateCashBox.Click += btnReactivateCashBox_Click;
@@ -79,28 +83,37 @@ namespace AlTayerERP.Desktop
             if (lookups == null)
                 throw new InvalidOperationException("لم يرجع الخادم بيانات المنسدلات.");
 
+            if (lookups.Branches == null || lookups.Branches.Count == 0)
+                throw new InvalidOperationException("فرع الجلسة غير متاح ضمن الفروع الفعالة.");
+            if (lookups.Currencies == null || lookups.Currencies.Count == 0)
+                throw new InvalidOperationException("لا توجد عملات فعالة للشركة الحالية.");
+            if (lookups.Accounts == null || lookups.Accounts.Count == 0)
+                throw new InvalidOperationException("لا توجد حسابات تجميعية متاحة للصناديق.");
+
+            var selectedCurrency = cmbCurrency.SelectedValue?.ToString();
+            var selectedAccount = cmbAccount.SelectedValue?.ToString();
+
             _isBinding = true;
             try
             {
-                cmbBranch.DataSource = lookups.Branches ?? new List<BranchCashLookup>();
+                cmbBranch.DataSource = lookups.Branches;
                 cmbBranch.DisplayMember = nameof(BranchCashLookup.Branch_Name);
                 cmbBranch.ValueMember = nameof(BranchCashLookup.Branch_ID);
                 cmbBranch.SelectedValue = CurrentSession.Branch_ID;
 
-                cmbCurrency.DataSource = lookups.Currencies ?? new List<CurrencyCashLookup>();
+                cmbCurrency.DataSource = lookups.Currencies;
                 cmbCurrency.DisplayMember = nameof(CurrencyCashLookup.Currency_Name_AR);
                 cmbCurrency.ValueMember = nameof(CurrencyCashLookup.Currency_Code);
+                cmbCurrency.SelectedValue = selectedCurrency;
+                if (cmbCurrency.SelectedIndex < 0)
+                    cmbCurrency.SelectedIndex = -1;
 
-                cmbAccount.DataSource = lookups.Accounts ?? new List<AccountCashLookup>();
+                cmbAccount.DataSource = lookups.Accounts;
                 cmbAccount.DisplayMember = nameof(AccountCashLookup.Account_Name_AR);
                 cmbAccount.ValueMember = nameof(AccountCashLookup.Account_ID);
-
-                if (lookups.Branches == null || lookups.Branches.Count == 0)
-                    throw new InvalidOperationException("فرع الجلسة غير متاح ضمن الفروع الفعالة.");
-                if (lookups.Currencies == null || lookups.Currencies.Count == 0)
-                    throw new InvalidOperationException("لا توجد عملات فعالة للشركة الحالية.");
-                if (lookups.Accounts == null || lookups.Accounts.Count == 0)
-                    throw new InvalidOperationException("لا توجد حسابات تجميعية متاحة للصناديق.");
+                cmbAccount.SelectedValue = selectedAccount;
+                if (cmbAccount.SelectedIndex < 0)
+                    cmbAccount.SelectedIndex = -1;
             }
             finally
             {
@@ -165,14 +178,14 @@ namespace AlTayerERP.Desktop
             var hasSelection = selected != null && !string.IsNullOrWhiteSpace(selected.ID);
             var isActive = selected?.IsActive ?? true;
 
-            btnEdit.Enabled = hasSelection && isActive;
+            btnEdit.Enabled = hasSelection && isActive && !UseWaitCursor;
             btnDelete.Visible = !hasSelection || isActive;
-            btnDelete.Enabled = hasSelection && isActive;
+            btnDelete.Enabled = hasSelection && isActive && !UseWaitCursor;
 
             if (_btnReactivateCashBox != null)
             {
                 _btnReactivateCashBox.Visible = hasSelection && !isActive;
-                _btnReactivateCashBox.Enabled = hasSelection && !isActive;
+                _btnReactivateCashBox.Enabled = hasSelection && !isActive && !UseWaitCursor;
             }
 
             chkIsActive.Enabled = false;
