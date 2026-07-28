@@ -1,7 +1,7 @@
-using AlTayerERP.Desktop.Services;
 using System.Drawing.Printing;
 using System.Net.Http.Json;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 
 namespace AlTayerERP.Desktop.Services;
 
@@ -11,6 +11,16 @@ namespace AlTayerERP.Desktop.Services;
 internal static class CountriesScreenClosureService
 {
     private const string ClosedPrintButtonName = "btnCountriesClosedPrint";
+
+    [ModuleInitializer]
+    internal static void Initialize()
+    {
+        Application.Idle += (_, _) =>
+        {
+            foreach (Form form in Application.OpenForms)
+                Apply(form);
+        };
+    }
 
     public static void Apply(Form form)
     {
