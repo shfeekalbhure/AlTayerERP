@@ -1,3 +1,4 @@
+using AlTayerERP.Desktop.Common;
 using AlTayerERP.Desktop.Services;
 using System;
 using System.Collections.Generic;
@@ -48,6 +49,8 @@ namespace AlTayerERP.Desktop
         private Button? _saveButton;
         private Button? _closePeriodButton;
         private Button? _reopenPeriodButton;
+        // زر الإيقاف لا يحذف الطرف؛ يحافظ على تاريخه ومستنداته.
+        private Button? _deactivateButton;
 
         protected FrmVoucherReferenceEditor(
             string title,
@@ -169,7 +172,7 @@ namespace AlTayerERP.Desktop
             {
                 // عرض ثابت يمنع ظهور شريط تمرير عند وجود أزرار الفترات كلها.
                 AutoSize = false,
-                Width = IsFiscalPeriods ? 980 : 670,
+                Width = IsFiscalPeriods ? 980 : IsParties ? 820 : 670,
                 Height = 42,
                 Dock = DockStyle.Right,
                 BackColor = BackColor,
@@ -194,6 +197,13 @@ namespace AlTayerERP.Desktop
                     async (_, _) => await RunFiscalPeriodLifecycleAsync("Reopen", "إعادة فتح"));
                 toolbar.Controls.Add(_closePeriodButton);
                 toolbar.Controls.Add(_reopenPeriodButton);
+            }
+
+            if (IsParties)
+            {
+                _deactivateButton = CreateButton("إيقاف الطرف", Color.FromArgb(185, 28, 28),
+                    async (_, _) => await DeactivatePartyAsync());
+                toolbar.Controls.Add(_deactivateButton);
             }
 
             toolbar.Controls.Add(CreateButton("تحديث  F5", Color.FromArgb(36, 99, 168), async (_, _) => await LoadAsync()));
@@ -342,7 +352,34 @@ namespace AlTayerERP.Desktop
                     input.Enabled = false;
 
                 _inputs[field.Code] = input;
-                panel.Controls.Add(input);
+
+                if (IsParties && field.Code == "Account_ID" && input is TextBox accountBox)
+                {
+                    // الحساب يحفظ بمعرفه الداخلي؛ زر الاختيار يمنع إدخال رقم غير صالح يرفضه الخادم.
+                    accountBox.ReadOnly = true;
+                    accountBox.Dock = DockStyle.Fill;
+
+                    var lookupHost = new Panel { Dock = DockStyle.Bottom, Height = 34 };
+                    var lookupButton = new Button
+                    {
+                        Text = "اختيار",
+                        Dock = DockStyle.Left,
+                        Width = 66,
+                        FlatStyle = FlatStyle.Flat,
+                        BackColor = Color.FromArgb(37, 99, 235),
+                        ForeColor = Color.White,
+                        Cursor = Cursors.Hand
+                    };
+                    lookupButton.Click += (_, _) => SelectPartyAccount(accountBox);
+                    lookupHost.Controls.Add(accountBox);
+                    lookupHost.Controls.Add(lookupButton);
+                    panel.Controls.Add(lookupHost);
+                }
+                else
+                {
+                    panel.Controls.Add(input);
+                }
+
                 editor.Controls.Add(panel);
             }
 
@@ -714,6 +751,112 @@ namespace AlTayerERP.Desktop
 
             UpdateAuditFooter(row);
             UpdateFiscalPeriodActions();
+        }
+
+        /// <summary>
+        /// يفتح دليل الحسابات ويربط الطرف بحساب قابل للترحيل فقط.
+        /// </summary>
+        private void SelectPartyAccount(TextBox target)
+        {
+            using var dialog = new FrmAccountLookup(target.Text);
+            if (dialog.ShowDialog(this) != DialogResult.OK)
+                return;
+
+            target.Text = dialog.SelectedAccountId;
+            new ToolTip().SetToolTip(target,
+                $"الحساب المختار: {dialog.SelectedAccountCode} - {dialog.SelectedAccountName}");
+        }
+
+        /// <summary>
+        /// يوقف الطرف بصورة آمنة ولا يحذف تاريخه أو قيوده السابقة.
+        /// </summary>
+        private async Task DeactivatePartyAsync()
+        {
+            if (!IsParties || _selectedId is not string id || string.IsNullOrWhiteSpace(id))
+            {
+                MessageBox.Show("اختر طرفاً مالياً من الجدول أولاً.", Text,
+                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            var reason = PromptForPartyDeactivationReason();
+            if (reason == null)
+                return;
+
+            try
+            {
+                UseWaitCursor = true;
+                using var response = await _client.DeleteAsync(
+                    $"{_endpoint}/{Uri.EscapeDataString(id)}?reason={Uri.EscapeDataString(reason)}");
+
+                if (!response.IsSuccessStatusCode)
+                    throw new InvalidOperationException(await response.Content.ReadAsStringAsync());
+
+                MessageBox.Show("تم إيقاف الطرف المالي دون حذف تاريخه.", Text,
+                    MessageBoxButtons.OK, MessageBoxIcon.Information);
+                await LoadAsync();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("تعذر إيقاف الطرف المالي.\n\n" + ExtractApiMessage(ex.Message), Text,
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+            finally
+            {
+                UseWaitCursor = false;
+            }
+        }
+
+        private string? PromptForPartyDeactivationReason()
+        {
+            using var dialog = new Form
+            {
+                Text = "سبب إيقاف الطرف المالي",
+                StartPosition = FormStartPosition.CenterParent,
+                RightToLeft = RightToLeft.Yes,
+                RightToLeftLayout = true,
+                FormBorderStyle = FormBorderStyle.FixedDialog,
+                MinimizeBox = false,
+                MaximizeBox = false,
+                ShowInTaskbar = false,
+                ClientSize = new Size(470, 170)
+            };
+
+            var label = new Label
+            {
+                Text = "اكتب سبب الإيقاف (مطلوب):",
+                Dock = DockStyle.Top,
+                Height = 34,
+                Padding = new Padding(10, 8, 10, 0),
+                TextAlign = ContentAlignment.MiddleRight
+            };
+            var reasonBox = new TextBox
+            {
+                Dock = DockStyle.Fill,
+                Multiline = true,
+                MaxLength = 500,
+                TextAlign = HorizontalAlignment.Right
+            };
+            var actions = new FlowLayoutPanel
+            {
+                Dock = DockStyle.Bottom,
+                Height = 45,
+                FlowDirection = FlowDirection.RightToLeft,
+                Padding = new Padding(8)
+            };
+            var confirm = new Button { Text = "تأكيد", DialogResult = DialogResult.OK, Width = 90 };
+            var cancel = new Button { Text = "إلغاء", DialogResult = DialogResult.Cancel, Width = 90 };
+            actions.Controls.Add(confirm);
+            actions.Controls.Add(cancel);
+            dialog.Controls.Add(reasonBox);
+            dialog.Controls.Add(actions);
+            dialog.Controls.Add(label);
+            dialog.AcceptButton = confirm;
+            dialog.CancelButton = cancel;
+
+            return dialog.ShowDialog(this) == DialogResult.OK && !string.IsNullOrWhiteSpace(reasonBox.Text)
+                ? reasonBox.Text.Trim()
+                : null;
         }
 
         private void BeginEdit()
