@@ -53,7 +53,6 @@ namespace AlTayerERP.Core.Entities
         [Column("Notes")]
         public string? Notes { get; set; }
 
-        // --- الحقول التي تم تعديل مسمياتها لتطابق قاعدة البيانات ---
         [Column("Allow_ManualEntry")]
         public bool Allow_ManualEntry { get; set; }
 
@@ -63,7 +62,6 @@ namespace AlTayerERP.Core.Entities
         [Column("Requires_CostCenter")]
         public bool Requires_CostCenter { get; set; }
 
-        // --- الحقول الإضافية الجديدة ---
         [Column("Requires_Party")]
         public bool Requires_Party { get; set; }
 
@@ -85,8 +83,9 @@ namespace AlTayerERP.Core.Entities
         [Column("Account_Path")]
         public string? Account_Path { get; set; }
 
+        // العمود في قاعدة البيانات NOT NULL، لذلك يجب ألا يكون Nullable في الكيان.
         [Column("Account_Serial")]
-        public int? Account_Serial { get; set; }
+        public int Account_Serial { get; set; } = 0;
 
         [Column("Created_By")]
         public string? Created_By { get; set; }
