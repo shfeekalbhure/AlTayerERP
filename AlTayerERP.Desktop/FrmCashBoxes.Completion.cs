@@ -16,15 +16,16 @@ namespace AlTayerERP.Desktop
         private Button? _btnReactivateCashBox;
         private bool _completionInitialized;
 
-        protected override async void OnShown(EventArgs e)
+        protected override async void OnLoad(EventArgs e)
         {
-            base.OnShown(e);
+            base.OnLoad(e);
 
             if (_completionInitialized)
                 return;
 
             _completionInitialized = true;
             ConfigureCashBoxDropdowns();
+            ApplyCashBoxAccountingControls();
             InitializeCashBoxCompletionControls();
 
             try
