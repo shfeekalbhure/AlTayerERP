@@ -59,15 +59,20 @@ namespace AlTayerERP.API.Controllers
                 });
             }
 
-            // القائمة لا تعرض إلا الشاشات النشطة التي يحمل المستخدم، بمن فيهم
-            // مدير النظام، تفويض View صريحاً لها. لا يجوز لشجرة النظام أن تكون
-            // أوسع من تفويض API؛ هذه سياسة Default Deny / Fail-Closed.
-            var candidates = await _context.SystemScreens.AsNoTracking()
-                .Where(x => x.Is_Active)
+            // مدير النظام يدير الكتالوج نفسه؛ لذلك يرى النشطة والموقوفة حتى يستطيع
+            // إعادة التفعيل. بقية المستخدمين لا يرون إلا الشاشات النشطة المصرح بها.
+            var candidatesQuery = _context.SystemScreens.AsNoTracking();
+            if (!session.Is_System_Admin)
+                candidatesQuery = candidatesQuery.Where(x => x.Is_Active);
+
+            var candidates = await candidatesQuery
                 .OrderBy(screen => screen.Module_Name)
                 .ThenBy(screen => screen.Sort_Order)
                 .ThenBy(screen => screen.Screen_Name)
                 .ToListAsync();
+
+            if (session.Is_System_Admin)
+                return Ok(candidates);
 
             var allowed = new List<SystemScreen>();
             foreach (var screen in candidates)
@@ -101,6 +106,11 @@ namespace AlTayerERP.API.Controllers
             var code = request.Screen_Code.Trim();
             var name = request.Screen_Name.Trim();
             var module = request.Module_Name.Trim();
+
+            // الكتالوج ليس قائمة نصوص حرة؛ كل كود فيه يجب أن يقابل شاشة فعلية
+            // مسجلة في سطح المكتب حتى لا تظهر عناصر لا يمكن فتحها في شجرة النظام.
+            if (!SystemScreenCatalogDefinition.IsSupported(code))
+                return BadRequest(new { message = "كود الشاشة غير معتمد أو لا يقابل شاشة فعلية في المرحلة الأولى." });
 
             if (code.Length > 100 || name.Length > 200 || module.Length > 150)
                 return BadRequest(new { message = "أحد الحقول تجاوز الحد المسموح به." });
