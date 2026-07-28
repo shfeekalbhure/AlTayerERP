@@ -466,7 +466,7 @@ namespace AlTayerERP.Desktop
             new("Party_Name_AR", "الاسم العربي"),
             new("Party_Name_EN", "الاسم الإنجليزي"),
             new("Party_Type", "نوع الطرف", ReferenceEditorFieldKind.Choice,
-                Options: new[] { "عميل", "مورد", "موظف", "مندوب", "وكيل", "جهة حكومية", "أخرى" }),
+                Options: new[] { "عميل", "مورد", "موظف", "سائق", "مندوب", "وكيل", "جهة حكومية", "أخرى" }),
             new("Mobile_No", "الجوال"),
             new("Phone_No", "الهاتف"),
             new("Identity_No", "رقم الهوية"),
