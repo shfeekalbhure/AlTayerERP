@@ -11,7 +11,7 @@ namespace AlTayerERP.Desktop
         private static readonly Color RequiredFieldColor = Color.FromArgb(255, 252, 220);
 
         /// <summary>
-        /// تسجيل سلوك إنشاء حساب جديد تحت الحساب المحدد وتمييز الحقول الإلزامية.
+        /// تثبيت سلوك زر جديد وتمييز الحقول الإلزامية دون تغيير التصميم.
         /// </summary>
         protected override void OnShown(EventArgs e)
         {
@@ -22,7 +22,9 @@ namespace AlTayerERP.Desktop
             if (_newChildBehaviorRegistered)
                 return;
 
-            // يسجل بعد الحدث الأصلي حتى يتم تفريغ الحقول أولاً ثم تثبيت الحساب المحدد كأب.
+            // استبدال الحدث القديم بحدث واحد واضح حتى لا يعتمد التنفيذ على ترتيب حدثين.
+            btnNew.Click -= btnNew_Click;
+            btnNew.Click -= btnNew_CreateUnderSelectedAccount;
             btnNew.Click += btnNew_CreateUnderSelectedAccount;
             _newChildBehaviorRegistered = true;
         }
@@ -36,10 +38,20 @@ namespace AlTayerERP.Desktop
             cmbAccountStatus.BackColor = RequiredFieldColor;
         }
 
+        /// <summary>
+        /// إنشاء حساب رئيسي عند عدم تحديد حساب، أو حساب فرعي تحت المحدد في الشجرة.
+        /// </summary>
         private void btnNew_CreateUnderSelectedAccount(object? sender, EventArgs e)
         {
-            TreeNode? selectedNode = tvAccounts.SelectedNode;
-            if (selectedNode?.Tag == null)
+            string selectedAccountId = tvAccounts.SelectedNode?.Tag?.ToString() ?? string.Empty;
+            var parent = string.IsNullOrWhiteSpace(selectedAccountId)
+                ? null
+                : _accountsCache.FirstOrDefault(x => x.Account_ID == selectedAccountId);
+
+            // تفريغ الحقول أولاً مع الاحتفاظ بالحساب المحدد في متغير محلي.
+            NewAccount();
+
+            if (parent == null)
             {
                 if (cmbParentAccount.Items.Count > 0)
                     cmbParentAccount.SelectedIndex = 0;
@@ -54,25 +66,17 @@ namespace AlTayerERP.Desktop
                 return;
             }
 
-            string selectedAccountId = selectedNode.Tag.ToString() ?? string.Empty;
-            var parent = _accountsCache.FirstOrDefault(x => x.Account_ID == selectedAccountId);
-            if (parent == null)
-            {
-                MessageBox.Show("تعذر تحديد الحساب الأب من الشجرة. أعد تحديد الحساب ثم اضغط جديد.",
-                    "دليل الحسابات", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                return;
-            }
-
             string parentDisplay = $"{parent.Account_Code} - {parent.Account_Name_AR}";
             int parentIndex = cmbParentAccount.FindStringExact(parentDisplay);
 
-            if (parentIndex >= 0)
-                cmbParentAccount.SelectedIndex = parentIndex;
-            else
+            if (parentIndex < 0)
             {
                 cmbParentAccount.Items.Add(parentDisplay);
-                cmbParentAccount.SelectedItem = parentDisplay;
+                parentIndex = cmbParentAccount.FindStringExact(parentDisplay);
             }
+
+            if (parentIndex >= 0)
+                cmbParentAccount.SelectedIndex = parentIndex;
 
             cmbParentAccount.BackColor = RequiredFieldColor;
             txtAccountLevel.Text = (parent.Account_Level + 1).ToString();
@@ -81,7 +85,6 @@ namespace AlTayerERP.Desktop
             cmbCurrency.Text = parent.Currency_Code ?? string.Empty;
             cmbAccountCategory.Text = ConvertDbToCategory(parent.Account_Category);
 
-            // يمنع اعتبار الحساب الأب نفسه هو الحساب الجاري المراد تعديله.
             _selectedAccountId = null;
             txtAccountCode.Clear();
 
