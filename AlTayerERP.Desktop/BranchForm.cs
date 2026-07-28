@@ -43,6 +43,7 @@ namespace AlTayerERP.Desktop
             this.Load += BranchForm_Load;
             cmbCompanies.SelectedValueChanged += cmbCompanies_SelectedValueChanged;
             cmbCity.SelectedValueChanged += cmbCity_SelectedValueChanged;
+            cmbParentBranch.DropDown += cmbParentBranch_DropDown;
             printDocument.PrintPage += PrintDocument_PrintPage;
         }
 
@@ -140,6 +141,13 @@ namespace AlTayerERP.Desktop
             {
                 _isLoadingCompanies = true;
                 var companies = await _client.GetFromJsonAsync<List<CompanyLookupModel>>($"{_baseUrl}Branches/GetCompaniesLookup");
+                if (companies is null || companies.Count == 0)
+                {
+                    cmbCompanies.DataSource = null;
+                    MessageBox.Show("لا توجد شركات نشطة متاحة. فعّل شركة أولاً ثم أعد فتح شاشة الفروع.", "قائمة الشركات", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+
                 cmbCompanies.DataSource = companies;
                 cmbCompanies.DisplayMember = "Company_Name_AR";
                 cmbCompanies.ValueMember = "Company_ID";
@@ -193,6 +201,8 @@ namespace AlTayerERP.Desktop
                 cmbCity.DisplayMember = nameof(CityLookupModel.City_Name_AR);
                 cmbCity.ValueMember = nameof(CityLookupModel.City_ID);
                 cmbCity.SelectedIndex = -1;
+                if (_cities.Count == 0)
+                    MessageBox.Show("لا توجد مدن نشطة في جدول المدن. أضف مدينة أو فعّلها ثم أعد المحاولة.", "قائمة المدن", MessageBoxButtons.OK, MessageBoxIcon.Warning);
             }
             catch (Exception ex)
             {
@@ -232,6 +242,13 @@ namespace AlTayerERP.Desktop
                 || normalized.Equals("فرع", StringComparison.OrdinalIgnoreCase)
                 || normalized.Equals("MAIN", StringComparison.OrdinalIgnoreCase)
                 || normalized.Equals("BRANCH", StringComparison.OrdinalIgnoreCase);
+        }
+
+        /// <summary>رسالة خاصة بقائمة الفرع الأب عند عدم وجود فرع مؤهل ضمن الشركة المختارة.</summary>
+        private void cmbParentBranch_DropDown(object? sender, EventArgs e)
+        {
+            if (cmbParentBranch.Items.Count == 0)
+                MessageBox.Show("لا يوجد فرع أب نشط من نوع «فرع رئيسي» أو «فرع» ضمن الشركة المختارة.", "قائمة الفرع الأب", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
 
         private void SetupBranchesGrid()
