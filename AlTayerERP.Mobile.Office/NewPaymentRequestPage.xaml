@@ -14,11 +14,15 @@
                    FontSize="12"
                    TextColor="#7A8896"
                    HorizontalTextAlignment="Center" />
-            <DatePicker x:Name="RequestDatePicker"
-                        TextColor="#17324D"
-                        BackgroundColor="White" />
+            <DatePicker x:Name="RequestDatePicker" TextColor="#17324D" BackgroundColor="White" />
             <Entry x:Name="BeneficiaryEntry" Placeholder="اسم المستفيد" TextColor="#17324D" PlaceholderColor="#7A8896" BackgroundColor="White" />
             <Entry x:Name="PartyIdEntry" Placeholder="رقم الطرف - اختياري" TextColor="#17324D" PlaceholderColor="#7A8896" BackgroundColor="White" />
+            <Picker x:Name="PaymentMethodPicker"
+                    Title="اختر طريقة السداد"
+                    TextColor="#17324D"
+                    TitleColor="#7A8896"
+                    BackgroundColor="White"
+                    ItemDisplayBinding="{Binding DisplayName}" />
             <Entry x:Name="ReferenceEntry" Placeholder="رقم المرجع - اختياري" TextColor="#17324D" PlaceholderColor="#7A8896" BackgroundColor="White" />
             <Editor x:Name="DescriptionEditor" Placeholder="البيان أو الغرض من طلب الصرف" TextColor="#17324D" PlaceholderColor="#7A8896" BackgroundColor="White" AutoSize="TextChanges" MinimumHeightRequest="90" />
 
