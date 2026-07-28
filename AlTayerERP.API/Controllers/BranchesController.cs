@@ -75,6 +75,7 @@ namespace AlTayerERP.API.Controllers
             await using var transaction = await _context.Database.BeginTransactionAsync();
             _context.Tenant_Branches.Add(branch);
             await _context.SaveChangesAsync();
+            await SaveBranchGeographyAsync(branch.Branch_ID, dto.City_ID!.Value);
             AddAudit(session, branch, "CREATE", null, Snapshot(branch), "إنشاء فرع");
             await _context.SaveChangesAsync();
             await transaction.CommitAsync();
@@ -170,6 +171,7 @@ namespace AlTayerERP.API.Controllers
             branch.Edit_Count += 1;
 
             await using var transaction = await _context.Database.BeginTransactionAsync();
+            await SaveBranchGeographyAsync(branch.Branch_ID, dto.City_ID!.Value);
             AddAudit(session, branch, "UPDATE", oldValues, Snapshot(branch), "تعديل بيانات فرع");
             await _context.SaveChangesAsync();
             await transaction.CommitAsync();
@@ -280,14 +282,25 @@ namespace AlTayerERP.API.Controllers
 
             if (dto.Currency_ID <= 0) return "العملة الافتراضية للفرع غير صالحة.";
 
+            if (!dto.City_ID.HasValue || dto.City_ID.Value <= 0)
+                return "المدينة مطلوبة للفرع.";
+
+            if (await LoadCityGeographyAsync(dto.City_ID.Value) is null)
+                return "المدينة غير موجودة أو موقوفة.";
+
             if (dto.Parent_Branch_ID.HasValue)
             {
                 if (dto.Parent_Branch_ID == branchId) return "لا يجوز جعل الفرع أباً لنفسه.";
                 var parentIsValid = await _context.Tenant_Branches.AnyAsync(x =>
                     x.Branch_ID == dto.Parent_Branch_ID &&
                     x.Company_ID == companyId &&
-                    x.Is_Active);
-                if (!parentIsValid) return "الفرع الأب غير موجود أو موقوف أو تابع لشركة أخرى.";
+                    x.Is_Active &&
+                    (x.Branch_Type == "فرع رئيسي" || x.Branch_Type == "فرع" ||
+                     x.Branch_Type == "MAIN" || x.Branch_Type == "BRANCH"));
+                if (!parentIsValid) return "الفرع الأب يجب أن يكون نشطاً ومن نوع فرع رئيسي أو فرع ومن الشركة نفسها.";
+
+                if (branchId.HasValue && await WouldCreateHierarchyCycleAsync(branchId.Value, dto.Parent_Branch_ID.Value))
+                    return "لا يمكن حفظ الفرع الأب لأنه يؤدي إلى حلقة في التسلسل الهرمي للفروع.";
             }
 
             var name = dto.Branch_Name.Trim();
@@ -295,6 +308,39 @@ namespace AlTayerERP.API.Controllers
                 x.Company_ID == companyId && x.Branch_Name == name &&
                 (!branchId.HasValue || x.Branch_ID != branchId.Value));
             return duplicate ? "اسم الفرع مكرر داخل الشركة." : null;
+        }
+
+        /// <summary>يحفظ مدينة الفرع ومعها الدولة والمحافظة التابعة لها من جدول المدن فقط.</summary>
+        private async Task SaveBranchGeographyAsync(int branchId, int cityId)
+        {
+            var city = await LoadCityGeographyAsync(cityId)
+                ?? throw new InvalidOperationException("المدينة غير موجودة أو موقوفة.");
+
+            await _context.Database.ExecuteSqlInterpolatedAsync($@"
+                UPDATE Tenant_Branches
+                SET Country_ID = {city.Country_ID}, Governorate_ID = {city.Governorate_ID}, City_ID = {city.City_ID}
+                WHERE Branch_ID = {branchId}");
+        }
+
+        private Task<BranchCityGeography?> LoadCityGeographyAsync(int cityId) =>
+            _context.Database.SqlQueryRaw<BranchCityGeography>(
+                "SELECT City_ID, Country_ID, Governorate_ID FROM cities WHERE City_ID = {0} AND Is_Active = 1", cityId)
+                .SingleOrDefaultAsync();
+
+        /// <summary>يتأكد من أن الأب المختار ليس أحد فروع الابن، منعاً للدورات الهرمية.</summary>
+        private async Task<bool> WouldCreateHierarchyCycleAsync(int branchId, int proposedParentId)
+        {
+            var currentId = proposedParentId;
+            var visited = new HashSet<int>();
+            while (currentId > 0 && visited.Add(currentId))
+            {
+                if (currentId == branchId) return true;
+                currentId = await _context.Tenant_Branches.AsNoTracking()
+                    .Where(x => x.Branch_ID == currentId)
+                    .Select(x => x.Parent_Branch_ID ?? 0)
+                    .SingleOrDefaultAsync();
+            }
+            return currentId > 0;
         }
 
         /// <summary>نسخ بيانات العمل المسموح بها فقط، ولا تنقل حقول التدقيق أو الإيقاف من DTO.</summary>
@@ -344,5 +390,12 @@ namespace AlTayerERP.API.Controllers
             branch.Currency_ID, branch.Allow_Credit, branch.Allow_Percentage, branch.Edit_Count,
             branch.Stopped_Reason, branch.Reactivate_Reason
         });
+
+        private sealed class BranchCityGeography
+        {
+            public int City_ID { get; set; }
+            public int Country_ID { get; set; }
+            public int Governorate_ID { get; set; }
+        }
     }
 }

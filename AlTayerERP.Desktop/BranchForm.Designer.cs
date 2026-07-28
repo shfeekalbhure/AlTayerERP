@@ -78,6 +78,8 @@ namespace AlTayerERP.Desktop
             label13 = new Label();
             txtBranchCode = new TextBox();
             label14 = new Label();
+            cmbCity = new ComboBox();
+            label15 = new Label();
             pnlTopBar = new Panel();
             btnLogout = new Button();
             btnAboutSystem = new Button();
@@ -485,7 +487,25 @@ namespace AlTayerERP.Desktop
             label14.Size = new Size(83, 25);
             label14.TabIndex = 2;
             label14.Text = "كود الفرع";
-            // 
+            //
+            // cmbCity
+            //
+            cmbCity.DropDownStyle = ComboBoxStyle.DropDownList;
+            cmbCity.FormattingEnabled = true;
+            cmbCity.Location = new Point(484, 352);
+            cmbCity.Name = "cmbCity";
+            cmbCity.Size = new Size(151, 33);
+            cmbCity.TabIndex = 21;
+            //
+            // label15
+            //
+            label15.AutoSize = true;
+            label15.Location = new Point(405, 355);
+            label15.Name = "label15";
+            label15.Size = new Size(59, 25);
+            label15.TabIndex = 22;
+            label15.Text = "المدينة";
+            //
             // pnlTopBar
             // 
             pnlTopBar.BackColor = Color.White;
@@ -590,6 +610,8 @@ namespace AlTayerERP.Desktop
             AutoScaleMode = AutoScaleMode.Font;
             ClientSize = new Size(1000, 775);
             Controls.Add(pnlTopBar);
+            Controls.Add(label15);
+            Controls.Add(cmbCity);
             Controls.Add(dgvBranches);
             Controls.Add(btnUnApprove);
             Controls.Add(btnApprove);
@@ -697,6 +719,8 @@ namespace AlTayerERP.Desktop
         private Label label13;
         private TextBox txtBranchCode;
         private Label label14;
+        private ComboBox cmbCity;
+        private Label label15;
         private Panel pnlTopBar;
         private Button btnLogout;
         private Button btnAboutSystem;
