@@ -9,6 +9,10 @@ namespace AlTayerERP.API.Services.Accounting;
 /// </summary>
 public class VoucherValidationService
 {
+    // توحيد المقارنات النصية مع الجداول القديمة التي قد تستخدم Collation مختلفاً.
+    // وضع COLLATE على العمود يجعل MySQL يقارن قيمة المعامل بنفس القاعدة دون تعديل البيانات.
+    private const string CanonicalMySqlCollation = "utf8mb4_unicode_ci";
+
     private readonly AppDbContext _context;
 
     public VoucherValidationService(AppDbContext context)
@@ -63,7 +67,7 @@ public class VoucherValidationService
 
         var fiscalYearIsValid = await _context.Fiscal_Years.AsNoTracking().AnyAsync(x =>
             x.Fiscal_Year_ID == voucher.Fiscal_Year_ID &&
-            x.Company_ID == branch.Company_ID &&
+            EF.Functions.Collate(x.Company_ID, CanonicalMySqlCollation) == branch.Company_ID &&
             x.Is_Active && !x.Is_Closed);
         if (!fiscalYearIsValid)
             return (false, "السنة المالية لا تتبع الفرع الحالي أو أنها مقفلة/غير فعالة.");
@@ -78,7 +82,7 @@ public class VoucherValidationService
 
         var currency = await _context.Currencies.AsNoTracking().FirstOrDefaultAsync(x =>
             x.Currency_ID == voucher.Currency_ID &&
-            x.Company_ID == branch.Company_ID &&
+            EF.Functions.Collate(x.Company_ID, CanonicalMySqlCollation) == branch.Company_ID &&
             x.Is_Active);
         if (currency == null)
             return (false, "عملة السند غير موجودة أو غير فعالة ضمن الشركة.");
@@ -106,8 +110,10 @@ public class VoucherValidationService
             .ToList();
 
         var availableAccounts = await _context.Chart_Of_Accounts.AsNoTracking()
-            .Where(x => accountIds.Contains(x.Account_ID) &&
-                        x.Company_ID == branch.Company_ID &&
+            // يفرض الترميز الموحد على رقم الحساب والشركة؛ هذا يمنع خطأ
+            // Illegal mix of collations عند مقارنة قواعد البيانات القديمة والجديدة.
+            .Where(x => accountIds.Contains(EF.Functions.Collate(x.Account_ID, CanonicalMySqlCollation)) &&
+                        EF.Functions.Collate(x.Company_ID, CanonicalMySqlCollation) == branch.Company_ID &&
                         x.Is_Active && x.Is_Postable)
             .Select(x => x.Account_ID)
             .ToListAsync();
