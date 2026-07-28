@@ -71,8 +71,10 @@ builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
-using (var scope = app.Services.CreateScope())
+if (builder.Configuration.GetValue<bool>("DatabaseBootstrap:EnableReferenceDataSeeding"))
 {
+    using var scope = app.Services.CreateScope();
+
     var screenCatalogSeeder = scope.ServiceProvider.GetRequiredService<SystemScreenCatalogSeeder>();
     await screenCatalogSeeder.EnsureSeededAsync();
 
