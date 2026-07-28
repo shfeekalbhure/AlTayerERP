@@ -116,42 +116,6 @@ namespace AlTayerERP.Desktop
 
         #region === فتح الشاشة ===
 
-        /*      private async void FrmReceiptVoucher_Load(object? sender, EventArgs e)
-              {
-                  _isLoading = true;
-                  UseWaitCursor = true;
-
-                  try
-                  {
-                      LoadCurrentSession();
-                      await LoadFinancialVoucherLookupsAsync();
-                      NewVoucher();
-                      await GenerateVoucherNumberAsync();
-                      UpdateStatusBar("متصل", "متصلة", "فعال");
-                      SetViewMode();
-                  }
-                  catch (HttpRequestException ex)
-                  {
-                      UpdateStatusBar("غير متصل", "غير مفحوصة", "فعال");
-                      ShowError("تعذر الاتصال بالـ API", ex);
-                  }
-                  catch (Exception ex)
-                  {
-                      UpdateStatusBar("خطأ", "غير مفحوصة", "غير معروف");
-                      ShowError("حدث خطأ أثناء تحميل الشاشة", ex);
-                  }
-                  finally
-                  {
-
-
-                      _isLoading = false;
-                      UseWaitCursor = false;
-
-                      if (cmbCurrency.SelectedIndex >= 0)
-                          CalculateHeaderCurrencyAmounts();
-                  }
-              }
-        */
         private async void FrmReceiptVoucher_Load(object? sender, EventArgs e)
         {
             _isLoading = true;
