@@ -142,7 +142,6 @@ namespace AlTayerERP.API.Controllers
             var validation = await ValidateAsync(dto, null);
             if (validation != null) return BadRequest(new { message = validation });
 
-            // الرصيد الافتتاحي لا ينشأ من شاشة التعريف؛ يجب إدخاله من مستند أرصدة افتتاحية مرحل.
             if (dto.Opening_Balance != 0)
                 return BadRequest(new { message = "لا يسمح بإدخال رصيد افتتاحي من شاشة تعريف الصندوق. استخدم مستند الأرصدة الافتتاحية." });
 
@@ -164,7 +163,6 @@ namespace AlTayerERP.API.Controllers
                 Is_Postable = true,
                 Is_Summary_Account = false,
                 Currency_Code = dto.Currency_Code.Trim().ToUpperInvariant(),
-                // إنشاء الصندوق يبدأ دائماً فعالاً؛ الإيقاف له مسار مستقل يتحقق من الرصيد والحركات.
                 Is_Active = true,
                 Allow_ManualEntry = false,
                 System_Account = true,
@@ -209,15 +207,12 @@ namespace AlTayerERP.API.Controllers
             var row = await _context.Cash_Boxes.FirstOrDefaultAsync(x => x.Cash_Box_ID == id && x.Company_ID == Session.Company_ID && x.Branch_ID == Session.Branch_ID);
             if (row == null) return NotFound(new { message = "الصندوق غير موجود في نطاق الفرع الحالي." });
 
-            // يمنع تجاوز ضوابط الإيقاف عبر عملية التعديل العامة.
-            // الإيقاف وإعادة التفعيل يمران فقط بمسارات دورة الحياة المخصصة لهما.
             if (dto.Is_Active != row.Is_Active)
                 return BadRequest(new { message = "لا يمكن تغيير حالة الصندوق من التعديل. استخدم زر الإيقاف أو إعادة التفعيل بعد استكمال الضوابط المطلوبة." });
 
             var account = await _context.Chart_Of_Accounts.FirstOrDefaultAsync(x => x.Account_ID == row.Account_ID && x.Company_ID == Session.Company_ID);
             if (account == null) return BadRequest(new { message = "الحساب المرتبط بالصندوق غير موجود." });
 
-            // حساب الأب والرصيد الافتتاحي بيانات تأسيسية لا تعدل من شاشة التعريف.
             if (!string.Equals(account.Parent_Account_ID, dto.Account_ID, StringComparison.Ordinal))
                 return BadRequest(new { message = "لا يمكن تغيير حساب الصناديق الأب بعد إنشاء الصندوق." });
             if (dto.Opening_Balance != row.Opening_Balance)
@@ -290,11 +285,22 @@ namespace AlTayerERP.API.Controllers
             if (dto.Min_Limit < 0 || dto.Max_Limit < 0 || dto.Min_Limit > dto.Max_Limit)
                 return "حدود الصندوق غير صحيحة؛ يجب أن يكون الحد الأدنى أقل من أو يساوي الحد الأعلى.";
 
+            var cashCategoryExists = await _context.Set<AccountCategory>().AsNoTracking().AnyAsync(x =>
+                x.Company_ID == Session.Company_ID &&
+                x.Category_Code == "Cash" &&
+                x.Account_Type == "Asset" &&
+                x.Normal_Balance == "Debit" &&
+                x.Is_Active);
+            if (!cashCategoryExists)
+                return "تصنيف النقدية Cash غير موجود أو غير فعال للشركة الحالية. نفذ سكربت تصنيفات الحسابات أولاً.";
+
             var parent = await _context.Chart_Of_Accounts.AsNoTracking().FirstOrDefaultAsync(x => x.Account_ID == dto.Account_ID && x.Company_ID == Session.Company_ID);
             if (parent == null || !parent.Is_Active || parent.Is_Postable || !parent.Is_Summary_Account)
                 return "حساب الصناديق الأب يجب أن يكون نشطاً وتجميعياً وغير قابل للترحيل.";
-            if (!IsCashParentAccount(parent))
-                return "الحساب المختار ليس حساب صناديق/نقدية. اختر حساباً أب مصنفاً للنقدية.";
+            if (!string.Equals(parent.Account_Type, "Asset", StringComparison.OrdinalIgnoreCase) ||
+                !string.Equals(parent.Account_Category, "Cash", StringComparison.OrdinalIgnoreCase) ||
+                !string.Equals(parent.Normal_Balance, "Debit", StringComparison.OrdinalIgnoreCase))
+                return "الحساب المختار ليس حساب نقدية معتمداً. يجب أن يكون من نوع Asset وتصنيف Cash وطبيعته Debit.";
 
             var currency = dto.Currency_Code.Trim().ToUpperInvariant();
             if (!await _context.Currencies.AnyAsync(x => x.Company_ID == Session.Company_ID && x.Currency_Code == currency && x.Is_Active))
@@ -323,16 +329,6 @@ namespace AlTayerERP.API.Controllers
                             && !x.JournalEntry.Is_Cancelled
                             && !x.JournalEntry.Is_Reversed)
                 .SumAsync(x => (decimal?)(x.Debit_Amount - x.Credit_Amount)) ?? 0m;
-
-        /// <summary>
-        /// يدعم شجرة الحسابات القديمة التي لم يُسجل لها التصنيف Cash بعد،
-        /// مع منع اختيار أي حساب تجميعي لا يمثل صندوقاً أو نقدية.
-        /// </summary>
-        private static bool IsCashParentAccount(ChartOfAccount account) =>
-            string.Equals(account.Account_Category, "Cash", StringComparison.OrdinalIgnoreCase) ||
-            (!string.IsNullOrWhiteSpace(account.Account_Name_AR) &&
-             (account.Account_Name_AR.Contains("صندوق", StringComparison.Ordinal) ||
-              account.Account_Name_AR.Contains("نقد", StringComparison.Ordinal)));
 
         private static string? Text(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
     }
