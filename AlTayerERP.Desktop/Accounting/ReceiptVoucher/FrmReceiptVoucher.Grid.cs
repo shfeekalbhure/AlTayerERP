@@ -199,9 +199,7 @@ namespace AlTayerERP.Desktop
                 if (columnName == colAccountCode.Name ||
                     columnName == colAccountName.Name)
                 {
-                    object? accountId = row.Cells[columnName].Value;
-                    row.Cells[colAccountCode.Name].Value = accountId;
-                    row.Cells[colAccountName.Name].Value = accountId;
+                    SynchronizeGridAccountSelection(row, columnName);
                     return;
                 }
                 else if (columnName == colCurrency.Name)
@@ -351,6 +349,16 @@ namespace AlTayerERP.Desktop
         private void dgvVoucherDetails_CellEndEdit(object sender, DataGridViewCellEventArgs e)
         {
             if (_isLoading || e.RowIndex < 0) return;
+
+            if (e.ColumnIndex >= 0 &&
+                (dgvVoucherDetails.Columns[e.ColumnIndex].Name == colAccountCode.Name ||
+                 dgvVoucherDetails.Columns[e.ColumnIndex].Name == colAccountName.Name))
+            {
+                SynchronizeGridAccountSelection(
+                    dgvVoucherDetails.Rows[e.RowIndex],
+                    dgvVoucherDetails.Columns[e.ColumnIndex].Name);
+            }
+
             UpdateVoucherRowAmounts(e.RowIndex);
             UpdateVoucherTotals();
         }
@@ -432,7 +440,13 @@ namespace AlTayerERP.Desktop
         /// </summary>
         private void dgvVoucherDetails_RowsRemoved(object? sender, DataGridViewRowsRemovedEventArgs e)
         {
-            if (!_isLoading) UpdateVoucherTotals();
+            if (_isLoading)
+            {
+                return;
+            }
+
+            RenumberVoucherDetailRows();
+            UpdateVoucherTotals();
         }
 
         /// <summary>
@@ -447,6 +461,78 @@ namespace AlTayerERP.Desktop
         #endregion
 
         #region === تحديث صف الجدول ===
+
+        /// <summary>
+        /// يوحّد اختيار الحساب في عمودي الرقم والاسم. يقبل المعرف أو رقم الحساب
+        /// أو اسمه ثم يخزن معرف الحساب فقط؛ وهذا يمنع حفظ رقم ظاهر بدل المعرف الحقيقي.
+        /// </summary>
+        private void SynchronizeGridAccountSelection(
+            DataGridViewRow row,
+            string sourceColumnName)
+        {
+            if (row.IsNewRow)
+            {
+                return;
+            }
+
+            string selectedValue = Convert.ToString(
+                row.Cells[sourceColumnName].Value)?.Trim() ?? string.Empty;
+
+            if (string.IsNullOrWhiteSpace(selectedValue))
+            {
+                if (row.Cells[colAccountCode.Name].Value != null)
+                {
+                    row.Cells[colAccountCode.Name].Value = null;
+                }
+
+                if (row.Cells[colAccountName.Name].Value != null)
+                {
+                    row.Cells[colAccountName.Name].Value = null;
+                }
+                return;
+            }
+
+            AccountLookupModel? account = _accountLookups.FirstOrDefault(x =>
+                string.Equals(x.Account_ID, selectedValue, StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(x.Account_Code, selectedValue, StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(x.Account_Name_AR, selectedValue, StringComparison.OrdinalIgnoreCase));
+
+            if (account == null)
+            {
+                return;
+            }
+
+            if (!string.Equals(
+                    Convert.ToString(row.Cells[colAccountCode.Name].Value),
+                    account.Account_ID,
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                row.Cells[colAccountCode.Name].Value = account.Account_ID;
+            }
+
+            if (!string.Equals(
+                    Convert.ToString(row.Cells[colAccountName.Name].Value),
+                    account.Account_ID,
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                row.Cells[colAccountName.Name].Value = account.Account_ID;
+            }
+        }
+
+        /// <summary>
+        /// يعيد ترقيم أسطر التوزيع بعد الإضافة أو الحذف حتى يبقى رقم السطر متسلسلاً.
+        /// </summary>
+        private void RenumberVoucherDetailRows()
+        {
+            int lineNumber = 1;
+            foreach (DataGridViewRow row in dgvVoucherDetails.Rows)
+            {
+                if (!row.IsNewRow)
+                {
+                    row.Cells[colNo.Name].Value = lineNumber++;
+                }
+            }
+        }
 
         /// <summary>
         /// دالة تقوم بتحديث سعر الصرف للصف بناءً على العملة المحددة فيه.
