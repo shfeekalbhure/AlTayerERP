@@ -11,7 +11,7 @@ var builder = WebApplication.CreateBuilder(args);
 var connectionString =
     builder.Configuration.GetConnectionString("DefaultConnection")
     ?? throw new InvalidOperationException(
-        "لم يتم العثور على نص الاتصال DefaultConnection داخل appsettings.json."
+        "لم يتم ضبط DefaultConnection. عيّنه محلياً عبر User Secrets أو المتغير ConnectionStrings__DefaultConnection؛ لا تضع كلمة المرور داخل ملفات الإعداد المتتبعة."
     );
 
 builder.Services.AddDbContext<AppDbContext>(options =>
@@ -44,7 +44,6 @@ builder.Services.AddScoped<FinancialPolicyService>();
 builder.Services.AddScoped<AccountNumberService>();
 builder.Services.AddScoped<SystemScreenCatalogSeeder>();
 builder.Services.AddScoped<VoucherReferenceDataSeeder>();
-builder.Services.AddScoped<PaymentRequestSchemaInitializer>();
 builder.Services.AddSingleton<ServerSessionService>();
 builder.Services.AddScoped<TokenService>();
 builder.Services.AddScoped<LoginSecurityService>();
@@ -74,9 +73,6 @@ var app = builder.Build();
 
 using (var scope = app.Services.CreateScope())
 {
-    var paymentRequestSchema = scope.ServiceProvider.GetRequiredService<PaymentRequestSchemaInitializer>();
-    await paymentRequestSchema.EnsureCreatedAsync();
-
     var screenCatalogSeeder = scope.ServiceProvider.GetRequiredService<SystemScreenCatalogSeeder>();
     await screenCatalogSeeder.EnsureSeededAsync();
 
