@@ -26,6 +26,9 @@ namespace AlTayerERP.Desktop
         private readonly TextBox _searchBox = new();
         private readonly Label _recordCount = new();
         private readonly Label _emptyState = new();
+        private readonly Dictionary<string, Label> _auditValues = new();
+        private DateTime? _fiscalYearStart;
+        private DateTime? _fiscalYearEnd;
         // شاشة الفترات تحتاج مساحة إضافية لحقول التواريخ والإقفال، بخلاف القوائم المرجعية الأخرى.
         private bool IsFiscalPeriods => string.Equals(_endpoint, "FiscalPeriods", StringComparison.OrdinalIgnoreCase);
         private readonly DataGridView _grid = new()
@@ -84,10 +87,11 @@ namespace AlTayerERP.Desktop
             shell.RowStyles.Add(new RowStyle(SizeType.Absolute, IsFiscalPeriods ? 59 : 40));
             shell.RowStyles.Add(new RowStyle(SizeType.AutoSize));
             // جدول الفترات أصغر بمقدار 2 سم تقريباً (76px) من المساحة المعتادة.
+            // نخفض جدول الفترات 2 سم إضافية لإظهار حاوية التدقيق أسفله.
             shell.RowStyles.Add(IsFiscalPeriods
-                ? new RowStyle(SizeType.Absolute, 365)
+                ? new RowStyle(SizeType.Absolute, 289)
                 : new RowStyle(SizeType.Percent, 100));
-            shell.RowStyles.Add(new RowStyle(SizeType.Absolute, 28));
+            shell.RowStyles.Add(new RowStyle(SizeType.Absolute, IsFiscalPeriods ? 96 : 28));
 
             shell.Controls.Add(CreateHeader(title), 0, 0);
             shell.Controls.Add(CreateToolbar(), 0, 1);
@@ -416,6 +420,9 @@ namespace AlTayerERP.Desktop
 
         private Control CreateFooter()
         {
+            if (IsFiscalPeriods)
+                return CreateFiscalAuditFooter();
+
             var footer = new Panel { Dock = DockStyle.Fill, Padding = new Padding(4, 4, 4, 0) };
             _recordCount.Dock = DockStyle.Right;
             _recordCount.Width = 170;
@@ -433,6 +440,78 @@ namespace AlTayerERP.Desktop
             });
 
             return footer;
+        }
+
+        private Control CreateFiscalAuditFooter()
+        {
+            var card = new Panel
+            {
+                Dock = DockStyle.Fill,
+                BackColor = Color.White,
+                BorderStyle = BorderStyle.FixedSingle,
+                Padding = new Padding(8, 4, 8, 4)
+            };
+            var title = new Label
+            {
+                Text = "بيانات الإنشاء والتعديل",
+                Dock = DockStyle.Top,
+                Height = 20,
+                ForeColor = Color.FromArgb(27, 62, 104),
+                Font = new Font("Segoe UI", 8.5F, FontStyle.Bold),
+                TextAlign = ContentAlignment.MiddleRight
+            };
+            var fields = new FlowLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                FlowDirection = FlowDirection.RightToLeft,
+                WrapContents = false,
+                AutoScroll = false,
+                Padding = Padding.Empty
+            };
+
+            AddAuditField(fields, "Created_By", "أنشئ بواسطة");
+            AddAuditField(fields, "Created_At", "تاريخ الإنشاء");
+            AddAuditField(fields, "Updated_By", "عُدّل بواسطة");
+            AddAuditField(fields, "Updated_At", "تاريخ التعديل");
+            AddAuditField(fields, "Edit_Count", "عدد التعديلات");
+            AddAuditField(fields, "Print_Count", "عدد الطباعة");
+
+            card.Controls.Add(fields);
+            card.Controls.Add(title);
+            return card;
+        }
+
+        private void AddAuditField(FlowLayoutPanel fields, string key, string caption)
+        {
+            var item = new Panel
+            {
+                Width = 205,
+                Height = 55,
+                Margin = new Padding(3, 0, 3, 0),
+                Padding = new Padding(6, 2, 6, 3),
+                BorderStyle = BorderStyle.FixedSingle,
+                BackColor = Color.FromArgb(248, 250, 252)
+            };
+            item.Controls.Add(new Label
+            {
+                Text = caption,
+                Dock = DockStyle.Top,
+                Height = 20,
+                ForeColor = Color.FromArgb(75, 85, 99),
+                TextAlign = ContentAlignment.MiddleRight,
+                Font = new Font("Segoe UI", 8F)
+            });
+            var value = new Label
+            {
+                Text = "—",
+                Dock = DockStyle.Fill,
+                ForeColor = Color.FromArgb(31, 41, 55),
+                TextAlign = ContentAlignment.MiddleRight,
+                Font = new Font("Segoe UI", 8.5F, FontStyle.Bold)
+            };
+            _auditValues[key] = value;
+            item.Controls.Add(value);
+            fields.Controls.Add(item);
         }
 
         private void ConfigureGrid()
@@ -488,6 +567,9 @@ namespace AlTayerERP.Desktop
             try
             {
                 UseWaitCursor = true;
+                if (IsFiscalPeriods)
+                    await LoadFiscalYearBoundsAsync();
+
                 using var response = await _client.GetAsync(_endpoint);
                 if (!response.IsSuccessStatusCode)
                 {
@@ -625,6 +707,7 @@ namespace AlTayerERP.Desktop
                 }
             }
 
+            UpdateAuditFooter(row);
             UpdateFiscalPeriodActions();
         }
 
@@ -826,7 +909,7 @@ namespace AlTayerERP.Desktop
             catch (Exception ex)
             {
                 MessageBox.Show(
-                    "تعذر الحفظ. تحقق من الحقول وصلاحية المستخدم واتصال API.\n\n" + ex.Message,
+                    "تعذر الحفظ.\n\n" + ExtractApiMessage(ex.Message),
                     Text,
                     MessageBoxButtons.OK,
                     MessageBoxIcon.Error);
@@ -861,6 +944,16 @@ namespace AlTayerERP.Desktop
                 return false;
             }
 
+            if (_fiscalYearStart.HasValue && _fiscalYearEnd.HasValue &&
+                (start.Value.Date < _fiscalYearStart.Value.Date || end.Value.Date > _fiscalYearEnd.Value.Date))
+            {
+                MessageBox.Show(
+                    $"تواريخ الفترة يجب أن تقع داخل السنة المالية الحالية: {_fiscalYearStart:yyyy/MM/dd} إلى {_fiscalYearEnd:yyyy/MM/dd}.",
+                    Text, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                (start.Value.Date < _fiscalYearStart.Value.Date ? start : end).Focus();
+                return false;
+            }
+
             return true;
         }
 
@@ -892,7 +985,88 @@ namespace AlTayerERP.Desktop
             }
 
             _grid.ClearSelection();
+            ResetAuditFooter();
             UpdateFiscalPeriodActions();
+        }
+
+        private async Task LoadFiscalYearBoundsAsync()
+        {
+            try
+            {
+                using var response = await _client.GetAsync("FiscalYears?includeClosed=true");
+                if (!response.IsSuccessStatusCode) return;
+
+                var years = await response.Content.ReadFromJsonAsync<List<Dictionary<string, JsonElement>>>() ?? new();
+                var year = years.FirstOrDefault(row =>
+                    TryGetJsonValue(row, "Fiscal_Year_ID", out var id) &&
+                    ReadIdentifier(id) is int yearId &&
+                    yearId == CurrentSession.Year_ID);
+                if (year == null ||
+                    !TryGetJsonValue(year, "Start_Date", out var startJson) ||
+                    !TryGetJsonValue(year, "End_Date", out var endJson) ||
+                    !DateTime.TryParse(ReadJsonValue(startJson), out var start) ||
+                    !DateTime.TryParse(ReadJsonValue(endJson), out var end))
+                    return;
+
+                _fiscalYearStart = start.Date;
+                _fiscalYearEnd = end.Date;
+                ConfigureFiscalDatePicker("Start_Date");
+                ConfigureFiscalDatePicker("End_Date");
+            }
+            catch
+            {
+                // يبقى التحقق الخادمي هو مصدر الحقيقة إذا تعذر جلب حدود السنة للواجهة.
+            }
+        }
+
+        private void ConfigureFiscalDatePicker(string key)
+        {
+            if (!_inputs.TryGetValue(key, out var input) || input is not DateTimePicker picker ||
+                !_fiscalYearStart.HasValue || !_fiscalYearEnd.HasValue)
+                return;
+
+            picker.MinDate = _fiscalYearStart.Value;
+            picker.MaxDate = _fiscalYearEnd.Value;
+            if (picker.Value.Date < picker.MinDate || picker.Value.Date > picker.MaxDate)
+                picker.Value = picker.MinDate;
+        }
+
+        private void UpdateAuditFooter(IReadOnlyDictionary<string, JsonElement> row)
+        {
+            foreach (var pair in _auditValues)
+            {
+                var text = TryGetJsonValue(row, pair.Key, out var value)
+                    ? ReadJsonValue(value)
+                    : "—";
+
+                if ((pair.Key == "Created_At" || pair.Key == "Updated_At") &&
+                    DateTime.TryParse(text, out var date))
+                    text = date.ToString("yyyy/MM/dd HH:mm");
+
+                pair.Value.Text = string.IsNullOrWhiteSpace(text) ? "—" : text;
+            }
+        }
+
+        private void ResetAuditFooter()
+        {
+            foreach (var value in _auditValues.Values)
+                value.Text = "—";
+        }
+
+        private static string ExtractApiMessage(string raw)
+        {
+            try
+            {
+                using var document = JsonDocument.Parse(raw);
+                if (document.RootElement.TryGetProperty("message", out var message))
+                    return message.GetString() ?? "تعذر تنفيذ العملية.";
+            }
+            catch
+            {
+                // الرسالة ليست JSON؛ تعرض كما هي في السطر التالي.
+            }
+
+            return string.IsNullOrWhiteSpace(raw) ? "تحقق من الحقول وصلاحية المستخدم واتصال API." : raw;
         }
 
         private void FrmVoucherReferenceEditor_KeyDown(object? sender, KeyEventArgs e)
