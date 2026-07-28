@@ -16,15 +16,50 @@ namespace AlTayerERP.API.Controllers
     {
         private static readonly HashSet<string> AllowedTypes = new(StringComparer.OrdinalIgnoreCase)
             { "Asset", "Liability", "Equity", "Revenue", "Expense" };
+
         private static readonly HashSet<string> AllowedBalances = new(StringComparer.OrdinalIgnoreCase)
             { "Debit", "Credit" };
+
+        private static readonly Dictionary<string, HashSet<string>> AllowedCategories =
+            new(StringComparer.OrdinalIgnoreCase)
+            {
+                ["Asset"] = new(StringComparer.OrdinalIgnoreCase)
+                {
+                    "Cash", "Bank", "Receivable", "Customer", "Inventory", "FixedAsset",
+                    "RightOfUseAsset", "Advance", "Prepayment", "TaxAsset", "OtherAsset", "Asset"
+                },
+                ["Liability"] = new(StringComparer.OrdinalIgnoreCase)
+                {
+                    "Payable", "Vendor", "AccruedLiability", "Loan", "LeaseLiability",
+                    "TaxPayable", "Provision", "OtherLiability", "Liability"
+                },
+                ["Equity"] = new(StringComparer.OrdinalIgnoreCase)
+                {
+                    "Capital", "Reserve", "RetainedEarnings", "Drawings", "OtherEquity", "Equity"
+                },
+                ["Revenue"] = new(StringComparer.OrdinalIgnoreCase)
+                {
+                    "TransportRevenue", "ShippingRevenue", "TicketRevenue", "ServiceRevenue",
+                    "OtherRevenue", "Revenue"
+                },
+                ["Expense"] = new(StringComparer.OrdinalIgnoreCase)
+                {
+                    "FuelExpense", "SalaryExpense", "MaintenanceExpense", "RentExpense",
+                    "OperatingExpense", "AdministrativeExpense", "FinanceCost", "TaxExpense",
+                    "DepreciationExpense", "OtherExpense", "Expense"
+                }
+            };
 
         private readonly AppDbContext _context;
         private readonly AccountNumberService _numbers;
         private readonly ScreenAuthorizationService _authorization;
         private readonly AuditTrailService _audit;
 
-        public ChartOfAccountsController(AppDbContext context, AccountNumberService numbers, ScreenAuthorizationService authorization, AuditTrailService audit)
+        public ChartOfAccountsController(
+            AppDbContext context,
+            AccountNumberService numbers,
+            ScreenAuthorizationService authorization,
+            AuditTrailService audit)
         {
             _context = context;
             _numbers = numbers;
@@ -36,8 +71,12 @@ namespace AlTayerERP.API.Controllers
 
         private async Task<IActionResult?> RequireAsync(ScreenOperation operation)
         {
-            if (Session == null) return Unauthorized(new { message = "انتهت الجلسة أو أنها غير صالحة." });
-            return await _authorization.IsAllowedAsync(Session, "ChartOfAccounts", operation) ? null : Forbid();
+            if (Session == null)
+                return Unauthorized(new { message = "انتهت الجلسة أو أنها غير صالحة." });
+
+            return await _authorization.IsAllowedAsync(Session, "ChartOfAccounts", operation)
+                ? null
+                : Forbid();
         }
 
         [HttpGet("GetCashParentLookup")]
@@ -59,12 +98,7 @@ namespace AlTayerERP.API.Controllers
                      x.Account_Name_AR.Contains("صندوق") ||
                      x.Account_Name_AR.Contains("نقد")))
                 .OrderBy(x => x.Account_Code)
-                .Select(x => new
-                {
-                    x.Account_ID,
-                    x.Account_Code,
-                    x.Account_Name_AR
-                })
+                .Select(x => new { x.Account_ID, x.Account_Code, x.Account_Name_AR })
                 .ToListAsync();
 
             if (rows.Count == 0)
@@ -76,12 +110,7 @@ namespace AlTayerERP.API.Controllers
                         !x.Is_Postable &&
                         x.Is_Summary_Account)
                     .OrderBy(x => x.Account_Code)
-                    .Select(x => new
-                    {
-                        x.Account_ID,
-                        x.Account_Code,
-                        x.Account_Name_AR
-                    })
+                    .Select(x => new { x.Account_ID, x.Account_Code, x.Account_Name_AR })
                     .ToListAsync();
             }
 
@@ -94,11 +123,10 @@ namespace AlTayerERP.API.Controllers
             var error = await RequireAsync(ScreenOperation.View);
             if (error != null || Session == null) return error!;
 
-            var rows = await _context.Chart_Of_Accounts.AsNoTracking()
+            return Ok(await _context.Chart_Of_Accounts.AsNoTracking()
                 .Where(x => x.Company_ID == Session.Company_ID)
                 .OrderBy(x => x.Account_Code)
-                .ToListAsync();
-            return Ok(rows);
+                .ToListAsync());
         }
 
         [HttpGet("GetLookup")]
@@ -108,9 +136,20 @@ namespace AlTayerERP.API.Controllers
             if (error != null || Session == null) return error!;
 
             return Ok(await _context.Chart_Of_Accounts.AsNoTracking()
-                .Where(x => x.Company_ID == Session.Company_ID && x.Is_Active && x.Is_Postable && !x.Is_Summary_Account)
+                .Where(x =>
+                    x.Company_ID == Session.Company_ID &&
+                    x.Is_Active &&
+                    x.Is_Postable &&
+                    !x.Is_Summary_Account)
                 .OrderBy(x => x.Account_Code)
-                .Select(x => new { x.Account_ID, x.Account_Code, x.Account_Name_AR, x.Account_Name_EN, Account_Group = x.Account_Category })
+                .Select(x => new
+                {
+                    x.Account_ID,
+                    x.Account_Code,
+                    x.Account_Name_AR,
+                    x.Account_Name_EN,
+                    Account_Group = x.Account_Category
+                })
                 .ToListAsync());
         }
 
@@ -122,7 +161,10 @@ namespace AlTayerERP.API.Controllers
 
             var row = await _context.Chart_Of_Accounts.AsNoTracking()
                 .FirstOrDefaultAsync(x => x.Account_ID == id && x.Company_ID == Session.Company_ID);
-            return row == null ? NotFound(new { message = "الحساب غير موجود ضمن الشركة الحالية." }) : Ok(row);
+
+            return row == null
+                ? NotFound(new { message = "الحساب غير موجود ضمن الشركة الحالية." })
+                : Ok(row);
         }
 
         [HttpPost]
@@ -132,26 +174,61 @@ namespace AlTayerERP.API.Controllers
             if (error != null || Session == null) return error!;
 
             Normalize(dto);
+
+            // الحساب الرئيسي تجميعي ولا يقبل الحركة، والحساب الفرعي النهائي يقبل الحركة.
+            bool isSubAccount = !string.IsNullOrWhiteSpace(dto.Parent_Account_ID);
+            dto.Is_Postable = isSubAccount;
+            dto.Is_Summary_Account = !isSubAccount;
+            dto.Normal_Balance = DefaultBalanceForType(dto.Account_Type);
+
             var validation = await ValidateAsync(dto, null);
-            if (validation != null) return BadRequest(new { message = validation });
+            if (validation != null)
+                return BadRequest(new { message = validation });
 
             var parent = await ParentAsync(dto.Parent_Account_ID);
-            var code = await _numbers.GenerateAccountCodeAsync(Session.Company_ID, dto.Parent_Account_ID);
-            if (await _context.Chart_Of_Accounts.AnyAsync(x => x.Company_ID == Session.Company_ID && x.Account_Code == code))
+            if (parent != null)
+            {
+                parent.Is_Postable = false;
+                parent.Is_Summary_Account = true;
+                parent.Updated_By = Session.User_ID.ToString();
+                parent.Updated_At = DateTime.UtcNow;
+            }
+
+            string code = await _numbers.GenerateAccountCodeAsync(Session.Company_ID, dto.Parent_Account_ID);
+            if (await _context.Chart_Of_Accounts.AnyAsync(x =>
+                    x.Company_ID == Session.Company_ID && x.Account_Code == code))
                 return Conflict(new { message = "تعذر حجز رقم حساب فريد، أعد المحاولة." });
+
+            int nextSerial = (await _context.Chart_Of_Accounts
+                .Where(x => x.Company_ID == Session.Company_ID)
+                .MaxAsync(x => (int?)x.Account_Serial) ?? 0) + 1;
 
             var row = new ChartOfAccount
             {
                 Account_ID = Guid.NewGuid().ToString(),
                 Company_ID = Session.Company_ID,
                 Account_Code = code,
+                Account_Serial = nextSerial,
                 Created_At = DateTime.UtcNow,
                 Created_By = Session.User_ID.ToString()
             };
+
             Apply(row, dto, parent);
+            row.Account_Path = BuildAccountPath(parent, row.Account_Code);
+
             _context.Chart_Of_Accounts.Add(row);
             _audit.Add(Session, HttpContext, "chart_of_accounts", row.Account_ID, "CREATE", null,
-                new { row.Account_Code, row.Account_Name_AR, row.Parent_Account_ID, row.Is_Postable, row.Is_Active });
+                new
+                {
+                    row.Account_Code,
+                    row.Account_Name_AR,
+                    row.Parent_Account_ID,
+                    row.Account_Type,
+                    row.Account_Category,
+                    row.Is_Postable,
+                    row.Is_Active
+                });
+
             await _context.SaveChangesAsync();
             return CreatedAtAction(nameof(GetAccountById), new { id = row.Account_ID }, row);
         }
@@ -164,33 +241,69 @@ namespace AlTayerERP.API.Controllers
 
             var row = await _context.Chart_Of_Accounts
                 .FirstOrDefaultAsync(x => x.Account_ID == id && x.Company_ID == Session.Company_ID);
-            if (row == null) return NotFound(new { message = "الحساب غير موجود ضمن الشركة الحالية." });
+            if (row == null)
+                return NotFound(new { message = "الحساب غير موجود ضمن الشركة الحالية." });
 
             Normalize(dto);
-            var validation = await ValidateAsync(dto, row);
-            if (validation != null) return BadRequest(new { message = validation });
 
-            bool hasChildren = await _context.Chart_Of_Accounts.AnyAsync(x => x.Company_ID == Session.Company_ID && x.Parent_Account_ID == id);
+            bool hasChildren = await _context.Chart_Of_Accounts.AnyAsync(x =>
+                x.Company_ID == Session.Company_ID && x.Parent_Account_ID == id);
             bool hasMovement = await _context.Journal_Entry_Details.AnyAsync(x => x.Account_ID == id);
 
-            if (hasChildren && (dto.Is_Postable || !dto.Is_Summary_Account))
-                return BadRequest(new { message = "الحساب الذي لديه حسابات فرعية يجب أن يبقى تجميعياً وغير قابل للترحيل." });
+            dto.Is_Postable = !hasChildren && !string.IsNullOrWhiteSpace(dto.Parent_Account_ID);
+            dto.Is_Summary_Account = hasChildren || string.IsNullOrWhiteSpace(dto.Parent_Account_ID);
+            dto.Normal_Balance = DefaultBalanceForType(dto.Account_Type);
+
+            var validation = await ValidateAsync(dto, row);
+            if (validation != null)
+                return BadRequest(new { message = validation });
+
             if (hasMovement && row.Parent_Account_ID != dto.Parent_Account_ID)
                 return BadRequest(new { message = "لا يمكن نقل حساب سبق استخدامه في قيود محاسبية إلى أب آخر." });
-            if (hasMovement && row.Account_Type != dto.Account_Type)
+            if (hasMovement && !string.Equals(row.Account_Type, dto.Account_Type, StringComparison.OrdinalIgnoreCase))
                 return BadRequest(new { message = "لا يمكن تغيير نوع حساب سبق استخدامه في قيود محاسبية." });
-            if (hasMovement && row.Normal_Balance != dto.Normal_Balance)
-                return BadRequest(new { message = "لا يمكن تغيير طبيعة حساب سبق استخدامه في قيود محاسبية." });
             if (row.System_Account && !dto.System_Account)
                 return BadRequest(new { message = "لا يمكن إلغاء صفة حساب النظام." });
 
             var parent = await ParentAsync(dto.Parent_Account_ID);
-            var old = new { row.Account_Code, row.Account_Name_AR, row.Parent_Account_ID, row.Account_Type, row.Normal_Balance, row.Is_Postable, row.Is_Active };
+            if (parent != null)
+            {
+                parent.Is_Postable = false;
+                parent.Is_Summary_Account = true;
+                parent.Updated_By = Session.User_ID.ToString();
+                parent.Updated_At = DateTime.UtcNow;
+            }
+
+            var old = new
+            {
+                row.Account_Code,
+                row.Account_Name_AR,
+                row.Parent_Account_ID,
+                row.Account_Type,
+                row.Account_Category,
+                row.Normal_Balance,
+                row.Is_Postable,
+                row.Is_Active
+            };
+
             Apply(row, dto, parent);
+            row.Account_Path = BuildAccountPath(parent, row.Account_Code);
             row.Updated_By = Session.User_ID.ToString();
             row.Updated_At = DateTime.UtcNow;
+
             _audit.Add(Session, HttpContext, "chart_of_accounts", row.Account_ID, "UPDATE", old,
-                new { row.Account_Code, row.Account_Name_AR, row.Parent_Account_ID, row.Account_Type, row.Normal_Balance, row.Is_Postable, row.Is_Active });
+                new
+                {
+                    row.Account_Code,
+                    row.Account_Name_AR,
+                    row.Parent_Account_ID,
+                    row.Account_Type,
+                    row.Account_Category,
+                    row.Normal_Balance,
+                    row.Is_Postable,
+                    row.Is_Active
+                });
+
             await _context.SaveChangesAsync();
             return Ok(row);
         }
@@ -203,86 +316,156 @@ namespace AlTayerERP.API.Controllers
 
             var row = await _context.Chart_Of_Accounts
                 .FirstOrDefaultAsync(x => x.Account_ID == id && x.Company_ID == Session.Company_ID);
-            if (row == null) return NotFound(new { message = "الحساب غير موجود ضمن الشركة الحالية." });
-            if (!row.Is_Active) return Ok(new { message = "الحساب موقوف مسبقاً." });
-            if (row.System_Account) return BadRequest(new { message = "لا يمكن إيقاف حساب نظامي." });
-            if (await _context.Chart_Of_Accounts.AnyAsync(x => x.Company_ID == Session.Company_ID && x.Parent_Account_ID == id && x.Is_Active))
+            if (row == null)
+                return NotFound(new { message = "الحساب غير موجود ضمن الشركة الحالية." });
+            if (!row.Is_Active)
+                return Ok(new { message = "الحساب موقوف مسبقاً." });
+            if (row.System_Account)
+                return BadRequest(new { message = "لا يمكن إيقاف حساب نظامي." });
+            if (await _context.Chart_Of_Accounts.AnyAsync(x =>
+                    x.Company_ID == Session.Company_ID &&
+                    x.Parent_Account_ID == id &&
+                    x.Is_Active))
                 return BadRequest(new { message = "لا يمكن إيقاف حساب له حسابات أبناء نشطة." });
+            if (await _context.Journal_Entry_Details.AnyAsync(x => x.Account_ID == id))
+                return BadRequest(new { message = "لا يمكن إيقاف حساب مستخدم في قيود محاسبية؛ أوقف استخدامه مستقبلاً عبر الصلاحيات أو أنشئ حساباً بديلاً." });
 
             row.Is_Active = false;
             row.Updated_By = Session.User_ID.ToString();
             row.Updated_At = DateTime.UtcNow;
-            _audit.Add(Session, HttpContext, "chart_of_accounts", row.Account_ID, "DEACTIVATE", new { Is_Active = true }, new { Is_Active = false }, reason);
+
+            _audit.Add(Session, HttpContext, "chart_of_accounts", row.Account_ID, "DEACTIVATE",
+                new { Is_Active = true }, new { Is_Active = false }, reason);
+
             await _context.SaveChangesAsync();
             return Ok(new { message = "تم إيقاف الحساب دون حذف تاريخه أو حركاته." });
         }
 
         private async Task<string?> ValidateAsync(CreateAccountDto? dto, ChartOfAccount? current)
         {
-            if (dto == null || string.IsNullOrWhiteSpace(dto.Account_Name_AR) || string.IsNullOrWhiteSpace(dto.Account_Type))
-                return "اسم الحساب العربي ونوع الحساب حقول مطلوبة.";
+            if (dto == null ||
+                string.IsNullOrWhiteSpace(dto.Account_Name_AR) ||
+                string.IsNullOrWhiteSpace(dto.Account_Type) ||
+                string.IsNullOrWhiteSpace(dto.Account_Category))
+                return "اسم الحساب العربي ونوع الحساب والتصنيف حقول مطلوبة.";
+
             if (Session == null) return "الجلسة غير صالحة.";
             if (!AllowedTypes.Contains(dto.Account_Type)) return "نوع الحساب غير معتمد.";
-            if (!AllowedBalances.Contains(dto.Normal_Balance)) return "طبيعة الحساب يجب أن تكون Debit أو Credit.";
-            if (dto.Is_Summary_Account && dto.Is_Postable) return "الحساب التجميعي لا يمكن أن يكون قابلاً للترحيل.";
+            if (!AllowedBalances.Contains(dto.Normal_Balance))
+                return "طبيعة الحساب يجب أن تكون Debit أو Credit.";
+            if (!AllowedCategories.TryGetValue(dto.Account_Type, out var categories) ||
+                !categories.Contains(dto.Account_Category))
+                return "التصنيف المحدد لا يتوافق مع نوع الحساب.";
+            if (dto.Is_Summary_Account && dto.Is_Postable)
+                return "الحساب التجميعي لا يمكن أن يكون قابلاً للترحيل.";
             if (dto.Multi_Currency && !string.IsNullOrWhiteSpace(dto.Currency_Code))
                 return "الحساب متعدد العملات لا يحدد له رمز عملة افتراضية.";
             if (!dto.Multi_Currency && string.IsNullOrWhiteSpace(dto.Currency_Code))
                 return "يجب تحديد العملة الافتراضية للحساب غير متعدد العملات.";
             if (!string.IsNullOrWhiteSpace(dto.Currency_Code) &&
-                !await _context.Currencies.AnyAsync(x => x.Company_ID == Session.Company_ID && x.Currency_Code == dto.Currency_Code && x.Is_Active))
+                !await _context.Currencies.AnyAsync(x =>
+                    x.Company_ID == Session.Company_ID &&
+                    x.Currency_Code == dto.Currency_Code &&
+                    x.Is_Active))
                 return "العملة الافتراضية غير فعالة في الشركة الحالية.";
 
-            var duplicateName = await _context.Chart_Of_Accounts.AsNoTracking().AnyAsync(x =>
-                x.Company_ID == Session.Company_ID && x.Account_ID != (current == null ? "" : current.Account_ID) &&
-                x.Parent_Account_ID == dto.Parent_Account_ID && x.Account_Name_AR == dto.Account_Name_AR);
-            if (duplicateName) return "يوجد حساب آخر بالاسم العربي نفسه تحت الحساب الأب المحدد.";
+            bool duplicateName = await _context.Chart_Of_Accounts.AsNoTracking().AnyAsync(x =>
+                x.Company_ID == Session.Company_ID &&
+                x.Account_ID != (current == null ? "" : current.Account_ID) &&
+                x.Parent_Account_ID == dto.Parent_Account_ID &&
+                x.Account_Name_AR == dto.Account_Name_AR);
+            if (duplicateName)
+                return "يوجد حساب آخر بالاسم العربي نفسه تحت الحساب الأب المحدد.";
 
             if (!string.IsNullOrWhiteSpace(dto.Parent_Account_ID))
             {
-                if (current != null && dto.Parent_Account_ID == current.Account_ID) return "لا يمكن جعل الحساب أباً لنفسه.";
+                if (current != null && dto.Parent_Account_ID == current.Account_ID)
+                    return "لا يمكن جعل الحساب أباً لنفسه.";
+
                 var parent = await _context.Chart_Of_Accounts.AsNoTracking()
-                    .FirstOrDefaultAsync(x => x.Account_ID == dto.Parent_Account_ID && x.Company_ID == Session.Company_ID);
-                if (parent == null || !parent.Is_Active) return "الحساب الأب غير موجود أو موقوف.";
-                if (parent.Is_Postable) return "لا يمكن إضافة حساب ابن تحت حساب قابل للترحيل.";
+                    .FirstOrDefaultAsync(x =>
+                        x.Account_ID == dto.Parent_Account_ID &&
+                        x.Company_ID == Session.Company_ID);
+
+                if (parent == null || !parent.Is_Active)
+                    return "الحساب الأب غير موجود أو موقوف.";
+                if (parent.Is_Postable || !parent.Is_Summary_Account)
+                    return "الحساب الأب يجب أن يكون حساباً تجميعياً نشطاً وغير قابل للحركة.";
+                if (!string.Equals(parent.Account_Type, dto.Account_Type, StringComparison.OrdinalIgnoreCase))
+                    return "نوع الحساب الفرعي يجب أن يطابق نوع الحساب الأب.";
                 if (current != null && await IsDescendantAsync(parent.Account_ID, current.Account_ID))
                     return "لا يمكن نقل الحساب تحت أحد أبنائه.";
             }
+
             return null;
         }
 
         private async Task<ChartOfAccount?> ParentAsync(string? id) =>
-            string.IsNullOrWhiteSpace(id) || Session == null ? null :
-            await _context.Chart_Of_Accounts.FirstAsync(x => x.Account_ID == id && x.Company_ID == Session.Company_ID);
+            string.IsNullOrWhiteSpace(id) || Session == null
+                ? null
+                : await _context.Chart_Of_Accounts.FirstAsync(x =>
+                    x.Account_ID == id && x.Company_ID == Session.Company_ID);
 
         private async Task<bool> IsDescendantAsync(string candidateParentId, string accountId)
         {
-            var next = candidateParentId;
+            string? next = candidateParentId;
             while (!string.IsNullOrWhiteSpace(next))
             {
                 if (next == accountId) return true;
                 next = await _context.Chart_Of_Accounts.AsNoTracking()
-                    .Where(x => x.Account_ID == next && Session != null && x.Company_ID == Session.Company_ID)
+                    .Where(x =>
+                        x.Account_ID == next &&
+                        Session != null &&
+                        x.Company_ID == Session.Company_ID)
                     .Select(x => x.Parent_Account_ID)
                     .FirstOrDefaultAsync();
             }
             return false;
         }
 
+        private static string DefaultBalanceForType(string accountType) =>
+            accountType switch
+            {
+                "Asset" => "Debit",
+                "Expense" => "Debit",
+                "Liability" => "Credit",
+                "Equity" => "Credit",
+                "Revenue" => "Credit",
+                _ => string.Empty
+            };
+
+        private static string BuildAccountPath(ChartOfAccount? parent, string accountCode)
+        {
+            if (parent == null)
+                return accountCode;
+
+            string parentPath = string.IsNullOrWhiteSpace(parent.Account_Path)
+                ? parent.Account_Code
+                : parent.Account_Path;
+
+            return $"{parentPath}/{accountCode}";
+        }
+
         private static void Normalize(CreateAccountDto dto)
         {
-            dto.Parent_Account_ID = string.IsNullOrWhiteSpace(dto.Parent_Account_ID) ? null : dto.Parent_Account_ID.Trim();
+            dto.Parent_Account_ID = string.IsNullOrWhiteSpace(dto.Parent_Account_ID)
+                ? null
+                : dto.Parent_Account_ID.Trim();
             dto.Account_Name_AR = dto.Account_Name_AR?.Trim() ?? string.Empty;
-            dto.Account_Name_EN = string.IsNullOrWhiteSpace(dto.Account_Name_EN) ? null : dto.Account_Name_EN.Trim();
+            dto.Account_Name_EN = string.IsNullOrWhiteSpace(dto.Account_Name_EN)
+                ? null
+                : dto.Account_Name_EN.Trim();
             dto.Account_Type = dto.Account_Type?.Trim() ?? string.Empty;
             dto.Account_Category = dto.Account_Category?.Trim() ?? string.Empty;
-            dto.Normal_Balance = (dto.Normal_Balance?.Trim()) switch
+            dto.Normal_Balance = dto.Normal_Balance?.Trim() switch
             {
                 "مدين" => "Debit",
                 "دائن" => "Credit",
                 var value => value ?? string.Empty
             };
-            dto.Currency_Code = string.IsNullOrWhiteSpace(dto.Currency_Code) ? null : dto.Currency_Code.Trim().ToUpperInvariant();
+            dto.Currency_Code = string.IsNullOrWhiteSpace(dto.Currency_Code)
+                ? null
+                : dto.Currency_Code.Trim().ToUpperInvariant();
             dto.Notes = string.IsNullOrWhiteSpace(dto.Notes) ? null : dto.Notes.Trim();
         }
 
@@ -299,6 +482,11 @@ namespace AlTayerERP.API.Controllers
             row.Is_Summary_Account = dto.Is_Summary_Account;
             row.System_Account = dto.System_Account;
             row.Allow_ManualEntry = dto.Allow_ManualEntry;
+            row.Requires_Party = dto.Requires_Party;
+            row.Requires_CostCenter = dto.Requires_CostCenter;
+            row.Requires_Project = dto.Requires_Project;
+            row.Affects_Balance_Sheet = dto.Affects_Balance_Sheet;
+            row.Affects_Income_Statement = dto.Affects_Income_Statement;
             row.Multi_Currency = dto.Multi_Currency;
             row.Currency_Code = dto.Currency_Code;
             row.Is_Active = dto.Is_Active;
