@@ -111,11 +111,12 @@ public sealed class MobilePaymentRequestReferencesController : ControllerBase
         var cashBoxes = await _db.Cash_Boxes.AsNoTracking()
             .Where(x => x.Company_ID == session.Company_ID &&
                         x.Branch_ID == session.Branch_ID &&
-                        x.Is_Active)
+                        x.Is_Active &&
+                        x.Account_ID != null && x.Account_ID != "")
             .OrderBy(x => x.Box_Name_AR)
             .Select(x => new
             {
-                accountId = x.Account_ID ?? string.Empty,
+                accountId = x.Account_ID,
                 sourceType = "CASH",
                 displayName = x.CashBox_Code + " - " + x.Box_Name_AR
             })
@@ -123,11 +124,12 @@ public sealed class MobilePaymentRequestReferencesController : ControllerBase
 
         var banks = await _db.Bank_Accounts.AsNoTracking()
             .Where(x => x.Company_ID == session.Company_ID &&
-                        x.Is_Active)
+                        x.Is_Active &&
+                        x.GL_Account != null && x.GL_Account != "")
             .OrderBy(x => x.Bank_Name_AR)
             .Select(x => new
             {
-                accountId = x.GL_Account ?? string.Empty,
+                accountId = x.GL_Account!,
                 sourceType = "BANK",
                 displayName = x.Bank_Name_AR + " - " + x.Account_No
             })
