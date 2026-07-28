@@ -627,21 +627,24 @@ namespace AlTayerERP.Desktop
 
         private void BeginEdit()
         {
-            if (_selectedId is not int id || id <= 0)
+            if (_selectedId == null)
             {
-                MessageBox.Show("اختر فترة مالية من الجدول أولاً.", Text,
+                MessageBox.Show("اختر سجلاً من الجدول أولاً.", Text,
                     MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
 
-            if (_closePeriodButton?.Enabled == false && _reopenPeriodButton?.Enabled == true)
+            if (IsFiscalPeriods &&
+                _closePeriodButton?.Enabled == false &&
+                _reopenPeriodButton?.Enabled == true)
             {
                 MessageBox.Show("الفترة مقفلة؛ استخدم «إعادة الفتح» أولاً.", Text,
                     MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
 
-            _inputs["Period_Code"].Focus();
+            var firstEditable = _inputs.FirstOrDefault(pair => pair.Value.Enabled).Value;
+            firstEditable?.Focus();
         }
 
         private async Task RunFiscalPeriodLifecycleAsync(string operation, string caption)
