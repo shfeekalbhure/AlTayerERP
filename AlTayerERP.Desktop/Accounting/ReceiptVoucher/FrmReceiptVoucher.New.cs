@@ -1,7 +1,5 @@
 ﻿using AlTayerERP.Desktop.Services;
 using System;
-using System.Net.Http.Json;
-using System.Threading.Tasks;
 using System.Windows.Forms;
 
 namespace AlTayerERP.Desktop
@@ -11,18 +9,6 @@ namespace AlTayerERP.Desktop
     /// </summary>
     public partial class FrmReceiptVoucher
     {
-        #region === نموذج استجابة الترقيم ===
-
-        private sealed class GeneratedDocumentNumberModel
-        {
-            // الرقم النهائي المحجوز من الخادم؛ لا يعاد بعد إلغاء السند.
-            public string Document_Number { get; set; } = string.Empty;
-            public string Document_Type { get; set; } = string.Empty;
-            public int Serial_Number { get; set; }
-        }
-
-        #endregion
-
         #region === تجهيز سند جديد ===
 
         private void NewVoucher()
@@ -36,7 +22,8 @@ namespace AlTayerERP.Desktop
             _loadedReceivedFromName = string.Empty;
             _isCrossContextVoucher = false;
             UpdateReviewStatusDisplay(null, null);
-            txtVoucherNo.Text = "جاري توليد الرقم...";
+            // لا يُحجز رقم عند فتح المسودة؛ الخادم هو المصدر الوحيد للرقم الرسمي عند الحفظ.
+            txtVoucherNo.Text = "مسودة جديدة";
 
             dtVoucherDate.Value = DateTime.Today;
             dtReferenceDate.Value = DateTime.Today;
@@ -84,7 +71,7 @@ namespace AlTayerERP.Desktop
 
         #region === حدث زر جديد ===
 
-        private async void btnNew_Click(object? sender, EventArgs e)
+        private void btnNew_Click(object? sender, EventArgs e)
         {
             try
             {
@@ -92,16 +79,13 @@ namespace AlTayerERP.Desktop
                 UseWaitCursor = true;
 
                 NewVoucher();
-
-                await GenerateVoucherNumberAsync();
-
                 SetNewMode();
 
                 txtAgainst.Focus();
             }
             catch (Exception ex)
             {
-                txtVoucherNo.Text = "تعذر توليد الرقم";
+                txtVoucherNo.Text = "تعذر تجهيز المسودة";
 
                 MessageBox.Show(
                     $"حدث خطأ أثناء تجهيز سند جديد:\n\n{ex.Message}",
@@ -120,63 +104,5 @@ namespace AlTayerERP.Desktop
 
         #endregion
 
-        #region === توليد رقم السند ===
-
-        private async Task GenerateVoucherNumberAsync()
-        {
-            if (string.IsNullOrWhiteSpace(CurrentSession.Company_ID) ||
-                CurrentSession.Branch_ID <= 0 || CurrentSession.Year_ID <= 0)
-            {
-                throw new InvalidOperationException("سياق الشركة والفرع والسنة المالية غير مكتمل.");
-            }
-
-            // الحجز عملية POST متعمدة: توليد رقم العرض يغير العداد المركزي،
-            // ولذلك لا يمكن أن يتكرر الرقم إذا أغلق المستخدم المسودة أو ألغاها.
-            var documentType = _voucherTypeCode switch
-            {
-                "RECEIPT" => "RECEIPT_VOUCHER",
-                "PAYMENT" => "PAYMENT_VOUCHER",
-                "JOURNAL" => "JOURNAL_ENTRY",
-                _ => throw new InvalidOperationException("نوع السند غير مدعوم للترقيم.")
-            };
-
-            var response = await _client.PostAsJsonAsync(
-                $"{_baseUrl}NumberingSettings/Reserve",
-                new { Document_Type = documentType });
-
-            if (!response.IsSuccessStatusCode)
-                throw new InvalidOperationException(await response.Content.ReadAsStringAsync());
-
-            var result = await response.Content.ReadFromJsonAsync<GeneratedDocumentNumberModel>();
-            if (result == null || string.IsNullOrWhiteSpace(result.Document_Number))
-                throw new InvalidOperationException("لم ترجع خدمة الترقيم رقماً محجوزاً للسند.");
-
-            txtVoucherNo.Text = result.Document_Number;
-        }
-        #endregion
-
-        #region === تحديد السنة المالية ===
-
-        private int GetCurrentFiscalYearNumber()
-        {
-            if (!string.IsNullOrWhiteSpace(CurrentSession.Year_Name))
-            {
-                string yearName = CurrentSession.Year_Name.Trim();
-
-                if (int.TryParse(yearName, out int directYear) && directYear >= 2000 && directYear <= 3000)
-                    return directYear;
-
-                string[] parts = yearName.Split(new[] { ' ', '/', '-' }, StringSplitOptions.RemoveEmptyEntries);
-                foreach (string part in parts)
-                {
-                    if (int.TryParse(part, out int parsedYear) && parsedYear >= 2000 && parsedYear <= 3000)
-                        return parsedYear;
-                }
-            }
-
-            return dtVoucherDate.Value.Year;
-        }
-
-        #endregion
     }
 }
