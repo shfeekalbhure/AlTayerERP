@@ -728,7 +728,9 @@ namespace AlTayerERP.Desktop
 
         private async Task SaveAsync()
         {
-            if (!CurrentSession.Is_System_Admin)
+            // الفترات المالية تعتمد صلاحيات الشاشة من API (إضافة/تعديل/اعتماد)،
+            // ولا يجوز حصرها محلياً في مدير النظام فقط.
+            if (!IsFiscalPeriods && !CurrentSession.Is_System_Admin)
             {
                 MessageBox.Show("إدارة هذه القائمة مخصصة لمدير النظام.", Text, MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
