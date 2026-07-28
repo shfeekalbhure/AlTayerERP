@@ -35,7 +35,7 @@ namespace AlTayerERP.API.Controllers
             if (Session == null)
                 return Unauthorized(new { message = "انتهت الجلسة أو أنها غير صالحة." });
 
-            if (!await _authorization.IsAllowedAsync(Session, "CashBoxes", ScreenOperation.Edit))
+            if (!await _authorization.IsAllowedAsync(Session, "CashBoxes", ScreenOperation.Reactivate))
                 return Forbid();
 
             if (dto == null || string.IsNullOrWhiteSpace(dto.Reason))
@@ -64,7 +64,10 @@ namespace AlTayerERP.API.Controllers
                 x.Company_ID == Session.Company_ID &&
                 x.Is_Active &&
                 x.Is_Summary_Account &&
-                !x.Is_Postable);
+                !x.Is_Postable &&
+                (x.Account_Category == "Cash" ||
+                 x.Account_Name_AR.Contains("صندوق") ||
+                 x.Account_Name_AR.Contains("نقد")));
 
             if (!parentIsValid)
                 return BadRequest(new { message = "لا يمكن إعادة التفعيل لأن حساب الصناديق الأب موقوف أو غير تجميعي." });
@@ -101,6 +104,21 @@ namespace AlTayerERP.API.Controllers
             await transaction.CommitAsync();
 
             return Ok(new { message = "تمت إعادة تفعيل الصندوق وحسابه المرتبط بنجاح." });
+        }
+
+        /// <summary>يسجل معاينة طباعة قائمة الصناديق في التدقيق المركزي دون تعديل أي رصيد.</summary>
+        [HttpPost("print")]
+        public async Task<IActionResult> RegisterListPrint()
+        {
+            if (Session == null)
+                return Unauthorized(new { message = "انتهت الجلسة أو أنها غير صالحة." });
+
+            if (!await _authorization.IsAllowedAsync(Session, "CashBoxes", ScreenOperation.Print))
+                return Forbid();
+
+            _audit.Add(Session, HttpContext, "cash_boxes", "LIST", "PRINT", notes: "فتح معاينة طباعة قائمة الصناديق.");
+            await _context.SaveChangesAsync();
+            return Ok(new { message = "تم تسجيل عملية الطباعة." });
         }
     }
 
