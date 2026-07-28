@@ -125,6 +125,12 @@ public partial class NewVoucherPage : ContentPage
             ShowStatus("اختر الحساب المقابل.");
             return;
         }
+        if (SourcePicker.SelectedItem is VoucherEntrySourceDto source &&
+            string.Equals(account.Id, source.AccountId, StringComparison.Ordinal))
+        {
+            ShowStatus("لا يمكن استخدام حساب الصندوق أو البنك نفسه كحساب مقابل.");
+            return;
+        }
         if (CurrencyPicker.SelectedItem is not VoucherEntryCurrencyDto currency)
         {
             ShowStatus("اختر العملة.");
@@ -184,7 +190,15 @@ public partial class NewVoucherPage : ContentPage
         if (_references == null) { ShowStatus("لم يتم تحميل بيانات السند."); return; }
         if (SourcePicker.SelectedItem is not VoucherEntrySourceDto source) { ShowStatus("اختر الصندوق أو البنك."); return; }
         if (string.IsNullOrWhiteSpace(PartyNameEntry.Text)) { ShowStatus(_type == "RECEIPT" ? "اسم المستلم منه مطلوب." : "اسم المستفيد مطلوب."); return; }
+        if (PaymentMethodPicker.SelectedItem is not VoucherEntryPaymentMethodDto method) { ShowStatus("اختر طريقة السداد."); return; }
+        var accountingText = Clean(DescriptionEditor.Text);
+        if (accountingText == null) { ShowStatus("البيان المحاسبي مطلوب."); return; }
         if (_lines.Count == 0) { ShowStatus("أضف سطراً محاسبياً واحداً على الأقل."); return; }
+        if (_lines.Any(x => string.Equals(x.AccountId, source.AccountId, StringComparison.Ordinal)))
+        {
+            ShowStatus("لا يمكن استخدام حساب الصندوق أو البنك نفسه كحساب مقابل.");
+            return;
+        }
         if (!_references.OpenPeriods.Any(x => VoucherDatePicker.Date >= x.StartDate.Date && VoucherDatePicker.Date <= x.EndDate.Date))
         {
             ShowStatus("تاريخ السند لا يقع داخل فترة مالية مفتوحة.");
@@ -207,7 +221,7 @@ public partial class NewVoucherPage : ContentPage
                 Local_Amount = total,
                 Debit_Amount = _type == "RECEIPT" ? total : 0m,
                 Credit_Amount = _type == "PAYMENT" ? total : 0m,
-                Description = Clean(DescriptionEditor.Text),
+                Description = accountingText,
                 Line_Type = 1
             }
         };
@@ -234,7 +248,6 @@ public partial class NewVoucherPage : ContentPage
         }
 
         var party = PartyPicker.SelectedItem as VoucherEntryPartyDto;
-        var method = PaymentMethodPicker.SelectedItem as VoucherEntryPaymentMethodDto;
         var voucherDate = VoucherDatePicker.Date ?? DateTime.Today;
         var dto = new CreateMobileVoucherDto
         {
@@ -245,14 +258,15 @@ public partial class NewVoucherPage : ContentPage
             Cash_Account_ID = source.AccountId,
             Party_ID = party?.Id,
             Received_From_Name = PartyNameEntry.Text.Trim(),
-            Payment_Method_ID = method?.Id,
+            Payment_Method_ID = method.Id,
             Currency_ID = localCurrency.Id,
             Exchange_Rate = 1m,
             Amount = total,
             Foreign_Total = 0m,
             Local_Total = total,
             Reference_No = Clean(ReferenceEntry.Text),
-            Description = Clean(DescriptionEditor.Text),
+            Against_Text = accountingText,
+            Description = accountingText,
             Requires_Approval = true,
             Details = details
         };
