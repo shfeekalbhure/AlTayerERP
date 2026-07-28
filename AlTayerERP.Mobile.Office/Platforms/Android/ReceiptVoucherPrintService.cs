@@ -4,7 +4,6 @@ using Android.Content;
 using Android.OS;
 using Android.Print;
 using Android.Provider;
-using Android.Runtime;
 using AlTayerERP.Mobile.Office.DTOs;
 using AlTayerERP.Mobile.Office.Services;
 using Microsoft.Maui.ApplicationModel;
@@ -64,7 +63,6 @@ public sealed class ReceiptVoucherPrintService : IReceiptVoucherPrintService
         var activity = Platform.CurrentActivity
             ?? throw new InvalidOperationException("تعذر الوصول إلى شاشة Android الحالية لتصدير PDF.");
 
-        var webView = await CreateReadyWebViewAsync(activity, voucher, cancellationToken);
         var fileName = $"{Safe(voucher.Header.DocumentTitle)}_{Safe(voucher.Header.VoucherNo)}_{DateTime.Now:yyyyMMdd_HHmmss}.pdf";
         var resolver = activity.ContentResolver
             ?? throw new InvalidOperationException("تعذر الوصول إلى ذاكرة الهاتف.");
@@ -81,17 +79,11 @@ public sealed class ReceiptVoucherPrintService : IReceiptVoucherPrintService
 
         try
         {
-            using var destination = resolver.OpenFileDescriptor(uri, "w")
+            // نرسم ملف PDF مباشرةً بدلاً من وراثة callbacks محمية في Android Print API.
+            // بهذه الطريقة يحفظ التطبيق الملف فعلياً في Downloads دون الحاجة لحوار الطباعة.
+            using var destination = resolver.OpenOutputStream(uri)
                 ?? throw new InvalidOperationException("تعذر فتح ملف PDF للتصدير.");
-
-            var adapter = webView.CreatePrintDocumentAdapter(fileName);
-            var attributes = new PrintAttributes.Builder()
-                .SetMediaSize(PrintAttributes.MediaSize.IsoA4)
-                .SetColorMode(PrintColorMode.Color)
-                .Build();
-
-            await LayoutAsync(adapter, attributes, cancellationToken);
-            await WritePdfAsync(adapter, destination, cancellationToken);
+            WritePdfDocument(destination, voucher, cancellationToken);
 
             return new ReceiptVoucherPdfExportResult(fileName, uri.ToString());
         }
@@ -120,20 +112,48 @@ public sealed class ReceiptVoucherPrintService : IReceiptVoucherPrintService
         return webView;
     }
 
-    private static async Task LayoutAsync(PrintDocumentAdapter adapter, PrintAttributes attributes, CancellationToken cancellationToken)
+    private static void WritePdfDocument(Stream destination, ReceiptVoucherDetailsDto voucher, CancellationToken cancellationToken)
     {
-        var completion = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        adapter.OnLayout(null, attributes, new CancellationSignal(), new PdfLayoutCallback(completion), null);
-        using var registration = cancellationToken.Register(() => completion.TrySetCanceled(cancellationToken));
-        await completion.Task;
-    }
-
-    private static async Task WritePdfAsync(PrintDocumentAdapter adapter, ParcelFileDescriptor destination, CancellationToken cancellationToken)
-    {
-        var completion = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        adapter.OnWrite(new[] { PageRange.AllPages }, destination, new CancellationSignal(), new PdfWriteCallback(completion));
-        using var registration = cancellationToken.Register(() => completion.TrySetCanceled(cancellationToken));
-        await completion.Task;
+        using var document = new global::Android.Graphics.Pdf.PdfDocument();
+        var pageInfo = new global::Android.Graphics.Pdf.PdfDocument.PageInfo.Builder(595, 842, 1).Create();
+        using var page = document.StartPage(pageInfo);
+        var canvas = page.Canvas;
+        using var titlePaint = new global::Android.Graphics.Paint { Color = global::Android.Graphics.Color.Rgb(23, 50, 77), TextSize = 20f, TextAlign = global::Android.Graphics.Paint.Align.Right };
+        using var textPaint = new global::Android.Graphics.Paint { Color = global::Android.Graphics.Color.Rgb(53, 86, 111), TextSize = 12f, TextAlign = global::Android.Graphics.Paint.Align.Right };
+        using var linePaint = new global::Android.Graphics.Paint { Color = global::Android.Graphics.Color.Rgb(143, 161, 179), StrokeWidth = 1f };
+        var h = voucher.Header;
+        var y = 48f;
+        canvas.DrawText(string.IsNullOrWhiteSpace(h.CompanyName) ? "مكتب الطائر السعيد للنقل" : h.CompanyName, 555, y, titlePaint);
+        y += 30;
+        canvas.DrawText(h.DocumentTitle, 555, y, titlePaint);
+        y += 24;
+        canvas.DrawText($"الفرع: {h.BranchName}    رقم السند: {h.VoucherNo}    التاريخ: {h.VoucherDate:yyyy/MM/dd}", 555, y, textPaint);
+        y += 24;
+        canvas.DrawLine(40, y, 555, y, linePaint);
+        y += 24;
+        canvas.DrawText($"الطرف: {h.ReceivedFromName ?? "—"}", 555, y, textPaint);
+        y += 22;
+        canvas.DrawText($"الصندوق/البنك: {h.CashAccountDisplay}    العملة: {h.CurrencyDisplay}", 555, y, textPaint);
+        y += 22;
+        canvas.DrawText($"المرجع: {h.ReferenceNo ?? "—"}    الحالة: {h.WorkflowStatus}", 555, y, textPaint);
+        y += 22;
+        canvas.DrawText($"البيان: {h.Description ?? "—"}", 555, y, textPaint);
+        y += 28;
+        canvas.DrawText($"الإجمالي المحلي: {h.LocalTotal:N2}", 555, y, titlePaint);
+        y += 32;
+        canvas.DrawLine(40, y, 555, y, linePaint);
+        y += 20;
+        canvas.DrawText("الحساب                                      مدين                 دائن", 555, y, textPaint);
+        y += 18;
+        foreach (var line in voucher.Details.OrderBy(x => x.LineNo))
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (y > 780) break;
+            canvas.DrawText($"{line.AccountDisplay}   {line.DebitAmount:N2}   {line.CreditAmount:N2}", 555, y, textPaint);
+            y += 20;
+        }
+        document.FinishPage(page);
+        document.WriteTo(destination);
     }
 
     private static string BuildHtml(ReceiptVoucherDetailsDto voucher)
@@ -236,21 +256,4 @@ table.lines { width:100%; border-collapse:collapse; margin-top:16px; font-size:1
         }
     }
 
-    private sealed class PdfLayoutCallback(TaskCompletionSource completion)
-        : PrintDocumentAdapter.LayoutResultCallback(IntPtr.Zero, JniHandleOwnership.DoNotTransfer)
-    {
-        public override void OnLayoutFinished(PrintDocumentInfo? info, bool changed) => completion.TrySetResult();
-        public override void OnLayoutFailed(Java.Lang.ICharSequence? error) =>
-            completion.TrySetException(new InvalidOperationException(error?.ToString() ?? "تعذر تجهيز ملف PDF."));
-        public override void OnLayoutCancelled() => completion.TrySetCanceled();
-    }
-
-    private sealed class PdfWriteCallback(TaskCompletionSource completion)
-        : PrintDocumentAdapter.WriteResultCallback(IntPtr.Zero, JniHandleOwnership.DoNotTransfer)
-    {
-        public override void OnWriteFinished(PageRange[]? pages) => completion.TrySetResult();
-        public override void OnWriteFailed(Java.Lang.ICharSequence? error) =>
-            completion.TrySetException(new InvalidOperationException(error?.ToString() ?? "تعذر تصدير ملف PDF."));
-        public override void OnWriteCancelled() => completion.TrySetCanceled();
-    }
 }
