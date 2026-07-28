@@ -13,8 +13,13 @@ public sealed class PaymentRequestListItemDto
     public string? Description { get; set; }
     public decimal Approved_Local_Total { get; set; }
     public long? Payment_Voucher_ID { get; set; }
+    public string Created_By { get; set; } = string.Empty;
+    public DateTime Created_At { get; set; }
+    public string? Updated_By { get; set; }
+    public DateTime? Updated_At { get; set; }
     public List<PaymentRequestLineItemDto> Details { get; set; } = [];
 
+    public DateTime LastModifiedAt => Updated_At ?? Created_At;
     public decimal LocalTotal => Details.Sum(x => x.Local_Amount);
     public string StatusDisplay => Status switch
     {
@@ -50,6 +55,7 @@ public sealed class CreatePaymentRequestDto
     public int? Payment_Method_ID { get; set; }
     public string? Header_Reference_No { get; set; }
     public string? Description { get; set; }
+    public DateTime? Expected_Last_Modified_At { get; set; }
     public List<CreatePaymentRequestLineDto> Lines { get; set; } = [];
 }
 
