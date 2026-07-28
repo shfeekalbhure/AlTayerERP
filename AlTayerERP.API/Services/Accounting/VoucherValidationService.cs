@@ -51,6 +51,10 @@ public class VoucherValidationService
         if (!isJournal && !voucher.Payment_Method_ID.HasValue)
             return (false, "طريقة السداد مطلوبة لسندي القبض والصرف.");
 
+        // القيد اليومي لا يحمل حساب نقدية في رأس السند؛ جميع الحسابات تأتي من السطور.
+        if (isJournal && !string.IsNullOrWhiteSpace(voucher.Cash_Account_ID))
+            return (false, "لا يجوز تحديد حساب صندوق أو بنك في رأس القيد اليومي.");
+
         if (voucher.Exchange_Rate <= 0 || voucher.Currency_ID <= 0)
             return (false, "العملة وسعر الصرف يجب أن يكونا صالحين.");
 
@@ -218,12 +222,27 @@ public class VoucherValidationService
             if (detail.Debit_Amount == 0 && detail.Credit_Amount == 0)
                 return (false, $"يجب إدخال مبلغ مدين أو دائن في السطر رقم {detail.Line_No}.");
 
-            if (detail.Local_Amount <= 0)
-                return (false, $"المبلغ المحلي في السطر رقم {detail.Line_No} يجب أن يكون أكبر من صفر.");
+            if (detail.Currency_ID <= 0 || detail.Exchange_Rate <= 0)
+                return (false, $"العملة أو سعر الصرف غير صالح في السطر رقم {detail.Line_No}.");
+
+            if (detail.Foreign_Amount < 0 || detail.Local_Amount <= 0)
+                return (false, $"المبلغ الأجنبي أو المحلي غير صالح في السطر رقم {detail.Line_No}.");
+
+            decimal accountingAmount = detail.Debit_Amount > 0
+                ? detail.Debit_Amount
+                : detail.Credit_Amount;
+
+            if (decimal.Round(detail.Local_Amount, 2) != decimal.Round(accountingAmount, 2))
+                return (false,
+                    $"المبلغ المحلي في السطر رقم {detail.Line_No} لا يطابق قيمة المدين أو الدائن.");
         }
 
         decimal totalDebit = voucher.Details.Sum(x => x.Debit_Amount);
         decimal totalCredit = voucher.Details.Sum(x => x.Credit_Amount);
+
+        if (decimal.Round(totalDebit, 2) <= 0 || decimal.Round(totalCredit, 2) <= 0)
+            return (false, "إجمالي المدين والدائن يجب أن يكون أكبر من صفر.");
+
         if (decimal.Round(totalDebit, 2) != decimal.Round(totalCredit, 2))
         {
             decimal difference = decimal.Round(totalDebit - totalCredit, 2);
