@@ -158,8 +158,8 @@ namespace AlTayerERP.Desktop
             txtCashBoxNameAR.TextChanged += (_, _) => _errors.SetError(txtCashBoxNameAR, string.Empty);
             cmbCurrency.SelectedIndexChanged += (_, _) => _errors.SetError(cmbCurrency, string.Empty);
             cmbAccount.SelectedIndexChanged += cmbAccount_SelectedIndexChanged;
-            numMinimumLimit.ValueChanged += (_, _) => ValidateLimitsInline();
-            numMaximumLimit.ValueChanged += (_, _) => ValidateLimitsInline();
+            numMinimumLimit.ValueChanged += (_, _) => ValidateCashBoxLimitsInline();
+            numMaximumLimit.ValueChanged += (_, _) => ValidateCashBoxLimitsInline();
 
             KeyDown += FrmCashBoxes_KeyDown;
             FormClosing += FrmCashBoxes_FormClosing;
@@ -625,7 +625,7 @@ namespace AlTayerERP.Desktop
             }
             if (numMinimumLimit.Value > numMaximumLimit.Value)
             {
-                ValidateLimitsInline();
+                ValidateCashBoxLimitsInline();
                 valid = false;
             }
 
@@ -644,7 +644,7 @@ namespace AlTayerERP.Desktop
             return valid;
         }
 
-        private void ValidateLimitsInline()
+        private void ValidateCashBoxLimitsInline()
         {
             var message = numMinimumLimit.Value > numMaximumLimit.Value
                 ? "الحد الأدنى يجب ألا يتجاوز الحد الأعلى."
