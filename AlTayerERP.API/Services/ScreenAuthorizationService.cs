@@ -6,7 +6,8 @@ namespace AlTayerERP.API.Services
 {
     /// <summary>
     /// محرك التفويض للخادم. السياسة Default Deny: غياب صلاحية الدور أو استثناء المستخدم
-    /// يعني الرفض. استثناء المستخدم SCREEN/<Screen_Code> يحل محل صلاحية دوره لتلك الشاشة.
+    /// يعني الرفض. مدير النظام يتجاوز صلاحيات الشاشات العادية فقط، بينما العمليات المالية
+    /// الحساسة التي تستعمل IsExplicitlyAllowedAsync تبقى خاضعة لصلاحية صريحة.
     /// </summary>
     public sealed class ScreenAuthorizationService
     {
@@ -21,6 +22,11 @@ namespace AlTayerERP.API.Services
             CancellationToken cancellationToken = default)
         {
             var normalizedScreen = screenCode.Trim();
+
+            // مدير النظام يملك جميع عمليات الشاشات العادية. توجد دالة مستقلة
+            // IsExplicitlyAllowedAsync للعمليات المالية الحساسة التي لا يجوز تجاوزها.
+            if (session.Is_System_Admin)
+                return true;
 
             // الاستثناء المباشر للمستخدم أعلى أولوية من الدور؛ الصف ذو القيم false
             // يستخدم كمنع صريح ولا يسقط إلى صلاحية الدور.
