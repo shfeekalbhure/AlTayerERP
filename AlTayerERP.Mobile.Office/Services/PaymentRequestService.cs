@@ -1,11 +1,16 @@
+using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
 using AlTayerERP.Mobile.Office.DTOs;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace AlTayerERP.Mobile.Office.Services;
 
-public sealed class PaymentRequestService(HttpClient httpClient, SessionStorageService sessionStorage)
+public sealed class PaymentRequestService(
+    HttpClient httpClient,
+    SessionStorageService sessionStorage,
+    IServiceProvider serviceProvider)
 {
     public async Task<List<PaymentRequestListItemDto>> GetAsync(string? status = null, string? requestNo = null, CancellationToken cancellationToken = default)
     {
@@ -88,7 +93,7 @@ public sealed class PaymentRequestService(HttpClient httpClient, SessionStorageS
     }
 
     private async Task<StoredSessionDto> GetSessionAsync() =>
-        await sessionStorage.GetAsync() ?? throw new InvalidOperationException("لا توجد جلسة دخول محفوظة.");
+        await sessionStorage.GetAsync() ?? throw new PaymentRequestSessionExpiredException("انتهت جلسة الدخول. سجل الدخول من جديد.");
 
     private static HttpRequestMessage CreateRequest(HttpMethod method, string url, string accessToken)
     {
@@ -97,12 +102,49 @@ public sealed class PaymentRequestService(HttpClient httpClient, SessionStorageS
         return request;
     }
 
-    private static async Task EnsureSuccessAsync(HttpResponseMessage response, string fallback, CancellationToken cancellationToken)
+    private async Task EnsureSuccessAsync(HttpResponseMessage response, string fallback, CancellationToken cancellationToken)
     {
         if (response.IsSuccessStatusCode) return;
 
         var raw = await response.Content.ReadAsStringAsync(cancellationToken);
-        throw new InvalidOperationException(ExtractMessage(raw, fallback));
+        var message = ExtractMessage(raw, fallback);
+
+        if (response.StatusCode == HttpStatusCode.Unauthorized)
+        {
+            sessionStorage.Clear();
+            await RedirectToLoginAsync();
+            throw new PaymentRequestSessionExpiredException("انتهت جلسة الدخول. تم إعادتك إلى شاشة الدخول.");
+        }
+
+        if (response.StatusCode == HttpStatusCode.Forbidden)
+            throw new PaymentRequestForbiddenException(string.IsNullOrWhiteSpace(message)
+                ? "لا تملك الصلاحية المطلوبة لتنفيذ هذه العملية."
+                : message);
+
+        if (response.StatusCode == HttpStatusCode.Conflict)
+            throw new PaymentRequestConflictException(string.IsNullOrWhiteSpace(message)
+                ? "حدث تعارض في حالة طلب الصرف. حدّث البيانات ثم أعد المحاولة."
+                : message);
+
+        throw new InvalidOperationException(message);
+    }
+
+    private async Task RedirectToLoginAsync()
+    {
+        await MainThread.InvokeOnMainThreadAsync(() =>
+        {
+            var mainPage = serviceProvider.GetRequiredService<MainPage>();
+            var navigationPage = new NavigationPage(mainPage)
+            {
+                FlowDirection = FlowDirection.RightToLeft,
+                BarBackgroundColor = Color.FromArgb("#17324D"),
+                BarTextColor = Colors.White
+            };
+
+            var window = Application.Current?.Windows.FirstOrDefault();
+            if (window != null)
+                window.Page = navigationPage;
+        });
     }
 
     private static string ExtractMessage(string? raw, string fallback)
@@ -116,25 +158,14 @@ public sealed class PaymentRequestService(HttpClient httpClient, SessionStorageS
             using var document = JsonDocument.Parse(text);
             if (document.RootElement.ValueKind == JsonValueKind.Object)
             {
-                if (document.RootElement.TryGetProperty("message", out var message) &&
-                    message.ValueKind == JsonValueKind.String &&
-                    !string.IsNullOrWhiteSpace(message.GetString()))
+                foreach (var propertyName in new[] { "message", "detail", "title" })
                 {
-                    return message.GetString()!.Trim();
-                }
-
-                if (document.RootElement.TryGetProperty("detail", out var detail) &&
-                    detail.ValueKind == JsonValueKind.String &&
-                    !string.IsNullOrWhiteSpace(detail.GetString()))
-                {
-                    return detail.GetString()!.Trim();
-                }
-
-                if (document.RootElement.TryGetProperty("title", out var title) &&
-                    title.ValueKind == JsonValueKind.String &&
-                    !string.IsNullOrWhiteSpace(title.GetString()))
-                {
-                    return title.GetString()!.Trim();
+                    if (document.RootElement.TryGetProperty(propertyName, out var value) &&
+                        value.ValueKind == JsonValueKind.String &&
+                        !string.IsNullOrWhiteSpace(value.GetString()))
+                    {
+                        return value.GetString()!.Trim();
+                    }
                 }
             }
 
@@ -143,7 +174,7 @@ public sealed class PaymentRequestService(HttpClient httpClient, SessionStorageS
         }
         catch (JsonException)
         {
-            // ليست استجابة JSON؛ نستخدم النص المختصر إن كان مناسباً.
+            // ليست استجابة JSON؛ نستخدم النص المختصر إن كان آمناً.
         }
 
         if (text.Contains("MySqlConnector", StringComparison.OrdinalIgnoreCase) ||
@@ -156,3 +187,7 @@ public sealed class PaymentRequestService(HttpClient httpClient, SessionStorageS
         return text.Trim('"');
     }
 }
+
+public sealed class PaymentRequestSessionExpiredException(string message) : InvalidOperationException(message);
+public sealed class PaymentRequestForbiddenException(string message) : InvalidOperationException(message);
+public sealed class PaymentRequestConflictException(string message) : InvalidOperationException(message);
