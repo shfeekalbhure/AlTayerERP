@@ -19,10 +19,10 @@ public static class MauiProgram
                 fonts.AddFont("OpenSans-Semibold.ttf", "OpenSansSemibold");
             });
 
-        // عنوان جهاز الخادم داخل الشبكة المحلية. لا تستخدم localhost من الجوال.
+        // اتصال USB: ينقل adb reverse منفذ 5021 من الهاتف إلى الكمبيوتر.
         builder.Services.AddSingleton(new HttpClient
         {
-            BaseAddress = new Uri("http://172.16.4.171:5021/"),
+            BaseAddress = new Uri("http://127.0.0.1:5021/"),
             Timeout = TimeSpan.FromSeconds(30)
         });
         builder.Services.AddSingleton<SessionStorageService>();
