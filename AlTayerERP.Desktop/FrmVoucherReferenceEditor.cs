@@ -259,7 +259,7 @@ namespace AlTayerERP.Desktop
                     : IsParties
                         // تكبير حاوية بيانات الأطراف المالية 4 سم تقريباً (152px)
                         // يخفض مساحة الجدول بنفس المقدار مع الحفاظ على ترتيب الحقول.
-                        ? new Padding(14, 10, 14, 162)
+                        ? new Padding(14, 10, 14, 10)
                         : new Padding(14, 10, 14, 10),
                 Margin = new Padding(0, 0, 0, 8)
             };
@@ -395,6 +395,10 @@ namespace AlTayerERP.Desktop
                 });
             }
 
+            // تستثمر المساحة التي كُبّرت للحاوية في إظهار سجل الإنشاء والتعديل للطرف.
+            if (IsParties)
+                card.Controls.Add(CreatePartiesAuditSection());
+
             card.Controls.Add(editor);
             card.Controls.Add(title);
             return card;
@@ -434,6 +438,50 @@ namespace AlTayerERP.Desktop
                     check.Height = 34;
                     break;
             }
+        }
+
+        /// <summary>
+        /// سجل تدقيقي ظاهر للطرف المالي؛ يعرض قيم الخادم فقط ولا يسمح بتعديلها من الواجهة.
+        /// </summary>
+        private Control CreatePartiesAuditSection()
+        {
+            var card = new Panel
+            {
+                Dock = DockStyle.Bottom,
+                Height = 152,
+                BackColor = Color.FromArgb(248, 250, 252),
+                BorderStyle = BorderStyle.FixedSingle,
+                Padding = new Padding(8, 5, 8, 5),
+                Margin = new Padding(0, 8, 0, 0)
+            };
+            var title = new Label
+            {
+                Text = "بيانات الإنشاء والتعديل",
+                Dock = DockStyle.Top,
+                Height = 24,
+                ForeColor = Color.FromArgb(27, 62, 104),
+                Font = new Font("Segoe UI", 9F, FontStyle.Bold),
+                TextAlign = ContentAlignment.MiddleRight
+            };
+            var fields = new FlowLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                FlowDirection = FlowDirection.RightToLeft,
+                WrapContents = true,
+                AutoScroll = false,
+                Padding = Padding.Empty
+            };
+
+            AddAuditField(fields, "Created_By", "أنشئ بواسطة", 175);
+            AddAuditField(fields, "Created_At", "تاريخ الإنشاء", 175);
+            AddAuditField(fields, "Updated_By", "عُدّل بواسطة", 175);
+            AddAuditField(fields, "Updated_At", "تاريخ التعديل", 175);
+            AddAuditField(fields, "Edit_Count", "عدد التعديلات", 175);
+            AddAuditField(fields, "Print_Count", "عدد الطباعة", 175);
+
+            card.Controls.Add(fields);
+            card.Controls.Add(title);
+            return card;
         }
 
         private Control CreateGridCard()
@@ -523,11 +571,11 @@ namespace AlTayerERP.Desktop
             return card;
         }
 
-        private void AddAuditField(FlowLayoutPanel fields, string key, string caption)
+        private void AddAuditField(FlowLayoutPanel fields, string key, string caption, int width = 205)
         {
             var item = new Panel
             {
-                Width = 205,
+                Width = width,
                 Height = 55,
                 Margin = new Padding(3, 0, 3, 0),
                 Padding = new Padding(6, 2, 6, 3),
