@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace AlTayerERP.API.DTOs
 {
     /// <summary>حقول المجموعة التجارية المعتمدة للمرحلة الحالية.</summary>
@@ -8,7 +10,14 @@ namespace AlTayerERP.API.DTOs
         public string? Group_Name_EN { get; set; }
         public bool Is_Default { get; set; }
         public bool Show_In_Login { get; set; }
-        public bool Show_In_Tree { get; set; }
+
+        /// <summary>
+        /// حقل توافق داخلي فقط. لا يُقبل من العميل ولا يظهر في عقدة الإدخال؛
+        /// ظهور الشاشات في الشجرة تحكمه الصلاحيات وكتالوج الشاشات.
+        /// </summary>
+        [JsonIgnore]
+        public bool Show_In_Tree => true;
+
         public string? Notes { get; set; }
     }
 }
