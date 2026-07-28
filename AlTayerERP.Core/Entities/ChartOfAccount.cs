@@ -80,10 +80,18 @@ namespace AlTayerERP.Core.Entities
         [Column("Multi_Currency")]
         public bool Multi_Currency { get; set; }
 
+        /// <summary>حساب رقابي مرتبط بدفتر مساعد ولا يقبل القيود اليدوية المباشرة.</summary>
+        [Column("Is_Control_Account")]
+        public bool Is_Control_Account { get; set; }
+
+        /// <summary>نوع الدفتر المساعد المرتبط بالحساب الرقابي.</summary>
+        [Column("Control_Account_Type")]
+        [StringLength(30)]
+        public string? Control_Account_Type { get; set; }
+
         [Column("Account_Path")]
         public string? Account_Path { get; set; }
 
-        // العمود في قاعدة البيانات NOT NULL، لذلك يجب ألا يكون Nullable في الكيان.
         [Column("Account_Serial")]
         public int Account_Serial { get; set; } = 0;
 
