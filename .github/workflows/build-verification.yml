@@ -4,9 +4,11 @@ on:
   push:
     branches:
       - agent/unified-phase1-screens
+      - agent/mobile-payment-request-completion
   pull_request:
     branches:
       - master
+      - agent/unified-phase1-screens
 
 jobs:
   build:
