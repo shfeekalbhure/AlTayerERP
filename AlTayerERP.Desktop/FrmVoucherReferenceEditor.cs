@@ -83,7 +83,11 @@ namespace AlTayerERP.Desktop
             // تكبير حاوية البحث في الفترات بمقدار نصف سنتيمتر تقريباً (19px).
             shell.RowStyles.Add(new RowStyle(SizeType.Absolute, IsFiscalPeriods ? 59 : 40));
             shell.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-            shell.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+            // في شاشة الفترات يبقى الجدول أقل بـ 3 سم تقريباً (113px)
+            // حتى لا يطغى على بطاقات بيانات السجل.
+            shell.RowStyles.Add(IsFiscalPeriods
+                ? new RowStyle(SizeType.Absolute, 325)
+                : new RowStyle(SizeType.Percent, 100));
             shell.RowStyles.Add(new RowStyle(SizeType.Absolute, 28));
 
             shell.Controls.Add(CreateHeader(title), 0, 0);
@@ -224,7 +228,10 @@ namespace AlTayerERP.Desktop
                 AutoSize = true,
                 BackColor = Color.White,
                 BorderStyle = BorderStyle.FixedSingle,
-                Padding = new Padding(14, 10, 14, 10),
+                // نزيد حاوية بطاقات الفترة المالية 1 سم (38px) لإظهار البطاقات بوضوح.
+                Padding = IsFiscalPeriods
+                    ? new Padding(14, 10, 14, 48)
+                    : new Padding(14, 10, 14, 10),
                 Margin = new Padding(0, 0, 0, 8)
             };
 
@@ -247,7 +254,10 @@ namespace AlTayerERP.Desktop
                 Padding = new Padding(0, 4, 0, 0)
             };
 
-            foreach (var field in _fields)
+            // FlowLayoutPanel مع RTL يضع آخر عنصر مضاف في أقصى اليمين؛
+            // لذلك نعكس بطاقات الفترات فقط ليبدأ التسلسل بكود الفترة من اليمين.
+            var editorFields = IsFiscalPeriods ? _fields.Reverse() : _fields;
+            foreach (var field in editorFields)
             {
                 // إطار مستقل لكل حقل حتى لا تختفي حدود الإدخال في الشاشات العربية.
                 var panel = new Panel
@@ -318,7 +328,11 @@ namespace AlTayerERP.Desktop
                 _inputs[field.Code] = input;
                 panel.Controls.Add(input);
                 editor.Controls.Add(panel);
+            }
 
+            // ترتيب أعمدة الجدول لا يتغير: يبدأ بكود الفترة من اليمين.
+            foreach (var field in _fields)
+            {
                 _grid.Columns.Add(new DataGridViewTextBoxColumn
                 {
                     Name = field.Code,
