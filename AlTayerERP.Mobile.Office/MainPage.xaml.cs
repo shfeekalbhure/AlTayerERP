@@ -10,16 +10,15 @@ public partial class MainPage : ContentPage
     private LoginOptionsResponseDto? _loginOptions;
     private bool _companiesLoaded;
     private bool _sessionChecked;
+    private bool _isBusy;
+    private string? _optionsCompanyId;
+    private string? _optionsLoginName;
 
     public MainPage(AuthenticationService authentication, MobileHomeService mobileHomeService)
     {
         InitializeComponent();
         _authentication = authentication;
         _mobileHomeService = mobileHomeService;
-
-        CompanyPicker.ItemDisplayBinding = new Binding(nameof(LoginCompanyOptionDto.DisplayName));
-        BranchPicker.ItemDisplayBinding = new Binding(nameof(LoginBranchOptionDto.DisplayName));
-        YearPicker.ItemDisplayBinding = new Binding(nameof(LoginYearOptionDto.DisplayName));
     }
 
     protected override async void OnAppearing()
@@ -61,31 +60,60 @@ public partial class MainPage : ContentPage
         HideError();
         CompaniesStatusLabel.IsVisible = true;
         CompaniesStatusLabel.Text = "جاري تحميل الشركات...";
-        LoadOptionsButton.IsEnabled = false;
+        ResetContextOptions();
+        SetBusy(true);
 
         try
         {
             var companies = await _authentication.GetLoginCompaniesAsync();
             CompanyPicker.ItemsSource = companies;
+            CompanyPicker.SelectedItem = companies.Count == 1 ? companies[0] : null;
 
-            if (companies.Count == 1)
-                CompanyPicker.SelectedItem = companies[0];
+            CompaniesStatusLabel.Text = companies.Count switch
+            {
+                0 => "لا توجد شركات نشطة متاحة.",
+                1 => "تم تحديد الشركة تلقائياً.",
+                _ => "اختر الشركة من القائمة."
+            };
 
-            CompaniesStatusLabel.Text = companies.Count == 0
-                ? "لا توجد شركات نشطة متاحة."
-                : companies.Count == 1
-                    ? "تم تحديد الشركة تلقائياً."
-                    : "اختر الشركة من القائمة.";
-
-            LoadOptionsButton.IsEnabled = companies.Count > 0;
             _companiesLoaded = true;
         }
         catch (Exception ex)
         {
+            CompanyPicker.ItemsSource = null;
+            CompanyPicker.SelectedItem = null;
             CompaniesStatusLabel.Text = "تعذر تحميل الشركات.";
             ShowError(ex.Message);
         }
+        finally
+        {
+            SetBusy(false);
+            UpdateCredentialButtons();
+        }
     }
+
+    private void OnCredentialsChanged(object? sender, EventArgs e)
+    {
+        if (_isBusy)
+            return;
+
+        var currentCompany = (CompanyPicker.SelectedItem as LoginCompanyOptionDto)?.Company_ID?.Trim();
+        var currentLogin = LoginNameEntry.Text?.Trim();
+
+        if (_loginOptions != null &&
+            (!string.Equals(currentCompany, _optionsCompanyId, StringComparison.Ordinal) ||
+             !string.Equals(currentLogin, _optionsLoginName, StringComparison.OrdinalIgnoreCase)))
+        {
+            ResetContextOptions();
+            CredentialsPanel.IsVisible = true;
+            ContextPanel.IsVisible = false;
+            StepTitleLabel.Text = "أدخل بيانات الحساب أولاً";
+        }
+
+        UpdateCredentialButtons();
+    }
+
+    private void OnContextChanged(object? sender, EventArgs e) => UpdateContextButton();
 
     private async void OnLoadOptionsClicked(object? sender, EventArgs e)
     {
@@ -99,16 +127,24 @@ public partial class MainPage : ContentPage
             return;
         }
 
+        ResetContextOptions();
         SetBusy(true);
         try
         {
+            var requestedLoginName = LoginNameEntry.Text.Trim();
             _loginOptions = await _authentication.GetLoginOptionsAsync(new LoginOptionsRequestDto
             {
                 Company_ID = company.Company_ID,
-                Login_Name = LoginNameEntry.Text.Trim(),
+                Login_Name = requestedLoginName,
                 Password = PasswordEntry.Text,
                 Device_ID = GetDeviceId()
             });
+
+            if (_loginOptions.Branches.Count == 0 || _loginOptions.Years.Count == 0)
+                throw new InvalidOperationException("لا توجد فروع أو سنوات مالية متاحة لهذا المستخدم.");
+
+            _optionsCompanyId = company.Company_ID.Trim();
+            _optionsLoginName = requestedLoginName;
 
             BranchPicker.ItemsSource = _loginOptions.Branches;
             YearPicker.ItemsSource = _loginOptions.Years;
@@ -121,22 +157,26 @@ public partial class MainPage : ContentPage
             BranchPicker.SelectedItem = defaultBranch;
             YearPicker.SelectedItem = defaultYear;
 
+            UserWelcomeLabel.Text = $"مرحباً {_loginOptions.Full_Name}";
+            CredentialsPanel.IsVisible = false;
+            ContextPanel.IsVisible = true;
+            StepTitleLabel.Text = "اختر الفرع والسنة المالية";
+            UpdateContextButton();
+
             if (_loginOptions.Branches.Count == 1 &&
                 _loginOptions.Years.Count == 1 &&
                 defaultBranch != null &&
                 defaultYear != null)
             {
                 await CompleteLoginAsync(defaultBranch, defaultYear);
-                return;
             }
-
-            UserWelcomeLabel.Text = $"مرحباً {_loginOptions.Full_Name}";
-            CredentialsPanel.IsVisible = false;
-            ContextPanel.IsVisible = true;
-            StepTitleLabel.Text = "اختر الفرع والسنة المالية";
         }
         catch (Exception ex)
         {
+            ResetContextOptions();
+            CredentialsPanel.IsVisible = true;
+            ContextPanel.IsVisible = false;
+            StepTitleLabel.Text = "أدخل بيانات الحساب أولاً";
             ShowError(ex.Message);
         }
         finally
@@ -154,6 +194,19 @@ public partial class MainPage : ContentPage
             YearPicker.SelectedItem is not LoginYearOptionDto year)
         {
             ShowError("اختر الفرع والسنة المالية.");
+            return;
+        }
+
+        var currentCompany = (CompanyPicker.SelectedItem as LoginCompanyOptionDto)?.Company_ID?.Trim();
+        var currentLogin = LoginNameEntry.Text?.Trim();
+        if (!string.Equals(currentCompany, _optionsCompanyId, StringComparison.Ordinal) ||
+            !string.Equals(currentLogin, _optionsLoginName, StringComparison.OrdinalIgnoreCase))
+        {
+            ResetContextOptions();
+            CredentialsPanel.IsVisible = true;
+            ContextPanel.IsVisible = false;
+            StepTitleLabel.Text = "أعد تحميل الفروع والسنوات بعد تعديل بيانات الحساب";
+            ShowError("تم تغيير بيانات الحساب. اضغط متابعة لتحميل الفروع والسنوات من جديد.");
             return;
         }
 
@@ -213,24 +266,56 @@ public partial class MainPage : ContentPage
 
     private void OnBackClicked(object? sender, EventArgs e)
     {
-        _loginOptions = null;
-        BranchPicker.ItemsSource = null;
-        YearPicker.ItemsSource = null;
+        ResetContextOptions();
         ContextPanel.IsVisible = false;
         CredentialsPanel.IsVisible = true;
         StepTitleLabel.Text = "أدخل بيانات الحساب أولاً";
         HideError();
+        UpdateCredentialButtons();
+    }
+
+    private void ResetContextOptions()
+    {
+        _loginOptions = null;
+        _optionsCompanyId = null;
+        _optionsLoginName = null;
+        BranchPicker.ItemsSource = null;
+        BranchPicker.SelectedItem = null;
+        YearPicker.ItemsSource = null;
+        YearPicker.SelectedItem = null;
+        LoginButton.IsEnabled = false;
+    }
+
+    private void UpdateCredentialButtons()
+    {
+        var ready = CompanyPicker.SelectedItem is LoginCompanyOptionDto &&
+                    !string.IsNullOrWhiteSpace(LoginNameEntry.Text) &&
+                    !string.IsNullOrWhiteSpace(PasswordEntry.Text);
+        LoadOptionsButton.IsEnabled = !_isBusy && ready;
+    }
+
+    private void UpdateContextButton()
+    {
+        LoginButton.IsEnabled = !_isBusy &&
+                                _loginOptions != null &&
+                                BranchPicker.SelectedItem is LoginBranchOptionDto &&
+                                YearPicker.SelectedItem is LoginYearOptionDto;
     }
 
     private void SetBusy(bool isBusy)
     {
+        _isBusy = isBusy;
         BusyIndicator.IsVisible = isBusy;
         BusyIndicator.IsRunning = isBusy;
-        LoadOptionsButton.IsEnabled = !isBusy && CompanyPicker.ItemsSource != null;
-        LoginButton.IsEnabled = !isBusy;
+
         CompanyPicker.IsEnabled = !isBusy;
         LoginNameEntry.IsEnabled = !isBusy;
         PasswordEntry.IsEnabled = !isBusy;
+        BranchPicker.IsEnabled = !isBusy;
+        YearPicker.IsEnabled = !isBusy;
+
+        UpdateCredentialButtons();
+        UpdateContextButton();
     }
 
     private void ShowError(string message)
