@@ -26,10 +26,20 @@ namespace AlTayerERP.API.Controllers
             return Ok(await _context.Fiscal_Periods.AsNoTracking().Where(x=>x.Company_ID==Session.Company_ID&&x.Branch_ID==Session.Branch_ID&&x.Fiscal_Year_ID==Session.Year_ID).OrderBy(x=>x.Start_Date).ToListAsync());
         }
         [HttpPost]
-        public async Task<IActionResult> Save([FromBody] SaveFiscalPeriodRequest r)
+        public async Task<IActionResult> Save([FromBody] SaveFiscalPeriodRequest? r)
         {
-            var e=await RequireAsync(r.Fiscal_Period_ID>0?ScreenOperation.Edit:ScreenOperation.Add); if(e!=null||Session==null)return e!;
-            if(r==null||string.IsNullOrWhiteSpace(r.Period_Code)||string.IsNullOrWhiteSpace(r.Period_Name)||r.End_Date.Date<r.Start_Date.Date)return BadRequest(new {message="كود واسم وتواريخ الفترة الصحيحة مطلوبة."});
+            if (r == null)
+                return BadRequest(new { message = "بيانات الفترة المالية مطلوبة." });
+
+            var e = await RequireAsync(r.Fiscal_Period_ID > 0 ? ScreenOperation.Edit : ScreenOperation.Add);
+            if (e != null || Session == null) return e!;
+
+            if (string.IsNullOrWhiteSpace(r.Period_Code) ||
+                string.IsNullOrWhiteSpace(r.Period_Name) ||
+                r.End_Date.Date < r.Start_Date.Date)
+            {
+                return BadRequest(new { message = "كود واسم وتواريخ الفترة الصحيحة مطلوبة." });
+            }
             var year=await _context.Fiscal_Years.AsNoTracking().FirstOrDefaultAsync(x=>x.Fiscal_Year_ID==Session.Year_ID&&x.Company_ID==Session.Company_ID&&x.Is_Active&&!x.Is_Closed);
             if(year==null)return Conflict(new {message="السنة الحالية غير فعالة أو مقفلة."});
             if(r.Start_Date.Date<year.Start_Date.Date||r.End_Date.Date>year.End_Date.Date)return BadRequest(new {message="تواريخ الفترة يجب أن تقع داخل السنة المالية."});
