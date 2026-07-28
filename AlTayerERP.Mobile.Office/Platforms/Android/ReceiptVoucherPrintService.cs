@@ -1,7 +1,9 @@
 using System.Net;
 using System.Text;
 using Android.Content;
+using Android.OS;
 using Android.Print;
+using Android.Provider;
 using AlTayerERP.Mobile.Office.DTOs;
 using AlTayerERP.Mobile.Office.Services;
 using Microsoft.Maui.ApplicationModel;
@@ -9,6 +11,7 @@ using AndroidWebView = Android.Webkit.WebView;
 using AndroidWebViewClient = Android.Webkit.WebViewClient;
 using AndroidWebResourceRequest = Android.Webkit.IWebResourceRequest;
 using AndroidWebResourceError = Android.Webkit.WebResourceError;
+using Java.Lang;
 
 namespace AlTayerERP.Mobile.Office.Platforms.Android;
 
@@ -48,9 +51,98 @@ public sealed class ReceiptVoucherPrintService : IReceiptVoucherPrintService
             .Build());
     }
 
+    /// <summary>
+    /// يحول نفس القالب المستخدم في الطباعة إلى PDF ويحفظه في Downloads/AlTayerERP/سندات القبض.
+    /// لا يحتاج التطبيق إلى إذن تخزين في إصدارات Android الحديثة لأنه يستخدم MediaStore.
+    /// </summary>
+    public async Task<ReceiptVoucherPdfExportResult> ExportPdfAsync(
+        ReceiptVoucherDetailsDto voucher,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(voucher);
+
+        var activity = Platform.CurrentActivity
+            ?? throw new InvalidOperationException("تعذر الوصول إلى شاشة Android الحالية لتصدير PDF.");
+
+        var webView = await CreateReadyWebViewAsync(activity, voucher, cancellationToken);
+        var fileName = $"سند_قبض_{Safe(voucher.Header.VoucherNo)}_{DateTime.Now:yyyyMMdd_HHmmss}.pdf";
+        var resolver = activity.ContentResolver
+            ?? throw new InvalidOperationException("تعذر الوصول إلى ذاكرة الهاتف.");
+        var values = new ContentValues();
+        values.Put(MediaStore.IMediaColumns.DisplayName, fileName);
+        values.Put(MediaStore.IMediaColumns.MimeType, "application/pdf");
+
+        if (Build.VERSION.SdkInt >= BuildVersionCodes.Q)
+            values.Put(MediaStore.IMediaColumns.RelativePath,
+                Android.OS.Environment.DirectoryDownloads + "/AlTayerERP/ReceiptVouchers");
+
+        var uri = resolver.Insert(MediaStore.Downloads.ExternalContentUri, values)
+            ?? throw new InvalidOperationException("تعذر إنشاء ملف PDF في ذاكرة الهاتف.");
+
+        try
+        {
+            using var destination = resolver.OpenFileDescriptor(uri, "w")
+                ?? throw new InvalidOperationException("تعذر فتح ملف PDF للتصدير.");
+
+            var adapter = webView.CreatePrintDocumentAdapter(fileName);
+            var attributes = new PrintAttributes.Builder()
+                .SetMediaSize(PrintAttributes.MediaSize.IsoA4)
+                .SetColorMode(PrintColorMode.Color)
+                .Build();
+
+            await LayoutAsync(adapter, attributes, cancellationToken);
+            await WritePdfAsync(adapter, destination, cancellationToken);
+
+            return new ReceiptVoucherPdfExportResult(fileName, uri.ToString());
+        }
+        catch
+        {
+            resolver.Delete(uri, null, null);
+            throw;
+        }
+    }
+
+    private static async Task<AndroidWebView> CreateReadyWebViewAsync(
+        Android.App.Activity activity,
+        ReceiptVoucherDetailsDto voucher,
+        CancellationToken cancellationToken)
+    {
+        var webView = new AndroidWebView(activity);
+        webView.Settings.JavaScriptEnabled = false;
+        webView.Settings.DefaultTextEncodingName = "utf-8";
+
+        var loaded = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        webView.SetWebViewClient(new PrintWebViewClient(loaded));
+        _activePrintView = webView;
+        webView.LoadDataWithBaseURL(null, BuildHtml(voucher), "text/html", "utf-8", null);
+        using var registration = cancellationToken.Register(() => loaded.TrySetCanceled(cancellationToken));
+        await loaded.Task;
+        return webView;
+    }
+
+    private static async Task LayoutAsync(PrintDocumentAdapter adapter, PrintAttributes attributes, CancellationToken cancellationToken)
+    {
+        var completion = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        adapter.OnLayout(null, attributes, new CancellationSignal(), new PdfLayoutCallback(completion), null);
+        using var registration = cancellationToken.Register(() => completion.TrySetCanceled(cancellationToken));
+        await completion.Task;
+    }
+
+    private static async Task WritePdfAsync(PrintDocumentAdapter adapter, ParcelFileDescriptor destination, CancellationToken cancellationToken)
+    {
+        var completion = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        adapter.OnWrite(new[] { PageRange.AllPages }, destination, new CancellationSignal(), new PdfWriteCallback(completion));
+        using var registration = cancellationToken.Register(() => completion.TrySetCanceled(cancellationToken));
+        await completion.Task;
+    }
+
     private static string BuildHtml(ReceiptVoucherDetailsDto voucher)
     {
         var h = voucher.Header;
+        var companyName = string.IsNullOrWhiteSpace(h.CompanyName) ? "مكتب الطائر السعيد للنقل" : h.CompanyName;
+        var logoHtml = string.IsNullOrWhiteSpace(h.CompanyLogoDataUri)
+            ? "<div class=\"logo-placeholder\">شعار الشركة</div>"
+            : $"<img class=\"logo\" src=\"{E(h.CompanyLogoDataUri)}\" alt=\"شعار الشركة\" />";
         var rows = new StringBuilder();
         foreach (var line in voucher.Details.OrderBy(x => x.LineNo))
         {
@@ -74,7 +166,11 @@ public sealed class ReceiptVoucherPrintService : IReceiptVoucherPrintService
 <style>
 @page { size: A4; margin: 12mm; }
 body { font-family: Arial, Tahoma, sans-serif; color:#17324D; direction:rtl; margin:0; }
-.header { border:2px solid #17324D; padding:14px; text-align:center; border-radius:10px; }
+.header { border:2px solid #17324D; padding:14px; border-radius:10px; }
+.brand-row { display:flex; align-items:center; justify-content:space-between; gap:14px; }
+.logo { width:62px; height:62px; object-fit:contain; border:1px solid #D9E2EC; border-radius:8px; background:white; }
+.logo-placeholder { width:62px; height:62px; display:flex; align-items:center; justify-content:center; text-align:center; font-size:9px; color:#35566F; border:1px solid #D9E2EC; border-radius:8px; background:white; }
+.header-text { flex:1; text-align:center; }
 .brand { font-size:22px; font-weight:bold; }
 .title { font-size:26px; font-weight:bold; margin-top:6px; }
 .meta { width:100%; margin-top:14px; border-collapse:collapse; }
@@ -93,11 +189,17 @@ table.lines { width:100%; border-collapse:collapse; margin-top:16px; font-size:1
 <body>
 <div class="watermark">{{E(watermark)}}</div>
 <div class="header">
-  <div class="brand">الطائر للبرمجيات</div>
-  <div class="title">سند قبض</div>
+  <div class="brand-row">
+    {{logoHtml}}
+    <div class="header-text">
+      <div class="brand">{{E(companyName)}}</div>
+      <div class="title">سند قبض</div>
+      <div class="small">الفرع: {{E(h.BranchName)}}</div>
+    </div>
+    <div class="small"><b>رقم السند:</b> {{E(h.VoucherNo)}}<br/><b>التاريخ:</b> {{h.VoucherDate:yyyy/MM/dd}}</div>
+  </div>
 </div>
 <table class="meta">
-<tr><td><span class="label">رقم السند:</span> {{E(h.VoucherNo)}}</td><td><span class="label">التاريخ:</span> {{h.VoucherDate:yyyy/MM/dd}}</td></tr>
 <tr><td colspan="2"><span class="label">استلمنا من:</span> {{E(h.ReceivedFromName ?? "—")}}</td></tr>
 <tr><td><span class="label">الصندوق/البنك:</span> {{E(h.CashAccountDisplay)}}</td><td><span class="label">العملة:</span> {{E(h.CurrencyDisplay)}}</td></tr>
 <tr><td><span class="label">المرجع:</span> {{E(h.ReferenceNo ?? "—")}}</td><td><span class="label">الحالة:</span> {{E(h.WorkflowStatus)}}</td></tr>
@@ -132,5 +234,21 @@ table.lines { width:100%; border-collapse:collapse; margin-top:16px; font-size:1
             base.OnReceivedError(view, request, error);
             loaded.TrySetException(new InvalidOperationException("تعذر تجهيز معاينة سند القبض للطباعة."));
         }
+    }
+
+    private sealed class PdfLayoutCallback(TaskCompletionSource completion) : PrintDocumentAdapter.LayoutResultCallback
+    {
+        public override void OnLayoutFinished(PrintDocumentInfo? info, bool changed) => completion.TrySetResult();
+        public override void OnLayoutFailed(ICharSequence? error) =>
+            completion.TrySetException(new InvalidOperationException(error?.ToString() ?? "تعذر تجهيز ملف PDF."));
+        public override void OnLayoutCancelled() => completion.TrySetCanceled();
+    }
+
+    private sealed class PdfWriteCallback(TaskCompletionSource completion) : PrintDocumentAdapter.WriteResultCallback
+    {
+        public override void OnWriteFinished(PageRange[]? pages) => completion.TrySetResult();
+        public override void OnWriteFailed(ICharSequence? error) =>
+            completion.TrySetException(new InvalidOperationException(error?.ToString() ?? "تعذر تصدير ملف PDF."));
+        public override void OnWriteCancelled() => completion.TrySetCanceled();
     }
 }

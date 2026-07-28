@@ -104,6 +104,16 @@ public sealed class MobileReceiptVouchersController : ControllerBase
             ? voucher.Received_From_Name
             : partyName;
 
+        var branchName = await _db.Tenant_Branches.AsNoTracking()
+            .Where(x => x.Branch_ID == session.Branch_ID)
+            .Select(x => x.Branch_Name)
+            .SingleOrDefaultAsync(cancellationToken) ?? string.Empty;
+
+        var company = await _db.Companies.AsNoTracking()
+            .Where(x => x.Company_ID.Trim() == session.Company_ID.Trim())
+            .Select(x => new { x.Company_Name_AR, x.Company_Logo })
+            .SingleOrDefaultAsync(cancellationToken);
+
         var header = new
         {
             voucherId = voucher.Voucher_ID,
@@ -116,6 +126,9 @@ public sealed class MobileReceiptVouchersController : ControllerBase
             cashAccountDisplay = cashAccount == null
                 ? voucher.Cash_Account_ID
                 : cashAccount.Account_Code + " - " + cashAccount.Account_Name_AR,
+            branchName,
+            companyName = company?.Company_Name_AR ?? string.Empty,
+            companyLogoDataUri = ToImageDataUri(company?.Company_Logo),
             partyId = voucher.Party_ID,
             paymentMethodId = voucher.Payment_Method_ID,
             currencyId = voucher.Currency_ID,
@@ -172,5 +185,20 @@ public sealed class MobileReceiptVouchersController : ControllerBase
             }).ToListAsync(cancellationToken);
 
         return Ok(new { header, details });
+    }
+
+    /// <summary>تحويل شعار الشركة المخزن في قاعدة البيانات إلى صيغة صالحة لعرض HTML/PDF.</summary>
+    private static string? ToImageDataUri(byte[]? image)
+    {
+        if (image is not { Length: > 0 })
+            return null;
+
+        var mime = image.Length >= 8 && image[0] == 0x89 && image[1] == 0x50
+            ? "image/png"
+            : image.Length >= 3 && image[0] == 0xFF && image[1] == 0xD8
+                ? "image/jpeg"
+                : "image/png";
+
+        return $"data:{mime};base64,{Convert.ToBase64String(image)}";
     }
 }

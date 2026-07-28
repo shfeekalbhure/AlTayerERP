@@ -184,6 +184,38 @@ public partial class ReceiptVoucherDetailsPage : ContentPage
         }
     }
 
+    private async void OnExportPdfClicked(object? sender, EventArgs e)
+    {
+        if (_currentVoucher == null)
+        {
+            ShowMessage("لم تكتمل بيانات سند القبض للتصدير.");
+            return;
+        }
+
+        BusyIndicator.IsVisible = BusyIndicator.IsRunning = true;
+        MessageLabel.IsVisible = false;
+        try
+        {
+            var result = await _printService.ExportPdfAsync(_currentVoucher);
+            var openFile = await DisplayAlert(
+                "تم التصدير",
+                $"تم حفظ {result.FileName} في مجلد التنزيلات / AlTayerERP / سندات القبض.",
+                "فتح الملف",
+                "موافق");
+
+            if (openFile)
+                await Launcher.Default.OpenAsync(new Uri(result.ContentUri));
+        }
+        catch (Exception ex)
+        {
+            ShowMessage(ex.Message);
+        }
+        finally
+        {
+            BusyIndicator.IsVisible = BusyIndicator.IsRunning = false;
+        }
+    }
+
     private async void OnAttachmentsClicked(object? sender, EventArgs e) =>
         await Navigation.PushAsync(new VoucherAttachmentsPage(_attachmentService, _voucherId));
 

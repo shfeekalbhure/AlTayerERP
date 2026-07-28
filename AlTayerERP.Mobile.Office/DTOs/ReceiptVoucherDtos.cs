@@ -34,6 +34,10 @@ public sealed class ReceiptVoucherHeaderDto
     public string? ReferenceNo { get; set; }
     public string CashAccountId { get; set; } = string.Empty;
     public string CashAccountDisplay { get; set; } = string.Empty;
+    public string BranchName { get; set; } = string.Empty;
+    public string CompanyName { get; set; } = string.Empty;
+    /// <summary>شعار الشركة بصيغة data URI لعرضه داخل قالب PDF وواجهة الطباعة.</summary>
+    public string? CompanyLogoDataUri { get; set; }
     public string? PartyId { get; set; }
     public int? PaymentMethodId { get; set; }
     public int CurrencyId { get; set; }
