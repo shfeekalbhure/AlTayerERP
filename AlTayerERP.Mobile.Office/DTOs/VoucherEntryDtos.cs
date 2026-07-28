@@ -42,6 +42,7 @@ public sealed class CreateMobileVoucherDto
     public decimal Foreign_Total { get; set; }
     public decimal Local_Total { get; set; }
     public string? Reference_No { get; set; }
+    public string? Against_Text { get; set; }
     public string? Description { get; set; }
     public bool Requires_Approval { get; set; }
     public List<CreateMobileVoucherLineDto> Details { get; set; } = [];
@@ -81,6 +82,7 @@ public sealed class UpdateMobileVoucherDto
     public decimal Foreign_Total { get; set; }
     public decimal Local_Total { get; set; }
     public string? Reference_No { get; set; }
+    public string? Against_Text { get; set; }
     public string? Description { get; set; }
     public bool Requires_Approval { get; set; }
     public List<UpdateMobileVoucherLineDto> Details { get; set; } = [];
