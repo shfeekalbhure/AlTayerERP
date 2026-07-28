@@ -164,7 +164,8 @@ namespace AlTayerERP.API.Controllers
                 Is_Postable = true,
                 Is_Summary_Account = false,
                 Currency_Code = dto.Currency_Code.Trim().ToUpperInvariant(),
-                Is_Active = dto.Is_Active,
+                // إنشاء الصندوق يبدأ دائماً فعالاً؛ الإيقاف له مسار مستقل يتحقق من الرصيد والحركات.
+                Is_Active = true,
                 Allow_ManualEntry = false,
                 System_Account = true,
                 Created_By = Session.User_ID.ToString(),
@@ -185,7 +186,7 @@ namespace AlTayerERP.API.Controllers
                 Opening_Balance = 0,
                 Max_Limit = dto.Max_Limit,
                 Min_Limit = dto.Min_Limit,
-                Is_Active = dto.Is_Active,
+                Is_Active = true,
                 Notes = Text(dto.Notes),
                 Created_By = Session.User_ID.ToString(),
                 Created_At = DateTime.UtcNow
@@ -208,6 +209,11 @@ namespace AlTayerERP.API.Controllers
             var row = await _context.Cash_Boxes.FirstOrDefaultAsync(x => x.Cash_Box_ID == id && x.Company_ID == Session.Company_ID && x.Branch_ID == Session.Branch_ID);
             if (row == null) return NotFound(new { message = "الصندوق غير موجود في نطاق الفرع الحالي." });
 
+            // يمنع تجاوز ضوابط الإيقاف عبر عملية التعديل العامة.
+            // الإيقاف وإعادة التفعيل يمران فقط بمسارات دورة الحياة المخصصة لهما.
+            if (dto.Is_Active != row.Is_Active)
+                return BadRequest(new { message = "لا يمكن تغيير حالة الصندوق من التعديل. استخدم زر الإيقاف أو إعادة التفعيل بعد استكمال الضوابط المطلوبة." });
+
             var account = await _context.Chart_Of_Accounts.FirstOrDefaultAsync(x => x.Account_ID == row.Account_ID && x.Company_ID == Session.Company_ID);
             if (account == null) return BadRequest(new { message = "الحساب المرتبط بالصندوق غير موجود." });
 
@@ -226,7 +232,6 @@ namespace AlTayerERP.API.Controllers
             account.Account_Name_AR = dto.Box_Name_AR.Trim();
             account.Account_Name_EN = Text(dto.Box_Name_EN);
             account.Currency_Code = requestedCurrency;
-            account.Is_Active = dto.Is_Active;
             account.Updated_By = Session.User_ID.ToString();
             account.Updated_At = DateTime.UtcNow;
 
@@ -235,7 +240,6 @@ namespace AlTayerERP.API.Controllers
             row.Currency_Code = requestedCurrency;
             row.Max_Limit = dto.Max_Limit;
             row.Min_Limit = dto.Min_Limit;
-            row.Is_Active = dto.Is_Active;
             row.Notes = Text(dto.Notes);
             row.Updated_By = Session.User_ID.ToString();
             row.Updated_At = DateTime.UtcNow;
@@ -289,6 +293,8 @@ namespace AlTayerERP.API.Controllers
             var parent = await _context.Chart_Of_Accounts.AsNoTracking().FirstOrDefaultAsync(x => x.Account_ID == dto.Account_ID && x.Company_ID == Session.Company_ID);
             if (parent == null || !parent.Is_Active || parent.Is_Postable || !parent.Is_Summary_Account)
                 return "حساب الصناديق الأب يجب أن يكون نشطاً وتجميعياً وغير قابل للترحيل.";
+            if (!IsCashParentAccount(parent))
+                return "الحساب المختار ليس حساب صناديق/نقدية. اختر حساباً أب مصنفاً للنقدية.";
 
             var currency = dto.Currency_Code.Trim().ToUpperInvariant();
             if (!await _context.Currencies.AnyAsync(x => x.Company_ID == Session.Company_ID && x.Currency_Code == currency && x.Is_Active))
@@ -317,6 +323,16 @@ namespace AlTayerERP.API.Controllers
                             && !x.JournalEntry.Is_Cancelled
                             && !x.JournalEntry.Is_Reversed)
                 .SumAsync(x => (decimal?)(x.Debit_Amount - x.Credit_Amount)) ?? 0m;
+
+        /// <summary>
+        /// يدعم شجرة الحسابات القديمة التي لم يُسجل لها التصنيف Cash بعد،
+        /// مع منع اختيار أي حساب تجميعي لا يمثل صندوقاً أو نقدية.
+        /// </summary>
+        private static bool IsCashParentAccount(ChartOfAccount account) =>
+            string.Equals(account.Account_Category, "Cash", StringComparison.OrdinalIgnoreCase) ||
+            (!string.IsNullOrWhiteSpace(account.Account_Name_AR) &&
+             (account.Account_Name_AR.Contains("صندوق", StringComparison.Ordinal) ||
+              account.Account_Name_AR.Contains("نقد", StringComparison.Ordinal)));
 
         private static string? Text(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
     }
