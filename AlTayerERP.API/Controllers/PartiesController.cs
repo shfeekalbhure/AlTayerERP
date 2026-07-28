@@ -23,10 +23,53 @@ namespace AlTayerERP.API.Controllers
         public async Task<IActionResult> Get([FromQuery]string? type=null,[FromQuery]bool includeInactive=false)
         {
             var e=await RequireAsync(ScreenOperation.View);if(e!=null||Session==null)return e!;
+            // يرجع السجل ضمن الشركة الحالية فقط، وتبقى الأطراف الموقوفة مخفية افتراضياً.
             var q=_context.Parties.AsNoTracking().Where(x=>x.Company_ID==Session.Company_ID);
             if(!includeInactive)q=q.Where(x=>x.Is_Active);
             if(!string.IsNullOrWhiteSpace(type))q=q.Where(x=>x.Party_Type==type.Trim().ToUpperInvariant());
-            return Ok(await q.OrderBy(x=>x.Party_Code).ToListAsync());
+
+            var parties = await q.OrderBy(x=>x.Party_Code).ToListAsync();
+
+            // بيانات التدقيق تُستخرج من سجل الخادم، ولا تُقبل من جهاز المستخدم.
+            var partyIds = parties.Select(x=>x.Party_ID).ToList();
+            var auditLogs = partyIds.Count == 0
+                ? new List<AuditLog>()
+                : await _context.Audit_Logs.AsNoTracking()
+                    .Where(x=>x.Table_Name=="parties" && partyIds.Contains(x.Record_ID))
+                    .OrderBy(x=>x.Action_At)
+                    .ToListAsync();
+
+            return Ok(parties.Select(party =>
+            {
+                var logs = auditLogs.Where(x=>x.Record_ID==party.Party_ID).ToList();
+                var created = logs.FirstOrDefault(x=>x.Action_Type=="CREATE");
+                var updated = logs.LastOrDefault(x=>x.Action_Type=="UPDATE" || x.Action_Type=="DEACTIVATE");
+
+                return new
+                {
+                    party.Party_ID,
+                    party.Party_Code,
+                    party.Party_Name_AR,
+                    party.Party_Name_EN,
+                    party.Party_Type,
+                    party.Mobile_No,
+                    party.Phone_No,
+                    party.Identity_No,
+                    party.Tax_No,
+                    party.Address,
+                    party.Account_ID,
+                    party.Credit_Limit,
+                    party.Notes,
+                    party.Is_Active,
+                    party.Created_At,
+                    party.Updated_At,
+                    Created_By = created?.User_ID ?? party.Created_By ?? "—",
+                    Updated_By = updated?.User_ID ?? party.Updated_By ?? "—",
+                    Edit_Count = logs.Count(x=>x.Action_Type=="UPDATE"),
+                    // لا توجد عملية طباعة للأطراف حالياً؛ يظهر العداد صفراً بوضوح.
+                    Print_Count = 0
+                };
+            }));
         }
         [HttpPost]
         public async Task<IActionResult> Save([FromBody] SavePartyRequest? r)
