@@ -46,10 +46,65 @@ public sealed class ApprovalRequestsController : ControllerBase
         if (!string.IsNullOrWhiteSpace(status) && !string.Equals(status, "ALL", StringComparison.OrdinalIgnoreCase))
             query = query.Where(x => x.Status == status.Trim());
 
-        return Ok(await query
+        var rows = await query
             .OrderByDescending(x => x.Requested_At)
             .Take(500)
-            .ToListAsync());
+            .ToListAsync();
+
+        // إظهار الاسم بدلاً من رقم المستخدم في بيانات الإنشاء والتعديل.
+        var recordIds = rows.Select(x => x.Approval_ID.ToString()).ToList();
+        var auditLogs = recordIds.Count == 0
+            ? new List<AlTayerERP.Core.Entities.Accounting.AuditLog>()
+            : await _db.Audit_Logs.AsNoTracking()
+                .Where(x => x.Table_Name == "approval_requests" && recordIds.Contains(x.Record_ID))
+                .ToListAsync();
+
+        var userIds = rows
+            .SelectMany(x => new[] { x.Requested_By, x.Approved_By })
+            .Where(x => int.TryParse(x, out _))
+            .Select(x => int.Parse(x!))
+            .Distinct()
+            .ToList();
+        var users = userIds.Count == 0
+            ? new Dictionary<int, string>()
+            : await _db.Users.AsNoTracking()
+                .Where(x => x.Company_ID == Session().Company_ID && userIds.Contains(x.User_ID))
+                .ToDictionaryAsync(x => x.User_ID, x => x.Full_Name);
+
+        string UserName(string? id) =>
+            int.TryParse(id, out var userId) && users.TryGetValue(userId, out var name)
+                ? name
+                : string.IsNullOrWhiteSpace(id) ? "—" : id;
+
+        return Ok(rows.Select(x =>
+        {
+            var actions = auditLogs.Where(log => log.Record_ID == x.Approval_ID.ToString()).ToList();
+            return new
+            {
+                x.Approval_ID,
+                x.Request_Type,
+                x.Reference_Type,
+                x.Reference_ID,
+                x.Entity_Type,
+                x.Entity_ID,
+                x.Currency_Code,
+                x.Amount,
+                x.Reason,
+                x.Status,
+                Requested_By = UserName(x.Requested_By),
+                x.Requested_At,
+                Approved_By = UserName(x.Approved_By),
+                x.Approved_At,
+                x.Approval_Notes,
+                Edit_Count = actions.Count(log =>
+                    log.Action_Type == "REVIEW" ||
+                    log.Action_Type == "APPROVE" ||
+                    log.Action_Type == "REJECT" ||
+                    log.Action_Type == "RETURN"),
+                // هذه الشاشة لا تطبع طلب الاعتماد حالياً؛ العداد يظهر صفراً.
+                Print_Count = 0
+            };
+        }));
     }
 
     [HttpGet("{id:int}")]
