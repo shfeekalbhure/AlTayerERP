@@ -162,14 +162,17 @@ namespace AlTayerERP.Desktop
             };
             var toolbar = new FlowLayoutPanel
             {
-                AutoSize = true,
-                AutoSizeMode = AutoSizeMode.GrowAndShrink,
+                // عرض ثابت يمنع ظهور شريط تمرير عند وجود أزرار الفترات كلها.
+                AutoSize = false,
+                Width = IsFiscalPeriods ? 980 : 670,
+                Height = 42,
                 Dock = DockStyle.Right,
                 BackColor = BackColor,
                 BorderStyle = BorderStyle.None,
-                Padding = Padding.Empty,
+                Padding = new Padding(0, 4, 0, 4),
                 FlowDirection = FlowDirection.RightToLeft,
-                WrapContents = false
+                WrapContents = false,
+                AutoScroll = false
             };
 
             // أول زر مضاف يظهر في أقصى يمين الشريط.
@@ -235,9 +238,9 @@ namespace AlTayerERP.Desktop
                 AutoSize = true,
                 BackColor = Color.White,
                 BorderStyle = BorderStyle.FixedSingle,
-                // تستفيد حاوية بيانات سجل الفترة من مساحة الجدول المخفضة وتكبر 2 سم.
+                // يبقى ارتفاع الحاوية ثابتاً؛ نعوض تقليل البطاقات من المساحة السفلية.
                 Padding = IsFiscalPeriods
-                    ? new Padding(14, 10, 14, 86)
+                    ? new Padding(14, 10, 14, 124)
                     : new Padding(14, 10, 14, 10),
                 Margin = new Padding(0, 0, 0, 8)
             };
@@ -269,8 +272,8 @@ namespace AlTayerERP.Desktop
                 var panel = new Panel
                 {
                     Width = 250,
-                    // تظهر حقول الفترات في صفين؛ الزيادة 29px لكل صف تعطي بطاقة البيانات +1.5 سم تقريباً.
-                    Height = IsFiscalPeriods ? 115 : 86,
+                    // بطاقات الفترات أقل نصف سم (19px)؛ فيرتفع حقلها والصف الثاني تلقائياً.
+                    Height = IsFiscalPeriods ? 96 : 86,
                     Margin = new Padding(6),
                     Padding = new Padding(8, 4, 8, 6),
                     BackColor = Color.White,
