@@ -16,48 +16,7 @@ namespace AlTayerERP.API.Services
 
         public async Task EnsureSeededAsync()
         {
-            var catalog = new[]
-            {
-                new ScreenSeed("TenantGroups", "المجموعات التجارية", "الإدارة العامة", 5),
-                new ScreenSeed("Companies", "الشركات", "الإدارة العامة", 10),
-                new ScreenSeed("Branches", "الفروع", "الإدارة العامة", 20),
-                new ScreenSeed("Countries", "الدول", "الإدارة العامة", 25),
-                new ScreenSeed("Governorates", "المحافظات", "الإدارة العامة", 26),
-                new ScreenSeed("Cities", "المدن", "الإدارة العامة", 27),
-                new ScreenSeed("FiscalYears", "السنوات المالية", "الإدارة العامة", 30),
-                new ScreenSeed("Users", "المستخدمون", "الإدارة العامة", 40),
-                new ScreenSeed("PasswordChange", "تغيير كلمة المرور", "الإدارة العامة", 45),
-                new ScreenSeed("Roles", "الأدوار", "الإدارة العامة", 50),
-                new ScreenSeed("RolePermissions", "صلاحيات الأدوار", "الإدارة العامة", 60),
-                new ScreenSeed("AuditLogs", "سجل التدقيق والرقابة", "الإدارة العامة", 70),
-                new ScreenSeed("Sessions", "الجلسات النشطة", "الإدارة العامة", 80),
-                new ScreenSeed("GeneralSettings", "الإعدادات العامة والمالية", "التهيئة والإعدادات", 70),
-                new ScreenSeed("SystemScreens", "كتالوج شاشات النظام", "التهيئة والإعدادات", 80),
-                new ScreenSeed("NumberingSettings", "إعدادات الترقيم", "التهيئة والإعدادات", 90),
-                new ScreenSeed("FiscalPeriods", "الفترات المالية", "التهيئة والإعدادات", 100),
-                new ScreenSeed("ExchangeRates", "أسعار الصرف", "التهيئة والإعدادات", 110),
-                new ScreenSeed("PaymentMethods", "طرق السداد", "التهيئة والإعدادات", 120),
-                new ScreenSeed("VoucherTypes", "أنواع السندات", "التهيئة والإعدادات", 130),
-                new ScreenSeed("VoucherStatuses", "حالات السندات", "التهيئة والإعدادات", 140),
-                new ScreenSeed("ApprovalPolicies", "سياسات الاعتماد والسقوف", "التهيئة والإعدادات", 150),
-                new ScreenSeed("ChartOfAccounts", "الدليل المحاسبي", "الحسابات", 160),
-                new ScreenSeed("Currencies", "العملات", "الحسابات", 170),
-                new ScreenSeed("CostCenters", "مراكز التكلفة", "الحسابات", 180),
-                new ScreenSeed("CashBoxes", "الصناديق", "الحسابات", 190),
-                new ScreenSeed("Banks", "البنوك والحسابات البنكية", "الحسابات", 200),
-                new ScreenSeed("Parties", "الأطراف المالية", "الحسابات", 210),
-                new ScreenSeed("ReceiptVoucher", "سند القبض", "الحسابات", 220),
-                new ScreenSeed("PaymentVoucher", "سند الصرف", "الحسابات", 230),
-                new ScreenSeed("PaymentRequest", "طلب الصرف", "الحسابات", 235),
-                new ScreenSeed("PaymentRequestAttachments", "مرفقات طلبات الصرف", "الحسابات", 236),
-                new ScreenSeed("JournalVoucher", "القيد اليومي", "الحسابات", 240),
-                new ScreenSeed("DocumentSearch", "البحث عن المستندات", "الحسابات", 250),
-                new ScreenSeed("ApprovalRequests", "طلبات الاعتماد", "الحسابات", 260),
-                new ScreenSeed("FinancialLimits", "السقوف المالية وحركات الاستخدام", "الحسابات", 270),
-                new ScreenSeed("TrialBalance", "ميزان المراجعة", "التقارير المالية", 280),
-                new ScreenSeed("GeneralLedger", "الأستاذ العام", "التقارير المالية", 290),
-                new ScreenSeed("JournalEntryView", "عرض القيد المحاسبي", "التقارير المالية", 300)
-            };
+            var catalog = SystemScreenCatalogDefinition.Items;
 
             var existingScreens = await _context.SystemScreens.ToListAsync();
 
@@ -86,6 +45,13 @@ namespace AlTayerERP.API.Services
 
             if (missingScreens.Count > 0)
                 await _context.SystemScreens.AddRangeAsync(missingScreens);
+
+            // هذان العنصران عمليتان سياقيتان داخل شاشات أخرى وليسا شاشتين مستقلتين.
+            // إيقافهما يمنع ظهورهما في شجرة النظام دون حذف سجلات أو صلاحيات تاريخية.
+            var contextualOnlyCodes = new[] { "PaymentRequestAttachments", "JournalEntryView" };
+            foreach (var contextualScreen in existingScreens.Where(screen =>
+                         contextualOnlyCodes.Contains(screen.Screen_Code, StringComparer.OrdinalIgnoreCase)))
+                contextualScreen.Is_Active = false;
 
             await EnsureScreenActionCatalogAsync();
 
@@ -132,6 +98,5 @@ namespace AlTayerERP.API.Services
         }
 
         private sealed record ActionSeed(string Code, string Name, int SortOrder);
-        private sealed record ScreenSeed(string Code, string Name, string Module, int SortOrder);
     }
 }
