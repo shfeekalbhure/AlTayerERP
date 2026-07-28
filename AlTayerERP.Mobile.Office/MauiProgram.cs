@@ -22,7 +22,7 @@ public static class MauiProgram
         // عنوان جهاز الخادم داخل الشبكة المحلية. لا تستخدم localhost من الجوال.
         builder.Services.AddSingleton(new HttpClient
         {
-            BaseAddress = new Uri("http://172.16.4.192:5021/"),
+            BaseAddress = new Uri("http://172.16.4.254:5021/"),
             Timeout = TimeSpan.FromSeconds(30)
         });
         builder.Services.AddSingleton<SessionStorageService>();
