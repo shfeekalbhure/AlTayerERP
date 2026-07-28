@@ -82,7 +82,6 @@ public sealed class GeographicReferencesController : ControllerBase
     public Task<IActionResult> GetCityAuditInfo(int id) =>
         GetAuditInfoAsync("Cities", "cities", id);
 
-
     /// <summary>يسجل معاينة طباعة قائمة أو بطاقة دولة في سجل التدقيق.</summary>
     [HttpPost("countries/{id:int}/print")]
     public async Task<IActionResult> RegisterCountryPrint(int id)
@@ -136,22 +135,47 @@ public sealed class GeographicReferencesController : ControllerBase
             return BadRequest("كود الدولة واسمها العربي مطلوبان.");
 
         dto.Country_Code = dto.Country_Code.Trim().ToUpperInvariant();
-        dto.ISO2 = string.IsNullOrWhiteSpace(dto.ISO2) ? null : dto.ISO2.Trim().ToUpperInvariant();
-        dto.ISO3 = string.IsNullOrWhiteSpace(dto.ISO3) ? null : dto.ISO3.Trim().ToUpperInvariant();
-        dto.Currency_Code = string.IsNullOrWhiteSpace(dto.Currency_Code) ? null : dto.Currency_Code.Trim().ToUpperInvariant();
+        dto.Country_Name_AR = dto.Country_Name_AR.Trim();
+        dto.Country_Name_EN = CleanOptional(dto.Country_Name_EN);
+        dto.ISO2 = NormalizeIso(dto.ISO2);
+        dto.ISO3 = NormalizeIso(dto.ISO3);
+        dto.Phone_Code = CleanOptional(dto.Phone_Code);
+        dto.Currency_Code = NormalizeIso(dto.Currency_Code);
+        dto.Nationality_Name_AR = CleanOptional(dto.Nationality_Name_AR);
+        dto.Notes = CleanOptional(dto.Notes);
 
-        if (dto.ISO2 is not null && dto.ISO2.Length != 2)
-            return BadRequest("رمز ISO2 يجب أن يتكون من حرفين.");
-        if (dto.ISO3 is not null && dto.ISO3.Length != 3)
-            return BadRequest("رمز ISO3 يجب أن يتكون من ثلاثة أحرف.");
-        if (dto.Currency_Code is not null && dto.Currency_Code.Length != 3)
-            return BadRequest("رمز العملة يجب أن يتكون من ثلاثة أحرف.");
+        if (dto.ISO2 is not null && (dto.ISO2.Length != 2 || !IsEnglishLetters(dto.ISO2)))
+            return BadRequest("رمز ISO2 يجب أن يتكون من حرفين إنجليزيين فقط.");
+        if (dto.ISO3 is not null && (dto.ISO3.Length != 3 || !IsEnglishLetters(dto.ISO3)))
+            return BadRequest("رمز ISO3 يجب أن يتكون من ثلاثة أحرف إنجليزية فقط.");
+        if (dto.Currency_Code is not null && (dto.Currency_Code.Length != 3 || !IsEnglishLetters(dto.Currency_Code)))
+            return BadRequest("رمز العملة يجب أن يتكون من ثلاثة أحرف إنجليزية فقط.");
+        if (dto.Phone_Code is not null && !IsValidInternationalPhoneCode(dto.Phone_Code))
+            return BadRequest("مفتاح الاتصال الدولي يجب أن يبدأ بعلامة + ويتبعها أرقام فقط دون مسافات أو رموز أخرى.");
 
-        var duplicate = await ScalarAsync<int>(
+        var duplicateCode = await ScalarAsync<int>(
             "SELECT COUNT(*) FROM countries WHERE Country_Code=@Code AND Country_ID<>@ID",
             ("@Code", dto.Country_Code), ("@ID", dto.Country_ID));
-        if (duplicate > 0)
+        if (duplicateCode > 0)
             return Conflict("كود الدولة مستخدم مسبقاً.");
+
+        if (dto.ISO2 is not null)
+        {
+            var duplicateIso2 = await ScalarAsync<int>(
+                "SELECT COUNT(*) FROM countries WHERE UPPER(TRIM(ISO2))=@ISO2 AND Country_ID<>@ID",
+                ("@ISO2", dto.ISO2), ("@ID", dto.Country_ID));
+            if (duplicateIso2 > 0)
+                return Conflict("رمز ISO2 مستخدم مسبقاً لدولة أخرى.");
+        }
+
+        if (dto.ISO3 is not null)
+        {
+            var duplicateIso3 = await ScalarAsync<int>(
+                "SELECT COUNT(*) FROM countries WHERE UPPER(TRIM(ISO3))=@ISO3 AND Country_ID<>@ID",
+                ("@ISO3", dto.ISO3), ("@ID", dto.Country_ID));
+            if (duplicateIso3 > 0)
+                return Conflict("رمز ISO3 مستخدم مسبقاً لدولة أخرى.");
+        }
 
         if (dto.Country_ID > 0)
         {
@@ -159,7 +183,7 @@ public sealed class GeographicReferencesController : ControllerBase
             try
             {
                 await ExecuteAsync("UPDATE countries SET Country_Code=@Code, Country_Name_AR=@NameAR, Country_Name_EN=@NameEN, ISO2=@ISO2, ISO3=@ISO3, Phone_Code=@Phone, Currency_Code=@Currency, Nationality_Name_AR=@Nationality, Sort_Order=@Sort, Notes=@Notes, Updated_At=UTC_TIMESTAMP() WHERE Country_ID=@ID",
-                    ("@Code", dto.Country_Code.Trim().ToUpperInvariant()), ("@NameAR", dto.Country_Name_AR.Trim()), ("@NameEN", dto.Country_Name_EN), ("@ISO2", dto.ISO2), ("@ISO3", dto.ISO3), ("@Phone", dto.Phone_Code), ("@Currency", dto.Currency_Code), ("@Nationality", dto.Nationality_Name_AR), ("@Sort", dto.Sort_Order), ("@Notes", dto.Notes), ("@ID", dto.Country_ID));
+                    ("@Code", dto.Country_Code), ("@NameAR", dto.Country_Name_AR), ("@NameEN", dto.Country_Name_EN), ("@ISO2", dto.ISO2), ("@ISO3", dto.ISO3), ("@Phone", dto.Phone_Code), ("@Currency", dto.Currency_Code), ("@Nationality", dto.Nationality_Name_AR), ("@Sort", dto.Sort_Order), ("@Notes", dto.Notes), ("@ID", dto.Country_ID));
                 AddAudit("countries", dto.Country_ID, "UPDATE", "تعديل بيانات الدولة.");
                 await _context.SaveChangesAsync();
                 await updateTransaction.CommitAsync();
@@ -176,7 +200,7 @@ public sealed class GeographicReferencesController : ControllerBase
         try
         {
             await ExecuteAsync("INSERT INTO countries (Country_Code, Country_Name_AR, Country_Name_EN, ISO2, ISO3, Phone_Code, Currency_Code, Nationality_Name_AR, Sort_Order, Is_Active, Notes) VALUES (@Code,@NameAR,@NameEN,@ISO2,@ISO3,@Phone,@Currency,@Nationality,@Sort,1,@Notes)",
-                ("@Code", dto.Country_Code.Trim().ToUpperInvariant()), ("@NameAR", dto.Country_Name_AR.Trim()), ("@NameEN", dto.Country_Name_EN), ("@ISO2", dto.ISO2), ("@ISO3", dto.ISO3), ("@Phone", dto.Phone_Code), ("@Currency", dto.Currency_Code), ("@Nationality", dto.Nationality_Name_AR), ("@Sort", dto.Sort_Order), ("@Notes", dto.Notes));
+                ("@Code", dto.Country_Code), ("@NameAR", dto.Country_Name_AR), ("@NameEN", dto.Country_Name_EN), ("@ISO2", dto.ISO2), ("@ISO3", dto.ISO3), ("@Phone", dto.Phone_Code), ("@Currency", dto.Currency_Code), ("@Nationality", dto.Nationality_Name_AR), ("@Sort", dto.Sort_Order), ("@Notes", dto.Notes));
             var countryId = await ScalarAsync<int>("SELECT LAST_INSERT_ID()");
             AddAudit("countries", countryId, "INSERT", "إضافة دولة.");
             await _context.SaveChangesAsync();
@@ -265,6 +289,7 @@ public sealed class GeographicReferencesController : ControllerBase
         var changed = await ExecuteAsync("UPDATE countries SET Is_Active=0, Updated_At=UTC_TIMESTAMP() WHERE Country_ID=@ID", ("@ID", id));
         if(changed==0) return NotFound("الدولة غير موجودة."); AddAudit("countries",id,"DEACTIVATE",dto.Reason); await _context.SaveChangesAsync(); return Ok();
     }
+
     /// <summary>إيقاف محافظة دون حذف مادي وبسبب إلزامي.</summary>
     [HttpDelete("governorates/{id:int}")]
     public async Task<IActionResult> DeactivateGovernorate(int id, [FromBody] RecordStatusChangeDto dto)
@@ -275,6 +300,7 @@ public sealed class GeographicReferencesController : ControllerBase
         var changed = await ExecuteAsync("UPDATE governorates SET Is_Active=0, Updated_At=UTC_TIMESTAMP() WHERE Governorate_ID=@ID", ("@ID", id));
         if(changed==0) return NotFound("المحافظة غير موجودة."); AddAudit("governorates",id,"DEACTIVATE",dto.Reason); await _context.SaveChangesAsync(); return Ok();
     }
+
     /// <summary>إيقاف مدينة دون حذف مادي وبسبب إلزامي.</summary>
     [HttpDelete("cities/{id:int}")]
     public async Task<IActionResult> DeactivateCity(int id, [FromBody] RecordStatusChangeDto dto)
@@ -284,6 +310,7 @@ public sealed class GeographicReferencesController : ControllerBase
         var changed = await ExecuteAsync("UPDATE cities SET Is_Active=0, Updated_At=UTC_TIMESTAMP() WHERE City_ID=@ID", ("@ID", id));
         if(changed==0) return NotFound("المدينة غير موجودة."); AddAudit("cities",id,"DEACTIVATE",dto.Reason); await _context.SaveChangesAsync(); return Ok();
     }
+
     /// <summary>إعادة تفعيل دولة بسبب إلزامي؛ الفروع التابعة لا يعاد تفعيلها تلقائياً.</summary>
     [HttpPost("countries/{id:int}/reactivate")]
     public async Task<IActionResult> ReactivateCountry(int id, [FromBody] RecordStatusChangeDto dto)
@@ -316,9 +343,7 @@ public sealed class GeographicReferencesController : ControllerBase
         await ExecuteAsync("UPDATE cities SET Is_Active=1, Updated_At=UTC_TIMESTAMP() WHERE City_ID=@ID",("@ID",id)); AddAudit("cities",id,"REACTIVATE",dto.Reason); await _context.SaveChangesAsync(); return Ok();
     }
 
-    /// <summary>
-    /// يبني بيانات التدقيق من السجل المركزي مع تحويل أرقام المنفذين إلى أسمائهم.
-    /// </summary>
+    /// <summary>يبني بيانات التدقيق من السجل المركزي مع تحويل أرقام المنفذين إلى أسمائهم.</summary>
     private async Task<IActionResult> GetAuditInfoAsync(string screenCode, string tableName, int recordId)
     {
         var access = await RequireAsync(screenCode, ScreenOperation.View);
@@ -415,6 +440,24 @@ public sealed class GeographicReferencesController : ControllerBase
             command.Parameters.Add(parameter);
         }
     }
+
+    private static string? CleanOptional(string? value) =>
+        string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+
+    private static string? NormalizeIso(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value)) return null;
+        return new string(value.Where(c => !char.IsWhiteSpace(c)).ToArray()).ToUpperInvariant();
+    }
+
+    private static bool IsEnglishLetters(string value) =>
+        value.All(c => c is >= 'A' and <= 'Z');
+
+    private static bool IsValidInternationalPhoneCode(string value) =>
+        value.Length >= 2 &&
+        value[0] == '+' &&
+        !value.Any(char.IsWhiteSpace) &&
+        value.Skip(1).All(c => c is >= '0' and <= '9');
 
     public sealed class CountryRequest
     {
