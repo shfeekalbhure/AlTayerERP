@@ -449,6 +449,18 @@ namespace AlTayerERP.Desktop
                     return false;
                 }
 
+                // يمنع الحفظ برقم أو نص غير مربوط بحساب فعّال من القوائم المحملة.
+                if (!_accountLookups.Any(account =>
+                        string.Equals(
+                            account.Account_ID,
+                            accountId,
+                            StringComparison.OrdinalIgnoreCase)))
+                {
+                    errorMessage = $"الحساب المختار غير صالح في السطر رقم {visibleRowNo}. استخدم F9 لاختيار حساب فعّال.";
+                    dgvVoucherDetails.CurrentCell = row.Cells[colAccountCode.Name];
+                    return false;
+                }
+
                 string cashAccountId = cmbCashAccount.SelectedValue?.ToString()?.Trim() ?? string.Empty;
                 if (string.Equals(accountId, cashAccountId, StringComparison.OrdinalIgnoreCase))
                 {
