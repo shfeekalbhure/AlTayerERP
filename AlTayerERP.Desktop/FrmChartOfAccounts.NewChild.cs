@@ -11,7 +11,7 @@ namespace AlTayerERP.Desktop
         private static readonly Color RequiredFieldColor = Color.FromArgb(255, 252, 220);
 
         /// <summary>
-        /// تثبيت سلوك زر جديد وتمييز الحقول الإلزامية دون تغيير التصميم.
+        /// تثبيت سلوك زر جديد وتطبيق قاعدة قبول الحركة تلقائياً.
         /// </summary>
         protected override void OnShown(EventArgs e)
         {
@@ -22,10 +22,17 @@ namespace AlTayerERP.Desktop
             if (_newChildBehaviorRegistered)
                 return;
 
-            // استبدال الحدث القديم بحدث واحد واضح حتى لا يعتمد التنفيذ على ترتيب حدثين.
             btnNew.Click -= btnNew_Click;
             btnNew.Click -= btnNew_CreateUnderSelectedAccount;
             btnNew.Click += btnNew_CreateUnderSelectedAccount;
+
+            cmbParentAccount.SelectedIndexChanged -= cmbParentAccount_ApplyAutomaticMovementRule;
+            cmbParentAccount.SelectedIndexChanged += cmbParentAccount_ApplyAutomaticMovementRule;
+
+            // الخياران يحسبهما النظام ولا يدخلهما المستخدم يدوياً.
+            if (chkIsPostable != null) chkIsPostable.Enabled = false;
+            if (chkIsSummaryAccount != null) chkIsSummaryAccount.Enabled = false;
+
             _newChildBehaviorRegistered = true;
         }
 
@@ -39,6 +46,28 @@ namespace AlTayerERP.Desktop
         }
 
         /// <summary>
+        /// الحساب الرئيسي لا يقبل الحركة، والحساب الفرعي يقبل الحركة تلقائياً.
+        /// </summary>
+        private void ApplyAutomaticMovementRuleForNewAccount()
+        {
+            if (_selectedAccountId != null)
+                return;
+
+            bool isSubAccount = cmbParentAccount.SelectedIndex > 0;
+
+            if (chkIsPostable != null)
+                chkIsPostable.Checked = isSubAccount;
+
+            if (chkIsSummaryAccount != null)
+                chkIsSummaryAccount.Checked = !isSubAccount;
+        }
+
+        private void cmbParentAccount_ApplyAutomaticMovementRule(object? sender, EventArgs e)
+        {
+            ApplyAutomaticMovementRuleForNewAccount();
+        }
+
+        /// <summary>
         /// إنشاء حساب رئيسي عند عدم تحديد حساب، أو حساب فرعي تحت المحدد في الشجرة.
         /// </summary>
         private void btnNew_CreateUnderSelectedAccount(object? sender, EventArgs e)
@@ -48,7 +77,6 @@ namespace AlTayerERP.Desktop
                 ? null
                 : _accountsCache.FirstOrDefault(x => x.Account_ID == selectedAccountId);
 
-            // تفريغ الحقول أولاً مع الاحتفاظ بالحساب المحدد في متغير محلي.
             NewAccount();
 
             if (parent == null)
@@ -58,9 +86,10 @@ namespace AlTayerERP.Desktop
 
                 txtAccountLevel.Text = "1";
                 cmbParentAccount.BackColor = Color.White;
+                ApplyAutomaticMovementRuleForNewAccount();
 
                 if (lblCurrentAccount != null)
-                    lblCurrentAccount.Text = "إضافة حساب رئيسي جديد";
+                    lblCurrentAccount.Text = "إضافة حساب رئيسي جديد - لا يقبل الحركة";
 
                 txtAccountNameAR.Focus();
                 return;
@@ -87,9 +116,10 @@ namespace AlTayerERP.Desktop
 
             _selectedAccountId = null;
             txtAccountCode.Clear();
+            ApplyAutomaticMovementRuleForNewAccount();
 
             if (lblCurrentAccount != null)
-                lblCurrentAccount.Text = $"حساب جديد تحت: {parent.Account_Code} - {parent.Account_Name_AR}";
+                lblCurrentAccount.Text = $"حساب فرعي جديد تحت: {parent.Account_Code} - يقبل الحركة";
 
             txtAccountNameAR.Focus();
         }
