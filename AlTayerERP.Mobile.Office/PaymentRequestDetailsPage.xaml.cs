@@ -61,21 +61,18 @@ public partial class PaymentRequestDetailsPage : ContentPage
                             new Label { Text = $"الحساب: {line.Account_ID}", TextColor = Color.FromArgb("#17324D"), FontAttributes = FontAttributes.Bold },
                             new Label { Text = $"المبلغ المحلي: {line.Local_Amount:N2}", TextColor = Color.FromArgb("#35566F") },
                             new Label { Text = $"العملة: {line.Currency_ID} | السعر: {line.Exchange_Rate:N6}", TextColor = Color.FromArgb("#7A8896"), FontSize = 12 },
+                            new Label { Text = string.IsNullOrWhiteSpace(line.Reference_No) ? "المرجع: —" : $"المرجع: {line.Reference_No}", TextColor = Color.FromArgb("#7A8896"), FontSize = 12 },
                             new Label { Text = string.IsNullOrWhiteSpace(line.Description) ? "" : line.Description, TextColor = Color.FromArgb("#35566F") }
                         }
                     }
                 });
             }
 
-            var editable = _request.Status is "DRAFT" or "RETURNED";
-            EditButton.IsVisible = editable;
-            SubmitButton.IsVisible = editable;
-            ReviewButton.IsVisible = _request.Status == "PENDING_REVIEW";
-            ApproveButton.IsVisible = _request.Status == "PENDING_APPROVAL";
-            ReturnButton.IsVisible = _request.Status == "PENDING_APPROVAL";
-            RejectButton.IsVisible = _request.Status == "PENDING_APPROVAL";
-            CreateVoucherButton.IsVisible = _request.Status == "APPROVED" && !_request.Payment_Voucher_ID.HasValue;
-            ReasonEditor.IsVisible = ReviewButton.IsVisible || ApproveButton.IsVisible || ReturnButton.IsVisible || RejectButton.IsVisible;
+            ApplyActionVisibility();
+        }
+        catch (PaymentRequestSessionExpiredException ex)
+        {
+            ShowMessage(ex.Message);
         }
         catch (Exception ex)
         {
@@ -85,6 +82,22 @@ public partial class PaymentRequestDetailsPage : ContentPage
         {
             SetBusy(false);
         }
+    }
+
+    private void ApplyActionVisibility()
+    {
+        if (_request == null)
+            return;
+
+        var editable = _request.Status is "DRAFT" or "RETURNED";
+        EditButton.IsVisible = editable;
+        SubmitButton.IsVisible = editable;
+        ReviewButton.IsVisible = _request.Status == "PENDING_REVIEW";
+        ApproveButton.IsVisible = _request.Status == "PENDING_APPROVAL";
+        ReturnButton.IsVisible = _request.Status is "PENDING_REVIEW" or "PENDING_APPROVAL";
+        RejectButton.IsVisible = _request.Status == "PENDING_APPROVAL";
+        CreateVoucherButton.IsVisible = _request.Status == "APPROVED" && !_request.Payment_Voucher_ID.HasValue;
+        ReasonEditor.IsVisible = ReviewButton.IsVisible || ApproveButton.IsVisible || ReturnButton.IsVisible || RejectButton.IsVisible;
     }
 
     private async void OnCreateVoucherClicked(object? sender, EventArgs e)
@@ -130,6 +143,16 @@ public partial class PaymentRequestDetailsPage : ContentPage
             await DisplayAlert("تم إنشاء السند", $"رقم سند الصرف: {result.VoucherNo}", "موافق");
             await LoadAsync();
         }
+        catch (PaymentRequestConflictException ex)
+        {
+            ShowMessage(ex.Message);
+            await LoadAsync();
+        }
+        catch (PaymentRequestForbiddenException ex)
+        {
+            ShowMessage(ex.Message);
+            await LoadAsync();
+        }
         catch (Exception ex)
         {
             ShowMessage(ex.Message);
@@ -153,7 +176,6 @@ public partial class PaymentRequestDetailsPage : ContentPage
     private async void OnAttachmentsClicked(object? sender, EventArgs e) =>
         await Navigation.PushAsync(new PaymentRequestAttachmentsPage(_attachmentService, _requestId));
 
-    /// <summary>يفتح السند المتولد من طلب الصرف نفسه بدلاً من عرض معرفه كنص فقط.</summary>
     private async void OnLinkedVoucherTapped(object? sender, TappedEventArgs e)
     {
         if (_request?.Payment_Voucher_ID is not long voucherId)
@@ -185,15 +207,38 @@ public partial class PaymentRequestDetailsPage : ContentPage
             ShowMessage("سبب الإجراء مطلوب.");
             return;
         }
+
         SetBusy(true);
         try
         {
             await action();
             await DisplayAlert("تمت العملية", successMessage, "موافق");
+            ReasonEditor.Text = string.Empty;
             await LoadAsync();
         }
-        catch (Exception ex) { ShowMessage(ex.Message); }
-        finally { SetBusy(false); }
+        catch (PaymentRequestConflictException ex)
+        {
+            ShowMessage(ex.Message);
+            await LoadAsync();
+        }
+        catch (PaymentRequestForbiddenException ex)
+        {
+            ShowMessage(ex.Message);
+            await LoadAsync();
+        }
+        catch (PaymentRequestSessionExpiredException ex)
+        {
+            ShowMessage(ex.Message);
+        }
+        catch (Exception ex)
+        {
+            ShowMessage(ex.Message);
+            await LoadAsync();
+        }
+        finally
+        {
+            SetBusy(false);
+        }
     }
 
     private void SetBusy(bool busy)
