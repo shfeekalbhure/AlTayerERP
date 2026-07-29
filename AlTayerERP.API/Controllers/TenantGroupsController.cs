@@ -35,21 +35,26 @@ namespace AlTayerERP.API.Controllers
 
             try
             {
-                var groups = await _context.Tenant_Groups.AsNoTracking()
-                    .OrderByDescending(x => x.Is_Default)
-                    .ThenBy(x => x.Group_Name_AR)
-                    .Select(x => new TenantGroupLookupResult
-                    {
-                        Group_ID = x.Group_ID,
-                        Group_Code = x.Group_Code,
-                        Group_Name_AR = x.Group_Name_AR,
-                        Group_Name_EN = x.Group_Name_EN ?? string.Empty,
-                        Is_Default = x.Is_Default,
-                        Show_In_Login = x.Show_In_Login,
-                        Show_In_Tree = x.Show_In_Tree,
-                        Notes = x.Notes ?? string.Empty,
-                        Is_Active = x.Is_Active
-                    })
+                // القراءة الخام تستخدم COALESCE كي تتحمل قواعد قديمة تحتوي NULL
+                // من دون تغيير بياناتها أو جعل الحقول الإلزامية اختيارية عند الحفظ.
+                const string sql = """
+                    SELECT
+                        COALESCE(Group_ID, '') AS Group_ID,
+                        COALESCE(Group_Code, '') AS Group_Code,
+                        COALESCE(Group_Name_AR, '') AS Group_Name_AR,
+                        COALESCE(Group_Name_EN, '') AS Group_Name_EN,
+                        COALESCE(Is_Default, 0) AS Is_Default,
+                        COALESCE(Show_In_Login, 1) AS Show_In_Login,
+                        COALESCE(Show_In_Tree, 1) AS Show_In_Tree,
+                        COALESCE(Notes, '') AS Notes,
+                        COALESCE(Is_Active, 1) AS Is_Active
+                    FROM tenant_groups
+                    ORDER BY COALESCE(Is_Default, 0) DESC,
+                             COALESCE(Group_Name_AR, '')
+                    """;
+
+                var groups = await _context.Database
+                    .SqlQueryRaw<TenantGroupLookupResult>(sql)
                     .ToListAsync(cancellationToken);
 
                 return Ok(groups);
@@ -69,20 +74,23 @@ namespace AlTayerERP.API.Controllers
 
             try
             {
-                var group = await _context.Tenant_Groups.AsNoTracking()
-                    .Where(x => x.Group_ID == id)
-                    .Select(x => new TenantGroupLookupResult
-                    {
-                        Group_ID = x.Group_ID,
-                        Group_Code = x.Group_Code,
-                        Group_Name_AR = x.Group_Name_AR,
-                        Group_Name_EN = x.Group_Name_EN ?? string.Empty,
-                        Is_Default = x.Is_Default,
-                        Show_In_Login = x.Show_In_Login,
-                        Show_In_Tree = x.Show_In_Tree,
-                        Notes = x.Notes ?? string.Empty,
-                        Is_Active = x.Is_Active
-                    })
+                const string sql = """
+                    SELECT
+                        COALESCE(Group_ID, '') AS Group_ID,
+                        COALESCE(Group_Code, '') AS Group_Code,
+                        COALESCE(Group_Name_AR, '') AS Group_Name_AR,
+                        COALESCE(Group_Name_EN, '') AS Group_Name_EN,
+                        COALESCE(Is_Default, 0) AS Is_Default,
+                        COALESCE(Show_In_Login, 1) AS Show_In_Login,
+                        COALESCE(Show_In_Tree, 1) AS Show_In_Tree,
+                        COALESCE(Notes, '') AS Notes,
+                        COALESCE(Is_Active, 1) AS Is_Active
+                    FROM tenant_groups
+                    WHERE Group_ID = {0}
+                    """;
+
+                var group = await _context.Database
+                    .SqlQueryRaw<TenantGroupLookupResult>(sql, id)
                     .FirstOrDefaultAsync(cancellationToken);
 
                 return group is null ? NotFound("المجموعة التجارية غير موجودة.") : Ok(group);
@@ -294,7 +302,8 @@ namespace AlTayerERP.API.Controllers
             group.Notes = string.IsNullOrWhiteSpace(dto.Notes) ? null : dto.Notes.Trim();
         }
 
-        private sealed class TenantGroupLookupResult
+        /// <summary>نموذج قراءة آمن مستقل عن قيود nullability في كيان EF.</summary>
+        public sealed class TenantGroupLookupResult
         {
             public string Group_ID { get; set; } = string.Empty;
             public string Group_Code { get; set; } = string.Empty;
