@@ -7,12 +7,13 @@ using System.Windows.Forms;
 namespace AlTayerERP.Desktop.Services;
 
 /// <summary>
-/// تحسينات تشغيلية مرئية لشاشتي المجموعات التجارية والشركات فقط.
-/// لا تفتح الشاشات ولا تضيف أحداث تنقل؛ وظيفتها ضبط الأدوات الموجودة بعد إنشائها.
+/// تحسينات تشغيلية مرئية لشاشة الشركات فقط.
+/// لا تفتح الشاشة ولا تضيف أحداث تنقل؛ وظيفتها ضبط الأدوات الموجودة بعد إنشائها.
 /// </summary>
 internal static class InstitutionalScreensRuntimePolishService
 {
     private const string EmptyLabelName = "lblRuntimeEmptyState";
+    private const string AppliedMarker = "CompanyRuntimePolishApplied";
 
     [ModuleInitializer]
     internal static void Register()
@@ -21,42 +22,23 @@ internal static class InstitutionalScreensRuntimePolishService
         {
             foreach (Form form in Application.OpenForms.Cast<Form>().ToArray())
             {
-                if (form.IsDisposed) continue;
-                if (form.GetType().Name == "FrmTenantGroups") ApplyTenantGroups(form);
-                else if (form.GetType().Name == "CompanyForm") ApplyCompanies(form);
+                if (form.IsDisposed || form.GetType().Name != "CompanyForm")
+                    continue;
+                if (form.Controls.Find(AppliedMarker, true).Length > 0)
+                    continue;
+
+                form.Controls.Add(new Label { Name = AppliedMarker, Visible = false });
+                ApplyCompanies(form);
             }
         };
     }
 
-    private static void ApplyTenantGroups(Form form)
-    {
-        foreach (var toolbar in FindControls<FlowLayoutPanel>(form).Where(x => x.Controls.OfType<Button>().Count() >= 5))
-        {
-            toolbar.AutoScroll = false;
-            toolbar.WrapContents = false;
-            toolbar.FlowDirection = FlowDirection.RightToLeft;
-            toolbar.Padding = new Padding(4, 5, 4, 3);
-
-            foreach (var button in toolbar.Controls.OfType<Button>())
-            {
-                button.Text = NormalizeButtonText(button.Text);
-                button.Width = Math.Max(button.Width, 94);
-                button.Height = 34;
-                button.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
-                button.TextAlign = ContentAlignment.MiddleCenter;
-            }
-        }
-
-        var grid = FindControls<DataGridView>(form).FirstOrDefault();
-        if (grid is null) return;
-
-        ConfigureGrid(grid);
-        EnsureEmptyState(grid, "لا توجد مجموعات تجارية للعرض حالياً.");
-        ImproveAuditLabels(form);
-    }
-
     private static void ApplyCompanies(Form form)
     {
+        form.RightToLeft = RightToLeft.Yes;
+        form.RightToLeftLayout = true;
+        form.AutoScroll = false;
+
         var grid = FindControls<DataGridView>(form).FirstOrDefault();
         if (grid is not null)
         {
@@ -159,21 +141,6 @@ internal static class InstitutionalScreensRuntimePolishService
             label.TextAlign = ContentAlignment.MiddleRight;
             label.Padding = new Padding(4, 0, 4, 0);
         }
-    }
-
-    private static string NormalizeButtonText(string? text)
-    {
-        var value = (text ?? string.Empty).Trim();
-        if (value.Contains("جديد")) return "جديد";
-        if (value.Contains("حفظ")) return "حفظ";
-        if (value.Contains("تعديل")) return "تعديل";
-        if (value.Contains("إيقاف")) return "إيقاف";
-        if (value.Contains("إعادة تفعيل")) return "إعادة تفعيل";
-        if (value.Contains("طباعة")) return "طباعة";
-        if (value.Contains("بحث")) return "بحث";
-        if (value.Contains("تحديث")) return "تحديث";
-        if (value.Contains("إغلاق")) return "إغلاق";
-        return value;
     }
 
     private static System.Collections.Generic.IEnumerable<T> FindControls<T>(Control root) where T : Control
