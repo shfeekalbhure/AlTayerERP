@@ -13,7 +13,13 @@ namespace AlTayerERP.API.Controllers
     public sealed class TenantGroupsController : ControllerBase
     {
         private readonly AppDbContext _context;
-        public TenantGroupsController(AppDbContext context) => _context = context;
+        private readonly ILogger<TenantGroupsController> _logger;
+
+        public TenantGroupsController(AppDbContext context, ILogger<TenantGroupsController> logger)
+        {
+            _context = context;
+            _logger = logger;
+        }
 
         private bool TryGetAdminSession(out ServerSession session)
         {
@@ -27,24 +33,33 @@ namespace AlTayerERP.API.Controllers
         {
             if (!TryGetAdminSession(out _)) return Forbid();
 
-            var groups = await _context.Tenant_Groups.AsNoTracking()
-                .OrderByDescending(x => x.Is_Default)
-                .ThenBy(x => x.Group_Name_AR)
-                .Select(x => new TenantGroup
-                {
-                    Group_ID = x.Group_ID,
-                    Group_Code = x.Group_Code,
-                    Group_Name_AR = x.Group_Name_AR,
-                    Group_Name_EN = x.Group_Name_EN,
-                    Is_Default = x.Is_Default,
-                    Show_In_Login = x.Show_In_Login,
-                    Show_In_Tree = x.Show_In_Tree,
-                    Notes = x.Notes,
-                    Is_Active = x.Is_Active
-                })
-                .ToListAsync(cancellationToken);
+            try
+            {
+                var groups = await _context.Tenant_Groups.AsNoTracking()
+                    .OrderByDescending(x => x.Is_Default)
+                    .ThenBy(x => x.Group_Name_AR)
+                    .Select(x => new TenantGroupLookupResult
+                    {
+                        Group_ID = x.Group_ID,
+                        Group_Code = x.Group_Code,
+                        Group_Name_AR = x.Group_Name_AR,
+                        Group_Name_EN = x.Group_Name_EN ?? string.Empty,
+                        Is_Default = x.Is_Default,
+                        Show_In_Login = x.Show_In_Login,
+                        Show_In_Tree = x.Show_In_Tree,
+                        Notes = x.Notes ?? string.Empty,
+                        Is_Active = x.Is_Active
+                    })
+                    .ToListAsync(cancellationToken);
 
-            return Ok(groups);
+                return Ok(groups);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "تعذر تحميل المجموعات التجارية من قاعدة البيانات.");
+                return StatusCode(StatusCodes.Status500InternalServerError,
+                    new { message = "تعذر تحميل المجموعات التجارية. راجع مسؤول النظام." });
+            }
         }
 
         [HttpGet("{id}")]
@@ -52,23 +67,32 @@ namespace AlTayerERP.API.Controllers
         {
             if (!TryGetAdminSession(out _)) return Forbid();
 
-            var group = await _context.Tenant_Groups.AsNoTracking()
-                .Where(x => x.Group_ID == id)
-                .Select(x => new TenantGroup
-                {
-                    Group_ID = x.Group_ID,
-                    Group_Code = x.Group_Code,
-                    Group_Name_AR = x.Group_Name_AR,
-                    Group_Name_EN = x.Group_Name_EN,
-                    Is_Default = x.Is_Default,
-                    Show_In_Login = x.Show_In_Login,
-                    Show_In_Tree = x.Show_In_Tree,
-                    Notes = x.Notes,
-                    Is_Active = x.Is_Active
-                })
-                .FirstOrDefaultAsync(cancellationToken);
+            try
+            {
+                var group = await _context.Tenant_Groups.AsNoTracking()
+                    .Where(x => x.Group_ID == id)
+                    .Select(x => new TenantGroupLookupResult
+                    {
+                        Group_ID = x.Group_ID,
+                        Group_Code = x.Group_Code,
+                        Group_Name_AR = x.Group_Name_AR,
+                        Group_Name_EN = x.Group_Name_EN ?? string.Empty,
+                        Is_Default = x.Is_Default,
+                        Show_In_Login = x.Show_In_Login,
+                        Show_In_Tree = x.Show_In_Tree,
+                        Notes = x.Notes ?? string.Empty,
+                        Is_Active = x.Is_Active
+                    })
+                    .FirstOrDefaultAsync(cancellationToken);
 
-            return group is null ? NotFound("المجموعة التجارية غير موجودة.") : Ok(group);
+                return group is null ? NotFound("المجموعة التجارية غير موجودة.") : Ok(group);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "تعذر تحميل المجموعة التجارية المطلوبة.");
+                return StatusCode(StatusCodes.Status500InternalServerError,
+                    new { message = "تعذر تحميل المجموعة التجارية. راجع مسؤول النظام." });
+            }
         }
 
         [HttpPost]
@@ -98,8 +122,9 @@ namespace AlTayerERP.API.Controllers
 
                 return CreatedAtAction(nameof(GetGroup), new { id = group.Group_ID }, group);
             }
-            catch (DbUpdateException)
+            catch (DbUpdateException ex)
             {
+                _logger.LogError(ex, "تعذر حفظ المجموعة التجارية بسبب خطأ في تحديث البيانات.");
                 return StatusCode(StatusCodes.Status500InternalServerError,
                     "تعذر حفظ المجموعة التجارية بسبب عدم توافق بنية البيانات. راجع مسؤول النظام.");
             }
@@ -262,11 +287,24 @@ namespace AlTayerERP.API.Controllers
         {
             group.Group_Code = dto.Group_Code.Trim().ToUpperInvariant();
             group.Group_Name_AR = dto.Group_Name_AR.Trim();
-            group.Group_Name_EN = dto.Group_Name_EN?.Trim() ?? string.Empty;
+            group.Group_Name_EN = string.IsNullOrWhiteSpace(dto.Group_Name_EN) ? null : dto.Group_Name_EN.Trim();
             group.Is_Default = dto.Is_Default;
             group.Show_In_Login = dto.Show_In_Login;
             group.Show_In_Tree = dto.Show_In_Tree;
-            group.Notes = dto.Notes?.Trim();
+            group.Notes = string.IsNullOrWhiteSpace(dto.Notes) ? null : dto.Notes.Trim();
+        }
+
+        private sealed class TenantGroupLookupResult
+        {
+            public string Group_ID { get; set; } = string.Empty;
+            public string Group_Code { get; set; } = string.Empty;
+            public string Group_Name_AR { get; set; } = string.Empty;
+            public string Group_Name_EN { get; set; } = string.Empty;
+            public bool Is_Default { get; set; }
+            public bool Show_In_Login { get; set; }
+            public bool Show_In_Tree { get; set; }
+            public string Notes { get; set; } = string.Empty;
+            public bool Is_Active { get; set; }
         }
     }
 }
