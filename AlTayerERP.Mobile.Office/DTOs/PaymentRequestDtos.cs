@@ -2,6 +2,8 @@ namespace AlTayerERP.Mobile.Office.DTOs;
 
 public sealed class PaymentRequestListItemDto
 {
+    private const long StoragePrecisionTicks = TimeSpan.TicksPerSecond;
+
     public long Payment_Request_ID { get; set; }
     public string Request_No { get; set; } = string.Empty;
     public DateTime Request_Date { get; set; }
@@ -19,7 +21,7 @@ public sealed class PaymentRequestListItemDto
     public DateTime? Updated_At { get; set; }
     public List<PaymentRequestLineItemDto> Details { get; set; } = [];
 
-    public DateTime LastModifiedAt => Updated_At ?? Created_At;
+    public DateTime LastModifiedAt => NormalizeUtcAtStoragePrecision(Updated_At ?? Created_At);
     public decimal LocalTotal => Details.Sum(x => x.Local_Amount);
     public string StatusDisplay => Status switch
     {
@@ -31,6 +33,20 @@ public sealed class PaymentRequestListItemDto
         "RETURNED" => "معاد",
         _ => Status
     };
+
+    private static DateTime NormalizeUtcAtStoragePrecision(DateTime value)
+    {
+        var utc = value.Kind switch
+        {
+            DateTimeKind.Utc => value,
+            DateTimeKind.Local => value.ToUniversalTime(),
+            _ => DateTime.SpecifyKind(value, DateTimeKind.Utc)
+        };
+
+        return new DateTime(
+            utc.Ticks - (utc.Ticks % StoragePrecisionTicks),
+            DateTimeKind.Utc);
+    }
 }
 
 public sealed class PaymentRequestLineItemDto
