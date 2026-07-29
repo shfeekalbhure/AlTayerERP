@@ -3,24 +3,25 @@
 	<PropertyGroup>
 		<!-- استهداف منصة .NET 8.0 المستقرة وطويلة الدعم (LTS) -->
 		<TargetFramework>net8.0</TargetFramework>
-
-		<!-- تفعيل ميزة الاستدعاء التلقائي للمكتبات الشائعة لتقليل أسطر الـ using -->
+		<!-- تفعيل الاستدعاءات الشائعة تلقائياً -->
 		<ImplicitUsings>enable</ImplicitUsings>
-
-		<!-- تفعيل حماية الكود من القيم الفارغة ونقاط الضعف (Null Safety) -->
+		<!-- تفعيل حماية القيم الفارغة -->
 		<Nullable>enable</Nullable>
 	</PropertyGroup>
 
 	<ItemGroup>
-		<!-- محرك ربط EF Core بقواعد بيانات MySQL (تم ضبطه على الإصدار المستقر والمتوافق تماماً مع .NET 8) -->
+		<!-- موفر MySQL المعتمد لـ EF Core 8 -->
 		<PackageReference Include="Pomelo.EntityFrameworkCore.MySql" Version="8.0.2" />
-
-		<!-- أدوات إدارة EF Core داخل الـ Package Manager Console لتنفيذ الـ Migrations والـ Scaffold -->
+		<!-- أدوات أوامر Migrations -->
 		<PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="8.0.12" />
+		<!-- خدمات التصميم المطلوبة لمصنع AppDbContext وتوليد Baseline دون تشغيل قاعدة فعلية -->
+		<PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.12">
+			<PrivateAssets>all</PrivateAssets>
+			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+		</PackageReference>
 	</ItemGroup>
 
 	<ItemGroup>
-		<!-- ربط وتضمين مشروع الطبقة الأساسية (Core) التي تحتوي على الـ Entities والـ Interfaces -->
 		<ProjectReference Include="..\AlTayerERP.Core\AlTayerERP.Core.csproj" />
 	</ItemGroup>
 
