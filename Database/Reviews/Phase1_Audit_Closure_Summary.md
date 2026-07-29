@@ -38,6 +38,13 @@
 - التوصية الوحيدة للـCollation في Baseline الأولى: `utf8mb4_unicode_ci`، وتحتاج اعتماد المالك لأن إصدارات البيئات ووجود MariaDB غير موثقة نهائيًا.
 - Migrations مقترحة كمصدر وحيد للمخطط بعد اعتماد المرحلة الثانية.
 
+## التحقق النهائي من نطاق التغيير
+
+- الفرق من SHA البداية إلى رأس فرع التدقيق محصور في ملفات Markdown داخل `Database/Reviews` و`Database/Documentation`.
+- لم يتغير أي ملف في `AlTayerERP.Core` أو `AlTayerERP.Infrastructure` أو `AlTayerERP.API` أو Desktop أو Mobile.
+- لم يُضف أو يُعدل أي ملف `.sql` أو Migration.
+- قاموس البيانات يغطي **47/47 تعريفًا = 100%**: 42 كيانًا مستمرًا و4 جداول SQL-only تشغيلية وجدول تشخيصي مستبعد من Baseline.
+
 ## القيود المؤكدة
 
 - لم تُنشأ `altayer_erp_db_clean`.
