@@ -40,7 +40,7 @@ public class AppDbContext : DbContext
     public DbSet<FinancialPolicyMovement> Financial_Policy_Movements => Set<FinancialPolicyMovement>();
     public DbSet<ApprovalRequest> Approval_Requests => Set<ApprovalRequest>();
     public DbSet<ApprovalStatusReference> Approval_Statuses => Set<ApprovalStatusReference>();
-    public DbSet<DocumentTypeReference> Document_Types => Set<DocumentTypeReference>();
+    public DbSet<NumberingDocumentType> Document_Types => Set<NumberingDocumentType>();
 
     public DbSet<AccountCategory> Account_Categories => Set<AccountCategory>();
     public DbSet<AccountCodeSetting> Account_Code_Settings => Set<AccountCodeSetting>();
