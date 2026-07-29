@@ -17,40 +17,11 @@ def write(path: str, content: str) -> None:
     target.write_text(content, encoding="utf-8", newline="\n")
 
 
-def replace_if_present(path: str, old: str, new: str) -> None:
-    content = read(path)
-    if old in content:
-        write(path, content.replace(old, new))
-
-
-# 1) تسجيل مخصص نموذج Baseline في API دون تشغيل Migrations تلقائيًا.
+# 1) توحيد حارس الترحيل بعد اعتماد Branch_ID الرقمي.
+# AppDbContext يطبق Phase1BaselineModelConfiguration مباشرة، لذلك لا نسجل
+# IModelCustomizer ولا نحتاج خدمة إضافية وقت تشغيل API.
 program_path = "AlTayerERP.API/Program.cs"
 program = read(program_path)
-if "using Microsoft.EntityFrameworkCore.Infrastructure;" not in program:
-    program = program.replace(
-        "using Microsoft.EntityFrameworkCore;",
-        "using Microsoft.EntityFrameworkCore;\nusing Microsoft.EntityFrameworkCore.Infrastructure;",
-    )
-
-old_registration = '''builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseMySql(
-        connectionString,
-        ServerVersion.AutoDetect(connectionString)
-    )
-);'''
-new_registration = '''builder.Services.AddDbContext<AppDbContext>(options =>
-{
-    options.UseMySql(
-        connectionString,
-        ServerVersion.AutoDetect(connectionString)
-    );
-
-    // يطبق نموذج Baseline فقط؛ لا ينفذ EnsureCreated أو Migrate وقت التشغيل.
-    options.ReplaceService<IModelCustomizer, Phase1ModelCustomizer>();
-});'''
-if old_registration in program:
-    program = program.replace(old_registration, new_registration)
-
 program = re.sub(
     r'''\s*if \(!int\.TryParse\(voucher\.Branch_ID, out int branchId\)\)\s*\{\s*await RejectAsync\(context, "معرف فرع السند غير صالح\."\);\s*return;\s*\}''',
     "\n        int branchId = voucher.Branch_ID;",
@@ -58,6 +29,7 @@ program = re.sub(
     flags=re.MULTILINE,
 )
 write(program_path, program)
+
 
 # 2) توحيد عقود Branch_ID إلى int/int? في المشاريع الثلاثة.
 for project in ("AlTayerERP.API", "AlTayerERP.Desktop", "AlTayerERP.Mobile.Office"):
@@ -83,7 +55,7 @@ for project in ("AlTayerERP.API", "AlTayerERP.Desktop", "AlTayerERP.Mobile.Offic
         if text != original:
             path.write_text(text, encoding="utf-8", newline="\n")
 
-# تعديل DTO الإنشاء الذي يحتوي MaxLength على Branch_ID.
+# تعديل DTOs التي تحتوي MaxLength على Branch_ID.
 for dto_path in (
     "AlTayerERP.API/DTOs/Accounting/CreateFinancialVoucherDto.cs",
     "AlTayerERP.API/DTOs/Accounting/UpdateFinancialVoucherDto.cs",
@@ -96,16 +68,8 @@ for dto_path in (
     )
     write(dto_path, dto)
 
-# 3) إصلاح تعبير nullable reference غير صالح في typeof.
-customizer_path = "AlTayerERP.Infrastructure/Data/Phase1ModelCustomizer.cs"
-customizer = read(customizer_path)
-customizer = customizer.replace(
-    "property.ClrType == typeof(string) || property.ClrType == typeof(string?)",
-    "property.ClrType == typeof(string)",
-)
-write(customizer_path, customizer)
 
-# 4) تعطيل Runtime DDL الخاص بطلبات الصرف.
+# 3) تعطيل Runtime DDL الخاص بطلبات الصرف.
 write(
     "AlTayerERP.API/Services/PaymentRequestSchemaInitializer.cs",
     '''namespace AlTayerERP.API.Services;
@@ -134,7 +98,8 @@ public sealed class PaymentRequestSchemaInitializer
 ''',
 )
 
-# 5) إضافة حزمة Design اللازمة لتوليد Migration دون قاعدة فعلية.
+
+# 4) إضافة حزمة Design اللازمة لتوليد Migration دون قاعدة فعلية.
 csproj_path = "AlTayerERP.Infrastructure/AlTayerERP.Infrastructure.csproj"
 csproj = read(csproj_path)
 if "Microsoft.EntityFrameworkCore.Design" not in csproj:
@@ -148,7 +113,8 @@ if "Microsoft.EntityFrameworkCore.Design" not in csproj:
     )
 write(csproj_path, csproj)
 
-# 6) حفظ تاريخ Migrations القديم خارج مجلد EF الفعال، دون حذفه من فرع المصدر.
+
+# 5) حفظ تاريخ Migrations القديم خارج مجلد EF الفعال، دون حذفه من فرع المصدر.
 legacy_dir = ROOT / "Database/Legacy/Migrations_PreBaseline"
 legacy_dir.mkdir(parents=True, exist_ok=True)
 migrations_dir = ROOT / "AlTayerERP.Infrastructure/Migrations"
