@@ -23,13 +23,14 @@ jobs:
         with:
           dotnet-version: 8.0.x
 
-      # النموذج المنظم محفوظ في الفرع؛ نطبق فقط إصلاحات التوافق الموجهة.
-      # لا تنفذ هذه الخطوة Migration أو SQL أو اتصالاً بقاعدة البيانات.
+      # تطبق فقط إصلاحات توافق Branch_ID ولا تنفذ Migration أو SQL.
       - name: Apply targeted Branch ID fixes
         if: ${{ github.head_ref == 'agent/phase1-clean-database-implementation' || github.ref_name == 'agent/phase1-clean-database-implementation' }}
         env:
           PYTHONUTF8: '1'
-        run: python tools/fix_phase2_branch_id_compatibility.py
+        run: |
+          python tools/fix_phase2_branch_id_compatibility.py
+          python tools/fix_branch_id_build_errors.py
 
       - name: Restore API packages
         run: dotnet restore AlTayerERP.API/AlTayerERP.API.csproj
