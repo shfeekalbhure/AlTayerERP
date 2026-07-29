@@ -70,7 +70,7 @@ jobs:
         run: |
           dotnet ef migrations add Baseline_Phase1 \
             --project AlTayerERP.Infrastructure/AlTayerERP.Infrastructure.csproj \
-            --startup-project AlTayerERP.API/AlTayerERP.API.csproj \
+            --startup-project AlTayerERP.Infrastructure/AlTayerERP.Infrastructure.csproj \
             --context AppDbContext \
             --output-dir Migrations \
             --configuration Release \
@@ -85,7 +85,7 @@ jobs:
         run: |
           dotnet ef migrations script 0 Baseline_Phase1 \
             --project AlTayerERP.Infrastructure/AlTayerERP.Infrastructure.csproj \
-            --startup-project AlTayerERP.API/AlTayerERP.API.csproj \
+            --startup-project AlTayerERP.Infrastructure/AlTayerERP.Infrastructure.csproj \
             --context AppDbContext \
             --output Database/Baseline/Baseline_Phase1.sql \
             --configuration Release \
