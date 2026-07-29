@@ -17,9 +17,9 @@ public sealed class ApprovalStatusReference
 
 /// <summary>نوع مستند معتمد للترقيم المركزي.</summary>
 [Table("numbering_document_types")]
-public sealed class NumberingDocumentType
+public sealed class DocumentTypeReference
 {
-    [Key] public int Numbering_Document_Type_ID { get; set; }
+    [Key] public int Document_Type_ID { get; set; }
     [Required, MaxLength(50)] public string Document_Type_Code { get; set; } = string.Empty;
     [Required, MaxLength(150)] public string Document_Type_Name_AR { get; set; } = string.Empty;
     [MaxLength(150)] public string? Document_Type_Name_EN { get; set; }
