@@ -69,7 +69,16 @@ for dto_path in (
     write(dto_path, dto)
 
 
-# 3) تعطيل Runtime DDL الخاص بطلبات الصرف.
+# 3) توحيد الاسم البرمجي لنوع المستند المرجعي في نموذج Baseline.
+configuration_path = "AlTayerERP.Infrastructure/Data/Phase1BaselineModelConfiguration.cs"
+configuration = read(configuration_path)
+configuration = configuration.replace("NumberingDocumentType", "DocumentTypeReference")
+configuration = configuration.replace("Numbering_Document_Type_ID", "Document_Type_ID")
+configuration = configuration.replace("numbering_document_types", "document_types")
+write(configuration_path, configuration)
+
+
+# 4) تعطيل Runtime DDL الخاص بطلبات الصرف.
 write(
     "AlTayerERP.API/Services/PaymentRequestSchemaInitializer.cs",
     '''namespace AlTayerERP.API.Services;
@@ -99,7 +108,7 @@ public sealed class PaymentRequestSchemaInitializer
 )
 
 
-# 4) إضافة حزمة Design اللازمة لتوليد Migration دون قاعدة فعلية.
+# 5) إضافة حزمة Design اللازمة لتوليد Migration دون قاعدة فعلية.
 csproj_path = "AlTayerERP.Infrastructure/AlTayerERP.Infrastructure.csproj"
 csproj = read(csproj_path)
 if "Microsoft.EntityFrameworkCore.Design" not in csproj:
@@ -114,7 +123,7 @@ if "Microsoft.EntityFrameworkCore.Design" not in csproj:
 write(csproj_path, csproj)
 
 
-# 5) حفظ تاريخ Migrations القديم خارج مجلد EF الفعال، دون حذفه من فرع المصدر.
+# 6) حفظ تاريخ Migrations القديم خارج مجلد EF الفعال، دون حذفه من فرع المصدر.
 legacy_dir = ROOT / "Database/Legacy/Migrations_PreBaseline"
 legacy_dir.mkdir(parents=True, exist_ok=True)
 migrations_dir = ROOT / "AlTayerERP.Infrastructure/Migrations"
