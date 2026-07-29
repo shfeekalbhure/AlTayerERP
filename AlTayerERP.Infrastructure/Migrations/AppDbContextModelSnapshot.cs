@@ -3295,7 +3295,7 @@ namespace AlTayerERP.Infrastructure.Migrations
 
                     b.ToTable("exchange_rates", null, t =>
                         {
-                            t.HasCheckConstraint("ck_exchange_rate_positive", "`exchange_rate` > 0");
+                            t.HasCheckConstraint("ck_exchange_rate_positive", "`exchange_rate_value` > 0");
                         });
                 });
 

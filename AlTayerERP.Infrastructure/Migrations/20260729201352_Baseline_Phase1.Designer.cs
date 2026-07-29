@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace AlTayerERP.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260729185838_Baseline_Phase1")]
+    [Migration("20260729201352_Baseline_Phase1")]
     partial class Baseline_Phase1
     {
         /// <inheritdoc />
@@ -3298,7 +3298,7 @@ namespace AlTayerERP.Infrastructure.Migrations
 
                     b.ToTable("exchange_rates", null, t =>
                         {
-                            t.HasCheckConstraint("ck_exchange_rate_positive", "`exchange_rate` > 0");
+                            t.HasCheckConstraint("ck_exchange_rate_positive", "`exchange_rate_value` > 0");
                         });
                 });
 

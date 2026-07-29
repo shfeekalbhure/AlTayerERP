@@ -474,7 +474,7 @@ CREATE TABLE `exchange_rates` (
     `created_at` datetime(6) NOT NULL,
     `updated_at` datetime(6) NULL,
     CONSTRAINT `PK_exchange_rates` PRIMARY KEY (`exchange_rate_id`),
-    CONSTRAINT `ck_exchange_rate_positive` CHECK (`exchange_rate` > 0),
+    CONSTRAINT `ck_exchange_rate_positive` CHECK (`exchange_rate_value` > 0),
     CONSTRAINT `FK_exchange_rates_companies_company_id` FOREIGN KEY (`company_id`) REFERENCES `companies` (`company_id`) ON DELETE RESTRICT
 ) CHARACTER SET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -1380,7 +1380,7 @@ CREATE UNIQUE INDEX `IX_voucher_statuses_voucher_status_code` ON `voucher_status
 CREATE UNIQUE INDEX `IX_voucher_types_voucher_type_code` ON `voucher_types` (`voucher_type_code`);
 
 INSERT INTO `__EFMigrationsHistory` (`MigrationId`, `ProductVersion`)
-VALUES ('20260729185838_Baseline_Phase1', '8.0.2');
+VALUES ('20260729201352_Baseline_Phase1', '8.0.2');
 
 COMMIT;
 

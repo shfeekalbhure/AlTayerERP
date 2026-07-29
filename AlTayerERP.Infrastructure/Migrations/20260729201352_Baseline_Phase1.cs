@@ -952,7 +952,7 @@ namespace AlTayerERP.Infrastructure.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_exchange_rates", x => x.exchange_rate_id);
-                    table.CheckConstraint("ck_exchange_rate_positive", "`exchange_rate` > 0");
+                    table.CheckConstraint("ck_exchange_rate_positive", "`exchange_rate_value` > 0");
                     table.ForeignKey(
                         name: "FK_exchange_rates_companies_company_id",
                         column: x => x.company_id,
