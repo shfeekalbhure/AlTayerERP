@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace AlTayerERP.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260729161536_Baseline_Phase1")]
+    [Migration("20260729185327_Baseline_Phase1")]
     partial class Baseline_Phase1
     {
         /// <inheritdoc />
@@ -71,8 +71,7 @@ namespace AlTayerERP.Infrastructure.Migrations
 
                     b.Property<DateTime>("Created_At")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("created_at")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("created_at");
 
                     b.Property<string>("Created_By")
                         .HasMaxLength(100)
@@ -82,13 +81,11 @@ namespace AlTayerERP.Infrastructure.Migrations
 
                     b.Property<bool>("Is_Active")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("is_active")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("is_active");
 
                     b.Property<bool>("Is_System")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("is_system")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("is_system");
 
                     b.Property<string>("Normal_Balance")
                         .IsRequired()
@@ -99,13 +96,11 @@ namespace AlTayerERP.Infrastructure.Migrations
 
                     b.Property<int>("Sort_Order")
                         .HasColumnType("int")
-                        .HasColumnName("sort_order")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("sort_order");
 
                     b.Property<DateTime?>("Updated_At")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("updated_at")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("updated_at");
 
                     b.Property<string>("Updated_By")
                         .HasMaxLength(100)
@@ -126,20 +121,17 @@ namespace AlTayerERP.Infrastructure.Migrations
                     b.Property<int>("Setting_ID")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int")
-                        .HasColumnName("setting_id")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("setting_id");
 
                     MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Setting_ID"));
 
                     b.Property<bool>("Allow_Manual_Code")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("allow_manual_code")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("allow_manual_code");
 
                     b.Property<bool>("Auto_Generate")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("auto_generate")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("auto_generate");
 
                     b.Property<string>("Company_ID")
                         .IsRequired()
@@ -150,23 +142,19 @@ namespace AlTayerERP.Infrastructure.Migrations
 
                     b.Property<DateTime>("Created_At")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("created_at")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("created_at");
 
                     b.Property<bool>("Is_Active")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("is_active")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("is_active");
 
                     b.Property<int>("Level_No")
                         .HasColumnType("int")
-                        .HasColumnName("level_no")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("level_no");
 
                     b.Property<int>("Max_Serial")
                         .HasColumnType("int")
-                        .HasColumnName("max_serial")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("max_serial");
 
                     b.Property<string>("Padding_Char")
                         .IsRequired()
@@ -177,18 +165,15 @@ namespace AlTayerERP.Infrastructure.Migrations
 
                     b.Property<bool>("Parent_Based")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("parent_based")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("parent_based");
 
                     b.Property<int>("Segment_Length")
                         .HasColumnType("int")
-                        .HasColumnName("segment_length")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("segment_length");
 
                     b.Property<int>("Start_Number")
                         .HasColumnType("int")
-                        .HasColumnName("start_number")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("start_number");
 
                     b.HasKey("Setting_ID");
 
@@ -203,15 +188,13 @@ namespace AlTayerERP.Infrastructure.Migrations
                     b.Property<long>("Audit_ID")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bigint")
-                        .HasColumnName("audit_id")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("audit_id");
 
                     MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<long>("Audit_ID"));
 
                     b.Property<DateTime>("Action_At")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("action_at")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("action_at");
 
                     b.Property<string>("Action_Channel")
                         .IsRequired()
@@ -229,8 +212,7 @@ namespace AlTayerERP.Infrastructure.Migrations
 
                     b.Property<int?>("Branch_ID")
                         .HasColumnType("int")
-                        .HasColumnName("branch_id")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("branch_id");
 
                     b.Property<string>("Device_Name")
                         .HasMaxLength(150)
@@ -246,8 +228,7 @@ namespace AlTayerERP.Infrastructure.Migrations
 
                     b.Property<int?>("Module_ID")
                         .HasColumnType("int")
-                        .HasColumnName("module_id")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("module_id");
 
                     b.Property<string>("New_Values")
                         .HasMaxLength(255)
@@ -304,8 +285,7 @@ namespace AlTayerERP.Infrastructure.Migrations
                     b.Property<int>("Bank_Account_ID")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int")
-                        .HasColumnName("bank_account_id")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("bank_account_id");
 
                     MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Bank_Account_ID"));
 
@@ -351,8 +331,7 @@ namespace AlTayerERP.Infrastructure.Migrations
 
                     b.Property<DateTime>("Created_At")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("created_at")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("created_at");
 
                     b.Property<string>("Currency_Code")
                         .IsRequired()
@@ -375,8 +354,7 @@ namespace AlTayerERP.Infrastructure.Migrations
 
                     b.Property<bool>("Is_Active")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("is_active")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("is_active");
 
                     b.Property<string>("Notes")
                         .HasMaxLength(500)
@@ -386,8 +364,7 @@ namespace AlTayerERP.Infrastructure.Migrations
 
                     b.Property<DateTime?>("Updated_At")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("updated_at")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("updated_at");
 
                     b.HasKey("Bank_Account_ID");
 
@@ -402,25 +379,21 @@ namespace AlTayerERP.Infrastructure.Migrations
                     b.Property<long>("Allocation_ID")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bigint")
-                        .HasColumnName("allocation_id")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("allocation_id");
 
                     MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<long>("Allocation_ID"));
 
                     b.Property<decimal>("Collected_Before")
                         .HasColumnType("decimal(18,2)")
-                        .HasColumnName("collected_before")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("collected_before");
 
                     b.Property<decimal>("Collected_Now")
                         .HasColumnType("decimal(18,2)")
-                        .HasColumnName("collected_now")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("collected_now");
 
                     b.Property<DateTime>("Created_At")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("created_at")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("created_at");
 
                     b.Property<string>("Created_By")
                         .HasMaxLength(50)
@@ -430,13 +403,11 @@ namespace AlTayerERP.Infrastructure.Migrations
 
                     b.Property<int>("Currency_ID")
                         .HasColumnType("int")
-                        .HasColumnName("currency_id")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("currency_id");
 
                     b.Property<long>("Document_ID")
                         .HasColumnType("bigint")
-                        .HasColumnName("document_id")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("document_id");
 
                     b.Property<string>("Document_No")
                         .IsRequired()
@@ -447,28 +418,23 @@ namespace AlTayerERP.Infrastructure.Migrations
 
                     b.Property<decimal>("Document_Total")
                         .HasColumnType("decimal(18,2)")
-                        .HasColumnName("document_total")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("document_total");
 
                     b.Property<int>("Document_Type_ID")
                         .HasColumnType("int")
-                        .HasColumnName("document_type_id")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("document_type_id");
 
                     b.Property<decimal>("Exchange_Rate")
                         .HasColumnType("decimal(18,6)")
-                        .HasColumnName("exchange_rate")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("exchange_rate");
 
                     b.Property<bool>("Is_Active")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("is_active")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("is_active");
 
                     b.Property<int>("Module_ID")
                         .HasColumnType("int")
-                        .HasColumnName("module_id")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("module_id");
 
                     b.Property<string>("Notes")
                         .HasMaxLength(500)
@@ -484,13 +450,11 @@ namespace AlTayerERP.Infrastructure.Migrations
 
                     b.Property<decimal>("Remaining_Balance")
                         .HasColumnType("decimal(18,2)")
-                        .HasColumnName("remaining_balance")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("remaining_balance");
 
                     b.Property<DateTime?>("Updated_At")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("updated_at")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("updated_at");
 
                     b.Property<string>("Updated_By")
                         .HasMaxLength(50)
@@ -500,8 +464,7 @@ namespace AlTayerERP.Infrastructure.Migrations
 
                     b.Property<long>("Voucher_ID")
                         .HasColumnType("bigint")
-                        .HasColumnName("voucher_id")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("voucher_id");
 
                     b.HasKey("Allocation_ID");
 
@@ -519,15 +482,13 @@ namespace AlTayerERP.Infrastructure.Migrations
                     b.Property<long>("Document_Link_ID")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bigint")
-                        .HasColumnName("document_link_id")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("document_link_id");
 
                     MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<long>("Document_Link_ID"));
 
                     b.Property<DateTime>("Created_At")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("created_at")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("created_at");
 
                     b.Property<string>("Created_By")
                         .HasMaxLength(50)
@@ -537,8 +498,7 @@ namespace AlTayerERP.Infrastructure.Migrations
 
                     b.Property<long>("From_Document_ID")
                         .HasColumnType("bigint")
-                        .HasColumnName("from_document_id")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("from_document_id");
 
                     b.Property<string>("From_Document_No")
                         .HasMaxLength(100)
@@ -548,18 +508,15 @@ namespace AlTayerERP.Infrastructure.Migrations
 
                     b.Property<int>("From_Document_Type_ID")
                         .HasColumnType("int")
-                        .HasColumnName("from_document_type_id")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("from_document_type_id");
 
                     b.Property<int>("From_Module_ID")
                         .HasColumnType("int")
-                        .HasColumnName("from_module_id")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("from_module_id");
 
                     b.Property<bool>("Is_Active")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("is_active")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("is_active");
 
                     b.Property<string>("Link_Type")
                         .IsRequired()
@@ -576,8 +533,7 @@ namespace AlTayerERP.Infrastructure.Migrations
 
                     b.Property<long>("To_Document_ID")
                         .HasColumnType("bigint")
-                        .HasColumnName("to_document_id")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("to_document_id");
 
                     b.Property<string>("To_Document_No")
                         .HasMaxLength(100)
@@ -587,18 +543,15 @@ namespace AlTayerERP.Infrastructure.Migrations
 
                     b.Property<int>("To_Document_Type_ID")
                         .HasColumnType("int")
-                        .HasColumnName("to_document_type_id")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("to_document_type_id");
 
                     b.Property<int>("To_Module_ID")
                         .HasColumnType("int")
-                        .HasColumnName("to_module_id")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("to_module_id");
 
                     b.Property<DateTime?>("Updated_At")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("updated_at")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("updated_at");
 
                     b.Property<string>("Updated_By")
                         .HasMaxLength(50)
@@ -620,8 +573,7 @@ namespace AlTayerERP.Infrastructure.Migrations
                     b.Property<long>("Voucher_Detail_ID")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bigint")
-                        .HasColumnName("voucher_detail_id")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("voucher_detail_id");
 
                     MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<long>("Voucher_Detail_ID"));
 
@@ -640,8 +592,7 @@ namespace AlTayerERP.Infrastructure.Migrations
 
                     b.Property<DateTime>("Created_At")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("created_at")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("created_at");
 
                     b.Property<string>("Created_By")
                         .HasMaxLength(50)
@@ -651,18 +602,15 @@ namespace AlTayerERP.Infrastructure.Migrations
 
                     b.Property<decimal>("Credit_Amount")
                         .HasColumnType("decimal(18,2)")
-                        .HasColumnName("credit_amount")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("credit_amount");
 
                     b.Property<int>("Currency_ID")
                         .HasColumnType("int")
-                        .HasColumnName("currency_id")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("currency_id");
 
                     b.Property<decimal>("Debit_Amount")
                         .HasColumnType("decimal(18,2)")
-                        .HasColumnName("debit_amount")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("debit_amount");
 
                     b.Property<string>("Description")
                         .HasMaxLength(500)
@@ -672,28 +620,23 @@ namespace AlTayerERP.Infrastructure.Migrations
 
                     b.Property<decimal>("Exchange_Rate")
                         .HasColumnType("decimal(18,6)")
-                        .HasColumnName("exchange_rate")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("exchange_rate");
 
                     b.Property<decimal>("Foreign_Amount")
                         .HasColumnType("decimal(18,2)")
-                        .HasColumnName("foreign_amount")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("foreign_amount");
 
                     b.Property<int>("Line_No")
                         .HasColumnType("int")
-                        .HasColumnName("line_no")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("line_no");
 
                     b.Property<byte>("Line_Type")
                         .HasColumnType("tinyint unsigned")
-                        .HasColumnName("line_type")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("line_type");
 
                     b.Property<decimal>("Local_Amount")
                         .HasColumnType("decimal(18,2)")
-                        .HasColumnName("local_amount")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("local_amount");
 
                     b.Property<string>("Notes")
                         .HasMaxLength(500)
@@ -709,8 +652,7 @@ namespace AlTayerERP.Infrastructure.Migrations
 
                     b.Property<DateTime?>("Reference_Date")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("reference_date")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("reference_date");
 
                     b.Property<string>("Reference_Name")
                         .HasMaxLength(250)
@@ -732,8 +674,7 @@ namespace AlTayerERP.Infrastructure.Migrations
 
                     b.Property<DateTime?>("Updated_At")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("updated_at")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("updated_at");
 
                     b.Property<string>("Updated_By")
                         .HasMaxLength(50)
@@ -743,8 +684,7 @@ namespace AlTayerERP.Infrastructure.Migrations
 
                     b.Property<long>("Voucher_ID")
                         .HasColumnType("bigint")
-                        .HasColumnName("voucher_id")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("voucher_id");
 
                     b.HasKey("Voucher_Detail_ID");
 
@@ -772,8 +712,7 @@ namespace AlTayerERP.Infrastructure.Migrations
                     b.Property<long>("Voucher_ID")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bigint")
-                        .HasColumnName("voucher_id")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("voucher_id");
 
                     MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<long>("Voucher_ID"));
 
@@ -785,13 +724,11 @@ namespace AlTayerERP.Infrastructure.Migrations
 
                     b.Property<decimal>("Amount")
                         .HasColumnType("decimal(18,2)")
-                        .HasColumnName("amount")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("amount");
 
                     b.Property<DateTime?>("Approval_Requested_At")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("approval_requested_at")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("approval_requested_at");
 
                     b.Property<string>("Approval_Requested_By_User_ID")
                         .HasMaxLength(50)
@@ -801,13 +738,11 @@ namespace AlTayerERP.Infrastructure.Migrations
 
                     b.Property<byte>("Approval_Status")
                         .HasColumnType("tinyint unsigned")
-                        .HasColumnName("approval_status")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("approval_status");
 
                     b.Property<DateTime?>("Approved_At")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("approved_at")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("approved_at");
 
                     b.Property<string>("Approved_By_User_ID")
                         .HasMaxLength(50)
@@ -817,8 +752,7 @@ namespace AlTayerERP.Infrastructure.Migrations
 
                     b.Property<int>("Branch_ID")
                         .HasColumnType("int")
-                        .HasColumnName("branch_id")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("branch_id");
 
                     b.Property<string>("Cash_Account_ID")
                         .IsRequired()
@@ -829,8 +763,7 @@ namespace AlTayerERP.Infrastructure.Migrations
 
                     b.Property<DateTime>("Created_At")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("created_at")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("created_at");
 
                     b.Property<string>("Created_By")
                         .HasMaxLength(50)
@@ -840,8 +773,7 @@ namespace AlTayerERP.Infrastructure.Migrations
 
                     b.Property<int>("Currency_ID")
                         .HasColumnType("int")
-                        .HasColumnName("currency_id")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("currency_id");
 
                     b.Property<string>("Description")
                         .HasMaxLength(500)
@@ -851,53 +783,43 @@ namespace AlTayerERP.Infrastructure.Migrations
 
                     b.Property<long?>("Document_ID")
                         .HasColumnType("bigint")
-                        .HasColumnName("document_id")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("document_id");
 
                     b.Property<int?>("Document_Type_ID")
                         .HasColumnType("int")
-                        .HasColumnName("document_type_id")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("document_type_id");
 
                     b.Property<int>("Edit_Count")
                         .HasColumnType("int")
-                        .HasColumnName("edit_count")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("edit_count");
 
                     b.Property<decimal>("Exchange_Rate")
                         .HasColumnType("decimal(18,6)")
-                        .HasColumnName("exchange_rate")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("exchange_rate");
 
                     b.Property<int?>("Fiscal_Year_ID")
                         .HasColumnType("int")
-                        .HasColumnName("fiscal_year_id")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("fiscal_year_id");
 
                     b.Property<decimal>("Foreign_Total")
                         .HasColumnType("decimal(18,2)")
-                        .HasColumnName("foreign_total")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("foreign_total");
 
                     b.Property<bool>("Is_Active")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("is_active")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("is_active");
 
                     b.Property<bool>("Is_Posted")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("is_posted")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("is_posted");
 
                     b.Property<long?>("Journal_Entry_ID")
                         .HasColumnType("bigint")
-                        .HasColumnName("journal_entry_id")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("journal_entry_id");
 
                     b.Property<DateTime?>("Last_Print_Date")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("last_print_date")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("last_print_date");
 
                     b.Property<string>("Last_Printed_By")
                         .HasMaxLength(50)
@@ -907,8 +829,7 @@ namespace AlTayerERP.Infrastructure.Migrations
 
                     b.Property<DateTime?>("Last_Undo_At")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("last_undo_at")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("last_undo_at");
 
                     b.Property<string>("Last_Undo_By")
                         .HasMaxLength(50)
@@ -918,13 +839,11 @@ namespace AlTayerERP.Infrastructure.Migrations
 
                     b.Property<decimal>("Local_Total")
                         .HasColumnType("decimal(18,2)")
-                        .HasColumnName("local_total")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("local_total");
 
                     b.Property<int?>("Module_ID")
                         .HasColumnType("int")
-                        .HasColumnName("module_id")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("module_id");
 
                     b.Property<string>("Notes")
                         .HasMaxLength(1000)
@@ -940,13 +859,11 @@ namespace AlTayerERP.Infrastructure.Migrations
 
                     b.Property<int?>("Payment_Method_ID")
                         .HasColumnType("int")
-                        .HasColumnName("payment_method_id")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("payment_method_id");
 
                     b.Property<DateTime?>("Posted_At")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("posted_at")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("posted_at");
 
                     b.Property<string>("Posted_By_User_ID")
                         .HasMaxLength(50)
@@ -956,8 +873,7 @@ namespace AlTayerERP.Infrastructure.Migrations
 
                     b.Property<int>("Print_Count")
                         .HasColumnType("int")
-                        .HasColumnName("print_count")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("print_count");
 
                     b.Property<string>("Received_From_Name")
                         .HasMaxLength(200)
@@ -967,8 +883,7 @@ namespace AlTayerERP.Infrastructure.Migrations
 
                     b.Property<DateTime?>("Reference_Date")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("reference_date")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("reference_date");
 
                     b.Property<string>("Reference_No")
                         .HasMaxLength(100)
@@ -978,8 +893,7 @@ namespace AlTayerERP.Infrastructure.Migrations
 
                     b.Property<DateTime?>("Rejected_At")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("rejected_at")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("rejected_at");
 
                     b.Property<string>("Rejected_By_User_ID")
                         .HasMaxLength(50)
@@ -995,8 +909,7 @@ namespace AlTayerERP.Infrastructure.Migrations
 
                     b.Property<bool>("Requires_Approval")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("requires_approval")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("requires_approval");
 
                     b.Property<string>("Review_Notes")
                         .HasMaxLength(500)
@@ -1006,13 +919,11 @@ namespace AlTayerERP.Infrastructure.Migrations
 
                     b.Property<byte>("Review_Status")
                         .HasColumnType("tinyint unsigned")
-                        .HasColumnName("review_status")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("review_status");
 
                     b.Property<DateTime?>("Reviewed_At")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("reviewed_at")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("reviewed_at");
 
                     b.Property<string>("Reviewed_By_User_ID")
                         .HasMaxLength(50)
@@ -1028,13 +939,11 @@ namespace AlTayerERP.Infrastructure.Migrations
 
                     b.Property<DateTime>("Transaction_Date")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("transaction_date")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("transaction_date");
 
                     b.Property<int>("Undo_Count")
                         .HasColumnType("int")
-                        .HasColumnName("undo_count")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("undo_count");
 
                     b.Property<string>("Unpost_Reason")
                         .HasMaxLength(500)
@@ -1044,8 +953,7 @@ namespace AlTayerERP.Infrastructure.Migrations
 
                     b.Property<DateTime?>("Unposted_At")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("unposted_at")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("unposted_at");
 
                     b.Property<string>("Unposted_By")
                         .HasMaxLength(50)
@@ -1055,8 +963,7 @@ namespace AlTayerERP.Infrastructure.Migrations
 
                     b.Property<DateTime?>("Updated_At")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("updated_at")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("updated_at");
 
                     b.Property<string>("Updated_By")
                         .HasMaxLength(50)
@@ -1066,8 +973,7 @@ namespace AlTayerERP.Infrastructure.Migrations
 
                     b.Property<DateTime>("Voucher_Date")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("voucher_date")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("voucher_date");
 
                     b.Property<string>("Voucher_No")
                         .IsRequired()
@@ -1078,13 +984,11 @@ namespace AlTayerERP.Infrastructure.Migrations
 
                     b.Property<int>("Voucher_Status_ID")
                         .HasColumnType("int")
-                        .HasColumnName("voucher_status_id")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("voucher_status_id");
 
                     b.Property<int>("Voucher_Type_ID")
                         .HasColumnType("int")
-                        .HasColumnName("voucher_type_id")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("voucher_type_id");
 
                     b.HasKey("Voucher_ID");
 
@@ -1122,8 +1026,7 @@ namespace AlTayerERP.Infrastructure.Migrations
                     b.Property<long>("Journal_Entry_Detail_ID")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bigint")
-                        .HasColumnName("journal_entry_detail_id")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("journal_entry_detail_id");
 
                     MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<long>("Journal_Entry_Detail_ID"));
 
@@ -1142,8 +1045,7 @@ namespace AlTayerERP.Infrastructure.Migrations
 
                     b.Property<DateTime>("Created_At")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("created_at")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("created_at");
 
                     b.Property<string>("Created_By")
                         .HasMaxLength(50)
@@ -1153,18 +1055,15 @@ namespace AlTayerERP.Infrastructure.Migrations
 
                     b.Property<decimal>("Credit_Amount")
                         .HasColumnType("decimal(18,2)")
-                        .HasColumnName("credit_amount")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("credit_amount");
 
                     b.Property<int>("Currency_ID")
                         .HasColumnType("int")
-                        .HasColumnName("currency_id")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("currency_id");
 
                     b.Property<decimal>("Debit_Amount")
                         .HasColumnType("decimal(18,2)")
-                        .HasColumnName("debit_amount")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("debit_amount");
 
                     b.Property<string>("Description")
                         .HasMaxLength(500)
@@ -1174,33 +1073,27 @@ namespace AlTayerERP.Infrastructure.Migrations
 
                     b.Property<decimal>("Exchange_Rate")
                         .HasColumnType("decimal(18,6)")
-                        .HasColumnName("exchange_rate")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("exchange_rate");
 
                     b.Property<decimal>("Foreign_Amount")
                         .HasColumnType("decimal(18,2)")
-                        .HasColumnName("foreign_amount")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("foreign_amount");
 
                     b.Property<long>("Journal_Entry_ID")
                         .HasColumnType("bigint")
-                        .HasColumnName("journal_entry_id")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("journal_entry_id");
 
                     b.Property<int>("Line_No")
                         .HasColumnType("int")
-                        .HasColumnName("line_no")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("line_no");
 
                     b.Property<byte>("Line_Type")
                         .HasColumnType("tinyint unsigned")
-                        .HasColumnName("line_type")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("line_type");
 
                     b.Property<decimal>("Local_Amount")
                         .HasColumnType("decimal(18,2)")
-                        .HasColumnName("local_amount")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("local_amount");
 
                     b.Property<string>("Notes")
                         .HasMaxLength(500)
@@ -1216,8 +1109,7 @@ namespace AlTayerERP.Infrastructure.Migrations
 
                     b.Property<DateTime?>("Reference_Date")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("reference_date")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("reference_date");
 
                     b.Property<string>("Reference_Name")
                         .HasMaxLength(250)
@@ -1239,13 +1131,11 @@ namespace AlTayerERP.Infrastructure.Migrations
 
                     b.Property<long?>("Source_Voucher_Detail_ID")
                         .HasColumnType("bigint")
-                        .HasColumnName("source_voucher_detail_id")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("source_voucher_detail_id");
 
                     b.Property<DateTime?>("Updated_At")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("updated_at")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("updated_at");
 
                     b.Property<string>("Updated_By")
                         .HasMaxLength(50)
@@ -1277,15 +1167,13 @@ namespace AlTayerERP.Infrastructure.Migrations
                     b.Property<long>("Journal_Entry_ID")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bigint")
-                        .HasColumnName("journal_entry_id")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("journal_entry_id");
 
                     MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<long>("Journal_Entry_ID"));
 
                     b.Property<int>("Branch_ID")
                         .HasColumnType("int")
-                        .HasColumnName("branch_id")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("branch_id");
 
                     b.Property<string>("Cancellation_Reason")
                         .HasMaxLength(500)
@@ -1295,8 +1183,7 @@ namespace AlTayerERP.Infrastructure.Migrations
 
                     b.Property<DateTime?>("Cancelled_At")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("cancelled_at")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("cancelled_at");
 
                     b.Property<string>("Cancelled_By")
                         .HasMaxLength(50)
@@ -1306,8 +1193,7 @@ namespace AlTayerERP.Infrastructure.Migrations
 
                     b.Property<DateTime>("Created_At")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("created_at")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("created_at");
 
                     b.Property<string>("Created_By")
                         .HasMaxLength(50)
@@ -1323,8 +1209,7 @@ namespace AlTayerERP.Infrastructure.Migrations
 
                     b.Property<DateTime>("Entry_Date")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("entry_date")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("entry_date");
 
                     b.Property<string>("Entry_No")
                         .IsRequired()
@@ -1335,48 +1220,39 @@ namespace AlTayerERP.Infrastructure.Migrations
 
                     b.Property<int>("Entry_Status_ID")
                         .HasColumnType("int")
-                        .HasColumnName("entry_status_id")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("entry_status_id");
 
                     b.Property<byte>("Entry_Type")
                         .HasColumnType("tinyint unsigned")
-                        .HasColumnName("entry_type")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("entry_type");
 
                     b.Property<int?>("Fiscal_Year_ID")
                         .HasColumnType("int")
-                        .HasColumnName("fiscal_year_id")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("fiscal_year_id");
 
                     b.Property<bool>("Is_Active")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("is_active")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("is_active");
 
                     b.Property<bool>("Is_Cancelled")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("is_cancelled")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("is_cancelled");
 
                     b.Property<bool>("Is_Posted")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("is_posted")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("is_posted");
 
                     b.Property<bool>("Is_Reversal")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("is_reversal")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("is_reversal");
 
                     b.Property<bool>("Is_Reversed")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("is_reversed")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("is_reversed");
 
                     b.Property<bool>("Is_System_Generated")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("is_system_generated")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("is_system_generated");
 
                     b.Property<string>("Notes")
                         .HasMaxLength(1000)
@@ -1386,13 +1262,11 @@ namespace AlTayerERP.Infrastructure.Migrations
 
                     b.Property<long?>("Original_Journal_Entry_ID")
                         .HasColumnType("bigint")
-                        .HasColumnName("original_journal_entry_id")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("original_journal_entry_id");
 
                     b.Property<DateTime?>("Posted_At")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("posted_at")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("posted_at");
 
                     b.Property<string>("Posted_By")
                         .HasMaxLength(50)
@@ -1402,8 +1276,7 @@ namespace AlTayerERP.Infrastructure.Migrations
 
                     b.Property<long?>("Reversal_Journal_Entry_ID")
                         .HasColumnType("bigint")
-                        .HasColumnName("reversal_journal_entry_id")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("reversal_journal_entry_id");
 
                     b.Property<string>("Reversal_Reason")
                         .HasMaxLength(500)
@@ -1413,8 +1286,7 @@ namespace AlTayerERP.Infrastructure.Migrations
 
                     b.Property<DateTime?>("Reversed_At")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("reversed_at")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("reversed_at");
 
                     b.Property<string>("Reversed_By")
                         .HasMaxLength(50)
@@ -1443,28 +1315,23 @@ namespace AlTayerERP.Infrastructure.Migrations
 
                     b.Property<long?>("Source_Voucher_ID")
                         .HasColumnType("bigint")
-                        .HasColumnName("source_voucher_id")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("source_voucher_id");
 
                     b.Property<decimal>("Total_Credit")
                         .HasColumnType("decimal(18,2)")
-                        .HasColumnName("total_credit")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("total_credit");
 
                     b.Property<decimal>("Total_Debit")
                         .HasColumnType("decimal(18,2)")
-                        .HasColumnName("total_debit")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("total_debit");
 
                     b.Property<DateTime>("Transaction_Date")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("transaction_date")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("transaction_date");
 
                     b.Property<DateTime?>("Updated_At")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("updated_at")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("updated_at");
 
                     b.Property<string>("Updated_By")
                         .HasMaxLength(50)
@@ -1526,8 +1393,7 @@ namespace AlTayerERP.Infrastructure.Migrations
 
                     b.Property<DateTime>("Created_At")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("created_at")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("created_at");
 
                     b.Property<string>("Created_By")
                         .HasMaxLength(50)
@@ -1538,8 +1404,7 @@ namespace AlTayerERP.Infrastructure.Migrations
                     b.Property<decimal>("Credit_Limit")
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)")
-                        .HasColumnName("credit_limit")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("credit_limit");
 
                     b.Property<string>("Identity_No")
                         .HasMaxLength(100)
@@ -1549,8 +1414,7 @@ namespace AlTayerERP.Infrastructure.Migrations
 
                     b.Property<bool>("Is_Active")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("is_active")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("is_active");
 
                     b.Property<string>("Mobile_No")
                         .HasMaxLength(30)
@@ -1605,8 +1469,7 @@ namespace AlTayerERP.Infrastructure.Migrations
 
                     b.Property<DateTime?>("Updated_At")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("updated_at")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("updated_at");
 
                     b.Property<string>("Updated_By")
                         .HasMaxLength(50)
@@ -1629,25 +1492,21 @@ namespace AlTayerERP.Infrastructure.Migrations
                     b.Property<int>("Payment_Method_ID")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int")
-                        .HasColumnName("payment_method_id")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("payment_method_id");
 
                     MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Payment_Method_ID"));
 
                     b.Property<bool>("Is_Active")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("is_active")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("is_active");
 
                     b.Property<bool>("Is_Bank")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("is_bank")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("is_bank");
 
                     b.Property<bool>("Is_Cash")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("is_cash")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("is_cash");
 
                     b.Property<string>("Payment_Method_Code")
                         .IsRequired()
@@ -1671,18 +1530,15 @@ namespace AlTayerERP.Infrastructure.Migrations
 
                     b.Property<bool>("Requires_Reference")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("requires_reference")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("requires_reference");
 
                     b.Property<bool>("Requires_Reference_Date")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("requires_reference_date")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("requires_reference_date");
 
                     b.Property<int>("Sort_Order")
                         .HasColumnType("int")
-                        .HasColumnName("sort_order")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("sort_order");
 
                     b.HasKey("Payment_Method_ID");
 
@@ -1735,8 +1591,7 @@ namespace AlTayerERP.Infrastructure.Migrations
                     b.Property<long>("Payment_Request_ID")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bigint")
-                        .HasColumnName("payment_request_id")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("payment_request_id");
 
                     MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<long>("Payment_Request_ID"));
 
@@ -1749,8 +1604,7 @@ namespace AlTayerERP.Infrastructure.Migrations
                     b.Property<decimal>("Approved_Local_Total")
                         .HasPrecision(19, 4)
                         .HasColumnType("decimal(19,4)")
-                        .HasColumnName("approved_local_total")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("approved_local_total");
 
                     b.Property<string>("Beneficiary_Name")
                         .IsRequired()
@@ -1761,8 +1615,7 @@ namespace AlTayerERP.Infrastructure.Migrations
 
                     b.Property<int>("Branch_ID")
                         .HasColumnType("int")
-                        .HasColumnName("branch_id")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("branch_id");
 
                     b.Property<string>("Company_ID")
                         .IsRequired()
@@ -1773,8 +1626,7 @@ namespace AlTayerERP.Infrastructure.Migrations
 
                     b.Property<DateTime>("Created_At")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("created_at")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("created_at");
 
                     b.Property<string>("Created_By")
                         .IsRequired()
@@ -1791,8 +1643,7 @@ namespace AlTayerERP.Infrastructure.Migrations
 
                     b.Property<int>("Fiscal_Year_ID")
                         .HasColumnType("int")
-                        .HasColumnName("fiscal_year_id")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("fiscal_year_id");
 
                     b.Property<string>("Header_Reference_No")
                         .HasMaxLength(100)
@@ -1808,18 +1659,15 @@ namespace AlTayerERP.Infrastructure.Migrations
 
                     b.Property<int?>("Payment_Method_ID")
                         .HasColumnType("int")
-                        .HasColumnName("payment_method_id")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("payment_method_id");
 
                     b.Property<long?>("Payment_Voucher_ID")
                         .HasColumnType("bigint")
-                        .HasColumnName("payment_voucher_id")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("payment_voucher_id");
 
                     b.Property<DateTime>("Request_Date")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("request_date")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("request_date");
 
                     b.Property<string>("Request_No")
                         .IsRequired()
@@ -1843,8 +1691,7 @@ namespace AlTayerERP.Infrastructure.Migrations
 
                     b.Property<DateTime?>("Updated_At")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("updated_at")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("updated_at");
 
                     b.Property<string>("Updated_By")
                         .HasMaxLength(50)
@@ -1877,15 +1724,13 @@ namespace AlTayerERP.Infrastructure.Migrations
                     b.Property<long>("Payment_Request_Attachment_ID")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bigint")
-                        .HasColumnName("payment_request_attachment_id")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("payment_request_attachment_id");
 
                     MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<long>("Payment_Request_Attachment_ID"));
 
                     b.Property<int>("Branch_ID")
                         .HasColumnType("int")
-                        .HasColumnName("branch_id")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("branch_id");
 
                     b.Property<string>("Company_ID")
                         .IsRequired()
@@ -1903,8 +1748,7 @@ namespace AlTayerERP.Infrastructure.Migrations
 
                     b.Property<DateTime>("Created_At")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("created_at")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("created_at");
 
                     b.Property<string>("Created_By")
                         .IsRequired()
@@ -1915,18 +1759,15 @@ namespace AlTayerERP.Infrastructure.Migrations
 
                     b.Property<long>("File_Size")
                         .HasColumnType("bigint")
-                        .HasColumnName("file_size")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("file_size");
 
                     b.Property<int>("Fiscal_Year_ID")
                         .HasColumnType("int")
-                        .HasColumnName("fiscal_year_id")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("fiscal_year_id");
 
                     b.Property<bool>("Is_Active")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("is_active")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("is_active");
 
                     b.Property<string>("Original_File_Name")
                         .IsRequired()
@@ -1937,8 +1778,7 @@ namespace AlTayerERP.Infrastructure.Migrations
 
                     b.Property<long>("Payment_Request_ID")
                         .HasColumnType("bigint")
-                        .HasColumnName("payment_request_id")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("payment_request_id");
 
                     b.Property<string>("Storage_Key")
                         .IsRequired()
@@ -1965,8 +1805,7 @@ namespace AlTayerERP.Infrastructure.Migrations
                     b.Property<long>("Payment_Request_Line_ID")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bigint")
-                        .HasColumnName("payment_request_line_id")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("payment_request_line_id");
 
                     MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<long>("Payment_Request_Line_ID"));
 
@@ -1985,8 +1824,7 @@ namespace AlTayerERP.Infrastructure.Migrations
 
                     b.Property<int>("Currency_ID")
                         .HasColumnType("int")
-                        .HasColumnName("currency_id")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("currency_id");
 
                     b.Property<string>("Description")
                         .HasMaxLength(500)
@@ -1997,30 +1835,25 @@ namespace AlTayerERP.Infrastructure.Migrations
                     b.Property<decimal>("Exchange_Rate")
                         .HasPrecision(19, 8)
                         .HasColumnType("decimal(19,8)")
-                        .HasColumnName("exchange_rate")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("exchange_rate");
 
                     b.Property<decimal>("Foreign_Amount")
                         .HasPrecision(19, 4)
                         .HasColumnType("decimal(19,4)")
-                        .HasColumnName("foreign_amount")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("foreign_amount");
 
                     b.Property<int>("Line_No")
                         .HasColumnType("int")
-                        .HasColumnName("line_no")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("line_no");
 
                     b.Property<decimal>("Local_Amount")
                         .HasPrecision(19, 4)
                         .HasColumnType("decimal(19,4)")
-                        .HasColumnName("local_amount")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("local_amount");
 
                     b.Property<long>("Payment_Request_ID")
                         .HasColumnType("bigint")
-                        .HasColumnName("payment_request_id")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("payment_request_id");
 
                     b.Property<string>("Reference_No")
                         .HasMaxLength(100)
@@ -2052,15 +1885,13 @@ namespace AlTayerERP.Infrastructure.Migrations
                     b.Property<long>("Voucher_Action_ID")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bigint")
-                        .HasColumnName("voucher_action_id")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("voucher_action_id");
 
                     MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<long>("Voucher_Action_ID"));
 
                     b.Property<DateTime>("Action_At")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("action_at")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("action_at");
 
                     b.Property<string>("Action_Channel")
                         .IsRequired()
@@ -2090,8 +1921,7 @@ namespace AlTayerERP.Infrastructure.Migrations
 
                     b.Property<int?>("New_Status_ID")
                         .HasColumnType("int")
-                        .HasColumnName("new_status_id")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("new_status_id");
 
                     b.Property<string>("Notes")
                         .HasMaxLength(500)
@@ -2101,8 +1931,7 @@ namespace AlTayerERP.Infrastructure.Migrations
 
                     b.Property<int?>("Old_Status_ID")
                         .HasColumnType("int")
-                        .HasColumnName("old_status_id")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("old_status_id");
 
                     b.Property<string>("Reason")
                         .HasMaxLength(500)
@@ -2118,8 +1947,7 @@ namespace AlTayerERP.Infrastructure.Migrations
 
                     b.Property<long>("Voucher_ID")
                         .HasColumnType("bigint")
-                        .HasColumnName("voucher_id")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("voucher_id");
 
                     b.HasKey("Voucher_Action_ID");
 
@@ -2133,20 +1961,17 @@ namespace AlTayerERP.Infrastructure.Migrations
                     b.Property<int>("Voucher_Status_ID")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int")
-                        .HasColumnName("voucher_status_id")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("voucher_status_id");
 
                     MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Voucher_Status_ID"));
 
                     b.Property<bool>("Is_Active")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("is_active")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("is_active");
 
                     b.Property<int>("Sort_Order")
                         .HasColumnType("int")
-                        .HasColumnName("sort_order")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("sort_order");
 
                     b.Property<string>("Voucher_Status_Code")
                         .IsRequired()
@@ -2247,20 +2072,17 @@ namespace AlTayerERP.Infrastructure.Migrations
                     b.Property<int>("Voucher_Type_ID")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int")
-                        .HasColumnName("voucher_type_id")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("voucher_type_id");
 
                     MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Voucher_Type_ID"));
 
                     b.Property<bool>("Is_Active")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("is_active")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("is_active");
 
                     b.Property<int>("Sort_Order")
                         .HasColumnType("int")
-                        .HasColumnName("sort_order")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("sort_order");
 
                     b.Property<string>("Voucher_Type_Code")
                         .IsRequired()
@@ -2342,16 +2164,14 @@ namespace AlTayerERP.Infrastructure.Migrations
                     b.Property<int>("Approval_ID")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int")
-                        .HasColumnName("approval_id")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("approval_id");
 
                     MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Approval_ID"));
 
                     b.Property<decimal?>("Amount")
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)")
-                        .HasColumnName("amount")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("amount");
 
                     b.Property<string>("Approval_Notes")
                         .HasMaxLength(500)
@@ -2361,8 +2181,7 @@ namespace AlTayerERP.Infrastructure.Migrations
 
                     b.Property<DateTime?>("Approved_At")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("approved_at")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("approved_at");
 
                     b.Property<string>("Approved_By")
                         .HasMaxLength(255)
@@ -2422,8 +2241,7 @@ namespace AlTayerERP.Infrastructure.Migrations
 
                     b.Property<DateTime>("Requested_At")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("requested_at")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("requested_at");
 
                     b.Property<string>("Requested_By")
                         .HasMaxLength(255)
@@ -2450,8 +2268,7 @@ namespace AlTayerERP.Infrastructure.Migrations
                     b.Property<int>("Approval_Status_ID")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int")
-                        .HasColumnName("approval_status_id")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("approval_status_id");
 
                     MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Approval_Status_ID"));
 
@@ -2477,13 +2294,11 @@ namespace AlTayerERP.Infrastructure.Migrations
 
                     b.Property<bool>("Is_Active")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("is_active")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("is_active");
 
                     b.Property<int>("Sort_Order")
                         .HasColumnType("int")
-                        .HasColumnName("sort_order")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("sort_order");
 
                     b.HasKey("Approval_Status_ID");
 
@@ -2548,8 +2363,7 @@ namespace AlTayerERP.Infrastructure.Migrations
                     b.Property<int>("Branch_Type_ID")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int")
-                        .HasColumnName("branch_type_id")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("branch_type_id");
 
                     MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Branch_Type_ID"));
 
@@ -2575,23 +2389,19 @@ namespace AlTayerERP.Infrastructure.Migrations
 
                     b.Property<DateTime>("Created_At")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("created_at")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("created_at");
 
                     b.Property<bool>("Is_Active")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("is_active")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("is_active");
 
                     b.Property<int>("Sort_Order")
                         .HasColumnType("int")
-                        .HasColumnName("sort_order")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("sort_order");
 
                     b.Property<DateTime?>("Updated_At")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("updated_at")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("updated_at");
 
                     b.HasKey("Branch_Type_ID");
 
@@ -2675,8 +2485,7 @@ namespace AlTayerERP.Infrastructure.Migrations
 
                     b.Property<int>("Branch_ID")
                         .HasColumnType("int")
-                        .HasColumnName("branch_id")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("branch_id");
 
                     b.Property<string>("CashBox_Code")
                         .IsRequired()
@@ -2694,8 +2503,7 @@ namespace AlTayerERP.Infrastructure.Migrations
 
                     b.Property<DateTime>("Created_At")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("created_at")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("created_at");
 
                     b.Property<string>("Created_By")
                         .HasMaxLength(255)
@@ -2712,20 +2520,17 @@ namespace AlTayerERP.Infrastructure.Migrations
 
                     b.Property<bool>("Is_Active")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("is_active")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("is_active");
 
                     b.Property<decimal>("Max_Limit")
                         .HasPrecision(19, 4)
                         .HasColumnType("decimal(19,4)")
-                        .HasColumnName("max_limit")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("max_limit");
 
                     b.Property<decimal>("Min_Limit")
                         .HasPrecision(19, 4)
                         .HasColumnType("decimal(19,4)")
-                        .HasColumnName("min_limit")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("min_limit");
 
                     b.Property<string>("Notes")
                         .HasMaxLength(500)
@@ -2736,13 +2541,11 @@ namespace AlTayerERP.Infrastructure.Migrations
                     b.Property<decimal>("Opening_Balance")
                         .HasPrecision(19, 4)
                         .HasColumnType("decimal(19,4)")
-                        .HasColumnName("opening_balance")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("opening_balance");
 
                     b.Property<DateTime?>("Updated_At")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("updated_at")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("updated_at");
 
                     b.Property<string>("Updated_By")
                         .HasMaxLength(255)
@@ -2785,8 +2588,7 @@ namespace AlTayerERP.Infrastructure.Migrations
 
                     b.Property<int>("Account_Level")
                         .HasColumnType("int")
-                        .HasColumnName("account_level")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("account_level");
 
                     b.Property<string>("Account_Name_AR")
                         .IsRequired()
@@ -2809,8 +2611,7 @@ namespace AlTayerERP.Infrastructure.Migrations
 
                     b.Property<int>("Account_Serial")
                         .HasColumnType("int")
-                        .HasColumnName("account_serial")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("account_serial");
 
                     b.Property<string>("Account_Type")
                         .IsRequired()
@@ -2821,18 +2622,15 @@ namespace AlTayerERP.Infrastructure.Migrations
 
                     b.Property<bool>("Affects_Balance_Sheet")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("affects_balance_sheet")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("affects_balance_sheet");
 
                     b.Property<bool>("Affects_Income_Statement")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("affects_income_statement")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("affects_income_statement");
 
                     b.Property<bool>("Allow_ManualEntry")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("allow_manual_entry")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("allow_manual_entry");
 
                     b.Property<string>("Company_ID")
                         .IsRequired()
@@ -2849,8 +2647,7 @@ namespace AlTayerERP.Infrastructure.Migrations
 
                     b.Property<DateTime>("Created_At")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("created_at")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("created_at");
 
                     b.Property<string>("Created_By")
                         .HasMaxLength(255)
@@ -2866,28 +2663,23 @@ namespace AlTayerERP.Infrastructure.Migrations
 
                     b.Property<bool>("Is_Active")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("is_active")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("is_active");
 
                     b.Property<bool>("Is_Control_Account")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("is_control_account")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("is_control_account");
 
                     b.Property<bool>("Is_Postable")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("is_postable")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("is_postable");
 
                     b.Property<bool>("Is_Summary_Account")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("is_summary_account")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("is_summary_account");
 
                     b.Property<bool>("Multi_Currency")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("multi_currency")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("multi_currency");
 
                     b.Property<string>("Normal_Balance")
                         .HasMaxLength(10)
@@ -2909,28 +2701,23 @@ namespace AlTayerERP.Infrastructure.Migrations
 
                     b.Property<bool>("Requires_CostCenter")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("requires_cost_center")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("requires_cost_center");
 
                     b.Property<bool>("Requires_Party")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("requires_party")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("requires_party");
 
                     b.Property<bool>("Requires_Project")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("requires_project")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("requires_project");
 
                     b.Property<bool>("System_Account")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("system_account")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("system_account");
 
                     b.Property<DateTime?>("Updated_At")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("updated_at")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("updated_at");
 
                     b.Property<string>("Updated_By")
                         .HasMaxLength(255)
@@ -2960,8 +2747,7 @@ namespace AlTayerERP.Infrastructure.Migrations
                     b.Property<int>("City_ID")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int")
-                        .HasColumnName("city_id")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("city_id");
 
                     MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("City_ID"));
 
@@ -2987,23 +2773,19 @@ namespace AlTayerERP.Infrastructure.Migrations
 
                     b.Property<int>("Country_ID")
                         .HasColumnType("int")
-                        .HasColumnName("country_id")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("country_id");
 
                     b.Property<DateTime>("Created_At")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("created_at")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("created_at");
 
                     b.Property<int>("Governorate_ID")
                         .HasColumnType("int")
-                        .HasColumnName("governorate_id")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("governorate_id");
 
                     b.Property<bool>("Is_Active")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("is_active")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("is_active");
 
                     b.Property<string>("Notes")
                         .HasMaxLength(500)
@@ -3019,13 +2801,11 @@ namespace AlTayerERP.Infrastructure.Migrations
 
                     b.Property<int>("Sort_Order")
                         .HasColumnType("int")
-                        .HasColumnName("sort_order")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("sort_order");
 
                     b.Property<DateTime?>("Updated_At")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("updated_at")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("updated_at");
 
                     b.HasKey("City_ID");
 
@@ -3062,8 +2842,7 @@ namespace AlTayerERP.Infrastructure.Migrations
 
                     b.Property<byte[]>("Company_Logo")
                         .HasColumnType("longblob")
-                        .HasColumnName("company_logo")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("company_logo");
 
                     b.Property<string>("Company_Name_AR")
                         .IsRequired()
@@ -3087,20 +2866,17 @@ namespace AlTayerERP.Infrastructure.Migrations
 
                     b.Property<DateTime>("Created_At")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("created_at")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("created_at");
 
                     b.Property<int?>("Created_By")
                         .HasColumnType("int")
-                        .HasColumnName("created_by")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("created_by");
 
                     b.Property<int>("Edit_Count")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int")
                         .HasDefaultValue(0)
-                        .HasColumnName("edit_count")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("edit_count");
 
                     b.Property<string>("Email")
                         .HasMaxLength(150)
@@ -3119,8 +2895,7 @@ namespace AlTayerERP.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("tinyint(1)")
                         .HasDefaultValue(true)
-                        .HasColumnName("is_active")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("is_active");
 
                     b.Property<string>("Mobile")
                         .HasMaxLength(50)
@@ -3142,23 +2917,19 @@ namespace AlTayerERP.Infrastructure.Migrations
 
                     b.Property<DateTime?>("Reactivated_At")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("reactivated_at")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("reactivated_at");
 
                     b.Property<int?>("Reactivated_By")
                         .HasColumnType("int")
-                        .HasColumnName("reactivated_by")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("reactivated_by");
 
                     b.Property<DateTime?>("Stopped_At")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("stopped_at")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("stopped_at");
 
                     b.Property<int?>("Stopped_By")
                         .HasColumnType("int")
-                        .HasColumnName("stopped_by")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("stopped_by");
 
                     b.Property<string>("Stopped_Reason")
                         .HasMaxLength(500)
@@ -3174,13 +2945,11 @@ namespace AlTayerERP.Infrastructure.Migrations
 
                     b.Property<DateTime?>("Updated_At")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("updated_at")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("updated_at");
 
                     b.Property<int?>("Updated_By")
                         .HasColumnType("int")
-                        .HasColumnName("updated_by")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("updated_by");
 
                     b.HasKey("Company_ID");
 
@@ -3206,8 +2975,7 @@ namespace AlTayerERP.Infrastructure.Migrations
 
                     b.Property<int>("Center_Level")
                         .HasColumnType("int")
-                        .HasColumnName("center_level")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("center_level");
 
                     b.Property<string>("Center_Name_AR")
                         .IsRequired()
@@ -3231,18 +2999,15 @@ namespace AlTayerERP.Infrastructure.Migrations
 
                     b.Property<DateTime>("Created_At")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("created_at")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("created_at");
 
                     b.Property<bool>("Is_Active")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("is_active")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("is_active");
 
                     b.Property<bool>("Is_Postable")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("is_postable")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("is_postable");
 
                     b.Property<string>("Parent_Cost_Center_ID")
                         .HasMaxLength(50)
@@ -3265,8 +3030,7 @@ namespace AlTayerERP.Infrastructure.Migrations
                     b.Property<int>("Country_ID")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int")
-                        .HasColumnName("country_id")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("country_id");
 
                     MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Country_ID"));
 
@@ -3292,8 +3056,7 @@ namespace AlTayerERP.Infrastructure.Migrations
 
                     b.Property<DateTime>("Created_At")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("created_at")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("created_at");
 
                     b.Property<string>("Currency_Code")
                         .HasMaxLength(10)
@@ -3315,8 +3078,7 @@ namespace AlTayerERP.Infrastructure.Migrations
 
                     b.Property<bool>("Is_Active")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("is_active")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("is_active");
 
                     b.Property<string>("Nationality_Name_AR")
                         .HasMaxLength(150)
@@ -3338,13 +3100,11 @@ namespace AlTayerERP.Infrastructure.Migrations
 
                     b.Property<int>("Sort_Order")
                         .HasColumnType("int")
-                        .HasColumnName("sort_order")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("sort_order");
 
                     b.Property<DateTime?>("Updated_At")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("updated_at")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("updated_at");
 
                     b.HasKey("Country_ID");
 
@@ -3365,8 +3125,7 @@ namespace AlTayerERP.Infrastructure.Migrations
                     b.Property<int>("Currency_ID")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int")
-                        .HasColumnName("currency_id")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("currency_id");
 
                     MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Currency_ID"));
 
@@ -3379,8 +3138,7 @@ namespace AlTayerERP.Infrastructure.Migrations
 
                     b.Property<DateTime?>("Created_At")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("created_at")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("created_at");
 
                     b.Property<string>("Created_By")
                         .HasMaxLength(255)
@@ -3416,41 +3174,34 @@ namespace AlTayerERP.Infrastructure.Migrations
 
                     b.Property<int>("Decimal_Places")
                         .HasColumnType("int")
-                        .HasColumnName("decimal_places")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("decimal_places");
 
                     b.Property<decimal>("Exchange_Rate")
                         .HasPrecision(18, 6)
                         .HasColumnType("decimal(18,6)")
-                        .HasColumnName("exchange_rate")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("exchange_rate");
 
                     b.Property<bool>("Is_Active")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("is_active")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("is_active");
 
                     b.Property<bool>("Is_Default")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("is_default")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("is_default");
 
                     b.Property<bool>("Is_Local_Currency")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("is_local_currency")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("is_local_currency");
 
                     b.Property<decimal?>("Max_Exchange_Rate")
                         .HasPrecision(18, 6)
                         .HasColumnType("decimal(18,6)")
-                        .HasColumnName("max_exchange_rate")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("max_exchange_rate");
 
                     b.Property<decimal?>("Min_Exchange_Rate")
                         .HasPrecision(18, 6)
                         .HasColumnType("decimal(18,6)")
-                        .HasColumnName("min_exchange_rate")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("min_exchange_rate");
 
                     b.Property<string>("Notes")
                         .HasMaxLength(500)
@@ -3460,8 +3211,7 @@ namespace AlTayerERP.Infrastructure.Migrations
 
                     b.Property<DateTime?>("Updated_At")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("updated_at")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("updated_at");
 
                     b.Property<string>("Updated_By")
                         .HasMaxLength(255)
@@ -3482,8 +3232,7 @@ namespace AlTayerERP.Infrastructure.Migrations
                     b.Property<int>("Exchange_Rate_ID")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int")
-                        .HasColumnName("exchange_rate_id")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("exchange_rate_id");
 
                     MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Exchange_Rate_ID"));
 
@@ -3496,8 +3245,7 @@ namespace AlTayerERP.Infrastructure.Migrations
 
                     b.Property<DateTime>("Created_At")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("created_at")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("created_at");
 
                     b.Property<string>("Currency_Code")
                         .IsRequired()
@@ -3509,30 +3257,25 @@ namespace AlTayerERP.Infrastructure.Migrations
                     b.Property<decimal>("Exchange_Rate_Value")
                         .HasPrecision(18, 6)
                         .HasColumnType("decimal(18,6)")
-                        .HasColumnName("exchange_rate_value")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("exchange_rate_value");
 
                     b.Property<bool>("Is_Active")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("is_active")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("is_active");
 
                     b.Property<bool>("Is_Default")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("is_default")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("is_default");
 
                     b.Property<decimal?>("Max_Rate")
                         .HasPrecision(18, 6)
                         .HasColumnType("decimal(18,6)")
-                        .HasColumnName("max_rate")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("max_rate");
 
                     b.Property<decimal?>("Min_Rate")
                         .HasPrecision(18, 6)
                         .HasColumnType("decimal(18,6)")
-                        .HasColumnName("min_rate")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("min_rate");
 
                     b.Property<string>("Notes")
                         .HasMaxLength(500)
@@ -3542,13 +3285,11 @@ namespace AlTayerERP.Infrastructure.Migrations
 
                     b.Property<DateTime>("Rate_Date")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("rate_date")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("rate_date");
 
                     b.Property<DateTime?>("Updated_At")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("updated_at")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("updated_at");
 
                     b.HasKey("Exchange_Rate_ID");
 
@@ -3566,8 +3307,7 @@ namespace AlTayerERP.Infrastructure.Migrations
                     b.Property<int>("Limit_ID")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int")
-                        .HasColumnName("limit_id")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("limit_id");
 
                     MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Limit_ID"));
 
@@ -3580,8 +3320,7 @@ namespace AlTayerERP.Infrastructure.Migrations
 
                     b.Property<DateTime>("Created_At")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("created_at")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("created_at");
 
                     b.Property<string>("Currency_Code")
                         .IsRequired()
@@ -3606,14 +3345,12 @@ namespace AlTayerERP.Infrastructure.Migrations
 
                     b.Property<bool>("Is_Active")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("is_active")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("is_active");
 
                     b.Property<decimal>("Limit_Amount")
                         .HasPrecision(19, 4)
                         .HasColumnType("decimal(19,4)")
-                        .HasColumnName("limit_amount")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("limit_amount");
 
                     b.Property<string>("Limit_Type")
                         .IsRequired()
@@ -3631,19 +3368,16 @@ namespace AlTayerERP.Infrastructure.Migrations
 
                     b.Property<bool>("Requires_Approval")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("requires_approval")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("requires_approval");
 
                     b.Property<DateTime?>("Updated_At")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("updated_at")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("updated_at");
 
                     b.Property<decimal>("Used_Amount")
                         .HasPrecision(19, 4)
                         .HasColumnType("decimal(19,4)")
-                        .HasColumnName("used_amount")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("used_amount");
 
                     b.HasKey("Limit_ID");
 
@@ -3657,22 +3391,19 @@ namespace AlTayerERP.Infrastructure.Migrations
                     b.Property<int>("Movement_ID")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int")
-                        .HasColumnName("movement_id")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("movement_id");
 
                     MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Movement_ID"));
 
                     b.Property<decimal>("Amount")
                         .HasPrecision(19, 4)
                         .HasColumnType("decimal(19,4)")
-                        .HasColumnName("amount")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("amount");
 
                     b.Property<decimal>("Balance_After")
                         .HasPrecision(19, 4)
                         .HasColumnType("decimal(19,4)")
-                        .HasColumnName("balance_after")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("balance_after");
 
                     b.Property<string>("Company_ID")
                         .IsRequired()
@@ -3683,8 +3414,7 @@ namespace AlTayerERP.Infrastructure.Migrations
 
                     b.Property<DateTime>("Created_At")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("created_at")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("created_at");
 
                     b.Property<string>("Created_By")
                         .HasMaxLength(255)
@@ -3701,13 +3431,11 @@ namespace AlTayerERP.Infrastructure.Migrations
 
                     b.Property<int>("Limit_ID")
                         .HasColumnType("int")
-                        .HasColumnName("limit_id")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("limit_id");
 
                     b.Property<DateTime>("Movement_Date")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("movement_date")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("movement_date");
 
                     b.Property<string>("Movement_Type")
                         .IsRequired()
@@ -3746,20 +3474,17 @@ namespace AlTayerERP.Infrastructure.Migrations
                     b.Property<int>("Fiscal_Period_ID")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int")
-                        .HasColumnName("fiscal_period_id")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("fiscal_period_id");
 
                     MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Fiscal_Period_ID"));
 
                     b.Property<int>("Branch_ID")
                         .HasColumnType("int")
-                        .HasColumnName("branch_id")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("branch_id");
 
                     b.Property<DateTime?>("Close_Date")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("close_date")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("close_date");
 
                     b.Property<string>("Close_Reason")
                         .HasMaxLength(500)
@@ -3776,28 +3501,23 @@ namespace AlTayerERP.Infrastructure.Migrations
 
                     b.Property<DateTime>("Created_At")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("created_at")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("created_at");
 
                     b.Property<DateTime>("End_Date")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("end_date")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("end_date");
 
                     b.Property<int>("Fiscal_Year_ID")
                         .HasColumnType("int")
-                        .HasColumnName("fiscal_year_id")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("fiscal_year_id");
 
                     b.Property<bool>("Is_Active")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("is_active")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("is_active");
 
                     b.Property<bool>("Is_Closed")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("is_closed")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("is_closed");
 
                     b.Property<string>("Period_Code")
                         .IsRequired()
@@ -3815,13 +3535,11 @@ namespace AlTayerERP.Infrastructure.Migrations
 
                     b.Property<DateTime>("Start_Date")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("start_date")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("start_date");
 
                     b.Property<DateTime?>("Updated_At")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("updated_at")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("updated_at");
 
                     b.HasKey("Fiscal_Period_ID");
 
@@ -3843,8 +3561,7 @@ namespace AlTayerERP.Infrastructure.Migrations
                     b.Property<int>("Fiscal_Year_ID")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int")
-                        .HasColumnName("fiscal_year_id")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("fiscal_year_id");
 
                     MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Fiscal_Year_ID"));
 
@@ -3857,38 +3574,31 @@ namespace AlTayerERP.Infrastructure.Migrations
 
                     b.Property<DateTime>("Created_At")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("created_at")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("created_at");
 
                     b.Property<DateTime>("End_Date")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("end_date")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("end_date");
 
                     b.Property<bool>("Is_Active")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("is_active")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("is_active");
 
                     b.Property<bool>("Is_Closed")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("is_closed")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("is_closed");
 
                     b.Property<bool>("Is_Default")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("is_default")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("is_default");
 
                     b.Property<DateTime>("Start_Date")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("start_date")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("start_date");
 
                     b.Property<DateTime?>("Updated_At")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("updated_at")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("updated_at");
 
                     b.Property<string>("Year_Name")
                         .IsRequired()
@@ -3913,20 +3623,17 @@ namespace AlTayerERP.Infrastructure.Migrations
                     b.Property<int>("Governorate_ID")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int")
-                        .HasColumnName("governorate_id")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("governorate_id");
 
                     MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Governorate_ID"));
 
                     b.Property<int>("Country_ID")
                         .HasColumnType("int")
-                        .HasColumnName("country_id")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("country_id");
 
                     b.Property<DateTime>("Created_At")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("created_at")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("created_at");
 
                     b.Property<string>("Governorate_Code")
                         .IsRequired()
@@ -3950,8 +3657,7 @@ namespace AlTayerERP.Infrastructure.Migrations
 
                     b.Property<bool>("Is_Active")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("is_active")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("is_active");
 
                     b.Property<string>("Notes")
                         .HasMaxLength(500)
@@ -3961,13 +3667,11 @@ namespace AlTayerERP.Infrastructure.Migrations
 
                     b.Property<int>("Sort_Order")
                         .HasColumnType("int")
-                        .HasColumnName("sort_order")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("sort_order");
 
                     b.Property<DateTime?>("Updated_At")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("updated_at")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("updated_at");
 
                     b.HasKey("Governorate_ID");
 
@@ -3985,20 +3689,17 @@ namespace AlTayerERP.Infrastructure.Migrations
                     b.Property<long>("Login_Attempt_ID")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bigint")
-                        .HasColumnName("login_attempt_id")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("login_attempt_id");
 
                     MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<long>("Login_Attempt_ID"));
 
                     b.Property<DateTime>("Attempted_At")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("attempted_at")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("attempted_at");
 
                     b.Property<int?>("Branch_ID")
                         .HasColumnType("int")
-                        .HasColumnName("branch_id")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("branch_id");
 
                     b.Property<string>("Company_ID")
                         .HasMaxLength(50)
@@ -4020,8 +3721,7 @@ namespace AlTayerERP.Infrastructure.Migrations
 
                     b.Property<int?>("Fiscal_Year_ID")
                         .HasColumnType("int")
-                        .HasColumnName("fiscal_year_id")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("fiscal_year_id");
 
                     b.Property<string>("IP_Address")
                         .HasMaxLength(255)
@@ -4031,13 +3731,11 @@ namespace AlTayerERP.Infrastructure.Migrations
 
                     b.Property<bool>("Is_Success")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("is_success")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("is_success");
 
                     b.Property<DateTime?>("Lockout_Until")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("lockout_until")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("lockout_until");
 
                     b.Property<string>("Login_Name")
                         .IsRequired()
@@ -4060,8 +3758,7 @@ namespace AlTayerERP.Infrastructure.Migrations
 
                     b.Property<int?>("User_ID")
                         .HasColumnType("int")
-                        .HasColumnName("user_id")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("user_id");
 
                     b.HasKey("Login_Attempt_ID");
 
@@ -4079,8 +3776,7 @@ namespace AlTayerERP.Infrastructure.Migrations
                     b.Property<int>("Counter_ID")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int")
-                        .HasColumnName("counter_id")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("counter_id");
 
                     MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Counter_ID"));
 
@@ -4088,8 +3784,7 @@ namespace AlTayerERP.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int")
                         .HasDefaultValue(0)
-                        .HasColumnName("branch_id")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("branch_id");
 
                     b.Property<string>("Company_ID")
                         .ValueGeneratedOnAdd()
@@ -4101,8 +3796,7 @@ namespace AlTayerERP.Infrastructure.Migrations
 
                     b.Property<DateTime>("Created_At")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("created_at")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("created_at");
 
                     b.Property<string>("Document_Type")
                         .IsRequired()
@@ -4113,20 +3807,17 @@ namespace AlTayerERP.Infrastructure.Migrations
 
                     b.Property<int>("Last_Number")
                         .HasColumnType("int")
-                        .HasColumnName("last_number")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("last_number");
 
                     b.Property<DateTime?>("Updated_At")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("updated_at")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("updated_at");
 
                     b.Property<int?>("Year_Value")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int")
                         .HasDefaultValue(0)
-                        .HasColumnName("year_value")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("year_value");
 
                     b.HasKey("Counter_ID");
 
@@ -4141,8 +3832,7 @@ namespace AlTayerERP.Infrastructure.Migrations
                     b.Property<int>("Numbering_Document_Type_ID")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int")
-                        .HasColumnName("numbering_document_type_id")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("numbering_document_type_id");
 
                     MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Numbering_Document_Type_ID"));
 
@@ -4168,13 +3858,11 @@ namespace AlTayerERP.Infrastructure.Migrations
 
                     b.Property<bool>("Is_Active")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("is_active")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("is_active");
 
                     b.Property<int>("Sort_Order")
                         .HasColumnType("int")
-                        .HasColumnName("sort_order")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("sort_order");
 
                     b.HasKey("Numbering_Document_Type_ID");
 
@@ -4287,15 +3975,13 @@ namespace AlTayerERP.Infrastructure.Migrations
                     b.Property<int>("Numbering_ID")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int")
-                        .HasColumnName("numbering_id")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("numbering_id");
 
                     MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Numbering_ID"));
 
                     b.Property<int>("Digits_Count")
                         .HasColumnType("int")
-                        .HasColumnName("digits_count")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("digits_count");
 
                     b.Property<string>("Document_Type")
                         .IsRequired()
@@ -4306,13 +3992,11 @@ namespace AlTayerERP.Infrastructure.Migrations
 
                     b.Property<bool>("Is_Active")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("is_active")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("is_active");
 
                     b.Property<int>("Last_Number")
                         .HasColumnType("int")
-                        .HasColumnName("last_number")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("last_number");
 
                     b.Property<string>("Prefix")
                         .IsRequired()
@@ -4330,18 +4014,15 @@ namespace AlTayerERP.Infrastructure.Migrations
 
                     b.Property<bool>("Use_Branch")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("use_branch")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("use_branch");
 
                     b.Property<bool>("Use_Company")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("use_company")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("use_company");
 
                     b.Property<bool>("Use_Year")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("use_year")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("use_year");
 
                     b.HasKey("Numbering_ID");
 
@@ -4356,15 +4037,13 @@ namespace AlTayerERP.Infrastructure.Migrations
                     b.Property<long>("Refresh_Token_ID")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bigint")
-                        .HasColumnName("refresh_token_id")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("refresh_token_id");
 
                     MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<long>("Refresh_Token_ID"));
 
                     b.Property<int>("Branch_ID")
                         .HasColumnType("int")
-                        .HasColumnName("branch_id")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("branch_id");
 
                     b.Property<string>("Company_ID")
                         .IsRequired()
@@ -4375,8 +4054,7 @@ namespace AlTayerERP.Infrastructure.Migrations
 
                     b.Property<DateTime>("Created_At")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("created_at")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("created_at");
 
                     b.Property<string>("Device_ID")
                         .IsRequired()
@@ -4387,13 +4065,11 @@ namespace AlTayerERP.Infrastructure.Migrations
 
                     b.Property<DateTime>("Expires_At")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("expires_at")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("expires_at");
 
                     b.Property<int>("Fiscal_Year_ID")
                         .HasColumnType("int")
-                        .HasColumnName("fiscal_year_id")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("fiscal_year_id");
 
                     b.Property<string>("Replaced_By_Hash")
                         .HasMaxLength(255)
@@ -4403,8 +4079,7 @@ namespace AlTayerERP.Infrastructure.Migrations
 
                     b.Property<DateTime?>("Revoked_At")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("revoked_at")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("revoked_at");
 
                     b.Property<string>("Revoked_Reason")
                         .HasMaxLength(500)
@@ -4429,8 +4104,7 @@ namespace AlTayerERP.Infrastructure.Migrations
 
                     b.Property<int>("User_ID")
                         .HasColumnType("int")
-                        .HasColumnName("user_id")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("user_id");
 
                     b.HasKey("Refresh_Token_ID");
 
@@ -4455,15 +4129,13 @@ namespace AlTayerERP.Infrastructure.Migrations
                     b.Property<int>("Role_ID")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int")
-                        .HasColumnName("role_id")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("role_id");
 
                     MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Role_ID"));
 
                     b.Property<DateTime>("Created_At")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("created_at")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("created_at");
 
                     b.Property<string>("Description")
                         .HasMaxLength(500)
@@ -4473,13 +4145,11 @@ namespace AlTayerERP.Infrastructure.Migrations
 
                     b.Property<bool>("Is_Active")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("is_active")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("is_active");
 
                     b.Property<bool>("Is_System_Admin")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("is_system_admin")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("is_system_admin");
 
                     b.Property<string>("Role_Code")
                         .HasMaxLength(50)
@@ -4496,8 +4166,7 @@ namespace AlTayerERP.Infrastructure.Migrations
 
                     b.Property<DateTime?>("Updated_At")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("updated_at")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("updated_at");
 
                     b.HasKey("Role_ID");
 
@@ -4512,65 +4181,53 @@ namespace AlTayerERP.Infrastructure.Migrations
                     b.Property<int>("Permission_ID")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int")
-                        .HasColumnName("permission_id")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("permission_id");
 
                     MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Permission_ID"));
 
                     b.Property<bool>("Can_Add")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("can_add")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("can_add");
 
                     b.Property<bool>("Can_Approve")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("can_approve")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("can_approve");
 
                     b.Property<bool>("Can_Delete")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("can_delete")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("can_delete");
 
                     b.Property<bool>("Can_Edit")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("can_edit")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("can_edit");
 
                     b.Property<bool>("Can_Export")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("can_export")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("can_export");
 
                     b.Property<bool>("Can_Import")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("can_import")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("can_import");
 
                     b.Property<bool>("Can_Print")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("can_print")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("can_print");
 
                     b.Property<bool>("Can_UnApprove")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("can_un_approve")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("can_un_approve");
 
                     b.Property<bool>("Can_View")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("can_view")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("can_view");
 
                     b.Property<int>("Role_ID")
                         .HasColumnType("int")
-                        .HasColumnName("role_id")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("role_id");
 
                     b.Property<int>("Screen_ID")
                         .HasColumnType("int")
-                        .HasColumnName("screen_id")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("screen_id");
 
                     b.HasKey("Permission_ID");
 
@@ -4587,20 +4244,17 @@ namespace AlTayerERP.Infrastructure.Migrations
                     b.Property<int>("Permission_ID")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int")
-                        .HasColumnName("permission_id")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("permission_id");
 
                     MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Permission_ID"));
 
                     b.Property<DateTime>("Created_At")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("created_at")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("created_at");
 
                     b.Property<bool>("Is_Active")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("is_active")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("is_active");
 
                     b.Property<string>("Module_Name")
                         .HasMaxLength(100)
@@ -4631,8 +4285,7 @@ namespace AlTayerERP.Infrastructure.Migrations
 
                     b.Property<int>("Sort_Order")
                         .HasColumnType("int")
-                        .HasColumnName("sort_order")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("sort_order");
 
                     b.HasKey("Permission_ID");
 
@@ -4739,20 +4392,17 @@ namespace AlTayerERP.Infrastructure.Migrations
                     b.Property<int>("Screen_ID")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int")
-                        .HasColumnName("screen_id")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("screen_id");
 
                     MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Screen_ID"));
 
                     b.Property<DateTime>("Created_At")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("created_at")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("created_at");
 
                     b.Property<bool>("Is_Active")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("is_active")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("is_active");
 
                     b.Property<string>("Module_Name")
                         .IsRequired()
@@ -4777,8 +4427,7 @@ namespace AlTayerERP.Infrastructure.Migrations
 
                     b.Property<int>("Sort_Order")
                         .HasColumnType("int")
-                        .HasColumnName("sort_order")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("sort_order");
 
                     b.HasKey("Screen_ID");
 
@@ -5155,15 +4804,13 @@ namespace AlTayerERP.Infrastructure.Migrations
                     b.Property<int>("Setting_ID")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int")
-                        .HasColumnName("setting_id")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("setting_id");
 
                     MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Setting_ID"));
 
                     b.Property<int>("Branch_ID")
                         .HasColumnType("int")
-                        .HasColumnName("branch_id")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("branch_id");
 
                     b.Property<string>("Company_ID")
                         .IsRequired()
@@ -5174,8 +4821,7 @@ namespace AlTayerERP.Infrastructure.Migrations
 
                     b.Property<DateTime>("Created_At")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("created_at")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("created_at");
 
                     b.Property<string>("Description")
                         .IsRequired()
@@ -5186,18 +4832,15 @@ namespace AlTayerERP.Infrastructure.Migrations
 
                     b.Property<DateTime?>("Effective_Date")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("effective_date")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("effective_date");
 
                     b.Property<int>("Fiscal_Year_ID")
                         .HasColumnType("int")
-                        .HasColumnName("fiscal_year_id")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("fiscal_year_id");
 
                     b.Property<bool>("Is_Active")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("is_active")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("is_active");
 
                     b.Property<string>("Scope")
                         .IsRequired()
@@ -5229,8 +4872,7 @@ namespace AlTayerERP.Infrastructure.Migrations
 
                     b.Property<DateTime?>("Updated_At")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("updated_at")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("updated_at");
 
                     b.HasKey("Setting_ID");
 
@@ -5248,8 +4890,7 @@ namespace AlTayerERP.Infrastructure.Migrations
                     b.Property<int>("Branch_ID")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int")
-                        .HasColumnName("branch_id")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("branch_id");
 
                     MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Branch_ID"));
 
@@ -5261,13 +4902,11 @@ namespace AlTayerERP.Infrastructure.Migrations
 
                     b.Property<bool>("Allow_Credit")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("allow_credit")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("allow_credit");
 
                     b.Property<bool>("Allow_Percentage")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("allow_percentage")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("allow_percentage");
 
                     b.Property<string>("Branch_Code")
                         .IsRequired()
@@ -5297,13 +4936,11 @@ namespace AlTayerERP.Infrastructure.Migrations
 
                     b.Property<int?>("Branch_Type_ID")
                         .HasColumnType("int")
-                        .HasColumnName("branch_type_id")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("branch_type_id");
 
                     b.Property<int?>("City_ID")
                         .HasColumnType("int")
-                        .HasColumnName("city_id")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("city_id");
 
                     b.Property<string>("Company_ID")
                         .IsRequired()
@@ -5314,30 +4951,25 @@ namespace AlTayerERP.Infrastructure.Migrations
 
                     b.Property<int?>("Country_ID")
                         .HasColumnType("int")
-                        .HasColumnName("country_id")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("country_id");
 
                     b.Property<int?>("Created_By")
                         .HasColumnType("int")
-                        .HasColumnName("created_by")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("created_by");
 
                     b.Property<DateTime>("Created_Date")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("created_date")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("created_date");
 
                     b.Property<int>("Currency_ID")
                         .HasColumnType("int")
-                        .HasColumnName("currency_id")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("currency_id");
 
                     b.Property<int>("Edit_Count")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int")
                         .HasDefaultValue(0)
-                        .HasColumnName("edit_count")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("edit_count");
 
                     b.Property<string>("Email")
                         .HasMaxLength(150)
@@ -5347,15 +4979,13 @@ namespace AlTayerERP.Infrastructure.Migrations
 
                     b.Property<int?>("Governorate_ID")
                         .HasColumnType("int")
-                        .HasColumnName("governorate_id")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("governorate_id");
 
                     b.Property<bool>("Is_Active")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("tinyint(1)")
                         .HasDefaultValue(true)
-                        .HasColumnName("is_active")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("is_active");
 
                     b.Property<string>("Manager_Name")
                         .HasMaxLength(150)
@@ -5377,8 +5007,7 @@ namespace AlTayerERP.Infrastructure.Migrations
 
                     b.Property<int?>("Parent_Branch_ID")
                         .HasColumnType("int")
-                        .HasColumnName("parent_branch_id")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("parent_branch_id");
 
                     b.Property<string>("Phone")
                         .HasMaxLength(50)
@@ -5394,23 +5023,19 @@ namespace AlTayerERP.Infrastructure.Migrations
 
                     b.Property<DateTime?>("Reactivated_At")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("reactivated_at")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("reactivated_at");
 
                     b.Property<int?>("Reactivated_By")
                         .HasColumnType("int")
-                        .HasColumnName("reactivated_by")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("reactivated_by");
 
                     b.Property<DateTime?>("Stopped_At")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("stopped_at")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("stopped_at");
 
                     b.Property<int?>("Stopped_By")
                         .HasColumnType("int")
-                        .HasColumnName("stopped_by")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("stopped_by");
 
                     b.Property<string>("Stopped_Reason")
                         .HasMaxLength(500)
@@ -5420,13 +5045,11 @@ namespace AlTayerERP.Infrastructure.Migrations
 
                     b.Property<int?>("Updated_By")
                         .HasColumnType("int")
-                        .HasColumnName("updated_by")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("updated_by");
 
                     b.Property<DateTime?>("Updated_Date")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("updated_date")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("updated_date");
 
                     b.Property<string>("Website")
                         .HasMaxLength(200)
@@ -5476,13 +5099,11 @@ namespace AlTayerERP.Infrastructure.Migrations
 
                     b.Property<DateTime>("Created_At")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("created_at")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("created_at");
 
                     b.Property<int?>("Created_By")
                         .HasColumnType("int")
-                        .HasColumnName("created_by")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("created_by");
 
                     b.Property<string>("Default_Currency_Code")
                         .HasMaxLength(10)
@@ -5494,8 +5115,7 @@ namespace AlTayerERP.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int")
                         .HasDefaultValue(0)
-                        .HasColumnName("edit_count")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("edit_count");
 
                     b.Property<string>("Email")
                         .HasMaxLength(150)
@@ -5527,13 +5147,11 @@ namespace AlTayerERP.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("tinyint(1)")
                         .HasDefaultValue(true)
-                        .HasColumnName("is_active")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("is_active");
 
                     b.Property<bool>("Is_Default")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("is_default")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("is_default");
 
                     b.Property<string>("Main_Company_ID")
                         .HasMaxLength(50)
@@ -5573,13 +5191,11 @@ namespace AlTayerERP.Infrastructure.Migrations
 
                     b.Property<DateTime?>("Reactivated_At")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("reactivated_at")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("reactivated_at");
 
                     b.Property<int?>("Reactivated_By")
                         .HasColumnType("int")
-                        .HasColumnName("reactivated_by")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("reactivated_by");
 
                     b.Property<string>("Short_Address")
                         .HasMaxLength(300)
@@ -5598,30 +5214,25 @@ namespace AlTayerERP.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("tinyint(1)")
                         .HasDefaultValue(true)
-                        .HasColumnName("show_in_login")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("show_in_login");
 
                     b.Property<bool>("Show_In_Tree")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("tinyint(1)")
                         .HasDefaultValue(true)
-                        .HasColumnName("show_in_tree")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("show_in_tree");
 
                     b.Property<int>("Sort_Order")
                         .HasColumnType("int")
-                        .HasColumnName("sort_order")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("sort_order");
 
                     b.Property<DateTime?>("Stopped_At")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("stopped_at")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("stopped_at");
 
                     b.Property<int?>("Stopped_By")
                         .HasColumnType("int")
-                        .HasColumnName("stopped_by")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("stopped_by");
 
                     b.Property<string>("Stopped_Reason")
                         .HasMaxLength(500)
@@ -5631,13 +5242,11 @@ namespace AlTayerERP.Infrastructure.Migrations
 
                     b.Property<DateTime?>("Updated_At")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("updated_at")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("updated_at");
 
                     b.Property<int?>("Updated_By")
                         .HasColumnType("int")
-                        .HasColumnName("updated_by")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("updated_by");
 
                     b.HasKey("Group_ID");
 
@@ -5654,15 +5263,13 @@ namespace AlTayerERP.Infrastructure.Migrations
                     b.Property<int>("User_ID")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int")
-                        .HasColumnName("user_id")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("user_id");
 
                     MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("User_ID"));
 
                     b.Property<int>("Branch_ID")
                         .HasColumnType("int")
-                        .HasColumnName("branch_id")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("branch_id");
 
                     b.Property<string>("Company_ID")
                         .IsRequired()
@@ -5673,8 +5280,7 @@ namespace AlTayerERP.Infrastructure.Migrations
 
                     b.Property<DateTime>("Created_At")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("created_at")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("created_at");
 
                     b.Property<string>("Email")
                         .HasMaxLength(255)
@@ -5684,8 +5290,7 @@ namespace AlTayerERP.Infrastructure.Migrations
 
                     b.Property<int>("Failed_Login_Count")
                         .HasColumnType("int")
-                        .HasColumnName("failed_login_count")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("failed_login_count");
 
                     b.Property<string>("Full_Name")
                         .IsRequired()
@@ -5696,18 +5301,15 @@ namespace AlTayerERP.Infrastructure.Migrations
 
                     b.Property<bool>("Is_Active")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("is_active")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("is_active");
 
                     b.Property<DateTime?>("Last_Failed_Login_At")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("last_failed_login_at")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("last_failed_login_at");
 
                     b.Property<DateTime?>("Last_Login_At")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("last_login_at")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("last_login_at");
 
                     b.Property<string>("Last_Login_IP")
                         .HasMaxLength(255)
@@ -5717,8 +5319,7 @@ namespace AlTayerERP.Infrastructure.Migrations
 
                     b.Property<DateTime?>("Locked_Until")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("locked_until")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("locked_until");
 
                     b.Property<string>("Login_Name")
                         .IsRequired()
@@ -5729,8 +5330,7 @@ namespace AlTayerERP.Infrastructure.Migrations
 
                     b.Property<bool>("Must_Change_Password")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("must_change_password")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("must_change_password");
 
                     b.Property<string>("Notes")
                         .HasMaxLength(500)
@@ -5753,13 +5353,11 @@ namespace AlTayerERP.Infrastructure.Migrations
 
                     b.Property<int>("Role_ID")
                         .HasColumnType("int")
-                        .HasColumnName("role_id")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("role_id");
 
                     b.Property<DateTime?>("Updated_At")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("updated_at")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("updated_at");
 
                     b.Property<string>("User_Code")
                         .IsRequired()
@@ -5788,60 +5386,49 @@ namespace AlTayerERP.Infrastructure.Migrations
                     b.Property<int>("Permission_ID")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int")
-                        .HasColumnName("permission_id")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("permission_id");
 
                     MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Permission_ID"));
 
                     b.Property<bool>("Can_Add")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("can_add")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("can_add");
 
                     b.Property<bool>("Can_Approve")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("can_approve")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("can_approve");
 
                     b.Property<bool>("Can_Delete")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("can_delete")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("can_delete");
 
                     b.Property<bool>("Can_Edit")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("can_edit")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("can_edit");
 
                     b.Property<bool>("Can_Export")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("can_export")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("can_export");
 
                     b.Property<bool>("Can_Import")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("can_import")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("can_import");
 
                     b.Property<bool>("Can_Preview")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("can_preview")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("can_preview");
 
                     b.Property<bool>("Can_Print")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("can_print")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("can_print");
 
                     b.Property<bool>("Can_UnApprove")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("can_un_approve")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("can_un_approve");
 
                     b.Property<bool>("Can_View")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("can_view")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("can_view");
 
                     b.Property<string>("Permission_Category")
                         .IsRequired()
@@ -5859,8 +5446,7 @@ namespace AlTayerERP.Infrastructure.Migrations
 
                     b.Property<int>("User_ID")
                         .HasColumnType("int")
-                        .HasColumnName("user_id")
-                        .UseCollation("utf8mb4_unicode_ci");
+                        .HasColumnName("user_id");
 
                     b.HasKey("Permission_ID");
 

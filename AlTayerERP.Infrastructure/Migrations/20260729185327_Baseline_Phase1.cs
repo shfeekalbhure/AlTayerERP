@@ -21,7 +21,7 @@ namespace AlTayerERP.Infrastructure.Migrations
                 name: "approval_statuses",
                 columns: table => new
                 {
-                    approval_status_id = table.Column<int>(type: "int", nullable: false, collation: "utf8mb4_unicode_ci")
+                    approval_status_id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
                     approval_status_code = table.Column<string>(type: "varchar(30)", maxLength: 30, nullable: false, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
@@ -29,8 +29,8 @@ namespace AlTayerERP.Infrastructure.Migrations
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     approval_status_name_en = table.Column<string>(type: "varchar(100)", maxLength: 100, nullable: true, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    sort_order = table.Column<int>(type: "int", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    is_active = table.Column<bool>(type: "tinyint(1)", nullable: false, collation: "utf8mb4_unicode_ci")
+                    sort_order = table.Column<int>(type: "int", nullable: false),
+                    is_active = table.Column<bool>(type: "tinyint(1)", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -43,7 +43,7 @@ namespace AlTayerERP.Infrastructure.Migrations
                 name: "branch_types",
                 columns: table => new
                 {
-                    branch_type_id = table.Column<int>(type: "int", nullable: false, collation: "utf8mb4_unicode_ci")
+                    branch_type_id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
                     branch_type_code = table.Column<string>(type: "varchar(30)", maxLength: 30, nullable: false, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
@@ -51,10 +51,10 @@ namespace AlTayerERP.Infrastructure.Migrations
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     branch_type_name_en = table.Column<string>(type: "varchar(100)", maxLength: 100, nullable: true, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    sort_order = table.Column<int>(type: "int", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    is_active = table.Column<bool>(type: "tinyint(1)", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    created_at = table.Column<DateTime>(type: "datetime(6)", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    updated_at = table.Column<DateTime>(type: "datetime(6)", nullable: true, collation: "utf8mb4_unicode_ci")
+                    sort_order = table.Column<int>(type: "int", nullable: false),
+                    is_active = table.Column<bool>(type: "tinyint(1)", nullable: false),
+                    created_at = table.Column<DateTime>(type: "datetime(6)", nullable: false),
+                    updated_at = table.Column<DateTime>(type: "datetime(6)", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -67,7 +67,7 @@ namespace AlTayerERP.Infrastructure.Migrations
                 name: "countries",
                 columns: table => new
                 {
-                    country_id = table.Column<int>(type: "int", nullable: false, collation: "utf8mb4_unicode_ci")
+                    country_id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
                     country_code = table.Column<string>(type: "varchar(10)", maxLength: 10, nullable: false, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
@@ -85,12 +85,12 @@ namespace AlTayerERP.Infrastructure.Migrations
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     nationality_name_ar = table.Column<string>(type: "varchar(150)", maxLength: 150, nullable: true, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    sort_order = table.Column<int>(type: "int", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    is_active = table.Column<bool>(type: "tinyint(1)", nullable: false, collation: "utf8mb4_unicode_ci"),
+                    sort_order = table.Column<int>(type: "int", nullable: false),
+                    is_active = table.Column<bool>(type: "tinyint(1)", nullable: false),
                     notes = table.Column<string>(type: "varchar(500)", maxLength: 500, nullable: true, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    created_at = table.Column<DateTime>(type: "datetime(6)", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    updated_at = table.Column<DateTime>(type: "datetime(6)", nullable: true, collation: "utf8mb4_unicode_ci")
+                    created_at = table.Column<DateTime>(type: "datetime(6)", nullable: false),
+                    updated_at = table.Column<DateTime>(type: "datetime(6)", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -103,29 +103,29 @@ namespace AlTayerERP.Infrastructure.Migrations
                 name: "document_links",
                 columns: table => new
                 {
-                    document_link_id = table.Column<long>(type: "bigint", nullable: false, collation: "utf8mb4_unicode_ci")
+                    document_link_id = table.Column<long>(type: "bigint", nullable: false)
                         .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
-                    from_module_id = table.Column<int>(type: "int", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    from_document_type_id = table.Column<int>(type: "int", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    from_document_id = table.Column<long>(type: "bigint", nullable: false, collation: "utf8mb4_unicode_ci"),
+                    from_module_id = table.Column<int>(type: "int", nullable: false),
+                    from_document_type_id = table.Column<int>(type: "int", nullable: false),
+                    from_document_id = table.Column<long>(type: "bigint", nullable: false),
                     from_document_no = table.Column<string>(type: "varchar(100)", maxLength: 100, nullable: true, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    to_module_id = table.Column<int>(type: "int", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    to_document_type_id = table.Column<int>(type: "int", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    to_document_id = table.Column<long>(type: "bigint", nullable: false, collation: "utf8mb4_unicode_ci"),
+                    to_module_id = table.Column<int>(type: "int", nullable: false),
+                    to_document_type_id = table.Column<int>(type: "int", nullable: false),
+                    to_document_id = table.Column<long>(type: "bigint", nullable: false),
                     to_document_no = table.Column<string>(type: "varchar(100)", maxLength: 100, nullable: true, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     link_type = table.Column<string>(type: "varchar(50)", maxLength: 50, nullable: false, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    is_active = table.Column<bool>(type: "tinyint(1)", nullable: false, collation: "utf8mb4_unicode_ci"),
+                    is_active = table.Column<bool>(type: "tinyint(1)", nullable: false),
                     notes = table.Column<string>(type: "varchar(500)", maxLength: 500, nullable: true, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     created_by = table.Column<string>(type: "varchar(50)", maxLength: 50, nullable: true, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    created_at = table.Column<DateTime>(type: "datetime(6)", nullable: false, collation: "utf8mb4_unicode_ci"),
+                    created_at = table.Column<DateTime>(type: "datetime(6)", nullable: false),
                     updated_by = table.Column<string>(type: "varchar(50)", maxLength: 50, nullable: true, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    updated_at = table.Column<DateTime>(type: "datetime(6)", nullable: true, collation: "utf8mb4_unicode_ci")
+                    updated_at = table.Column<DateTime>(type: "datetime(6)", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -138,17 +138,17 @@ namespace AlTayerERP.Infrastructure.Migrations
                 name: "numbering_counters",
                 columns: table => new
                 {
-                    counter_id = table.Column<int>(type: "int", nullable: false, collation: "utf8mb4_unicode_ci")
+                    counter_id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
                     document_type = table.Column<string>(type: "varchar(50)", maxLength: 50, nullable: false, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     company_id = table.Column<string>(type: "varchar(50)", maxLength: 50, nullable: true, defaultValue: "", collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    branch_id = table.Column<int>(type: "int", nullable: true, defaultValue: 0, collation: "utf8mb4_unicode_ci"),
-                    year_value = table.Column<int>(type: "int", nullable: true, defaultValue: 0, collation: "utf8mb4_unicode_ci"),
-                    last_number = table.Column<int>(type: "int", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    created_at = table.Column<DateTime>(type: "datetime(6)", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    updated_at = table.Column<DateTime>(type: "datetime(6)", nullable: true, collation: "utf8mb4_unicode_ci")
+                    branch_id = table.Column<int>(type: "int", nullable: true, defaultValue: 0),
+                    year_value = table.Column<int>(type: "int", nullable: true, defaultValue: 0),
+                    last_number = table.Column<int>(type: "int", nullable: false),
+                    created_at = table.Column<DateTime>(type: "datetime(6)", nullable: false),
+                    updated_at = table.Column<DateTime>(type: "datetime(6)", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -161,7 +161,7 @@ namespace AlTayerERP.Infrastructure.Migrations
                 name: "numbering_document_types",
                 columns: table => new
                 {
-                    numbering_document_type_id = table.Column<int>(type: "int", nullable: false, collation: "utf8mb4_unicode_ci")
+                    numbering_document_type_id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
                     document_type_code = table.Column<string>(type: "varchar(50)", maxLength: 50, nullable: false, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
@@ -169,8 +169,8 @@ namespace AlTayerERP.Infrastructure.Migrations
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     document_type_name_en = table.Column<string>(type: "varchar(150)", maxLength: 150, nullable: true, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    sort_order = table.Column<int>(type: "int", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    is_active = table.Column<bool>(type: "tinyint(1)", nullable: false, collation: "utf8mb4_unicode_ci")
+                    sort_order = table.Column<int>(type: "int", nullable: false),
+                    is_active = table.Column<bool>(type: "tinyint(1)", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -183,20 +183,20 @@ namespace AlTayerERP.Infrastructure.Migrations
                 name: "numbering_settings",
                 columns: table => new
                 {
-                    numbering_id = table.Column<int>(type: "int", nullable: false, collation: "utf8mb4_unicode_ci")
+                    numbering_id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
                     document_type = table.Column<string>(type: "varchar(50)", maxLength: 50, nullable: false, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     prefix = table.Column<string>(type: "varchar(30)", maxLength: 30, nullable: false, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    digits_count = table.Column<int>(type: "int", nullable: false, collation: "utf8mb4_unicode_ci"),
+                    digits_count = table.Column<int>(type: "int", nullable: false),
                     reset_type = table.Column<string>(type: "varchar(30)", maxLength: 30, nullable: false, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    last_number = table.Column<int>(type: "int", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    use_company = table.Column<bool>(type: "tinyint(1)", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    use_branch = table.Column<bool>(type: "tinyint(1)", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    use_year = table.Column<bool>(type: "tinyint(1)", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    is_active = table.Column<bool>(type: "tinyint(1)", nullable: false, collation: "utf8mb4_unicode_ci")
+                    last_number = table.Column<int>(type: "int", nullable: false),
+                    use_company = table.Column<bool>(type: "tinyint(1)", nullable: false),
+                    use_branch = table.Column<bool>(type: "tinyint(1)", nullable: false),
+                    use_year = table.Column<bool>(type: "tinyint(1)", nullable: false),
+                    is_active = table.Column<bool>(type: "tinyint(1)", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -209,7 +209,7 @@ namespace AlTayerERP.Infrastructure.Migrations
                 name: "payment_methods",
                 columns: table => new
                 {
-                    payment_method_id = table.Column<int>(type: "int", nullable: false, collation: "utf8mb4_unicode_ci")
+                    payment_method_id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
                     payment_method_code = table.Column<string>(type: "varchar(50)", maxLength: 50, nullable: false, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
@@ -217,12 +217,12 @@ namespace AlTayerERP.Infrastructure.Migrations
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     payment_method_name_en = table.Column<string>(type: "varchar(150)", maxLength: 150, nullable: true, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    requires_reference = table.Column<bool>(type: "tinyint(1)", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    requires_reference_date = table.Column<bool>(type: "tinyint(1)", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    is_cash = table.Column<bool>(type: "tinyint(1)", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    is_bank = table.Column<bool>(type: "tinyint(1)", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    is_active = table.Column<bool>(type: "tinyint(1)", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    sort_order = table.Column<int>(type: "int", nullable: false, collation: "utf8mb4_unicode_ci")
+                    requires_reference = table.Column<bool>(type: "tinyint(1)", nullable: false),
+                    requires_reference_date = table.Column<bool>(type: "tinyint(1)", nullable: false),
+                    is_cash = table.Column<bool>(type: "tinyint(1)", nullable: false),
+                    is_bank = table.Column<bool>(type: "tinyint(1)", nullable: false),
+                    is_active = table.Column<bool>(type: "tinyint(1)", nullable: false),
+                    sort_order = table.Column<int>(type: "int", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -235,18 +235,18 @@ namespace AlTayerERP.Infrastructure.Migrations
                 name: "roles",
                 columns: table => new
                 {
-                    role_id = table.Column<int>(type: "int", nullable: false, collation: "utf8mb4_unicode_ci")
+                    role_id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
                     role_name = table.Column<string>(type: "varchar(150)", maxLength: 150, nullable: false, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     description = table.Column<string>(type: "varchar(500)", maxLength: 500, nullable: true, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    is_active = table.Column<bool>(type: "tinyint(1)", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    created_at = table.Column<DateTime>(type: "datetime(6)", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    updated_at = table.Column<DateTime>(type: "datetime(6)", nullable: true, collation: "utf8mb4_unicode_ci"),
+                    is_active = table.Column<bool>(type: "tinyint(1)", nullable: false),
+                    created_at = table.Column<DateTime>(type: "datetime(6)", nullable: false),
+                    updated_at = table.Column<DateTime>(type: "datetime(6)", nullable: true),
                     role_code = table.Column<string>(type: "varchar(50)", maxLength: 50, nullable: true, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    is_system_admin = table.Column<bool>(type: "tinyint(1)", nullable: false, collation: "utf8mb4_unicode_ci")
+                    is_system_admin = table.Column<bool>(type: "tinyint(1)", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -259,7 +259,7 @@ namespace AlTayerERP.Infrastructure.Migrations
                 name: "system_permissions",
                 columns: table => new
                 {
-                    permission_id = table.Column<int>(type: "int", nullable: false, collation: "utf8mb4_unicode_ci")
+                    permission_id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
                     permission_code = table.Column<string>(type: "varchar(100)", maxLength: 100, nullable: false, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
@@ -269,9 +269,9 @@ namespace AlTayerERP.Infrastructure.Migrations
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     module_name = table.Column<string>(type: "varchar(100)", maxLength: 100, nullable: true, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    is_active = table.Column<bool>(type: "tinyint(1)", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    sort_order = table.Column<int>(type: "int", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    created_at = table.Column<DateTime>(type: "datetime(6)", nullable: false, collation: "utf8mb4_unicode_ci")
+                    is_active = table.Column<bool>(type: "tinyint(1)", nullable: false),
+                    sort_order = table.Column<int>(type: "int", nullable: false),
+                    created_at = table.Column<DateTime>(type: "datetime(6)", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -284,7 +284,7 @@ namespace AlTayerERP.Infrastructure.Migrations
                 name: "system_screens",
                 columns: table => new
                 {
-                    screen_id = table.Column<int>(type: "int", nullable: false, collation: "utf8mb4_unicode_ci")
+                    screen_id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
                     screen_code = table.Column<string>(type: "varchar(100)", maxLength: 100, nullable: false, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
@@ -292,9 +292,9 @@ namespace AlTayerERP.Infrastructure.Migrations
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     module_name = table.Column<string>(type: "varchar(100)", maxLength: 100, nullable: false, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    is_active = table.Column<bool>(type: "tinyint(1)", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    sort_order = table.Column<int>(type: "int", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    created_at = table.Column<DateTime>(type: "datetime(6)", nullable: false, collation: "utf8mb4_unicode_ci")
+                    is_active = table.Column<bool>(type: "tinyint(1)", nullable: false),
+                    sort_order = table.Column<int>(type: "int", nullable: false),
+                    created_at = table.Column<DateTime>(type: "datetime(6)", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -307,7 +307,7 @@ namespace AlTayerERP.Infrastructure.Migrations
                 name: "system_settings",
                 columns: table => new
                 {
-                    setting_id = table.Column<int>(type: "int", nullable: false, collation: "utf8mb4_unicode_ci")
+                    setting_id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
                     setting_key = table.Column<string>(type: "varchar(100)", maxLength: 100, nullable: false, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
@@ -319,14 +319,14 @@ namespace AlTayerERP.Infrastructure.Migrations
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     company_id = table.Column<string>(type: "varchar(50)", maxLength: 50, nullable: false, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    branch_id = table.Column<int>(type: "int", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    fiscal_year_id = table.Column<int>(type: "int", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    effective_date = table.Column<DateTime>(type: "datetime(6)", nullable: true, collation: "utf8mb4_unicode_ci"),
+                    branch_id = table.Column<int>(type: "int", nullable: false),
+                    fiscal_year_id = table.Column<int>(type: "int", nullable: false),
+                    effective_date = table.Column<DateTime>(type: "datetime(6)", nullable: true),
                     description = table.Column<string>(type: "varchar(500)", maxLength: 500, nullable: false, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    is_active = table.Column<bool>(type: "tinyint(1)", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    created_at = table.Column<DateTime>(type: "datetime(6)", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    updated_at = table.Column<DateTime>(type: "datetime(6)", nullable: true, collation: "utf8mb4_unicode_ci")
+                    is_active = table.Column<bool>(type: "tinyint(1)", nullable: false),
+                    created_at = table.Column<DateTime>(type: "datetime(6)", nullable: false),
+                    updated_at = table.Column<DateTime>(type: "datetime(6)", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -350,7 +350,7 @@ namespace AlTayerERP.Infrastructure.Migrations
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     short_name = table.Column<string>(type: "varchar(100)", maxLength: 100, nullable: false, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    is_default = table.Column<bool>(type: "tinyint(1)", nullable: false, collation: "utf8mb4_unicode_ci"),
+                    is_default = table.Column<bool>(type: "tinyint(1)", nullable: false),
                     parent_group_id = table.Column<string>(type: "varchar(50)", maxLength: 50, nullable: true, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     main_company_id = table.Column<string>(type: "varchar(50)", maxLength: 50, nullable: true, collation: "utf8mb4_unicode_ci")
@@ -369,23 +369,23 @@ namespace AlTayerERP.Infrastructure.Migrations
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     manager_name = table.Column<string>(type: "varchar(150)", maxLength: 150, nullable: true, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    show_in_login = table.Column<bool>(type: "tinyint(1)", nullable: false, defaultValue: true, collation: "utf8mb4_unicode_ci"),
-                    show_in_tree = table.Column<bool>(type: "tinyint(1)", nullable: false, defaultValue: true, collation: "utf8mb4_unicode_ci"),
-                    sort_order = table.Column<int>(type: "int", nullable: false, collation: "utf8mb4_unicode_ci"),
+                    show_in_login = table.Column<bool>(type: "tinyint(1)", nullable: false, defaultValue: true),
+                    show_in_tree = table.Column<bool>(type: "tinyint(1)", nullable: false, defaultValue: true),
+                    sort_order = table.Column<int>(type: "int", nullable: false),
                     notes = table.Column<string>(type: "varchar(500)", maxLength: 500, nullable: true, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    created_at = table.Column<DateTime>(type: "datetime(6)", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    updated_at = table.Column<DateTime>(type: "datetime(6)", nullable: true, collation: "utf8mb4_unicode_ci"),
-                    created_by = table.Column<int>(type: "int", nullable: true, collation: "utf8mb4_unicode_ci"),
-                    updated_by = table.Column<int>(type: "int", nullable: true, collation: "utf8mb4_unicode_ci"),
-                    edit_count = table.Column<int>(type: "int", nullable: false, defaultValue: 0, collation: "utf8mb4_unicode_ci"),
-                    is_active = table.Column<bool>(type: "tinyint(1)", nullable: false, defaultValue: true, collation: "utf8mb4_unicode_ci"),
-                    stopped_by = table.Column<int>(type: "int", nullable: true, collation: "utf8mb4_unicode_ci"),
-                    stopped_at = table.Column<DateTime>(type: "datetime(6)", nullable: true, collation: "utf8mb4_unicode_ci"),
+                    created_at = table.Column<DateTime>(type: "datetime(6)", nullable: false),
+                    updated_at = table.Column<DateTime>(type: "datetime(6)", nullable: true),
+                    created_by = table.Column<int>(type: "int", nullable: true),
+                    updated_by = table.Column<int>(type: "int", nullable: true),
+                    edit_count = table.Column<int>(type: "int", nullable: false, defaultValue: 0),
+                    is_active = table.Column<bool>(type: "tinyint(1)", nullable: false, defaultValue: true),
+                    stopped_by = table.Column<int>(type: "int", nullable: true),
+                    stopped_at = table.Column<DateTime>(type: "datetime(6)", nullable: true),
                     stopped_reason = table.Column<string>(type: "varchar(500)", maxLength: 500, nullable: true, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    reactivated_by = table.Column<int>(type: "int", nullable: true, collation: "utf8mb4_unicode_ci"),
-                    reactivated_at = table.Column<DateTime>(type: "datetime(6)", nullable: true, collation: "utf8mb4_unicode_ci"),
+                    reactivated_by = table.Column<int>(type: "int", nullable: true),
+                    reactivated_at = table.Column<DateTime>(type: "datetime(6)", nullable: true),
                     reactivate_reason = table.Column<string>(type: "varchar(500)", maxLength: 500, nullable: true, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4")
                 },
@@ -400,7 +400,7 @@ namespace AlTayerERP.Infrastructure.Migrations
                 name: "voucher_statuses",
                 columns: table => new
                 {
-                    voucher_status_id = table.Column<int>(type: "int", nullable: false, collation: "utf8mb4_unicode_ci")
+                    voucher_status_id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
                     voucher_status_code = table.Column<string>(type: "varchar(50)", maxLength: 50, nullable: false, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
@@ -408,8 +408,8 @@ namespace AlTayerERP.Infrastructure.Migrations
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     voucher_status_name_en = table.Column<string>(type: "varchar(150)", maxLength: 150, nullable: true, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    is_active = table.Column<bool>(type: "tinyint(1)", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    sort_order = table.Column<int>(type: "int", nullable: false, collation: "utf8mb4_unicode_ci")
+                    is_active = table.Column<bool>(type: "tinyint(1)", nullable: false),
+                    sort_order = table.Column<int>(type: "int", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -422,7 +422,7 @@ namespace AlTayerERP.Infrastructure.Migrations
                 name: "voucher_types",
                 columns: table => new
                 {
-                    voucher_type_id = table.Column<int>(type: "int", nullable: false, collation: "utf8mb4_unicode_ci")
+                    voucher_type_id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
                     voucher_type_code = table.Column<string>(type: "varchar(50)", maxLength: 50, nullable: false, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
@@ -430,8 +430,8 @@ namespace AlTayerERP.Infrastructure.Migrations
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     voucher_type_name_en = table.Column<string>(type: "varchar(150)", maxLength: 150, nullable: true, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    is_active = table.Column<bool>(type: "tinyint(1)", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    sort_order = table.Column<int>(type: "int", nullable: false, collation: "utf8mb4_unicode_ci")
+                    is_active = table.Column<bool>(type: "tinyint(1)", nullable: false),
+                    sort_order = table.Column<int>(type: "int", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -444,21 +444,21 @@ namespace AlTayerERP.Infrastructure.Migrations
                 name: "governorates",
                 columns: table => new
                 {
-                    governorate_id = table.Column<int>(type: "int", nullable: false, collation: "utf8mb4_unicode_ci")
+                    governorate_id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
-                    country_id = table.Column<int>(type: "int", nullable: false, collation: "utf8mb4_unicode_ci"),
+                    country_id = table.Column<int>(type: "int", nullable: false),
                     governorate_code = table.Column<string>(type: "varchar(20)", maxLength: 20, nullable: false, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     governorate_name_ar = table.Column<string>(type: "varchar(150)", maxLength: 150, nullable: false, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     governorate_name_en = table.Column<string>(type: "varchar(150)", maxLength: 150, nullable: true, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    sort_order = table.Column<int>(type: "int", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    is_active = table.Column<bool>(type: "tinyint(1)", nullable: false, collation: "utf8mb4_unicode_ci"),
+                    sort_order = table.Column<int>(type: "int", nullable: false),
+                    is_active = table.Column<bool>(type: "tinyint(1)", nullable: false),
                     notes = table.Column<string>(type: "varchar(500)", maxLength: 500, nullable: true, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    created_at = table.Column<DateTime>(type: "datetime(6)", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    updated_at = table.Column<DateTime>(type: "datetime(6)", nullable: true, collation: "utf8mb4_unicode_ci")
+                    created_at = table.Column<DateTime>(type: "datetime(6)", nullable: false),
+                    updated_at = table.Column<DateTime>(type: "datetime(6)", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -477,19 +477,19 @@ namespace AlTayerERP.Infrastructure.Migrations
                 name: "role_permissions",
                 columns: table => new
                 {
-                    permission_id = table.Column<int>(type: "int", nullable: false, collation: "utf8mb4_unicode_ci")
+                    permission_id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
-                    role_id = table.Column<int>(type: "int", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    screen_id = table.Column<int>(type: "int", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    can_view = table.Column<bool>(type: "tinyint(1)", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    can_add = table.Column<bool>(type: "tinyint(1)", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    can_edit = table.Column<bool>(type: "tinyint(1)", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    can_delete = table.Column<bool>(type: "tinyint(1)", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    can_print = table.Column<bool>(type: "tinyint(1)", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    can_export = table.Column<bool>(type: "tinyint(1)", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    can_import = table.Column<bool>(type: "tinyint(1)", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    can_approve = table.Column<bool>(type: "tinyint(1)", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    can_un_approve = table.Column<bool>(type: "tinyint(1)", nullable: false, collation: "utf8mb4_unicode_ci")
+                    role_id = table.Column<int>(type: "int", nullable: false),
+                    screen_id = table.Column<int>(type: "int", nullable: false),
+                    can_view = table.Column<bool>(type: "tinyint(1)", nullable: false),
+                    can_add = table.Column<bool>(type: "tinyint(1)", nullable: false),
+                    can_edit = table.Column<bool>(type: "tinyint(1)", nullable: false),
+                    can_delete = table.Column<bool>(type: "tinyint(1)", nullable: false),
+                    can_print = table.Column<bool>(type: "tinyint(1)", nullable: false),
+                    can_export = table.Column<bool>(type: "tinyint(1)", nullable: false),
+                    can_import = table.Column<bool>(type: "tinyint(1)", nullable: false),
+                    can_approve = table.Column<bool>(type: "tinyint(1)", nullable: false),
+                    can_un_approve = table.Column<bool>(type: "tinyint(1)", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -528,8 +528,8 @@ namespace AlTayerERP.Infrastructure.Migrations
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     tax_number = table.Column<string>(type: "varchar(100)", maxLength: 100, nullable: true, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    created_at = table.Column<DateTime>(type: "datetime(6)", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    is_active = table.Column<bool>(type: "tinyint(1)", nullable: false, defaultValue: true, collation: "utf8mb4_unicode_ci"),
+                    created_at = table.Column<DateTime>(type: "datetime(6)", nullable: false),
+                    is_active = table.Column<bool>(type: "tinyint(1)", nullable: false, defaultValue: true),
                     phone = table.Column<string>(type: "varchar(50)", maxLength: 50, nullable: true, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     mobile = table.Column<string>(type: "varchar(50)", maxLength: 50, nullable: true, collation: "utf8mb4_unicode_ci")
@@ -538,17 +538,17 @@ namespace AlTayerERP.Infrastructure.Migrations
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     address = table.Column<string>(type: "varchar(500)", maxLength: 500, nullable: true, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    company_logo = table.Column<byte[]>(type: "longblob", nullable: true, collation: "utf8mb4_unicode_ci"),
-                    updated_at = table.Column<DateTime>(type: "datetime(6)", nullable: true, collation: "utf8mb4_unicode_ci"),
-                    created_by = table.Column<int>(type: "int", nullable: true, collation: "utf8mb4_unicode_ci"),
-                    updated_by = table.Column<int>(type: "int", nullable: true, collation: "utf8mb4_unicode_ci"),
-                    edit_count = table.Column<int>(type: "int", nullable: false, defaultValue: 0, collation: "utf8mb4_unicode_ci"),
-                    stopped_by = table.Column<int>(type: "int", nullable: true, collation: "utf8mb4_unicode_ci"),
-                    stopped_at = table.Column<DateTime>(type: "datetime(6)", nullable: true, collation: "utf8mb4_unicode_ci"),
+                    company_logo = table.Column<byte[]>(type: "longblob", nullable: true),
+                    updated_at = table.Column<DateTime>(type: "datetime(6)", nullable: true),
+                    created_by = table.Column<int>(type: "int", nullable: true),
+                    updated_by = table.Column<int>(type: "int", nullable: true),
+                    edit_count = table.Column<int>(type: "int", nullable: false, defaultValue: 0),
+                    stopped_by = table.Column<int>(type: "int", nullable: true),
+                    stopped_at = table.Column<DateTime>(type: "datetime(6)", nullable: true),
                     stopped_reason = table.Column<string>(type: "varchar(500)", maxLength: 500, nullable: true, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    reactivated_by = table.Column<int>(type: "int", nullable: true, collation: "utf8mb4_unicode_ci"),
-                    reactivated_at = table.Column<DateTime>(type: "datetime(6)", nullable: true, collation: "utf8mb4_unicode_ci"),
+                    reactivated_by = table.Column<int>(type: "int", nullable: true),
+                    reactivated_at = table.Column<DateTime>(type: "datetime(6)", nullable: true),
                     reactivate_reason = table.Column<string>(type: "varchar(500)", maxLength: 500, nullable: true, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4")
                 },
@@ -569,10 +569,10 @@ namespace AlTayerERP.Infrastructure.Migrations
                 name: "cities",
                 columns: table => new
                 {
-                    city_id = table.Column<int>(type: "int", nullable: false, collation: "utf8mb4_unicode_ci")
+                    city_id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
-                    country_id = table.Column<int>(type: "int", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    governorate_id = table.Column<int>(type: "int", nullable: false, collation: "utf8mb4_unicode_ci"),
+                    country_id = table.Column<int>(type: "int", nullable: false),
+                    governorate_id = table.Column<int>(type: "int", nullable: false),
                     city_code = table.Column<string>(type: "varchar(20)", maxLength: 20, nullable: false, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     city_name_ar = table.Column<string>(type: "varchar(150)", maxLength: 150, nullable: false, collation: "utf8mb4_unicode_ci")
@@ -581,12 +581,12 @@ namespace AlTayerERP.Infrastructure.Migrations
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     postal_code = table.Column<string>(type: "varchar(20)", maxLength: 20, nullable: true, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    sort_order = table.Column<int>(type: "int", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    is_active = table.Column<bool>(type: "tinyint(1)", nullable: false, collation: "utf8mb4_unicode_ci"),
+                    sort_order = table.Column<int>(type: "int", nullable: false),
+                    is_active = table.Column<bool>(type: "tinyint(1)", nullable: false),
                     notes = table.Column<string>(type: "varchar(500)", maxLength: 500, nullable: true, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    created_at = table.Column<DateTime>(type: "datetime(6)", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    updated_at = table.Column<DateTime>(type: "datetime(6)", nullable: true, collation: "utf8mb4_unicode_ci")
+                    created_at = table.Column<DateTime>(type: "datetime(6)", nullable: false),
+                    updated_at = table.Column<DateTime>(type: "datetime(6)", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -625,13 +625,13 @@ namespace AlTayerERP.Infrastructure.Migrations
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     normal_balance = table.Column<string>(type: "varchar(10)", maxLength: 10, nullable: false, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    is_system = table.Column<bool>(type: "tinyint(1)", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    is_active = table.Column<bool>(type: "tinyint(1)", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    sort_order = table.Column<int>(type: "int", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    created_at = table.Column<DateTime>(type: "datetime(6)", nullable: false, collation: "utf8mb4_unicode_ci"),
+                    is_system = table.Column<bool>(type: "tinyint(1)", nullable: false),
+                    is_active = table.Column<bool>(type: "tinyint(1)", nullable: false),
+                    sort_order = table.Column<int>(type: "int", nullable: false),
+                    created_at = table.Column<DateTime>(type: "datetime(6)", nullable: false),
                     created_by = table.Column<string>(type: "varchar(100)", maxLength: 100, nullable: true, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    updated_at = table.Column<DateTime>(type: "datetime(6)", nullable: true, collation: "utf8mb4_unicode_ci"),
+                    updated_at = table.Column<DateTime>(type: "datetime(6)", nullable: true),
                     updated_by = table.Column<string>(type: "varchar(100)", maxLength: 100, nullable: true, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4")
                 },
@@ -652,21 +652,21 @@ namespace AlTayerERP.Infrastructure.Migrations
                 name: "account_code_settings",
                 columns: table => new
                 {
-                    setting_id = table.Column<int>(type: "int", nullable: false, collation: "utf8mb4_unicode_ci")
+                    setting_id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
                     company_id = table.Column<string>(type: "varchar(50)", maxLength: 50, nullable: false, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    level_no = table.Column<int>(type: "int", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    segment_length = table.Column<int>(type: "int", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    start_number = table.Column<int>(type: "int", nullable: false, collation: "utf8mb4_unicode_ci"),
+                    level_no = table.Column<int>(type: "int", nullable: false),
+                    segment_length = table.Column<int>(type: "int", nullable: false),
+                    start_number = table.Column<int>(type: "int", nullable: false),
                     padding_char = table.Column<string>(type: "varchar(1)", maxLength: 1, nullable: false, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    parent_based = table.Column<bool>(type: "tinyint(1)", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    auto_generate = table.Column<bool>(type: "tinyint(1)", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    allow_manual_code = table.Column<bool>(type: "tinyint(1)", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    max_serial = table.Column<int>(type: "int", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    is_active = table.Column<bool>(type: "tinyint(1)", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    created_at = table.Column<DateTime>(type: "datetime(6)", nullable: false, collation: "utf8mb4_unicode_ci")
+                    parent_based = table.Column<bool>(type: "tinyint(1)", nullable: false),
+                    auto_generate = table.Column<bool>(type: "tinyint(1)", nullable: false),
+                    allow_manual_code = table.Column<bool>(type: "tinyint(1)", nullable: false),
+                    max_serial = table.Column<int>(type: "int", nullable: false),
+                    is_active = table.Column<bool>(type: "tinyint(1)", nullable: false),
+                    created_at = table.Column<DateTime>(type: "datetime(6)", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -685,7 +685,7 @@ namespace AlTayerERP.Infrastructure.Migrations
                 name: "approval_requests",
                 columns: table => new
                 {
-                    approval_id = table.Column<int>(type: "int", nullable: false, collation: "utf8mb4_unicode_ci")
+                    approval_id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
                     company_id = table.Column<string>(type: "varchar(50)", maxLength: 50, nullable: false, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
@@ -701,17 +701,17 @@ namespace AlTayerERP.Infrastructure.Migrations
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     currency_code = table.Column<string>(type: "varchar(100)", maxLength: 100, nullable: true, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    amount = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: true, collation: "utf8mb4_unicode_ci"),
+                    amount = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: true),
                     reason = table.Column<string>(type: "varchar(500)", maxLength: 500, nullable: true, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     status = table.Column<string>(type: "varchar(100)", maxLength: 100, nullable: false, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     requested_by = table.Column<string>(type: "varchar(255)", maxLength: 255, nullable: true, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    requested_at = table.Column<DateTime>(type: "datetime(6)", nullable: false, collation: "utf8mb4_unicode_ci"),
+                    requested_at = table.Column<DateTime>(type: "datetime(6)", nullable: false),
                     approved_by = table.Column<string>(type: "varchar(255)", maxLength: 255, nullable: true, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    approved_at = table.Column<DateTime>(type: "datetime(6)", nullable: true, collation: "utf8mb4_unicode_ci"),
+                    approved_at = table.Column<DateTime>(type: "datetime(6)", nullable: true),
                     approval_notes = table.Column<string>(type: "varchar(500)", maxLength: 500, nullable: true, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4")
                 },
@@ -732,7 +732,7 @@ namespace AlTayerERP.Infrastructure.Migrations
                 name: "bank_accounts",
                 columns: table => new
                 {
-                    bank_account_id = table.Column<int>(type: "int", nullable: false, collation: "utf8mb4_unicode_ci")
+                    bank_account_id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
                     company_id = table.Column<string>(type: "varchar(50)", maxLength: 50, nullable: false, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
@@ -752,11 +752,11 @@ namespace AlTayerERP.Infrastructure.Migrations
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     branch_name = table.Column<string>(type: "varchar(200)", maxLength: 200, nullable: true, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    is_active = table.Column<bool>(type: "tinyint(1)", nullable: false, collation: "utf8mb4_unicode_ci"),
+                    is_active = table.Column<bool>(type: "tinyint(1)", nullable: false),
                     notes = table.Column<string>(type: "varchar(500)", maxLength: 500, nullable: true, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    created_at = table.Column<DateTime>(type: "datetime(6)", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    updated_at = table.Column<DateTime>(type: "datetime(6)", nullable: true, collation: "utf8mb4_unicode_ci")
+                    created_at = table.Column<DateTime>(type: "datetime(6)", nullable: false),
+                    updated_at = table.Column<DateTime>(type: "datetime(6)", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -789,36 +789,36 @@ namespace AlTayerERP.Infrastructure.Migrations
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     account_type = table.Column<string>(type: "varchar(30)", maxLength: 30, nullable: false, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    account_level = table.Column<int>(type: "int", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    is_postable = table.Column<bool>(type: "tinyint(1)", nullable: false, collation: "utf8mb4_unicode_ci"),
+                    account_level = table.Column<int>(type: "int", nullable: false),
+                    is_postable = table.Column<bool>(type: "tinyint(1)", nullable: false),
                     currency_code = table.Column<string>(type: "varchar(20)", maxLength: 20, nullable: true, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    created_at = table.Column<DateTime>(type: "datetime(6)", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    is_active = table.Column<bool>(type: "tinyint(1)", nullable: false, collation: "utf8mb4_unicode_ci"),
+                    created_at = table.Column<DateTime>(type: "datetime(6)", nullable: false),
+                    is_active = table.Column<bool>(type: "tinyint(1)", nullable: false),
                     account_category = table.Column<string>(type: "varchar(50)", maxLength: 50, nullable: true, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     normal_balance = table.Column<string>(type: "varchar(10)", maxLength: 10, nullable: true, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     notes = table.Column<string>(type: "varchar(500)", maxLength: 500, nullable: true, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    allow_manual_entry = table.Column<bool>(type: "tinyint(1)", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    system_account = table.Column<bool>(type: "tinyint(1)", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    requires_cost_center = table.Column<bool>(type: "tinyint(1)", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    requires_party = table.Column<bool>(type: "tinyint(1)", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    requires_project = table.Column<bool>(type: "tinyint(1)", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    is_summary_account = table.Column<bool>(type: "tinyint(1)", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    affects_balance_sheet = table.Column<bool>(type: "tinyint(1)", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    affects_income_statement = table.Column<bool>(type: "tinyint(1)", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    multi_currency = table.Column<bool>(type: "tinyint(1)", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    is_control_account = table.Column<bool>(type: "tinyint(1)", nullable: false, collation: "utf8mb4_unicode_ci"),
+                    allow_manual_entry = table.Column<bool>(type: "tinyint(1)", nullable: false),
+                    system_account = table.Column<bool>(type: "tinyint(1)", nullable: false),
+                    requires_cost_center = table.Column<bool>(type: "tinyint(1)", nullable: false),
+                    requires_party = table.Column<bool>(type: "tinyint(1)", nullable: false),
+                    requires_project = table.Column<bool>(type: "tinyint(1)", nullable: false),
+                    is_summary_account = table.Column<bool>(type: "tinyint(1)", nullable: false),
+                    affects_balance_sheet = table.Column<bool>(type: "tinyint(1)", nullable: false),
+                    affects_income_statement = table.Column<bool>(type: "tinyint(1)", nullable: false),
+                    multi_currency = table.Column<bool>(type: "tinyint(1)", nullable: false),
+                    is_control_account = table.Column<bool>(type: "tinyint(1)", nullable: false),
                     control_account_type = table.Column<string>(type: "varchar(30)", maxLength: 30, nullable: true, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     account_path = table.Column<string>(type: "varchar(1000)", maxLength: 1000, nullable: true, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    account_serial = table.Column<int>(type: "int", nullable: false, collation: "utf8mb4_unicode_ci"),
+                    account_serial = table.Column<int>(type: "int", nullable: false),
                     created_by = table.Column<string>(type: "varchar(255)", maxLength: 255, nullable: true, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    updated_at = table.Column<DateTime>(type: "datetime(6)", nullable: true, collation: "utf8mb4_unicode_ci"),
+                    updated_at = table.Column<DateTime>(type: "datetime(6)", nullable: true),
                     updated_by = table.Column<string>(type: "varchar(255)", maxLength: 255, nullable: true, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4")
                 },
@@ -859,10 +859,10 @@ namespace AlTayerERP.Infrastructure.Migrations
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     center_name_en = table.Column<string>(type: "varchar(200)", maxLength: 200, nullable: true, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    center_level = table.Column<int>(type: "int", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    is_postable = table.Column<bool>(type: "tinyint(1)", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    created_at = table.Column<DateTime>(type: "datetime(6)", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    is_active = table.Column<bool>(type: "tinyint(1)", nullable: false, collation: "utf8mb4_unicode_ci")
+                    center_level = table.Column<int>(type: "int", nullable: false),
+                    is_postable = table.Column<bool>(type: "tinyint(1)", nullable: false),
+                    created_at = table.Column<DateTime>(type: "datetime(6)", nullable: false),
+                    is_active = table.Column<bool>(type: "tinyint(1)", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -887,7 +887,7 @@ namespace AlTayerERP.Infrastructure.Migrations
                 name: "currencies",
                 columns: table => new
                 {
-                    currency_id = table.Column<int>(type: "int", nullable: false, collation: "utf8mb4_unicode_ci")
+                    currency_id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
                     company_id = table.Column<string>(type: "varchar(50)", maxLength: 50, nullable: false, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
@@ -899,21 +899,21 @@ namespace AlTayerERP.Infrastructure.Migrations
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     currency_symbol = table.Column<string>(type: "varchar(255)", maxLength: 255, nullable: true, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    decimal_places = table.Column<int>(type: "int", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    exchange_rate = table.Column<decimal>(type: "decimal(18,6)", precision: 18, scale: 6, nullable: false, collation: "utf8mb4_unicode_ci"),
-                    min_exchange_rate = table.Column<decimal>(type: "decimal(18,6)", precision: 18, scale: 6, nullable: true, collation: "utf8mb4_unicode_ci"),
-                    max_exchange_rate = table.Column<decimal>(type: "decimal(18,6)", precision: 18, scale: 6, nullable: true, collation: "utf8mb4_unicode_ci"),
-                    is_local_currency = table.Column<bool>(type: "tinyint(1)", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    is_default = table.Column<bool>(type: "tinyint(1)", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    is_active = table.Column<bool>(type: "tinyint(1)", nullable: false, collation: "utf8mb4_unicode_ci"),
+                    decimal_places = table.Column<int>(type: "int", nullable: false),
+                    exchange_rate = table.Column<decimal>(type: "decimal(18,6)", precision: 18, scale: 6, nullable: false),
+                    min_exchange_rate = table.Column<decimal>(type: "decimal(18,6)", precision: 18, scale: 6, nullable: true),
+                    max_exchange_rate = table.Column<decimal>(type: "decimal(18,6)", precision: 18, scale: 6, nullable: true),
+                    is_local_currency = table.Column<bool>(type: "tinyint(1)", nullable: false),
+                    is_default = table.Column<bool>(type: "tinyint(1)", nullable: false),
+                    is_active = table.Column<bool>(type: "tinyint(1)", nullable: false),
                     notes = table.Column<string>(type: "varchar(500)", maxLength: 500, nullable: true, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     created_by = table.Column<string>(type: "varchar(255)", maxLength: 255, nullable: true, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    created_at = table.Column<DateTime>(type: "datetime(6)", nullable: true, collation: "utf8mb4_unicode_ci"),
+                    created_at = table.Column<DateTime>(type: "datetime(6)", nullable: true),
                     updated_by = table.Column<string>(type: "varchar(255)", maxLength: 255, nullable: true, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    updated_at = table.Column<DateTime>(type: "datetime(6)", nullable: true, collation: "utf8mb4_unicode_ci")
+                    updated_at = table.Column<DateTime>(type: "datetime(6)", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -932,22 +932,22 @@ namespace AlTayerERP.Infrastructure.Migrations
                 name: "exchange_rates",
                 columns: table => new
                 {
-                    exchange_rate_id = table.Column<int>(type: "int", nullable: false, collation: "utf8mb4_unicode_ci")
+                    exchange_rate_id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
                     company_id = table.Column<string>(type: "varchar(50)", maxLength: 50, nullable: false, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     currency_code = table.Column<string>(type: "varchar(20)", maxLength: 20, nullable: false, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    rate_date = table.Column<DateTime>(type: "datetime(6)", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    exchange_rate_value = table.Column<decimal>(type: "decimal(18,6)", precision: 18, scale: 6, nullable: false, collation: "utf8mb4_unicode_ci"),
-                    min_rate = table.Column<decimal>(type: "decimal(18,6)", precision: 18, scale: 6, nullable: true, collation: "utf8mb4_unicode_ci"),
-                    max_rate = table.Column<decimal>(type: "decimal(18,6)", precision: 18, scale: 6, nullable: true, collation: "utf8mb4_unicode_ci"),
-                    is_default = table.Column<bool>(type: "tinyint(1)", nullable: false, collation: "utf8mb4_unicode_ci"),
+                    rate_date = table.Column<DateTime>(type: "datetime(6)", nullable: false),
+                    exchange_rate_value = table.Column<decimal>(type: "decimal(18,6)", precision: 18, scale: 6, nullable: false),
+                    min_rate = table.Column<decimal>(type: "decimal(18,6)", precision: 18, scale: 6, nullable: true),
+                    max_rate = table.Column<decimal>(type: "decimal(18,6)", precision: 18, scale: 6, nullable: true),
+                    is_default = table.Column<bool>(type: "tinyint(1)", nullable: false),
                     notes = table.Column<string>(type: "varchar(500)", maxLength: 500, nullable: true, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    is_active = table.Column<bool>(type: "tinyint(1)", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    created_at = table.Column<DateTime>(type: "datetime(6)", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    updated_at = table.Column<DateTime>(type: "datetime(6)", nullable: true, collation: "utf8mb4_unicode_ci")
+                    is_active = table.Column<bool>(type: "tinyint(1)", nullable: false),
+                    created_at = table.Column<DateTime>(type: "datetime(6)", nullable: false),
+                    updated_at = table.Column<DateTime>(type: "datetime(6)", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -967,7 +967,7 @@ namespace AlTayerERP.Infrastructure.Migrations
                 name: "financial_limits",
                 columns: table => new
                 {
-                    limit_id = table.Column<int>(type: "int", nullable: false, collation: "utf8mb4_unicode_ci")
+                    limit_id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
                     company_id = table.Column<string>(type: "varchar(50)", maxLength: 50, nullable: false, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
@@ -979,14 +979,14 @@ namespace AlTayerERP.Infrastructure.Migrations
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     currency_code = table.Column<string>(type: "varchar(20)", maxLength: 20, nullable: false, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    limit_amount = table.Column<decimal>(type: "decimal(19,4)", precision: 19, scale: 4, nullable: false, collation: "utf8mb4_unicode_ci"),
-                    used_amount = table.Column<decimal>(type: "decimal(19,4)", precision: 19, scale: 4, nullable: false, collation: "utf8mb4_unicode_ci"),
+                    limit_amount = table.Column<decimal>(type: "decimal(19,4)", precision: 19, scale: 4, nullable: false),
+                    used_amount = table.Column<decimal>(type: "decimal(19,4)", precision: 19, scale: 4, nullable: false),
                     period_type = table.Column<string>(type: "varchar(100)", maxLength: 100, nullable: false, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    requires_approval = table.Column<bool>(type: "tinyint(1)", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    is_active = table.Column<bool>(type: "tinyint(1)", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    created_at = table.Column<DateTime>(type: "datetime(6)", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    updated_at = table.Column<DateTime>(type: "datetime(6)", nullable: true, collation: "utf8mb4_unicode_ci")
+                    requires_approval = table.Column<bool>(type: "tinyint(1)", nullable: false),
+                    is_active = table.Column<bool>(type: "tinyint(1)", nullable: false),
+                    created_at = table.Column<DateTime>(type: "datetime(6)", nullable: false),
+                    updated_at = table.Column<DateTime>(type: "datetime(6)", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -1005,19 +1005,19 @@ namespace AlTayerERP.Infrastructure.Migrations
                 name: "fiscal_years",
                 columns: table => new
                 {
-                    fiscal_year_id = table.Column<int>(type: "int", nullable: false, collation: "utf8mb4_unicode_ci")
+                    fiscal_year_id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
                     company_id = table.Column<string>(type: "varchar(50)", maxLength: 50, nullable: false, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     year_name = table.Column<string>(type: "varchar(100)", maxLength: 100, nullable: false, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    start_date = table.Column<DateTime>(type: "datetime(6)", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    end_date = table.Column<DateTime>(type: "datetime(6)", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    is_default = table.Column<bool>(type: "tinyint(1)", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    is_closed = table.Column<bool>(type: "tinyint(1)", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    is_active = table.Column<bool>(type: "tinyint(1)", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    created_at = table.Column<DateTime>(type: "datetime(6)", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    updated_at = table.Column<DateTime>(type: "datetime(6)", nullable: true, collation: "utf8mb4_unicode_ci")
+                    start_date = table.Column<DateTime>(type: "datetime(6)", nullable: false),
+                    end_date = table.Column<DateTime>(type: "datetime(6)", nullable: false),
+                    is_default = table.Column<bool>(type: "tinyint(1)", nullable: false),
+                    is_closed = table.Column<bool>(type: "tinyint(1)", nullable: false),
+                    is_active = table.Column<bool>(type: "tinyint(1)", nullable: false),
+                    created_at = table.Column<DateTime>(type: "datetime(6)", nullable: false),
+                    updated_at = table.Column<DateTime>(type: "datetime(6)", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -1063,14 +1063,14 @@ namespace AlTayerERP.Infrastructure.Migrations
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     account_id = table.Column<string>(type: "varchar(50)", maxLength: 50, nullable: true, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    credit_limit = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: false, collation: "utf8mb4_unicode_ci"),
-                    is_active = table.Column<bool>(type: "tinyint(1)", nullable: false, collation: "utf8mb4_unicode_ci"),
+                    credit_limit = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: false),
+                    is_active = table.Column<bool>(type: "tinyint(1)", nullable: false),
                     notes = table.Column<string>(type: "varchar(500)", maxLength: 500, nullable: true, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    created_at = table.Column<DateTime>(type: "datetime(6)", nullable: false, collation: "utf8mb4_unicode_ci"),
+                    created_at = table.Column<DateTime>(type: "datetime(6)", nullable: false),
                     created_by = table.Column<string>(type: "varchar(50)", maxLength: 50, nullable: true, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    updated_at = table.Column<DateTime>(type: "datetime(6)", nullable: true, collation: "utf8mb4_unicode_ci"),
+                    updated_at = table.Column<DateTime>(type: "datetime(6)", nullable: true),
                     updated_by = table.Column<string>(type: "varchar(50)", maxLength: 50, nullable: true, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4")
                 },
@@ -1097,7 +1097,7 @@ namespace AlTayerERP.Infrastructure.Migrations
                 name: "tenant_branches",
                 columns: table => new
                 {
-                    branch_id = table.Column<int>(type: "int", nullable: false, collation: "utf8mb4_unicode_ci")
+                    branch_id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
                     company_id = table.Column<string>(type: "varchar(50)", maxLength: 50, nullable: false, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
@@ -1111,11 +1111,11 @@ namespace AlTayerERP.Infrastructure.Migrations
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     branch_type = table.Column<string>(type: "varchar(30)", maxLength: 30, nullable: true, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    branch_type_id = table.Column<int>(type: "int", nullable: true, collation: "utf8mb4_unicode_ci"),
-                    parent_branch_id = table.Column<int>(type: "int", nullable: true, collation: "utf8mb4_unicode_ci"),
-                    country_id = table.Column<int>(type: "int", nullable: true, collation: "utf8mb4_unicode_ci"),
-                    governorate_id = table.Column<int>(type: "int", nullable: true, collation: "utf8mb4_unicode_ci"),
-                    city_id = table.Column<int>(type: "int", nullable: true, collation: "utf8mb4_unicode_ci"),
+                    branch_type_id = table.Column<int>(type: "int", nullable: true),
+                    parent_branch_id = table.Column<int>(type: "int", nullable: true),
+                    country_id = table.Column<int>(type: "int", nullable: true),
+                    governorate_id = table.Column<int>(type: "int", nullable: true),
+                    city_id = table.Column<int>(type: "int", nullable: true),
                     phone = table.Column<string>(type: "varchar(50)", maxLength: 50, nullable: true, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     mobile = table.Column<string>(type: "varchar(50)", maxLength: 50, nullable: true, collation: "utf8mb4_unicode_ci")
@@ -1128,21 +1128,21 @@ namespace AlTayerERP.Infrastructure.Migrations
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     notes = table.Column<string>(type: "varchar(500)", maxLength: 500, nullable: true, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    allow_credit = table.Column<bool>(type: "tinyint(1)", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    allow_percentage = table.Column<bool>(type: "tinyint(1)", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    is_active = table.Column<bool>(type: "tinyint(1)", nullable: false, defaultValue: true, collation: "utf8mb4_unicode_ci"),
-                    currency_id = table.Column<int>(type: "int", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    created_date = table.Column<DateTime>(type: "datetime(6)", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    updated_date = table.Column<DateTime>(type: "datetime(6)", nullable: true, collation: "utf8mb4_unicode_ci"),
-                    created_by = table.Column<int>(type: "int", nullable: true, collation: "utf8mb4_unicode_ci"),
-                    updated_by = table.Column<int>(type: "int", nullable: true, collation: "utf8mb4_unicode_ci"),
-                    edit_count = table.Column<int>(type: "int", nullable: false, defaultValue: 0, collation: "utf8mb4_unicode_ci"),
-                    stopped_by = table.Column<int>(type: "int", nullable: true, collation: "utf8mb4_unicode_ci"),
-                    stopped_at = table.Column<DateTime>(type: "datetime(6)", nullable: true, collation: "utf8mb4_unicode_ci"),
+                    allow_credit = table.Column<bool>(type: "tinyint(1)", nullable: false),
+                    allow_percentage = table.Column<bool>(type: "tinyint(1)", nullable: false),
+                    is_active = table.Column<bool>(type: "tinyint(1)", nullable: false, defaultValue: true),
+                    currency_id = table.Column<int>(type: "int", nullable: false),
+                    created_date = table.Column<DateTime>(type: "datetime(6)", nullable: false),
+                    updated_date = table.Column<DateTime>(type: "datetime(6)", nullable: true),
+                    created_by = table.Column<int>(type: "int", nullable: true),
+                    updated_by = table.Column<int>(type: "int", nullable: true),
+                    edit_count = table.Column<int>(type: "int", nullable: false, defaultValue: 0),
+                    stopped_by = table.Column<int>(type: "int", nullable: true),
+                    stopped_at = table.Column<DateTime>(type: "datetime(6)", nullable: true),
                     stopped_reason = table.Column<string>(type: "varchar(500)", maxLength: 500, nullable: true, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    reactivated_by = table.Column<int>(type: "int", nullable: true, collation: "utf8mb4_unicode_ci"),
-                    reactivated_at = table.Column<DateTime>(type: "datetime(6)", nullable: true, collation: "utf8mb4_unicode_ci"),
+                    reactivated_by = table.Column<int>(type: "int", nullable: true),
+                    reactivated_at = table.Column<DateTime>(type: "datetime(6)", nullable: true),
                     reactivate_reason = table.Column<string>(type: "varchar(500)", maxLength: 500, nullable: true, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4")
                 },
@@ -1199,12 +1199,12 @@ namespace AlTayerERP.Infrastructure.Migrations
                 name: "financial_limit_movements",
                 columns: table => new
                 {
-                    movement_id = table.Column<int>(type: "int", nullable: false, collation: "utf8mb4_unicode_ci")
+                    movement_id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
-                    limit_id = table.Column<int>(type: "int", nullable: false, collation: "utf8mb4_unicode_ci"),
+                    limit_id = table.Column<int>(type: "int", nullable: false),
                     company_id = table.Column<string>(type: "varchar(50)", maxLength: 50, nullable: false, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    movement_date = table.Column<DateTime>(type: "datetime(6)", nullable: false, collation: "utf8mb4_unicode_ci"),
+                    movement_date = table.Column<DateTime>(type: "datetime(6)", nullable: false),
                     movement_type = table.Column<string>(type: "varchar(100)", maxLength: 100, nullable: false, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     reference_type = table.Column<string>(type: "varchar(100)", maxLength: 100, nullable: true, collation: "utf8mb4_unicode_ci")
@@ -1213,13 +1213,13 @@ namespace AlTayerERP.Infrastructure.Migrations
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     currency_code = table.Column<string>(type: "varchar(100)", maxLength: 100, nullable: false, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    amount = table.Column<decimal>(type: "decimal(19,4)", precision: 19, scale: 4, nullable: false, collation: "utf8mb4_unicode_ci"),
-                    balance_after = table.Column<decimal>(type: "decimal(19,4)", precision: 19, scale: 4, nullable: false, collation: "utf8mb4_unicode_ci"),
+                    amount = table.Column<decimal>(type: "decimal(19,4)", precision: 19, scale: 4, nullable: false),
+                    balance_after = table.Column<decimal>(type: "decimal(19,4)", precision: 19, scale: 4, nullable: false),
                     notes = table.Column<string>(type: "varchar(500)", maxLength: 500, nullable: true, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     created_by = table.Column<string>(type: "varchar(255)", maxLength: 255, nullable: true, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    created_at = table.Column<DateTime>(type: "datetime(6)", nullable: false, collation: "utf8mb4_unicode_ci")
+                    created_at = table.Column<DateTime>(type: "datetime(6)", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -1238,9 +1238,9 @@ namespace AlTayerERP.Infrastructure.Migrations
                 name: "audit_logs",
                 columns: table => new
                 {
-                    audit_id = table.Column<long>(type: "bigint", nullable: false, collation: "utf8mb4_unicode_ci")
+                    audit_id = table.Column<long>(type: "bigint", nullable: false)
                         .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
-                    module_id = table.Column<int>(type: "int", nullable: true, collation: "utf8mb4_unicode_ci"),
+                    module_id = table.Column<int>(type: "int", nullable: true),
                     table_name = table.Column<string>(type: "varchar(100)", maxLength: 100, nullable: false, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     record_id = table.Column<string>(type: "varchar(100)", maxLength: 100, nullable: false, collation: "utf8mb4_unicode_ci")
@@ -1249,8 +1249,8 @@ namespace AlTayerERP.Infrastructure.Migrations
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     user_id = table.Column<string>(type: "varchar(50)", maxLength: 50, nullable: true, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    branch_id = table.Column<int>(type: "int", nullable: true, collation: "utf8mb4_unicode_ci"),
-                    action_at = table.Column<DateTime>(type: "datetime(6)", nullable: false, collation: "utf8mb4_unicode_ci"),
+                    branch_id = table.Column<int>(type: "int", nullable: true),
+                    action_at = table.Column<DateTime>(type: "datetime(6)", nullable: false),
                     old_values = table.Column<string>(type: "json", maxLength: 255, nullable: true, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     new_values = table.Column<string>(type: "json", maxLength: 255, nullable: true, collation: "utf8mb4_unicode_ci")
@@ -1286,7 +1286,7 @@ namespace AlTayerERP.Infrastructure.Migrations
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     company_id = table.Column<string>(type: "varchar(50)", maxLength: 50, nullable: false, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    branch_id = table.Column<int>(type: "int", nullable: false, collation: "utf8mb4_unicode_ci"),
+                    branch_id = table.Column<int>(type: "int", nullable: false),
                     account_id = table.Column<string>(type: "varchar(50)", maxLength: 50, nullable: false, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     currency_code = table.Column<string>(type: "varchar(20)", maxLength: 20, nullable: false, collation: "utf8mb4_unicode_ci")
@@ -1297,14 +1297,14 @@ namespace AlTayerERP.Infrastructure.Migrations
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     box_name_en = table.Column<string>(type: "varchar(200)", maxLength: 200, nullable: true, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    opening_balance = table.Column<decimal>(type: "decimal(19,4)", precision: 19, scale: 4, nullable: false, collation: "utf8mb4_unicode_ci"),
-                    max_limit = table.Column<decimal>(type: "decimal(19,4)", precision: 19, scale: 4, nullable: false, collation: "utf8mb4_unicode_ci"),
-                    min_limit = table.Column<decimal>(type: "decimal(19,4)", precision: 19, scale: 4, nullable: false, collation: "utf8mb4_unicode_ci"),
-                    is_active = table.Column<bool>(type: "tinyint(1)", nullable: false, collation: "utf8mb4_unicode_ci"),
+                    opening_balance = table.Column<decimal>(type: "decimal(19,4)", precision: 19, scale: 4, nullable: false),
+                    max_limit = table.Column<decimal>(type: "decimal(19,4)", precision: 19, scale: 4, nullable: false),
+                    min_limit = table.Column<decimal>(type: "decimal(19,4)", precision: 19, scale: 4, nullable: false),
+                    is_active = table.Column<bool>(type: "tinyint(1)", nullable: false),
                     notes = table.Column<string>(type: "varchar(500)", maxLength: 500, nullable: true, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    created_at = table.Column<DateTime>(type: "datetime(6)", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    updated_at = table.Column<DateTime>(type: "datetime(6)", nullable: true, collation: "utf8mb4_unicode_ci"),
+                    created_at = table.Column<DateTime>(type: "datetime(6)", nullable: false),
+                    updated_at = table.Column<DateTime>(type: "datetime(6)", nullable: true),
                     created_by = table.Column<string>(type: "varchar(255)", maxLength: 255, nullable: true, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     updated_by = table.Column<string>(type: "varchar(255)", maxLength: 255, nullable: true, collation: "utf8mb4_unicode_ci")
@@ -1339,87 +1339,87 @@ namespace AlTayerERP.Infrastructure.Migrations
                 name: "financial_voucher_headers",
                 columns: table => new
                 {
-                    voucher_id = table.Column<long>(type: "bigint", nullable: false, collation: "utf8mb4_unicode_ci")
+                    voucher_id = table.Column<long>(type: "bigint", nullable: false)
                         .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
                     voucher_no = table.Column<string>(type: "varchar(50)", maxLength: 50, nullable: false, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    voucher_type_id = table.Column<int>(type: "int", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    voucher_status_id = table.Column<int>(type: "int", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    branch_id = table.Column<int>(type: "int", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    fiscal_year_id = table.Column<int>(type: "int", nullable: true, collation: "utf8mb4_unicode_ci"),
-                    voucher_date = table.Column<DateTime>(type: "datetime(6)", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    transaction_date = table.Column<DateTime>(type: "datetime(6)", nullable: false, collation: "utf8mb4_unicode_ci"),
+                    voucher_type_id = table.Column<int>(type: "int", nullable: false),
+                    voucher_status_id = table.Column<int>(type: "int", nullable: false),
+                    branch_id = table.Column<int>(type: "int", nullable: false),
+                    fiscal_year_id = table.Column<int>(type: "int", nullable: true),
+                    voucher_date = table.Column<DateTime>(type: "datetime(6)", nullable: false),
+                    transaction_date = table.Column<DateTime>(type: "datetime(6)", nullable: false),
                     cash_account_id = table.Column<string>(type: "varchar(50)", maxLength: 50, nullable: false, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     party_id = table.Column<string>(type: "varchar(50)", maxLength: 50, nullable: true, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     received_from_name = table.Column<string>(type: "varchar(200)", maxLength: 200, nullable: true, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    payment_method_id = table.Column<int>(type: "int", nullable: true, collation: "utf8mb4_unicode_ci"),
-                    currency_id = table.Column<int>(type: "int", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    exchange_rate = table.Column<decimal>(type: "decimal(18,6)", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    amount = table.Column<decimal>(type: "decimal(18,2)", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    foreign_total = table.Column<decimal>(type: "decimal(18,2)", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    local_total = table.Column<decimal>(type: "decimal(18,2)", nullable: false, collation: "utf8mb4_unicode_ci"),
+                    payment_method_id = table.Column<int>(type: "int", nullable: true),
+                    currency_id = table.Column<int>(type: "int", nullable: false),
+                    exchange_rate = table.Column<decimal>(type: "decimal(18,6)", nullable: false),
+                    amount = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    foreign_total = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    local_total = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
                     reference_no = table.Column<string>(type: "varchar(100)", maxLength: 100, nullable: true, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    reference_date = table.Column<DateTime>(type: "datetime(6)", nullable: true, collation: "utf8mb4_unicode_ci"),
+                    reference_date = table.Column<DateTime>(type: "datetime(6)", nullable: true),
                     against_text = table.Column<string>(type: "varchar(500)", maxLength: 500, nullable: true, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     description = table.Column<string>(type: "varchar(500)", maxLength: 500, nullable: true, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     notes = table.Column<string>(type: "varchar(1000)", maxLength: 1000, nullable: true, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    module_id = table.Column<int>(type: "int", nullable: true, collation: "utf8mb4_unicode_ci"),
-                    document_type_id = table.Column<int>(type: "int", nullable: true, collation: "utf8mb4_unicode_ci"),
-                    document_id = table.Column<long>(type: "bigint", nullable: true, collation: "utf8mb4_unicode_ci"),
+                    module_id = table.Column<int>(type: "int", nullable: true),
+                    document_type_id = table.Column<int>(type: "int", nullable: true),
+                    document_id = table.Column<long>(type: "bigint", nullable: true),
                     source_document_no = table.Column<string>(type: "varchar(100)", maxLength: 100, nullable: true, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    requires_approval = table.Column<bool>(type: "tinyint(1)", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    approval_status = table.Column<byte>(type: "tinyint unsigned", nullable: false, collation: "utf8mb4_unicode_ci"),
+                    requires_approval = table.Column<bool>(type: "tinyint(1)", nullable: false),
+                    approval_status = table.Column<byte>(type: "tinyint unsigned", nullable: false),
                     approval_requested_by_user_id = table.Column<string>(type: "varchar(50)", maxLength: 50, nullable: true, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    approval_requested_at = table.Column<DateTime>(type: "datetime(6)", nullable: true, collation: "utf8mb4_unicode_ci"),
+                    approval_requested_at = table.Column<DateTime>(type: "datetime(6)", nullable: true),
                     approved_by_user_id = table.Column<string>(type: "varchar(50)", maxLength: 50, nullable: true, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    approved_at = table.Column<DateTime>(type: "datetime(6)", nullable: true, collation: "utf8mb4_unicode_ci"),
+                    approved_at = table.Column<DateTime>(type: "datetime(6)", nullable: true),
                     rejected_by_user_id = table.Column<string>(type: "varchar(50)", maxLength: 50, nullable: true, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    rejected_at = table.Column<DateTime>(type: "datetime(6)", nullable: true, collation: "utf8mb4_unicode_ci"),
+                    rejected_at = table.Column<DateTime>(type: "datetime(6)", nullable: true),
                     rejection_reason = table.Column<string>(type: "varchar(500)", maxLength: 500, nullable: true, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    review_status = table.Column<byte>(type: "tinyint unsigned", nullable: false, collation: "utf8mb4_unicode_ci"),
+                    review_status = table.Column<byte>(type: "tinyint unsigned", nullable: false),
                     reviewed_by_user_id = table.Column<string>(type: "varchar(50)", maxLength: 50, nullable: true, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    reviewed_at = table.Column<DateTime>(type: "datetime(6)", nullable: true, collation: "utf8mb4_unicode_ci"),
+                    reviewed_at = table.Column<DateTime>(type: "datetime(6)", nullable: true),
                     review_notes = table.Column<string>(type: "varchar(500)", maxLength: 500, nullable: true, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    edit_count = table.Column<int>(type: "int", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    print_count = table.Column<int>(type: "int", nullable: false, collation: "utf8mb4_unicode_ci"),
+                    edit_count = table.Column<int>(type: "int", nullable: false),
+                    print_count = table.Column<int>(type: "int", nullable: false),
                     last_printed_by = table.Column<string>(type: "varchar(50)", maxLength: 50, nullable: true, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    last_print_date = table.Column<DateTime>(type: "datetime(6)", nullable: true, collation: "utf8mb4_unicode_ci"),
-                    undo_count = table.Column<int>(type: "int", nullable: false, collation: "utf8mb4_unicode_ci"),
+                    last_print_date = table.Column<DateTime>(type: "datetime(6)", nullable: true),
+                    undo_count = table.Column<int>(type: "int", nullable: false),
                     last_undo_by = table.Column<string>(type: "varchar(50)", maxLength: 50, nullable: true, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    last_undo_at = table.Column<DateTime>(type: "datetime(6)", nullable: true, collation: "utf8mb4_unicode_ci"),
-                    is_posted = table.Column<bool>(type: "tinyint(1)", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    journal_entry_id = table.Column<long>(type: "bigint", nullable: true, collation: "utf8mb4_unicode_ci"),
+                    last_undo_at = table.Column<DateTime>(type: "datetime(6)", nullable: true),
+                    is_posted = table.Column<bool>(type: "tinyint(1)", nullable: false),
+                    journal_entry_id = table.Column<long>(type: "bigint", nullable: true),
                     posted_by_user_id = table.Column<string>(type: "varchar(50)", maxLength: 50, nullable: true, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    posted_at = table.Column<DateTime>(type: "datetime(6)", nullable: true, collation: "utf8mb4_unicode_ci"),
+                    posted_at = table.Column<DateTime>(type: "datetime(6)", nullable: true),
                     unposted_by = table.Column<string>(type: "varchar(50)", maxLength: 50, nullable: true, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    unposted_at = table.Column<DateTime>(type: "datetime(6)", nullable: true, collation: "utf8mb4_unicode_ci"),
+                    unposted_at = table.Column<DateTime>(type: "datetime(6)", nullable: true),
                     unpost_reason = table.Column<string>(type: "varchar(500)", maxLength: 500, nullable: true, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    is_active = table.Column<bool>(type: "tinyint(1)", nullable: false, collation: "utf8mb4_unicode_ci"),
+                    is_active = table.Column<bool>(type: "tinyint(1)", nullable: false),
                     created_by = table.Column<string>(type: "varchar(50)", maxLength: 50, nullable: true, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    created_at = table.Column<DateTime>(type: "datetime(6)", nullable: false, collation: "utf8mb4_unicode_ci"),
+                    created_at = table.Column<DateTime>(type: "datetime(6)", nullable: false),
                     updated_by = table.Column<string>(type: "varchar(50)", maxLength: 50, nullable: true, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    updated_at = table.Column<DateTime>(type: "datetime(6)", nullable: true, collation: "utf8mb4_unicode_ci")
+                    updated_at = table.Column<DateTime>(type: "datetime(6)", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -1482,25 +1482,25 @@ namespace AlTayerERP.Infrastructure.Migrations
                 name: "fiscal_periods",
                 columns: table => new
                 {
-                    fiscal_period_id = table.Column<int>(type: "int", nullable: false, collation: "utf8mb4_unicode_ci")
+                    fiscal_period_id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
                     company_id = table.Column<string>(type: "varchar(50)", maxLength: 50, nullable: false, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    branch_id = table.Column<int>(type: "int", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    fiscal_year_id = table.Column<int>(type: "int", nullable: false, collation: "utf8mb4_unicode_ci"),
+                    branch_id = table.Column<int>(type: "int", nullable: false),
+                    fiscal_year_id = table.Column<int>(type: "int", nullable: false),
                     period_code = table.Column<string>(type: "varchar(50)", maxLength: 50, nullable: false, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     period_name = table.Column<string>(type: "varchar(150)", maxLength: 150, nullable: false, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    start_date = table.Column<DateTime>(type: "datetime(6)", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    end_date = table.Column<DateTime>(type: "datetime(6)", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    is_closed = table.Column<bool>(type: "tinyint(1)", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    close_date = table.Column<DateTime>(type: "datetime(6)", nullable: true, collation: "utf8mb4_unicode_ci"),
+                    start_date = table.Column<DateTime>(type: "datetime(6)", nullable: false),
+                    end_date = table.Column<DateTime>(type: "datetime(6)", nullable: false),
+                    is_closed = table.Column<bool>(type: "tinyint(1)", nullable: false),
+                    close_date = table.Column<DateTime>(type: "datetime(6)", nullable: true),
                     close_reason = table.Column<string>(type: "varchar(500)", maxLength: 500, nullable: true, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    is_active = table.Column<bool>(type: "tinyint(1)", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    created_at = table.Column<DateTime>(type: "datetime(6)", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    updated_at = table.Column<DateTime>(type: "datetime(6)", nullable: true, collation: "utf8mb4_unicode_ci")
+                    is_active = table.Column<bool>(type: "tinyint(1)", nullable: false),
+                    created_at = table.Column<DateTime>(type: "datetime(6)", nullable: false),
+                    updated_at = table.Column<DateTime>(type: "datetime(6)", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -1532,12 +1532,12 @@ namespace AlTayerERP.Infrastructure.Migrations
                 name: "users",
                 columns: table => new
                 {
-                    user_id = table.Column<int>(type: "int", nullable: false, collation: "utf8mb4_unicode_ci")
+                    user_id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
                     company_id = table.Column<string>(type: "varchar(50)", maxLength: 50, nullable: false, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    branch_id = table.Column<int>(type: "int", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    role_id = table.Column<int>(type: "int", nullable: false, collation: "utf8mb4_unicode_ci"),
+                    branch_id = table.Column<int>(type: "int", nullable: false),
+                    role_id = table.Column<int>(type: "int", nullable: false),
                     user_code = table.Column<string>(type: "varchar(50)", maxLength: 50, nullable: false, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     full_name = table.Column<string>(type: "varchar(200)", maxLength: 200, nullable: false, collation: "utf8mb4_unicode_ci")
@@ -1552,14 +1552,14 @@ namespace AlTayerERP.Infrastructure.Migrations
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     notes = table.Column<string>(type: "varchar(500)", maxLength: 500, nullable: true, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    must_change_password = table.Column<bool>(type: "tinyint(1)", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    is_active = table.Column<bool>(type: "tinyint(1)", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    created_at = table.Column<DateTime>(type: "datetime(6)", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    updated_at = table.Column<DateTime>(type: "datetime(6)", nullable: true, collation: "utf8mb4_unicode_ci"),
-                    failed_login_count = table.Column<int>(type: "int", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    last_failed_login_at = table.Column<DateTime>(type: "datetime(6)", nullable: true, collation: "utf8mb4_unicode_ci"),
-                    locked_until = table.Column<DateTime>(type: "datetime(6)", nullable: true, collation: "utf8mb4_unicode_ci"),
-                    last_login_at = table.Column<DateTime>(type: "datetime(6)", nullable: true, collation: "utf8mb4_unicode_ci"),
+                    must_change_password = table.Column<bool>(type: "tinyint(1)", nullable: false),
+                    is_active = table.Column<bool>(type: "tinyint(1)", nullable: false),
+                    created_at = table.Column<DateTime>(type: "datetime(6)", nullable: false),
+                    updated_at = table.Column<DateTime>(type: "datetime(6)", nullable: true),
+                    failed_login_count = table.Column<int>(type: "int", nullable: false),
+                    last_failed_login_at = table.Column<DateTime>(type: "datetime(6)", nullable: true),
+                    locked_until = table.Column<DateTime>(type: "datetime(6)", nullable: true),
+                    last_login_at = table.Column<DateTime>(type: "datetime(6)", nullable: true),
                     last_login_ip = table.Column<string>(type: "varchar(255)", maxLength: 255, nullable: true, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4")
                 },
@@ -1592,31 +1592,31 @@ namespace AlTayerERP.Infrastructure.Migrations
                 name: "document_allocations",
                 columns: table => new
                 {
-                    allocation_id = table.Column<long>(type: "bigint", nullable: false, collation: "utf8mb4_unicode_ci")
+                    allocation_id = table.Column<long>(type: "bigint", nullable: false)
                         .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
-                    module_id = table.Column<int>(type: "int", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    document_type_id = table.Column<int>(type: "int", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    document_id = table.Column<long>(type: "bigint", nullable: false, collation: "utf8mb4_unicode_ci"),
+                    module_id = table.Column<int>(type: "int", nullable: false),
+                    document_type_id = table.Column<int>(type: "int", nullable: false),
+                    document_id = table.Column<long>(type: "bigint", nullable: false),
                     document_no = table.Column<string>(type: "varchar(50)", maxLength: 50, nullable: false, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    voucher_id = table.Column<long>(type: "bigint", nullable: false, collation: "utf8mb4_unicode_ci"),
+                    voucher_id = table.Column<long>(type: "bigint", nullable: false),
                     party_id = table.Column<string>(type: "varchar(50)", maxLength: 50, nullable: true, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    currency_id = table.Column<int>(type: "int", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    exchange_rate = table.Column<decimal>(type: "decimal(18,6)", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    document_total = table.Column<decimal>(type: "decimal(18,2)", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    collected_before = table.Column<decimal>(type: "decimal(18,2)", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    collected_now = table.Column<decimal>(type: "decimal(18,2)", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    remaining_balance = table.Column<decimal>(type: "decimal(18,2)", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    is_active = table.Column<bool>(type: "tinyint(1)", nullable: false, collation: "utf8mb4_unicode_ci"),
+                    currency_id = table.Column<int>(type: "int", nullable: false),
+                    exchange_rate = table.Column<decimal>(type: "decimal(18,6)", nullable: false),
+                    document_total = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    collected_before = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    collected_now = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    remaining_balance = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    is_active = table.Column<bool>(type: "tinyint(1)", nullable: false),
                     notes = table.Column<string>(type: "varchar(500)", maxLength: 500, nullable: true, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     created_by = table.Column<string>(type: "varchar(50)", maxLength: 50, nullable: true, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    created_at = table.Column<DateTime>(type: "datetime(6)", nullable: false, collation: "utf8mb4_unicode_ci"),
+                    created_at = table.Column<DateTime>(type: "datetime(6)", nullable: false),
                     updated_by = table.Column<string>(type: "varchar(50)", maxLength: 50, nullable: true, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    updated_at = table.Column<DateTime>(type: "datetime(6)", nullable: true, collation: "utf8mb4_unicode_ci")
+                    updated_at = table.Column<DateTime>(type: "datetime(6)", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -1647,10 +1647,10 @@ namespace AlTayerERP.Infrastructure.Migrations
                 name: "financial_voucher_details",
                 columns: table => new
                 {
-                    voucher_detail_id = table.Column<long>(type: "bigint", nullable: false, collation: "utf8mb4_unicode_ci")
+                    voucher_detail_id = table.Column<long>(type: "bigint", nullable: false)
                         .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
-                    voucher_id = table.Column<long>(type: "bigint", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    line_no = table.Column<int>(type: "int", nullable: false, collation: "utf8mb4_unicode_ci"),
+                    voucher_id = table.Column<long>(type: "bigint", nullable: false),
+                    line_no = table.Column<int>(type: "int", nullable: false),
                     account_id = table.Column<string>(type: "varchar(50)", maxLength: 50, nullable: false, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     description = table.Column<string>(type: "varchar(500)", maxLength: 500, nullable: true, collation: "utf8mb4_unicode_ci")
@@ -1665,22 +1665,22 @@ namespace AlTayerERP.Infrastructure.Migrations
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     reference_name = table.Column<string>(type: "varchar(250)", maxLength: 250, nullable: true, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    reference_date = table.Column<DateTime>(type: "datetime(6)", nullable: true, collation: "utf8mb4_unicode_ci"),
-                    currency_id = table.Column<int>(type: "int", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    exchange_rate = table.Column<decimal>(type: "decimal(18,6)", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    foreign_amount = table.Column<decimal>(type: "decimal(18,2)", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    local_amount = table.Column<decimal>(type: "decimal(18,2)", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    debit_amount = table.Column<decimal>(type: "decimal(18,2)", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    credit_amount = table.Column<decimal>(type: "decimal(18,2)", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    line_type = table.Column<byte>(type: "tinyint unsigned", nullable: false, collation: "utf8mb4_unicode_ci"),
+                    reference_date = table.Column<DateTime>(type: "datetime(6)", nullable: true),
+                    currency_id = table.Column<int>(type: "int", nullable: false),
+                    exchange_rate = table.Column<decimal>(type: "decimal(18,6)", nullable: false),
+                    foreign_amount = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    local_amount = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    debit_amount = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    credit_amount = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    line_type = table.Column<byte>(type: "tinyint unsigned", nullable: false),
                     notes = table.Column<string>(type: "varchar(500)", maxLength: 500, nullable: true, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     created_by = table.Column<string>(type: "varchar(50)", maxLength: 50, nullable: true, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    created_at = table.Column<DateTime>(type: "datetime(6)", nullable: false, collation: "utf8mb4_unicode_ci"),
+                    created_at = table.Column<DateTime>(type: "datetime(6)", nullable: false),
                     updated_by = table.Column<string>(type: "varchar(50)", maxLength: 50, nullable: true, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    updated_at = table.Column<DateTime>(type: "datetime(6)", nullable: true, collation: "utf8mb4_unicode_ci")
+                    updated_at = table.Column<DateTime>(type: "datetime(6)", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -1720,20 +1720,20 @@ namespace AlTayerERP.Infrastructure.Migrations
                 name: "journal_entry_headers",
                 columns: table => new
                 {
-                    journal_entry_id = table.Column<long>(type: "bigint", nullable: false, collation: "utf8mb4_unicode_ci")
+                    journal_entry_id = table.Column<long>(type: "bigint", nullable: false)
                         .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
                     entry_no = table.Column<string>(type: "varchar(50)", maxLength: 50, nullable: false, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    entry_type = table.Column<byte>(type: "tinyint unsigned", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    entry_status_id = table.Column<int>(type: "int", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    branch_id = table.Column<int>(type: "int", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    fiscal_year_id = table.Column<int>(type: "int", nullable: true, collation: "utf8mb4_unicode_ci"),
-                    entry_date = table.Column<DateTime>(type: "datetime(6)", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    transaction_date = table.Column<DateTime>(type: "datetime(6)", nullable: false, collation: "utf8mb4_unicode_ci"),
+                    entry_type = table.Column<byte>(type: "tinyint unsigned", nullable: false),
+                    entry_status_id = table.Column<int>(type: "int", nullable: false),
+                    branch_id = table.Column<int>(type: "int", nullable: false),
+                    fiscal_year_id = table.Column<int>(type: "int", nullable: true),
+                    entry_date = table.Column<DateTime>(type: "datetime(6)", nullable: false),
+                    transaction_date = table.Column<DateTime>(type: "datetime(6)", nullable: false),
                     source_system = table.Column<string>(type: "varchar(30)", maxLength: 30, nullable: false, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    is_system_generated = table.Column<bool>(type: "tinyint(1)", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    source_voucher_id = table.Column<long>(type: "bigint", nullable: true, collation: "utf8mb4_unicode_ci"),
+                    is_system_generated = table.Column<bool>(type: "tinyint(1)", nullable: false),
+                    source_voucher_id = table.Column<long>(type: "bigint", nullable: true),
                     source_document_type = table.Column<string>(type: "varchar(50)", maxLength: 50, nullable: true, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     source_document_no = table.Column<string>(type: "varchar(100)", maxLength: 100, nullable: true, collation: "utf8mb4_unicode_ci")
@@ -1742,34 +1742,34 @@ namespace AlTayerERP.Infrastructure.Migrations
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     notes = table.Column<string>(type: "varchar(1000)", maxLength: 1000, nullable: true, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    total_debit = table.Column<decimal>(type: "decimal(18,2)", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    total_credit = table.Column<decimal>(type: "decimal(18,2)", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    is_posted = table.Column<bool>(type: "tinyint(1)", nullable: false, collation: "utf8mb4_unicode_ci"),
+                    total_debit = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    total_credit = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    is_posted = table.Column<bool>(type: "tinyint(1)", nullable: false),
                     posted_by = table.Column<string>(type: "varchar(50)", maxLength: 50, nullable: true, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    posted_at = table.Column<DateTime>(type: "datetime(6)", nullable: true, collation: "utf8mb4_unicode_ci"),
-                    is_reversal = table.Column<bool>(type: "tinyint(1)", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    original_journal_entry_id = table.Column<long>(type: "bigint", nullable: true, collation: "utf8mb4_unicode_ci"),
-                    is_reversed = table.Column<bool>(type: "tinyint(1)", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    reversal_journal_entry_id = table.Column<long>(type: "bigint", nullable: true, collation: "utf8mb4_unicode_ci"),
+                    posted_at = table.Column<DateTime>(type: "datetime(6)", nullable: true),
+                    is_reversal = table.Column<bool>(type: "tinyint(1)", nullable: false),
+                    original_journal_entry_id = table.Column<long>(type: "bigint", nullable: true),
+                    is_reversed = table.Column<bool>(type: "tinyint(1)", nullable: false),
+                    reversal_journal_entry_id = table.Column<long>(type: "bigint", nullable: true),
                     reversal_reason = table.Column<string>(type: "varchar(500)", maxLength: 500, nullable: true, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     reversed_by = table.Column<string>(type: "varchar(50)", maxLength: 50, nullable: true, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    reversed_at = table.Column<DateTime>(type: "datetime(6)", nullable: true, collation: "utf8mb4_unicode_ci"),
-                    is_cancelled = table.Column<bool>(type: "tinyint(1)", nullable: false, collation: "utf8mb4_unicode_ci"),
+                    reversed_at = table.Column<DateTime>(type: "datetime(6)", nullable: true),
+                    is_cancelled = table.Column<bool>(type: "tinyint(1)", nullable: false),
                     cancellation_reason = table.Column<string>(type: "varchar(500)", maxLength: 500, nullable: true, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     cancelled_by = table.Column<string>(type: "varchar(50)", maxLength: 50, nullable: true, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    cancelled_at = table.Column<DateTime>(type: "datetime(6)", nullable: true, collation: "utf8mb4_unicode_ci"),
-                    is_active = table.Column<bool>(type: "tinyint(1)", nullable: false, collation: "utf8mb4_unicode_ci"),
+                    cancelled_at = table.Column<DateTime>(type: "datetime(6)", nullable: true),
+                    is_active = table.Column<bool>(type: "tinyint(1)", nullable: false),
                     created_by = table.Column<string>(type: "varchar(50)", maxLength: 50, nullable: true, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    created_at = table.Column<DateTime>(type: "datetime(6)", nullable: false, collation: "utf8mb4_unicode_ci"),
+                    created_at = table.Column<DateTime>(type: "datetime(6)", nullable: false),
                     updated_by = table.Column<string>(type: "varchar(50)", maxLength: 50, nullable: true, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    updated_at = table.Column<DateTime>(type: "datetime(6)", nullable: true, collation: "utf8mb4_unicode_ci")
+                    updated_at = table.Column<DateTime>(type: "datetime(6)", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -1801,38 +1801,38 @@ namespace AlTayerERP.Infrastructure.Migrations
                 name: "payment_requests",
                 columns: table => new
                 {
-                    payment_request_id = table.Column<long>(type: "bigint", nullable: false, collation: "utf8mb4_unicode_ci")
+                    payment_request_id = table.Column<long>(type: "bigint", nullable: false)
                         .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
                     company_id = table.Column<string>(type: "varchar(50)", maxLength: 50, nullable: false, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    branch_id = table.Column<int>(type: "int", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    fiscal_year_id = table.Column<int>(type: "int", nullable: false, collation: "utf8mb4_unicode_ci"),
+                    branch_id = table.Column<int>(type: "int", nullable: false),
+                    fiscal_year_id = table.Column<int>(type: "int", nullable: false),
                     request_no = table.Column<string>(type: "varchar(50)", maxLength: 50, nullable: false, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    request_date = table.Column<DateTime>(type: "datetime(6)", nullable: false, collation: "utf8mb4_unicode_ci"),
+                    request_date = table.Column<DateTime>(type: "datetime(6)", nullable: false),
                     status = table.Column<string>(type: "varchar(30)", maxLength: 30, nullable: false, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     beneficiary_name = table.Column<string>(type: "varchar(200)", maxLength: 200, nullable: false, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     party_id = table.Column<string>(type: "varchar(50)", maxLength: 50, nullable: true, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    payment_method_id = table.Column<int>(type: "int", nullable: true, collation: "utf8mb4_unicode_ci"),
+                    payment_method_id = table.Column<int>(type: "int", nullable: true),
                     header_reference_no = table.Column<string>(type: "varchar(100)", maxLength: 100, nullable: true, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     description = table.Column<string>(type: "varchar(500)", maxLength: 500, nullable: true, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    approved_local_total = table.Column<decimal>(type: "decimal(19,4)", precision: 19, scale: 4, nullable: false, collation: "utf8mb4_unicode_ci"),
-                    payment_voucher_id = table.Column<long>(type: "bigint", nullable: true, collation: "utf8mb4_unicode_ci"),
+                    approved_local_total = table.Column<decimal>(type: "decimal(19,4)", precision: 19, scale: 4, nullable: false),
+                    payment_voucher_id = table.Column<long>(type: "bigint", nullable: true),
                     review_reason = table.Column<string>(type: "varchar(500)", maxLength: 500, nullable: true, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     approval_reason = table.Column<string>(type: "varchar(500)", maxLength: 500, nullable: true, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     created_by = table.Column<string>(type: "varchar(50)", maxLength: 50, nullable: false, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    created_at = table.Column<DateTime>(type: "datetime(6)", nullable: false, collation: "utf8mb4_unicode_ci"),
+                    created_at = table.Column<DateTime>(type: "datetime(6)", nullable: false),
                     updated_by = table.Column<string>(type: "varchar(50)", maxLength: 50, nullable: true, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    updated_at = table.Column<DateTime>(type: "datetime(6)", nullable: true, collation: "utf8mb4_unicode_ci")
+                    updated_at = table.Column<DateTime>(type: "datetime(6)", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -1881,16 +1881,16 @@ namespace AlTayerERP.Infrastructure.Migrations
                 name: "voucher_action_logs",
                 columns: table => new
                 {
-                    voucher_action_id = table.Column<long>(type: "bigint", nullable: false, collation: "utf8mb4_unicode_ci")
+                    voucher_action_id = table.Column<long>(type: "bigint", nullable: false)
                         .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
-                    voucher_id = table.Column<long>(type: "bigint", nullable: false, collation: "utf8mb4_unicode_ci"),
+                    voucher_id = table.Column<long>(type: "bigint", nullable: false),
                     action_type = table.Column<string>(type: "varchar(30)", maxLength: 30, nullable: false, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    old_status_id = table.Column<int>(type: "int", nullable: true, collation: "utf8mb4_unicode_ci"),
-                    new_status_id = table.Column<int>(type: "int", nullable: true, collation: "utf8mb4_unicode_ci"),
+                    old_status_id = table.Column<int>(type: "int", nullable: true),
+                    new_status_id = table.Column<int>(type: "int", nullable: true),
                     user_id = table.Column<string>(type: "varchar(50)", maxLength: 50, nullable: true, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    action_at = table.Column<DateTime>(type: "datetime(6)", nullable: false, collation: "utf8mb4_unicode_ci"),
+                    action_at = table.Column<DateTime>(type: "datetime(6)", nullable: false),
                     action_channel = table.Column<string>(type: "varchar(20)", maxLength: 20, nullable: false, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     device_name = table.Column<string>(type: "varchar(150)", maxLength: 150, nullable: true, collation: "utf8mb4_unicode_ci")
@@ -1919,17 +1919,17 @@ namespace AlTayerERP.Infrastructure.Migrations
                 name: "login_attempts",
                 columns: table => new
                 {
-                    login_attempt_id = table.Column<long>(type: "bigint", nullable: false, collation: "utf8mb4_unicode_ci")
+                    login_attempt_id = table.Column<long>(type: "bigint", nullable: false)
                         .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
-                    user_id = table.Column<int>(type: "int", nullable: true, collation: "utf8mb4_unicode_ci"),
+                    user_id = table.Column<int>(type: "int", nullable: true),
                     login_name = table.Column<string>(type: "varchar(100)", maxLength: 100, nullable: false, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     company_id = table.Column<string>(type: "varchar(50)", maxLength: 50, nullable: true, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    branch_id = table.Column<int>(type: "int", nullable: true, collation: "utf8mb4_unicode_ci"),
-                    fiscal_year_id = table.Column<int>(type: "int", nullable: true, collation: "utf8mb4_unicode_ci"),
-                    attempted_at = table.Column<DateTime>(type: "datetime(6)", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    is_success = table.Column<bool>(type: "tinyint(1)", nullable: false, collation: "utf8mb4_unicode_ci"),
+                    branch_id = table.Column<int>(type: "int", nullable: true),
+                    fiscal_year_id = table.Column<int>(type: "int", nullable: true),
+                    attempted_at = table.Column<DateTime>(type: "datetime(6)", nullable: false),
+                    is_success = table.Column<bool>(type: "tinyint(1)", nullable: false),
                     failure_reason = table.Column<string>(type: "varchar(500)", maxLength: 500, nullable: true, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     ip_address = table.Column<string>(type: "varchar(255)", maxLength: 255, nullable: true, collation: "utf8mb4_unicode_ci")
@@ -1940,7 +1940,7 @@ namespace AlTayerERP.Infrastructure.Migrations
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     session_id = table.Column<string>(type: "varchar(50)", maxLength: 50, nullable: true, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    lockout_until = table.Column<DateTime>(type: "datetime(6)", nullable: true, collation: "utf8mb4_unicode_ci")
+                    lockout_until = table.Column<DateTime>(type: "datetime(6)", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -1959,22 +1959,22 @@ namespace AlTayerERP.Infrastructure.Migrations
                 name: "refresh_tokens",
                 columns: table => new
                 {
-                    refresh_token_id = table.Column<long>(type: "bigint", nullable: false, collation: "utf8mb4_unicode_ci")
+                    refresh_token_id = table.Column<long>(type: "bigint", nullable: false)
                         .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
                     token_hash = table.Column<string>(type: "char(64)", fixedLength: true, maxLength: 64, nullable: false, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     session_id = table.Column<string>(type: "varchar(64)", maxLength: 64, nullable: false, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    user_id = table.Column<int>(type: "int", nullable: false, collation: "utf8mb4_unicode_ci"),
+                    user_id = table.Column<int>(type: "int", nullable: false),
                     company_id = table.Column<string>(type: "varchar(50)", maxLength: 50, nullable: false, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    branch_id = table.Column<int>(type: "int", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    fiscal_year_id = table.Column<int>(type: "int", nullable: false, collation: "utf8mb4_unicode_ci"),
+                    branch_id = table.Column<int>(type: "int", nullable: false),
+                    fiscal_year_id = table.Column<int>(type: "int", nullable: false),
                     device_id = table.Column<string>(type: "varchar(50)", maxLength: 50, nullable: false, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    created_at = table.Column<DateTime>(type: "datetime(6)", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    expires_at = table.Column<DateTime>(type: "datetime(6)", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    revoked_at = table.Column<DateTime>(type: "datetime(6)", nullable: true, collation: "utf8mb4_unicode_ci"),
+                    created_at = table.Column<DateTime>(type: "datetime(6)", nullable: false),
+                    expires_at = table.Column<DateTime>(type: "datetime(6)", nullable: false),
+                    revoked_at = table.Column<DateTime>(type: "datetime(6)", nullable: true),
                     replaced_by_hash = table.Column<string>(type: "varchar(255)", maxLength: 255, nullable: true, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     revoked_reason = table.Column<string>(type: "varchar(500)", maxLength: 500, nullable: true, collation: "utf8mb4_unicode_ci")
@@ -2015,23 +2015,23 @@ namespace AlTayerERP.Infrastructure.Migrations
                 name: "user_permissions",
                 columns: table => new
                 {
-                    permission_id = table.Column<int>(type: "int", nullable: false, collation: "utf8mb4_unicode_ci")
+                    permission_id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
-                    user_id = table.Column<int>(type: "int", nullable: false, collation: "utf8mb4_unicode_ci"),
+                    user_id = table.Column<int>(type: "int", nullable: false),
                     permission_category = table.Column<string>(type: "varchar(100)", maxLength: 100, nullable: false, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     permission_name = table.Column<string>(type: "varchar(100)", maxLength: 100, nullable: false, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    can_view = table.Column<bool>(type: "tinyint(1)", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    can_add = table.Column<bool>(type: "tinyint(1)", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    can_edit = table.Column<bool>(type: "tinyint(1)", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    can_delete = table.Column<bool>(type: "tinyint(1)", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    can_print = table.Column<bool>(type: "tinyint(1)", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    can_export = table.Column<bool>(type: "tinyint(1)", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    can_import = table.Column<bool>(type: "tinyint(1)", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    can_preview = table.Column<bool>(type: "tinyint(1)", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    can_approve = table.Column<bool>(type: "tinyint(1)", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    can_un_approve = table.Column<bool>(type: "tinyint(1)", nullable: false, collation: "utf8mb4_unicode_ci")
+                    can_view = table.Column<bool>(type: "tinyint(1)", nullable: false),
+                    can_add = table.Column<bool>(type: "tinyint(1)", nullable: false),
+                    can_edit = table.Column<bool>(type: "tinyint(1)", nullable: false),
+                    can_delete = table.Column<bool>(type: "tinyint(1)", nullable: false),
+                    can_print = table.Column<bool>(type: "tinyint(1)", nullable: false),
+                    can_export = table.Column<bool>(type: "tinyint(1)", nullable: false),
+                    can_import = table.Column<bool>(type: "tinyint(1)", nullable: false),
+                    can_preview = table.Column<bool>(type: "tinyint(1)", nullable: false),
+                    can_approve = table.Column<bool>(type: "tinyint(1)", nullable: false),
+                    can_un_approve = table.Column<bool>(type: "tinyint(1)", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -2050,10 +2050,10 @@ namespace AlTayerERP.Infrastructure.Migrations
                 name: "journal_entry_details",
                 columns: table => new
                 {
-                    journal_entry_detail_id = table.Column<long>(type: "bigint", nullable: false, collation: "utf8mb4_unicode_ci")
+                    journal_entry_detail_id = table.Column<long>(type: "bigint", nullable: false)
                         .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
-                    journal_entry_id = table.Column<long>(type: "bigint", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    line_no = table.Column<int>(type: "int", nullable: false, collation: "utf8mb4_unicode_ci"),
+                    journal_entry_id = table.Column<long>(type: "bigint", nullable: false),
+                    line_no = table.Column<int>(type: "int", nullable: false),
                     account_id = table.Column<string>(type: "varchar(50)", maxLength: 50, nullable: false, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     description = table.Column<string>(type: "varchar(500)", maxLength: 500, nullable: true, collation: "utf8mb4_unicode_ci")
@@ -2062,29 +2062,29 @@ namespace AlTayerERP.Infrastructure.Migrations
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     project_id = table.Column<string>(type: "varchar(50)", maxLength: 50, nullable: true, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    currency_id = table.Column<int>(type: "int", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    exchange_rate = table.Column<decimal>(type: "decimal(18,6)", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    foreign_amount = table.Column<decimal>(type: "decimal(18,2)", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    local_amount = table.Column<decimal>(type: "decimal(18,2)", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    debit_amount = table.Column<decimal>(type: "decimal(18,2)", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    credit_amount = table.Column<decimal>(type: "decimal(18,2)", nullable: false, collation: "utf8mb4_unicode_ci"),
+                    currency_id = table.Column<int>(type: "int", nullable: false),
+                    exchange_rate = table.Column<decimal>(type: "decimal(18,6)", nullable: false),
+                    foreign_amount = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    local_amount = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    debit_amount = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    credit_amount = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
                     reference_type = table.Column<string>(type: "varchar(50)", maxLength: 50, nullable: true, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     reference_no = table.Column<string>(type: "varchar(100)", maxLength: 100, nullable: true, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     reference_name = table.Column<string>(type: "varchar(250)", maxLength: 250, nullable: true, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    reference_date = table.Column<DateTime>(type: "datetime(6)", nullable: true, collation: "utf8mb4_unicode_ci"),
-                    source_voucher_detail_id = table.Column<long>(type: "bigint", nullable: true, collation: "utf8mb4_unicode_ci"),
-                    line_type = table.Column<byte>(type: "tinyint unsigned", nullable: false, collation: "utf8mb4_unicode_ci"),
+                    reference_date = table.Column<DateTime>(type: "datetime(6)", nullable: true),
+                    source_voucher_detail_id = table.Column<long>(type: "bigint", nullable: true),
+                    line_type = table.Column<byte>(type: "tinyint unsigned", nullable: false),
                     notes = table.Column<string>(type: "varchar(500)", maxLength: 500, nullable: true, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     created_by = table.Column<string>(type: "varchar(50)", maxLength: 50, nullable: true, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    created_at = table.Column<DateTime>(type: "datetime(6)", nullable: false, collation: "utf8mb4_unicode_ci"),
+                    created_at = table.Column<DateTime>(type: "datetime(6)", nullable: false),
                     updated_by = table.Column<string>(type: "varchar(50)", maxLength: 50, nullable: true, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    updated_at = table.Column<DateTime>(type: "datetime(6)", nullable: true, collation: "utf8mb4_unicode_ci")
+                    updated_at = table.Column<DateTime>(type: "datetime(6)", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -2123,24 +2123,24 @@ namespace AlTayerERP.Infrastructure.Migrations
                 name: "payment_request_attachments",
                 columns: table => new
                 {
-                    payment_request_attachment_id = table.Column<long>(type: "bigint", nullable: false, collation: "utf8mb4_unicode_ci")
+                    payment_request_attachment_id = table.Column<long>(type: "bigint", nullable: false)
                         .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
-                    payment_request_id = table.Column<long>(type: "bigint", nullable: false, collation: "utf8mb4_unicode_ci"),
+                    payment_request_id = table.Column<long>(type: "bigint", nullable: false),
                     company_id = table.Column<string>(type: "varchar(50)", maxLength: 50, nullable: false, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    branch_id = table.Column<int>(type: "int", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    fiscal_year_id = table.Column<int>(type: "int", nullable: false, collation: "utf8mb4_unicode_ci"),
+                    branch_id = table.Column<int>(type: "int", nullable: false),
+                    fiscal_year_id = table.Column<int>(type: "int", nullable: false),
                     original_file_name = table.Column<string>(type: "varchar(260)", maxLength: 260, nullable: false, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     storage_key = table.Column<string>(type: "varchar(500)", maxLength: 500, nullable: false, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     content_type = table.Column<string>(type: "varchar(100)", maxLength: 100, nullable: false, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    file_size = table.Column<long>(type: "bigint", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    is_active = table.Column<bool>(type: "tinyint(1)", nullable: false, collation: "utf8mb4_unicode_ci"),
+                    file_size = table.Column<long>(type: "bigint", nullable: false),
+                    is_active = table.Column<bool>(type: "tinyint(1)", nullable: false),
                     created_by = table.Column<string>(type: "varchar(50)", maxLength: 50, nullable: false, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    created_at = table.Column<DateTime>(type: "datetime(6)", nullable: false, collation: "utf8mb4_unicode_ci")
+                    created_at = table.Column<DateTime>(type: "datetime(6)", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -2177,18 +2177,18 @@ namespace AlTayerERP.Infrastructure.Migrations
                 name: "payment_request_lines",
                 columns: table => new
                 {
-                    payment_request_line_id = table.Column<long>(type: "bigint", nullable: false, collation: "utf8mb4_unicode_ci")
+                    payment_request_line_id = table.Column<long>(type: "bigint", nullable: false)
                         .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
-                    payment_request_id = table.Column<long>(type: "bigint", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    line_no = table.Column<int>(type: "int", nullable: false, collation: "utf8mb4_unicode_ci"),
+                    payment_request_id = table.Column<long>(type: "bigint", nullable: false),
+                    line_no = table.Column<int>(type: "int", nullable: false),
                     account_id = table.Column<string>(type: "varchar(50)", maxLength: 50, nullable: false, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     cost_center_id = table.Column<string>(type: "varchar(50)", maxLength: 50, nullable: true, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    currency_id = table.Column<int>(type: "int", nullable: false, collation: "utf8mb4_unicode_ci"),
-                    exchange_rate = table.Column<decimal>(type: "decimal(19,8)", precision: 19, scale: 8, nullable: false, collation: "utf8mb4_unicode_ci"),
-                    foreign_amount = table.Column<decimal>(type: "decimal(19,4)", precision: 19, scale: 4, nullable: false, collation: "utf8mb4_unicode_ci"),
-                    local_amount = table.Column<decimal>(type: "decimal(19,4)", precision: 19, scale: 4, nullable: false, collation: "utf8mb4_unicode_ci"),
+                    currency_id = table.Column<int>(type: "int", nullable: false),
+                    exchange_rate = table.Column<decimal>(type: "decimal(19,8)", precision: 19, scale: 8, nullable: false),
+                    foreign_amount = table.Column<decimal>(type: "decimal(19,4)", precision: 19, scale: 4, nullable: false),
+                    local_amount = table.Column<decimal>(type: "decimal(19,4)", precision: 19, scale: 4, nullable: false),
                     reference_no = table.Column<string>(type: "varchar(100)", maxLength: 100, nullable: true, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     description = table.Column<string>(type: "varchar(500)", maxLength: 500, nullable: true, collation: "utf8mb4_unicode_ci")
