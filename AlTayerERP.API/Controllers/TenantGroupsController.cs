@@ -5,6 +5,7 @@ using AlTayerERP.Infrastructure.Data;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 
 namespace AlTayerERP.API.Controllers
 {
@@ -61,9 +62,8 @@ namespace AlTayerERP.API.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "تعذر تحميل المجموعات التجارية من قاعدة البيانات.");
-                return StatusCode(StatusCodes.Status500InternalServerError,
-                    new { message = "تعذر تحميل المجموعات التجارية. راجع مسؤول النظام." });
+                LogSafeError(ex, "تعذر تحميل المجموعات التجارية من قاعدة البيانات.");
+                return SafeServerError("تعذر تحميل المجموعات التجارية. راجع مسؤول النظام.");
             }
         }
 
@@ -97,9 +97,8 @@ namespace AlTayerERP.API.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "تعذر تحميل المجموعة التجارية المطلوبة.");
-                return StatusCode(StatusCodes.Status500InternalServerError,
-                    new { message = "تعذر تحميل المجموعة التجارية. راجع مسؤول النظام." });
+                LogSafeError(ex, "تعذر تحميل المجموعة التجارية المطلوبة.");
+                return SafeServerError("تعذر تحميل المجموعة التجارية. راجع مسؤول النظام.");
             }
         }
 
@@ -132,9 +131,8 @@ namespace AlTayerERP.API.Controllers
             }
             catch (DbUpdateException ex)
             {
-                _logger.LogError(ex, "تعذر حفظ المجموعة التجارية بسبب خطأ في تحديث البيانات.");
-                return StatusCode(StatusCodes.Status500InternalServerError,
-                    "تعذر حفظ المجموعة التجارية بسبب عدم توافق بنية البيانات. راجع مسؤول النظام.");
+                LogSafeError(ex, "تعذر حفظ المجموعة التجارية بسبب خطأ في تحديث البيانات.");
+                return SafeServerError("تعذر حفظ المجموعة التجارية. راجع مسؤول النظام.");
             }
         }
 
@@ -301,6 +299,32 @@ namespace AlTayerERP.API.Controllers
             group.Show_In_Tree = dto.Show_In_Tree;
             group.Notes = string.IsNullOrWhiteSpace(dto.Notes) ? null : dto.Notes.Trim();
         }
+
+        /// <summary>يسجل نوع الخطأ ورسالة منقحة فقط دون رؤوس الطلب أو أسرار الاتصال.</summary>
+        private void LogSafeError(Exception exception, string operation)
+        {
+            _logger.LogError("{Operation} النوع: {ExceptionType}. الرسالة: {SafeMessage}",
+                operation,
+                exception.GetType().FullName,
+                RedactSecrets(exception.Message));
+        }
+
+        private static string RedactSecrets(string? value)
+        {
+            if (string.IsNullOrWhiteSpace(value)) return "لا توجد رسالة تفصيلية.";
+            var result = value;
+            foreach (var key in new[] { "Authorization", "X-Session-Token", "Cookie", "Password", "ConnectionString", "Bearer" })
+                result = Regex.Replace(result, $@"(?i){Regex.Escape(key)}\s*[:=]\s*[^\s,;]+", $"{key}=[محجوب]");
+            return result.Length > 800 ? result[..800] : result;
+        }
+
+        /// <summary>يعيد نصاً عربياً مباشراً كي لا تعرض الواجهة JSON أو تفاصيل تقنية.</summary>
+        private static ContentResult SafeServerError(string message) => new()
+        {
+            StatusCode = StatusCodes.Status500InternalServerError,
+            ContentType = "text/plain; charset=utf-8",
+            Content = message
+        };
 
         /// <summary>نموذج قراءة آمن مستقل عن قيود nullability في كيان EF.</summary>
         public sealed class TenantGroupLookupResult
