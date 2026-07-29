@@ -1,4 +1,5 @@
 using System.Drawing;
+using System.Runtime.CompilerServices;
 using System.Windows.Forms;
 
 namespace AlTayerERP.Desktop.Services;
@@ -9,6 +10,8 @@ namespace AlTayerERP.Desktop.Services;
 /// </summary>
 internal static class MainMenuGovernanceService
 {
+    private const string AppliedMarker = "MainMenuGovernanceApplied";
+
     private static readonly (string Title, string[] Codes)[] Sections =
     {
         ("الهيكل المؤسسي", new[] { "TenantGroups", "Companies", "Branches", "Countries", "Governorates", "Cities" }),
@@ -21,6 +24,31 @@ internal static class MainMenuGovernanceService
             "ExchangeRates", "PaymentMethods", "VoucherTypes", "VoucherStatuses", "ApprovalPolicies", "FinancialLimits"
         })
     };
+
+    /// <summary>
+    /// يراقب اكتمال بناء الشجرة فقط، ولا يربط NodeMouseClick أو DoubleClick أو Show.
+    /// عند إعادة بناء القائمة بسبب البحث يعاد تطبيق الحوكمة مرة واحدة على المحتوى الجديد.
+    /// </summary>
+    [ModuleInitializer]
+    internal static void Register()
+    {
+        Application.Idle += (_, _) =>
+        {
+            foreach (var main in Application.OpenForms.OfType<FrmMain>().ToArray())
+            {
+                var tree = FindTree(main.Controls);
+                if (tree is null || tree.Nodes.Count == 0)
+                    continue;
+
+                var signature = BuildSignature(tree.Nodes);
+                if (string.Equals(tree.Tag?.ToString(), AppliedMarker + signature, StringComparison.Ordinal))
+                    continue;
+
+                Apply(tree);
+                tree.Tag = AppliedMarker + BuildSignature(tree.Nodes);
+            }
+        };
+    }
 
     /// <summary>يعيد بناء الأقسام المطلوبة من العقد المسموح بها مع إبقاء كل كود مرة واحدة.</summary>
     public static void Apply(TreeView tree)
@@ -103,6 +131,13 @@ internal static class MainMenuGovernanceService
         }
     }
 
+    private static string BuildSignature(TreeNodeCollection nodes) =>
+        string.Join("|", EnumerateLeaves(nodes)
+            .Where(node => !string.IsNullOrWhiteSpace(node.Name))
+            .Select(node => node.Name)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(code => code, StringComparer.OrdinalIgnoreCase));
+
     private static void ConfigureAppearance(TreeView tree)
     {
         tree.ShowNodeToolTips = true;
@@ -111,9 +146,27 @@ internal static class MainMenuGovernanceService
         tree.FullRowSelect = true;
         tree.HideSelection = false;
         tree.HotTracking = true;
+        tree.RightToLeft = RightToLeft.Yes;
 
         // توسيع الحاوية يمنع قص الأسماء الطويلة ويزيل الحاجة للتمرير الأفقي غالباً.
         if (tree.Parent is Panel sidePanel)
             sidePanel.Width = Math.Max(sidePanel.Width, 300);
+    }
+
+    private static TreeView? FindTree(Control.ControlCollection controls)
+    {
+        foreach (Control control in controls)
+        {
+            if (control is TreeView tree)
+                return tree;
+            if (!control.HasChildren)
+                continue;
+
+            var nested = FindTree(control.Controls);
+            if (nested is not null)
+                return nested;
+        }
+
+        return null;
     }
 }
