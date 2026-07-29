@@ -271,12 +271,15 @@ public abstract class BaseForm : Form
                     break;
                 case ComboBox combo:
                     combo.FlatStyle = FlatStyle.Flat;
-                    combo.BackColor = Color.White;
+                    combo.BackColor = combo.Enabled ? Color.White : Color.FromArgb(246, 248, 251);
                     combo.Margin = new Padding(4, 6, 4, 6);
+                    break;
+                case DateTimePicker dateTimePicker:
+                    dateTimePicker.CalendarMonthBackground = dateTimePicker.Enabled ? Color.White : Color.FromArgb(246, 248, 251);
                     break;
                 case NumericUpDown numeric:
                     numeric.BorderStyle = BorderStyle.FixedSingle;
-                    numeric.BackColor = Color.White;
+                    numeric.BackColor = numeric.Enabled ? Color.White : Color.FromArgb(246, 248, 251);
                     break;
                 case DataGridView grid:
                     StyleGrid(grid);
