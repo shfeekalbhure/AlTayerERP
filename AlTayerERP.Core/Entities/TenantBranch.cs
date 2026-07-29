@@ -18,6 +18,8 @@ public class TenantBranch
 
     /// <summary>كود نوع الفرع المرجعي؛ يبقى نصيًا ككود أعمال.</summary>
     [MaxLength(30)] public string? Branch_Type { get; set; }
+    /// <summary>المعرف المرجعي الاختياري لنوع الفرع؛ لا يحل محل كود الأعمال Branch_Type.</summary>
+    public int? Branch_Type_ID { get; set; }
     public int? Parent_Branch_ID { get; set; }
 
     public int? Country_ID { get; set; }

@@ -97,21 +97,17 @@ public static class Phase1BaselineModelConfiguration
             entity.Property(x => x.Notes).HasMaxLength(500);
             entity.Property(x => x.Is_Active).HasDefaultValue(true);
             entity.Property(x => x.Edit_Count).HasDefaultValue(0);
-            entity.Property<int?>("Country_ID");
-            entity.Property<int?>("Governorate_ID");
-            entity.Property<int?>("City_ID");
-            entity.Property<int?>("Branch_Type_ID");
             entity.HasOne<Company>().WithMany().HasForeignKey(x => x.Company_ID).OnDelete(DeleteBehavior.Restrict);
             entity.HasOne(x => x.ParentBranch).WithMany().HasForeignKey(x => x.Parent_Branch_ID).OnDelete(DeleteBehavior.Restrict);
             entity.HasOne<Currency>().WithMany().HasForeignKey(x => x.Currency_ID).OnDelete(DeleteBehavior.Restrict);
-            entity.HasOne<Country>().WithMany().HasForeignKey("Country_ID").OnDelete(DeleteBehavior.Restrict);
-            entity.HasOne<Governorate>().WithMany().HasForeignKey("Governorate_ID").OnDelete(DeleteBehavior.Restrict);
-            entity.HasOne<City>().WithMany().HasForeignKey("City_ID").OnDelete(DeleteBehavior.Restrict);
-            entity.HasOne<BranchType>().WithMany().HasForeignKey("Branch_Type_ID").OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne<Country>().WithMany().HasForeignKey(x => x.Country_ID).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne<Governorate>().WithMany().HasForeignKey(x => x.Governorate_ID).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne<City>().WithMany().HasForeignKey(x => x.City_ID).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne<BranchType>().WithMany().HasForeignKey(x => x.Branch_Type_ID).OnDelete(DeleteBehavior.Restrict);
             entity.HasIndex(x => new { x.Company_ID, x.Branch_Code }).IsUnique();
-            entity.HasIndex("Country_ID");
-            entity.HasIndex("Governorate_ID");
-            entity.HasIndex("City_ID");
+            entity.HasIndex(x => x.Country_ID);
+            entity.HasIndex(x => x.Governorate_ID);
+            entity.HasIndex(x => x.City_ID);
         });
 
         modelBuilder.Entity<FiscalYear>(entity =>
@@ -502,6 +498,7 @@ public static class Phase1BaselineModelConfiguration
             entity.HasOne<VoucherStatus>().WithMany().HasForeignKey(x => x.Voucher_Status_ID).OnDelete(DeleteBehavior.Restrict);
             entity.HasOne<Currency>().WithMany().HasForeignKey(x => x.Currency_ID).OnDelete(DeleteBehavior.Restrict);
             entity.HasOne<Party>().WithMany().HasForeignKey(x => x.Party_ID).OnDelete(DeleteBehavior.SetNull);
+            entity.HasOne<PaymentMethod>().WithMany().HasForeignKey(x => x.Payment_Method_ID).OnDelete(DeleteBehavior.Restrict);
             entity.HasOne<ChartOfAccount>().WithMany().HasForeignKey(x => x.Cash_Account_ID).OnDelete(DeleteBehavior.Restrict);
             entity.HasIndex(x => new { x.Branch_ID, x.Fiscal_Year_ID, x.Voucher_Type_ID, x.Voucher_No }).IsUnique();
             entity.HasIndex(x => x.Voucher_Date);
@@ -598,6 +595,16 @@ public static class Phase1BaselineModelConfiguration
             entity.ToTable("payment_requests");
             entity.HasKey(x => x.Payment_Request_ID);
             entity.Property(x => x.Company_ID).HasMaxLength(50).IsRequired();
+            entity.Property(x => x.Request_No).HasMaxLength(50).IsRequired();
+            entity.Property(x => x.Status).HasMaxLength(30).IsRequired();
+            entity.Property(x => x.Beneficiary_Name).HasMaxLength(200).IsRequired();
+            entity.Property(x => x.Party_ID).HasMaxLength(50);
+            entity.Property(x => x.Header_Reference_No).HasMaxLength(100);
+            entity.Property(x => x.Description).HasMaxLength(500);
+            entity.Property(x => x.Review_Reason).HasMaxLength(500);
+            entity.Property(x => x.Approval_Reason).HasMaxLength(500);
+            entity.Property(x => x.Created_By).HasMaxLength(50).IsRequired();
+            entity.Property(x => x.Updated_By).HasMaxLength(50);
             entity.Property(x => x.Approved_Local_Total).HasPrecision(19, 4);
             entity.HasOne<Company>().WithMany().HasForeignKey(x => x.Company_ID).OnDelete(DeleteBehavior.Restrict);
             entity.HasOne<TenantBranch>().WithMany().HasForeignKey(x => x.Branch_ID).OnDelete(DeleteBehavior.Restrict);
@@ -616,12 +623,20 @@ public static class Phase1BaselineModelConfiguration
             entity.Property(x => x.Exchange_Rate).HasPrecision(19, 8);
             entity.Property(x => x.Foreign_Amount).HasPrecision(19, 4);
             entity.Property(x => x.Local_Amount).HasPrecision(19, 4);
+            entity.Property(x => x.Account_ID).HasMaxLength(50).IsRequired();
+            entity.Property(x => x.Cost_Center_ID).HasMaxLength(50);
+            entity.Property(x => x.Reference_No).HasMaxLength(100);
+            entity.Property(x => x.Description).HasMaxLength(500);
             entity.HasOne(x => x.PaymentRequest).WithMany(x => x.Details).HasForeignKey(x => x.Payment_Request_ID).OnDelete(DeleteBehavior.Cascade);
             entity.HasOne<ChartOfAccount>().WithMany().HasForeignKey(x => x.Account_ID).OnDelete(DeleteBehavior.Restrict);
             entity.HasOne<CostCenter>().WithMany().HasForeignKey(x => x.Cost_Center_ID).OnDelete(DeleteBehavior.Restrict);
             entity.HasOne<Currency>().WithMany().HasForeignKey(x => x.Currency_ID).OnDelete(DeleteBehavior.Restrict);
             entity.HasIndex(x => new { x.Payment_Request_ID, x.Line_No }).IsUnique();
-            entity.ToTable(t => t.HasCheckConstraint("ck_payment_request_line_rate", "`exchange_rate` > 0"));
+            entity.ToTable(t =>
+            {
+                t.HasCheckConstraint("ck_payment_request_line_rate", "`exchange_rate` > 0");
+                t.HasCheckConstraint("ck_payment_request_line_amounts", "`foreign_amount` >= 0 AND `local_amount` >= 0");
+            });
         });
 
         modelBuilder.Entity<PaymentRequestAttachment>(entity =>
@@ -629,6 +644,10 @@ public static class Phase1BaselineModelConfiguration
             entity.ToTable("payment_request_attachments");
             entity.HasKey(x => x.Payment_Request_Attachment_ID);
             entity.Property(x => x.Company_ID).HasMaxLength(50).IsRequired();
+            entity.Property(x => x.Original_File_Name).HasMaxLength(260).IsRequired();
+            entity.Property(x => x.Storage_Key).HasMaxLength(500).IsRequired();
+            entity.Property(x => x.Content_Type).HasMaxLength(100).IsRequired();
+            entity.Property(x => x.Created_By).HasMaxLength(50).IsRequired();
             entity.HasOne<PaymentRequest>().WithMany().HasForeignKey(x => x.Payment_Request_ID).OnDelete(DeleteBehavior.Cascade);
             entity.HasOne<Company>().WithMany().HasForeignKey(x => x.Company_ID).OnDelete(DeleteBehavior.Restrict);
             entity.HasOne<TenantBranch>().WithMany().HasForeignKey(x => x.Branch_ID).OnDelete(DeleteBehavior.Restrict);
