@@ -1,8 +1,8 @@
 # قاموس بيانات المرحلة الأولى — مسودة تدقيق مكتملة
 
 **فرع التدقيق:** `agent/phase1-clean-database-baseline`  
-**النطاق:** 41 `DbSet` + 5 جداول SQL-only/Runtime = **46 تعريف جدول**.  
-**التغطية:** 100% على مستوى الكيان/الجدول والمفتاح والمصدر والحالة؛ الأطوال/Defaults غير المعرفة في الكود موسومة صراحةً **غير محدد** ولا يتم تخمينها.
+**النطاق:** 41 `DbSet` + كيان `AccountCategory` دون DbSet صريح + 5 جداول SQL-only/تشخيصية = **47 تعريف جدول**.  
+**تغطية قاموس البيانات:** **47/47 = 100% على مستوى الجدول والكيان والمفتاح والمصدر والحالة**. الأطوال وDefaults غير المعرفة في المصدر موسومة صراحةً **غير محدد** ولا يتم تخمينها. عدد جداول الإنتاج المرشحة 46 بعد استبعاد `database_alignment_findings` التشخيصي.
 
 ## 1. مفتاح القراءة
 
@@ -84,14 +84,25 @@
 | PaymentRequestLine | `payment_request_lines`; `Payment_Request_Line_ID long AI` | Request long; Line int; Account string; CostCenter string O; Currency int; Rate P(19,8); Foreign/Local P(19,4); refs/description | Unique Request+Line؛ EF relationship Restrict حاليًا رغم SQL بلا FK | EF + SQL + Runtime DDL؛ no Migration |
 | PaymentRequestAttachment | `payment_request_attachments`; `Payment_Request_Attachment_ID long AI` | Request long; Company string; Branch int; Year int; OriginalName260; StorageKey500; ContentType100; Size long; Active; CreatedBy string; CreatedAt | index Request+Active؛ FK غير موجود في SQL | EF + SQL + Runtime DDL؛ no Migration |
 
-## 7. تغطية Snapshot/Migrations
+## 7. الجداول SQL-only والتشخيصية
+
+| الجدول | الحالة |
+|---|---|
+| `countries` | SQL-only، جدول إنتاج مرجعي |
+| `governorates` | SQL-only، جدول إنتاج مرجعي |
+| `cities` | SQL-only، جدول إنتاج مرجعي |
+| `branch_types` | SQL-only، جدول إنتاج مرجعي مع Seed |
+| `database_alignment_findings` | SQL-only تشخيصي؛ مقترح عدم إدخاله في Baseline الإنتاج |
+
+## 8. تغطية Snapshot/Migrations
 
 - Migration تنشئ جدولين فقط: `journal_entry_headers`, `journal_entry_details`.
 - Snapshot يحتوي نماذج أكثر من Migration لكنه غير متزامن مع 41 DbSet الحالية ولا يصلح كدليل إنشاء.
 - 39 DbSet لا تملك Migration إنشاء.
-- 5 جداول SQL-only/Runtime خارج DbSets الصريحة: geography الثلاثة، `branch_types`, `account_categories`؛ جدول التشخيص مستبعد من Baseline.
+- `AccountCategory` Entity بلا DbSet صريح ولا Migration.
+- 5 جداول SQL-only/تشخيصية خارج EF الكامل.
 
-## 8. القرارات المقترحة العامة
+## 9. القرارات المقترحة العامة
 
 - كل طول أو Default أو Check غير موثق يبقى «غير محدد» حتى المرحلة الثانية.
 - توحيد IDs وCollation قبل FK النصية.
