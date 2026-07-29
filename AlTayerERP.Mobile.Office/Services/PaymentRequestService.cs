@@ -107,7 +107,7 @@ public sealed class PaymentRequestService(
         if (response.IsSuccessStatusCode) return;
 
         var raw = await response.Content.ReadAsStringAsync(cancellationToken);
-        var message = ExtractMessage(raw, fallback);
+        var message = ToUserMessage(ExtractMessage(raw, fallback), fallback);
 
         if (response.StatusCode == HttpStatusCode.Unauthorized)
         {
@@ -145,6 +145,32 @@ public sealed class PaymentRequestService(
             if (window != null)
                 window.Page = navigationPage;
         });
+    }
+
+    private static string ToUserMessage(string message, string fallback)
+    {
+        if (string.IsNullOrWhiteSpace(message))
+            return fallback;
+
+        if (message.Contains("PAYMENT_VOUCHER", StringComparison.OrdinalIgnoreCase) &&
+            message.Contains("إعداد ترقيم", StringComparison.OrdinalIgnoreCase))
+        {
+            return "لا يوجد إعداد ترقيم فعال لسند الصرف. راجع إعدادات الترقيم.";
+        }
+
+        if (message.Contains("RECEIPT_VOUCHER", StringComparison.OrdinalIgnoreCase) &&
+            message.Contains("إعداد ترقيم", StringComparison.OrdinalIgnoreCase))
+        {
+            return "لا يوجد إعداد ترقيم فعال لسند القبض. راجع إعدادات الترقيم.";
+        }
+
+        if (message.Contains("HTTP 400", StringComparison.OrdinalIgnoreCase) ||
+            message.Contains("Bad Request", StringComparison.OrdinalIgnoreCase))
+        {
+            return fallback;
+        }
+
+        return message;
     }
 
     private static string ExtractMessage(string? raw, string fallback)
