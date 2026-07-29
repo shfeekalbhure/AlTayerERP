@@ -4,13 +4,14 @@ on:
   push:
     branches:
       - agent/phase1-clean-database-implementation
+  workflow_dispatch:
 
 permissions:
   contents: write
 
 jobs:
   generate-and-verify:
-    if: ${{ !contains(github.event.head_commit.message, '[baseline-generated]') }}
+    if: ${{ !contains(github.event.head_commit.message || '', '[baseline-generated]') }}
     runs-on: ubuntu-latest
 
     steps:
@@ -26,7 +27,7 @@ jobs:
           dotnet-version: 8.0.x
 
       - name: Prepare clean EF model
-        run: python3 tools/phase1_baseline_finalize.py
+        run: python3 tools/phase2_build_clean_model.py
 
       - name: Install dotnet-ef
         run: dotnet tool install --global dotnet-ef --version 8.0.12
@@ -39,6 +40,13 @@ jobs:
       - name: Build API before migration generation
         run: dotnet build AlTayerERP.API/AlTayerERP.API.csproj -c Release --no-restore
 
+      - name: Reset active generated migration directory
+        run: |
+          rm -rf AlTayerERP.Infrastructure/Migrations
+          mkdir -p AlTayerERP.Infrastructure/Migrations
+          rm -rf Database/Baseline
+          mkdir -p Database/Baseline
+
       - name: Generate Baseline_Phase1 migration
         run: |
           dotnet ef migrations add Baseline_Phase1 \
@@ -50,59 +58,23 @@ jobs:
 
       - name: Generate review SQL without applying it
         run: |
-          mkdir -p Database/Generated
           dotnet ef migrations script 0 Baseline_Phase1 \
             --project AlTayerERP.Infrastructure/AlTayerERP.Infrastructure.csproj \
             --startup-project AlTayerERP.API/AlTayerERP.API.csproj \
             --context AppDbContext \
             --idempotent \
-            --output Database/Generated/Baseline_Phase1.sql \
+            --output Database/Baseline/Baseline_Phase1.sql \
             --no-build
 
-      - name: Safety scan and migration statistics
+      - name: Analyze and secure generated baseline
+        run: python3 tools/analyze_phase1_baseline.py
+
+      - name: Verify no forbidden runtime DDL or legacy database name
+        shell: bash
         run: |
-          python3 - <<'PY'
-          from pathlib import Path
-          import re
-
-          sql_path = Path('Database/Generated/Baseline_Phase1.sql')
-          sql = sql_path.read_text(encoding='utf-8-sig')
-          forbidden = {
-              'اسم القاعدة القديمة': r'altayer_erp_db',
-              'أمر USE': r'(?im)^\s*USE\s+',
-              'DROP DATABASE': r'(?i)DROP\s+DATABASE',
-              'كلمة مرور': r'(?i)(password|pwd)\s*=',
-          }
-          hits = [name for name, pattern in forbidden.items() if re.search(pattern, sql)]
-          if hits:
-              raise SystemExit('فشل فحص الأمان: ' + ', '.join(hits))
-
-          migration_files = sorted(Path('AlTayerERP.Infrastructure/Migrations').glob('*Baseline_Phase1.cs'))
-          if not migration_files:
-              raise SystemExit('لم يتم العثور على ملف Baseline_Phase1.')
-          migration = migration_files[0].read_text(encoding='utf-8-sig')
-
-          stats = {
-              'الجداول': len(re.findall(r'migrationBuilder\.CreateTable\(', migration)),
-              'العلاقات': len(re.findall(r'table\.ForeignKey\(', migration)),
-              'الفهارس': len(re.findall(r'migrationBuilder\.CreateIndex\(', migration)),
-              'الفهارس الفريدة': len(re.findall(r'CreateIndex\([\s\S]*?unique:\s*true', migration)),
-              'قيود الفحص': len(re.findall(r'AddCheckConstraint|CheckConstraint', migration)),
-          }
-          report = ['# تقرير توليد Baseline_Phase1', '', '## الإحصاءات']
-          report += [f'- {key}: **{value}**' for key, value in stats.items()]
-          report += [
-              '',
-              '## فحص الأمان',
-              '- لا يوجد اسم `altayer_erp_db`.',
-              '- لا يوجد أمر `USE`.',
-              '- لا يوجد `DROP DATABASE`.',
-              '- لا توجد كلمات مرور أو بيانات اتصال.',
-              '- لم يتم تنفيذ SQL أو Update-Database.',
-          ]
-          Path('Database/Reviews/Phase2_Baseline_Generation_Report.md').write_text('\n'.join(report) + '\n', encoding='utf-8')
-          print(stats)
-          PY
+          ! grep -RniE 'Database\.(EnsureCreated|Migrate)|MigrateAsync\(' AlTayerERP.API --include='*.cs'
+          ! grep -RniE 'ExecuteSqlRaw.*(CREATE TABLE|ALTER TABLE)' AlTayerERP.API --include='*.cs'
+          ! grep -RniE 'altayer_erp_db|DROP DATABASE|TRUNCATE TABLE|USE[[:space:]]+altayer_erp_db|Password=' Database/Baseline AlTayerERP.Infrastructure/Migrations
 
       - name: Build API and Desktop
         run: |
@@ -121,6 +93,7 @@ jobs:
         run: dotnet build AlTayerERP.Mobile.Office/AlTayerERP.Mobile.Office.csproj -c Release -f net10.0-android
 
       - name: Commit generated Baseline and reports
+        shell: bash
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -138,5 +111,5 @@ jobs:
           name: phase1-baseline-review
           path: |
             AlTayerERP.Infrastructure/Migrations
-            Database/Generated/Baseline_Phase1.sql
-            Database/Reviews/Phase2_Baseline_Generation_Report.md
+            Database/Baseline/Baseline_Phase1.sql
+            Database/Reviews/Phase2_Baseline_PreApplication_Report.md
