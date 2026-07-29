@@ -1,0 +1,142 @@
+name: Phase1 Baseline Generation
+
+on:
+  push:
+    branches:
+      - agent/phase1-clean-database-implementation
+
+permissions:
+  contents: write
+
+jobs:
+  generate-and-verify:
+    if: ${{ !contains(github.event.head_commit.message, '[baseline-generated]') }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout implementation branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: agent/phase1-clean-database-implementation
+
+      - name: Install .NET 8 SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Prepare clean EF model
+        run: python3 tools/phase1_baseline_finalize.py
+
+      - name: Install dotnet-ef
+        run: dotnet tool install --global dotnet-ef --version 8.0.12
+
+      - name: Restore API and Infrastructure
+        run: |
+          dotnet restore AlTayerERP.Infrastructure/AlTayerERP.Infrastructure.csproj
+          dotnet restore AlTayerERP.API/AlTayerERP.API.csproj
+
+      - name: Build API before migration generation
+        run: dotnet build AlTayerERP.API/AlTayerERP.API.csproj -c Release --no-restore
+
+      - name: Generate Baseline_Phase1 migration
+        run: |
+          dotnet ef migrations add Baseline_Phase1 \
+            --project AlTayerERP.Infrastructure/AlTayerERP.Infrastructure.csproj \
+            --startup-project AlTayerERP.API/AlTayerERP.API.csproj \
+            --context AppDbContext \
+            --output-dir Migrations \
+            --no-build
+
+      - name: Generate review SQL without applying it
+        run: |
+          mkdir -p Database/Generated
+          dotnet ef migrations script 0 Baseline_Phase1 \
+            --project AlTayerERP.Infrastructure/AlTayerERP.Infrastructure.csproj \
+            --startup-project AlTayerERP.API/AlTayerERP.API.csproj \
+            --context AppDbContext \
+            --idempotent \
+            --output Database/Generated/Baseline_Phase1.sql \
+            --no-build
+
+      - name: Safety scan and migration statistics
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          sql_path = Path('Database/Generated/Baseline_Phase1.sql')
+          sql = sql_path.read_text(encoding='utf-8-sig')
+          forbidden = {
+              'اسم القاعدة القديمة': r'altayer_erp_db',
+              'أمر USE': r'(?im)^\s*USE\s+',
+              'DROP DATABASE': r'(?i)DROP\s+DATABASE',
+              'كلمة مرور': r'(?i)(password|pwd)\s*=',
+          }
+          hits = [name for name, pattern in forbidden.items() if re.search(pattern, sql)]
+          if hits:
+              raise SystemExit('فشل فحص الأمان: ' + ', '.join(hits))
+
+          migration_files = sorted(Path('AlTayerERP.Infrastructure/Migrations').glob('*Baseline_Phase1.cs'))
+          if not migration_files:
+              raise SystemExit('لم يتم العثور على ملف Baseline_Phase1.')
+          migration = migration_files[0].read_text(encoding='utf-8-sig')
+
+          stats = {
+              'الجداول': len(re.findall(r'migrationBuilder\.CreateTable\(', migration)),
+              'العلاقات': len(re.findall(r'table\.ForeignKey\(', migration)),
+              'الفهارس': len(re.findall(r'migrationBuilder\.CreateIndex\(', migration)),
+              'الفهارس الفريدة': len(re.findall(r'CreateIndex\([\s\S]*?unique:\s*true', migration)),
+              'قيود الفحص': len(re.findall(r'AddCheckConstraint|CheckConstraint', migration)),
+          }
+          report = ['# تقرير توليد Baseline_Phase1', '', '## الإحصاءات']
+          report += [f'- {key}: **{value}**' for key, value in stats.items()]
+          report += [
+              '',
+              '## فحص الأمان',
+              '- لا يوجد اسم `altayer_erp_db`.',
+              '- لا يوجد أمر `USE`.',
+              '- لا يوجد `DROP DATABASE`.',
+              '- لا توجد كلمات مرور أو بيانات اتصال.',
+              '- لم يتم تنفيذ SQL أو Update-Database.',
+          ]
+          Path('Database/Reviews/Phase2_Baseline_Generation_Report.md').write_text('\n'.join(report) + '\n', encoding='utf-8')
+          print(stats)
+          PY
+
+      - name: Build API and Desktop
+        run: |
+          dotnet build AlTayerERP.API/AlTayerERP.API.csproj -c Release
+          dotnet build AlTayerERP.Desktop/AlTayerERP.Desktop.csproj -c Release
+
+      - name: Install .NET 10 SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Install MAUI Android workload
+        run: dotnet workload install maui-android
+
+      - name: Build Mobile Android
+        run: dotnet build AlTayerERP.Mobile.Office/AlTayerERP.Mobile.Office.csproj -c Release -f net10.0-android
+
+      - name: Commit generated Baseline and reports
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add AlTayerERP.Core AlTayerERP.Infrastructure AlTayerERP.API AlTayerERP.Desktop AlTayerERP.Mobile.Office Database tools
+          if git diff --cached --quiet; then
+            echo "No generated changes to commit."
+          else
+            git commit -m "feat(database): generate Baseline_Phase1 [baseline-generated]"
+            git push origin HEAD:agent/phase1-clean-database-implementation
+          fi
+
+      - name: Upload Baseline review artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: phase1-baseline-review
+          path: |
+            AlTayerERP.Infrastructure/Migrations
+            Database/Generated/Baseline_Phase1.sql
+            Database/Reviews/Phase2_Baseline_Generation_Report.md
