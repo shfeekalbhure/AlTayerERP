@@ -8,16 +8,12 @@ namespace AlTayerERP.Core.Entities
     /// </summary>
     public class TenantGroup
     {
-        /// <summary>المعرف الداخلي للمجموعة Group_ID.</summary>
         public string Group_ID { get; set; } = string.Empty;
-        /// <summary>الكود الفريد للمجموعة Group_Code.</summary>
         public string Group_Code { get; set; } = string.Empty;
-        /// <summary>اسم المجموعة بالعربية Group_Name_AR.</summary>
         public string Group_Name_AR { get; set; } = string.Empty;
-        /// <summary>اسم المجموعة بالإنجليزية Group_Name_EN.</summary>
-        public string Group_Name_EN { get; set; } = string.Empty;
+        /// <summary>اسم المجموعة بالإنجليزية اختياري وقد يكون NULL في البيانات القديمة.</summary>
+        public string? Group_Name_EN { get; set; }
         public string Short_Name { get; set; } = string.Empty;
-        /// <summary>تحدد مجموعة واحدة افتراضية لاستخدامها في إعدادات النظام.</summary>
         public bool Is_Default { get; set; }
         public string? Parent_Group_ID { get; set; }
         public string? Main_Company_ID { get; set; }
@@ -29,41 +25,25 @@ namespace AlTayerERP.Core.Entities
         public string? Email { get; set; }
         public string? Manager_Name { get; set; }
         public bool Show_In_Login { get; set; }
-        /// <summary>تتحكم في ظهور المجموعة ضمن شجرة النظام.</summary>
         public bool Show_In_Tree { get; set; }
         public int Sort_Order { get; set; }
         public string? Notes { get; set; }
-
-        /// <summary>وقت الإنشاء Created_At من الخادم.</summary>
         public DateTime Created_At { get; set; }
-        /// <summary>آخر وقت تعديل Updated_At من الخادم.</summary>
         public DateTime? Updated_At { get; set; }
-        /// <summary>المستخدم المنشئ Created_By من الجلسة الموثوقة.</summary>
         public int? Created_By { get; set; }
-        /// <summary>آخر مستخدم معدّل Updated_By من الجلسة الموثوقة.</summary>
         public int? Updated_By { get; set; }
-        /// <summary>عداد التعديلات الناجحة Edit_Count ولا يعدل من العميل.</summary>
         public int Edit_Count { get; set; }
-        /// <summary>حالة السجل Is_Active؛ يستخدم الإيقاف بدلاً من الحذف عند الارتباط.</summary>
         public bool Is_Active { get; set; }
-        /// <summary>من أوقف السجل Stopped_By.</summary>
         public int? Stopped_By { get; set; }
-        /// <summary>وقت الإيقاف Stopped_At.</summary>
         public DateTime? Stopped_At { get; set; }
-        /// <summary>سبب الإيقاف Stopped_Reason.</summary>
         public string? Stopped_Reason { get; set; }
-        /// <summary>من أعاد التفعيل Reactivated_By.</summary>
         public int? Reactivated_By { get; set; }
-        /// <summary>وقت إعادة التفعيل Reactivated_At.</summary>
         public DateTime? Reactivated_At { get; set; }
-        /// <summary>سبب إعادة التفعيل Reactivate_Reason.</summary>
         public string? Reactivate_Reason { get; set; }
 
-        /// <summary>عدد الشركات التابعة للعرض في شاشة المجموعات؛ لا يُخزن في الجدول.</summary>
         [System.ComponentModel.DataAnnotations.Schema.NotMapped]
         public int Companies_Count { get; set; }
 
-        /// <summary>اسم الشركة الرئيسية للعرض في القائمة؛ لا يُخزن في جدول المجموعة.</summary>
         [System.ComponentModel.DataAnnotations.Schema.NotMapped]
         public string? Main_Company_Name { get; set; }
     }
