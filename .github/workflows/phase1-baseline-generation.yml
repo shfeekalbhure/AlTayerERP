@@ -80,7 +80,7 @@ jobs:
       - name: Build API and Desktop
         run: |
           dotnet build AlTayerERP.API/AlTayerERP.API.csproj -c Release
-          dotnet build AlTayerERP.Desktop/AlTayerERP.Desktop.csproj -c Release
+          dotnet build AlTayerERP.Desktop/AlTayerERP.Desktop.csproj -c Release -p:EnableWindowsTargeting=true
 
       - name: Install .NET 10 SDK
         uses: actions/setup-dotnet@v4
