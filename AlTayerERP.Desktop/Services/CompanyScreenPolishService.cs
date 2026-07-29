@@ -12,15 +12,18 @@ internal static class CompanyScreenPolishService
 
         foreach (var grid in FindControls<DataGridView>(form))
         {
-            grid.RowTemplate.Height = 30;
-            grid.ColumnHeadersHeight = 34;
-            grid.ColumnHeadersDefaultCellStyle.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
-            grid.DefaultCellStyle.Font = new Font("Segoe UI", 9F, FontStyle.Regular);
+            // الجدول يملأ العرض، لذلك لا حاجة لشريط تمرير أفقي يستهلك مساحة الشاشة.
+            grid.RowTemplate.Height = 32;
+            grid.ColumnHeadersHeight = 36;
+            grid.ColumnHeadersDefaultCellStyle.Font = new Font("Segoe UI", 9.5F, FontStyle.Bold);
+            grid.DefaultCellStyle.Font = new Font("Segoe UI", 9.5F, FontStyle.Regular);
             grid.DefaultCellStyle.ForeColor = Color.FromArgb(31, 41, 55);
             grid.DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleRight;
             grid.ColumnHeadersDefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleCenter;
-            grid.ScrollBars = ScrollBars.Both;
+            grid.ScrollBars = ScrollBars.Vertical;
             grid.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
+            grid.RowHeadersVisible = false;
+            grid.AllowUserToResizeRows = false;
         }
     }
 
