@@ -85,9 +85,25 @@ namespace AlTayerERP.Desktop.Services
                     // لا نمرر النص الخام لأنه قد يحتوي Stack Trace أو أسرار جلسة.
                 }
 
+                // قوائم الفروع تستخدم GetFromJsonAsync الذي يولد رسالة .NET إنجليزية
+                // عند 404 أو 409. نرمي هنا النص العربي الآمن فقط لهذا المسار.
+                if (IsBranchReferenceRequest(request))
+                {
+                    var statusCode = response.StatusCode;
+                    response.Dispose();
+                    throw new HttpRequestException(safeMessage, null, statusCode);
+                }
+
                 response.Content.Dispose();
                 response.Content = new StringContent(safeMessage, Encoding.UTF8, "text/plain");
                 return response;
+            }
+
+            /// <summary>يتحقق من أن الطلب يخص أنواع الفروع أو عملات الشركة.</summary>
+            private static bool IsBranchReferenceRequest(HttpRequestMessage request)
+            {
+                var path = request.RequestUri?.AbsolutePath ?? string.Empty;
+                return path.Contains("branch-reference-lookups", StringComparison.OrdinalIgnoreCase);
             }
         }
     }
