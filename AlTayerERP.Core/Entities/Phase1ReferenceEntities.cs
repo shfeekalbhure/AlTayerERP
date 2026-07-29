@@ -88,11 +88,11 @@ public sealed class ApprovalStatusReference
     public bool Is_Active { get; set; } = true;
 }
 
-/// <summary>نوع مستند يستخدمه محرك الترقيم.</summary>
-[Table("document_types")]
-public sealed class DocumentTypeReference
+/// <summary>نوع مستند يستخدمه محرك الترقيم المركزي.</summary>
+[Table("numbering_document_types")]
+public sealed class NumberingDocumentType
 {
-    [Key] public int Document_Type_ID { get; set; }
+    [Key] public int Numbering_Document_Type_ID { get; set; }
     [Required, MaxLength(50)] public string Document_Type_Code { get; set; } = string.Empty;
     [Required, MaxLength(150)] public string Document_Type_Name_AR { get; set; } = string.Empty;
     [MaxLength(150)] public string? Document_Type_Name_EN { get; set; }
