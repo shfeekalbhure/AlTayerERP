@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace AlTayerERP.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260729185327_Baseline_Phase1")]
+    [Migration("20260729185838_Baseline_Phase1")]
     partial class Baseline_Phase1
     {
         /// <inheritdoc />

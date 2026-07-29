@@ -1380,7 +1380,7 @@ CREATE UNIQUE INDEX `IX_voucher_statuses_voucher_status_code` ON `voucher_status
 CREATE UNIQUE INDEX `IX_voucher_types_voucher_type_code` ON `voucher_types` (`voucher_type_code`);
 
 INSERT INTO `__EFMigrationsHistory` (`MigrationId`, `ProductVersion`)
-VALUES ('20260729185327_Baseline_Phase1', '8.0.2');
+VALUES ('20260729185838_Baseline_Phase1', '8.0.2');
 
 COMMIT;
 
