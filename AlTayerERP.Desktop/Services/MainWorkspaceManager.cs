@@ -7,15 +7,14 @@ using System.Windows.Forms;
 namespace AlTayerERP.Desktop.Services
 {
     /// <summary>
-    /// مدير تبويبات مساحة العمل في FrmMain. يمنع فتح نفس الشاشة أو نفس السجل
-    /// مرتين، ويجعل جميع النوافذ الفرعية داخل pnlWorkspace وفق عقد عرض موحد.
+    /// مدير تبويبات مساحة العمل في الشاشة الرئيسية.
+    /// يمنع فتح نفس Screen_Code أو نفس نوع الفورم أكثر من مرة، ويعيد تنشيط التبويب الموجود.
     /// </summary>
     public sealed class MainWorkspaceManager : IDisposable
     {
         private const string HomeKey = "__HOME__";
         private readonly TabControl _tabs;
-        private readonly Dictionary<string, TabPage> _pages =
-            new(StringComparer.OrdinalIgnoreCase);
+        private readonly Dictionary<string, TabPage> _pages = new(StringComparer.OrdinalIgnoreCase);
 
         public MainWorkspaceManager(Panel host)
         {
@@ -82,20 +81,36 @@ namespace AlTayerERP.Desktop.Services
                 _tabs.SelectedTab = page;
         }
 
+        /// <summary>
+        /// يفتح الشاشة أو ينشط التبويب الموجود اعتماداً على Screen_Code ثم نوع الفورم.
+        /// لا يسمح بوجود نافذة مستقلة أو تبويب ثانٍ لنفس الشاشة.
+        /// </summary>
         public bool Open(string screenCode, string caption, Func<Form> factory, string? recordKey = null)
         {
             var key = string.IsNullOrWhiteSpace(recordKey)
                 ? screenCode
                 : $"{screenCode}:{recordKey}";
 
-            if (_pages.TryGetValue(key, out var existing))
+            if (_pages.TryGetValue(key, out var existingByCode))
             {
-                _tabs.SelectedTab = existing;
-                existing.Focus();
+                Activate(existingByCode);
                 return false;
             }
 
             var form = factory();
+
+            // حماية إضافية: قد تصل الشاشة نفسها من Screen_Code قديم أو اسم تبويب مختلف.
+            var existingByType = _pages.Values
+                .Where(page => !string.Equals(page.Name, HomeKey, StringComparison.OrdinalIgnoreCase))
+                .FirstOrDefault(page => FindWorkspaceForm(page)?.GetType() == form.GetType());
+
+            if (existingByType != null && string.IsNullOrWhiteSpace(recordKey))
+            {
+                form.Dispose();
+                Activate(existingByType);
+                return false;
+            }
+
             var designSize = WorkspaceScreenSizingService.GetDesignSize(form);
             var page = CreatePage(key, caption);
             var viewport = WorkspaceScreenSizingService.CreateViewport();
@@ -159,6 +174,13 @@ namespace AlTayerERP.Desktop.Services
             _pages.Clear();
         }
 
+        private void Activate(TabPage page)
+        {
+            _tabs.SelectedTab = page;
+            page.Focus();
+            FindWorkspaceForm(page)?.Activate();
+        }
+
         private void ShowExistingOrHome()
         {
             if (_pages.TryGetValue(HomeKey, out var page))
@@ -210,8 +232,7 @@ namespace AlTayerERP.Desktop.Services
             WorkspaceScreenSizingService.FitToViewport(form, viewport, designSize);
         }
 
-        private static Form? FindWorkspaceForm(TabPage page) =>
-            FindForm(page);
+        private static Form? FindWorkspaceForm(TabPage page) => FindForm(page);
 
         private static Form? FindForm(Control parent)
         {
