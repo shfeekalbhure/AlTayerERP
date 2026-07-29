@@ -54,8 +54,8 @@ jobs:
             --configuration Release \
             --no-build
 
-      - name: Build generated migration assembly
-        run: dotnet build AlTayerERP.Infrastructure/AlTayerERP.Infrastructure.csproj -c Release --no-restore
+      - name: Build API with generated migration
+        run: dotnet build AlTayerERP.API/AlTayerERP.API.csproj -c Release --no-restore
 
       - name: Generate review SQL without applying it
         run: |
