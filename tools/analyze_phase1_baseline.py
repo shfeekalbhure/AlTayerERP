@@ -31,7 +31,7 @@ if violations:
 if re.search(r"\bdrop\s+table\b", lower):
     raise SystemExit("فشل فحص الأمان: السكربت المولد يحتوي DROP TABLE.")
 
-create_tables = re.findall(r"CREATE\\s+TABLE\\s+(?:IF\\s+NOT\\s+EXISTS\\s+)?`?([a-z0-9_]+)`?", sql, flags=re.I)
+create_tables = re.findall(r"CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?`?([a-z0-9_]+)`?", sql, flags=re.I)
 foreign_keys = re.findall(r"FOREIGN\s+KEY", sql, flags=re.I)
 unique_constraints = re.findall(r"\bUNIQUE\b", sql, flags=re.I)
 check_constraints = re.findall(r"\bCHECK\s*\(", sql, flags=re.I)
@@ -57,6 +57,11 @@ report = f"""# تقرير Baseline قبل التطبيق — المرحلة ال
 - عدد ظهور القيود/الفهارس الفريدة: **{len(unique_constraints)}**.
 - عدد Check Constraints: **{len(check_constraints)}**.
 - عدد ملفات Migration/Snapshot النشطة: **{len(migration_files)}**.
+
+## ملاحظة تحقق العدد
+
+- العدد الفعلي المستخرج من أوامر `CREATE TABLE` هو **{len(functional_tables)}** جدولًا وظيفيًا.
+- العدد السابق **47** كان خطأً حسابيًا في التقرير؛ قائمة الجداول وسكربت Baseline السابقان كانا يحتويان بالفعل **48** جدولًا وظيفيًا.
 
 ## الجداول التي تنشئها Baseline
 

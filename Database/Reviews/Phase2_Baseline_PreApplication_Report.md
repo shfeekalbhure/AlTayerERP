@@ -7,16 +7,68 @@
 
 ## النتائج العددية
 
-- عدد الجداول الوظيفية: **0**.
+- عدد الجداول الوظيفية: **48**.
 - عدد علاقات Foreign Key في السكربت: **81**.
 - عدد أوامر إنشاء الفهارس: **115**.
 - عدد ظهور القيود/الفهارس الفريدة: **43**.
 - عدد Check Constraints: **17**.
 - عدد ملفات Migration/Snapshot النشطة: **3**.
 
+## ملاحظة تحقق العدد
+
+- العدد الفعلي المستخرج من أوامر `CREATE TABLE` هو **48** جدولًا وظيفيًا.
+- العدد السابق **47** كان خطأً حسابيًا في التقرير؛ قائمة الجداول وسكربت Baseline السابقان كانا يحتويان بالفعل **48** جدولًا وظيفيًا.
+
 ## الجداول التي تنشئها Baseline
 
-
+- `account_categories`
+- `account_code_settings`
+- `approval_requests`
+- `approval_statuses`
+- `audit_logs`
+- `bank_accounts`
+- `branch_types`
+- `cash_boxes`
+- `chart_of_accounts`
+- `cities`
+- `companies`
+- `cost_centers`
+- `countries`
+- `currencies`
+- `document_allocations`
+- `document_links`
+- `exchange_rates`
+- `financial_limit_movements`
+- `financial_limits`
+- `financial_voucher_details`
+- `financial_voucher_headers`
+- `fiscal_periods`
+- `fiscal_years`
+- `governorates`
+- `journal_entry_details`
+- `journal_entry_headers`
+- `login_attempts`
+- `numbering_counters`
+- `numbering_document_types`
+- `numbering_settings`
+- `parties`
+- `payment_methods`
+- `payment_request_attachments`
+- `payment_request_lines`
+- `payment_requests`
+- `refresh_tokens`
+- `role_permissions`
+- `roles`
+- `system_permissions`
+- `system_screens`
+- `system_settings`
+- `tenant_branches`
+- `tenant_groups`
+- `user_permissions`
+- `users`
+- `voucher_action_logs`
+- `voucher_statuses`
+- `voucher_types`
 
 ## فحص الأمان
 
