@@ -1,71 +1,101 @@
 # تقرير اختلاف أنواع المفاتيح — المرحلة الأولى
 
-**مبدأ المرحلة:** توثيق فقط؛ لا تغيير لأي نوع.
+**فرع التدقيق:** `agent/phase1-clean-database-baseline`  
+**الحالة:** توثيق فقط؛ لا تغيير لأي نوع ولا تنفيذ Migration أو SQL.
 
-## 1. الملخص
+## 1. الأنواع الفعلية المؤكدة
 
-أكبر خطر قبل Baseline هو عدم ثبات أنواع المفاتيح بين C# وMigration وSQL والاستخدام داخل API. بعض المفاتيح نصية في كيانات، وبعضها رقمية في أجزاء أخرى، وتوجد حقول مستخدم/فرع محفوظة كنصوص في سجلات القيود والتدقيق.
+| المفتاح | النوع في Entity | مصادر أخرى | الحالة والتوصية المقترحة |
+|---|---|---|---|
+| `Group_ID` | `string` | `tenant_groups` و`companies.Group_ID` نصيان؛ سكربتات تستخدم `VARCHAR(36/50)` | نصي حاليًا؛ تثبيت صيغة وطول واحد قبل FK |
+| `Company_ID` | `string` | أغلب SQL يستخدم `VARCHAR(50)` | نصي متسق غالبًا، لكن FKs غير مكتملة |
+| `Branch_ID` | `int` في `TenantBranch`, `User`, `PaymentRequest` | `string/VARCHAR(50)` في `FinancialVoucherHeader`, `JournalEntryHeader` وMigration القيود | اختلاف حرج؛ راجع تقرير Branch المستقل |
+| `Fiscal_Year_ID` | `int` | `int?` في السند/القيد و`int` في طلب الصرف | اختلاف nullability لا النوع |
+| `Currency_ID` | `int` | بعض الجداول تخزن `Currency_Code` فقط مثل الصندوق والبنك | اعتماد ID للعلاقات مع Code كقيمة أعمال |
+| `User_ID` | `int` | حقول `Created_By`, `Posted_By`, `Reviewed_By` كثيرة منها `string/VARCHAR(50)` | اختلاف حرج بين FK رقمية وSnapshot نصي |
+| `Role_ID` | `int` | مستخدم في `users.Role_ID` | متوافق؛ يحتاج FK وUnique للربط |
+| `Account_ID` | `string` | Migration القيود وطلبات الصرف `VARCHAR(50)` | متسق نصيًا؛ يجب تثبيت الطول والـCollation وفصل الكود عن المعرف |
+| `Cost_Center_ID` | `string` | Migration/طلبات الصرف `VARCHAR(50)` | متسق نصيًا؛ يحتاج FK فعلية وطول موحد |
+| `Cash_Box_ID` | `string` GUID | API routes وDesktop تتعامل معه كنص | صحح: ليس `int`; مقترح إبقاؤه نصيًا إن اعتمد GUID |
+| `Bank_Account_ID` | `int` | SQL `INT AUTO_INCREMENT` | متوافق |
+| `Party_ID` | `string` | السند وطلب الصرف يستخدمان `string?`/`VARCHAR(50)` | صحح: نصي وليس int/long |
+| `Voucher_ID` | `long` | `BIGINT` | متوافق |
+| `Payment_Request_ID` | `long` | SQL وSchemaInitializer `BIGINT` | صحح: `long` متوافق |
+| `Journal_Entry_ID` | `long` | Migration/SQL `BIGINT` | متوافق |
 
-## 2. جدول المفاتيح الحرجة
+## 2. التأثير حسب المفتاح
 
-| المفتاح | النوع الغالب في C# | دليل Migration/SQL | موضع الاختلاف | القرار المقترح |
-|---|---|---|---|---|
-| `Group_ID` | `string` | SQL يستخدم `VARCHAR` | بعض DTOs/تاريخ قديم تعاملت معه كـint | يبقى نصياً إن كان GUID، مع طول ثابت موحد |
-| `Company_ID` | `string` | SQL يستخدم `VARCHAR(50)` | بعض العلاقات لا تحمل FK فعلية | اعتماد نصي موحد مع FK لكل الجداول التابعة |
-| `Branch_ID` | غالباً `int` | Migration القيود تستخدم `varchar(50)` | اختلاف مؤكد | اعتماد `int` للنظام الحالي أو توثيق سبب التحويل إلى string؛ لا خليط |
-| `Fiscal_Year_ID` | `int` | Migration القيود `int?` | nullability تختلف حسب المستند | اعتماد `int` وإلزامه في المستندات المحاسبية بعد التهيئة |
-| `Currency_ID` | `int` | Migration `int` | بعض SQL يستخدم `Currency_Code` بدلاً من ID | اعتماد ID للعلاقات وCode للعرض فقط |
-| `User_ID` | `int` | حقول `Created_By/Posted_By` في Migration نصية | اختلاف مؤكد | اعتماد `int?` في الجداول التشغيلية، ونص فقط للهوية الخارجية إن وجدت |
-| `Role_ID` | `int` | لا Migration تغطيه | DTOs متوافقة غالباً | اعتماد `int` مع FK |
-| `Account_ID` | `string` في Migration القيود | كيانات الدليل قد تستخدم معرف/كود نصي | التباس بين المفتاح والكود | فصل `Account_ID` العددي عن `Account_Code` النصي أو اعتماد نصي رسمياً |
-| `Cost_Center_ID` | يظهر نصياً في Migration | كيان مستقل قد يستخدم int/string حسب النسخة | اختلاف محتمل مرتفع | حسم نوع واحد وفصل الكود عن المعرف |
-| `Cash_Box_ID` | غالباً `int` | SQL/Entity يجب مراجعته نهائياً | لا Migration شاملة | اعتماد `int` مبدئياً |
-| `Bank_Account_ID` | `int` | SQL `INT AUTO_INCREMENT` | متوافق | تثبيت FK من السندات/طرق الدفع |
-| `Party_ID` | غالباً `int/long` حسب الكيان | لا Baseline | يحتاج تثبيت | اعتماد نوع واحد قبل علاقات السندات |
-| `Voucher_ID` | `long` | Migration/خدمات مالية تستخدم `bigint` | متوافق غالباً | تثبيت `long` |
-| `Payment_Request_ID` | غير مثبت في Migration | Entity موجود | لا مصدر إنشاء موحد | مراجعة Entity/DTO ثم اعتماد `long` أو `int` |
-| `Journal_Entry_ID` | `long` | Migration `bigint` | متوافق | تثبيت `long` |
+### Group_ID
+- **الجداول:** `tenant_groups`, `companies`، وخصائص الأب/الشركة الرئيسية التاريخية.
+- **API/Desktop:** إدارة المجموعات والشركات تستخدم النص مباشرة.
+- **Mobile:** لا يظهر كمعرف إدخال مباشر حاليًا.
+- **المراجع النصية:** GUID/`VARCHAR(36/50)` مختلطة الأطوال.
+- **المقترح:** إبقاؤه نصيًا بطول ثابت يحدده قرار الهوية.
+- **أثر التغيير:** تغيير الطول/الصيغة يؤثر على الشركات والفهارس وCollation.
+- **Migration بيانات مستقبلية:** نعم عند تغيير الصيغة أو الطول.
 
-## 3. اختلافات مؤكدة ذات أولوية قصوى
+### Company_ID
+- **الجداول:** معظم الجداول المؤسسية والمالية والأمنية.
+- **APIs:** كل Scoping تقريبًا يعتمد النص.
+- **Desktop/Mobile:** محفوظ في الجلسة ويرسل ضمن السياق.
+- **المقترح:** نصي موحد `VARCHAR(50)` أو `CHAR(36)` بعد اعتماد صيغة الهوية.
+- **Migration بيانات مستقبلية:** نعم إذا تم التحويل إلى رقم أو تغيير صيغة GUID.
 
-### 3.1 Branch_ID
+### Branch_ID
+- **الجداول المتأثرة:** `tenant_branches`, `users`, `fiscal_periods`, `numbering_*`, `payment_requests`, `financial_voucher_headers`, `journal_entry_headers`, `audit_logs` وغيرها.
+- **APIs:** الجلسة والفروع وطلبات الصرف رقمية؛ خدمات السند والقيد تستعمل نصوصًا وتحويلات.
+- **Desktop/Mobile:** DTOs المرجعية غالبًا رقمية؛ سندات قد تعرضه كنص.
+- **المقترح الأولي:** `int`، لكن القرار معلق حتى تقرير القيم الفعلية.
+- **Migration بيانات مستقبلية:** نعم وبدرجة خطورة عالية.
 
-Migration `AddJournalEntryTables` تعرف `Branch_ID` كـ`varchar(50)`، بينما سياق الجلسة وكيان الفروع وواجهات كثيرة تستخدم `int`. هذا يمنع FK مباشرة بين `journal_entry_headers` و`tenant_branches`.
+### User_ID وحقول التدقيق
+- **الجداول:** `users.User_ID int` مقابل `Created_By/Updated_By/Posted_By/Reviewed_By` نصية في عدد من الجداول.
+- **APIs:** كثير من الخدمات تستخدم `session.User_ID.ToString()`.
+- **Desktop/Mobile:** لا ينبغي أن يرسلا هوية التدقيق؛ الخادم يملؤها.
+- **المقترح:** FK رقمية nullable + حقول Snapshot منفصلة للاسم/الهوية الخارجية عند الحاجة.
+- **Migration بيانات مستقبلية:** نعم، مع تحليل القيم غير الرقمية أولًا.
 
-### 3.2 User references
+### Account_ID وCost_Center_ID
+- **الجداول:** الدليل، مراكز التكلفة، تفاصيل السندات والقيود وطلبات الصرف والصناديق والأطراف.
+- **APIs/Desktop/Mobile:** جميعها تتعامل مع معرفات نصية.
+- **المراجع:** `VARCHAR(50)` غالبًا، مع غياب FKs في كثير من المصادر.
+- **المقترح:** إبقاؤهما نصيين مؤقتًا، وتثبيت `VARCHAR(50)` وCollation موحدة، وفصل `Account_Code/Center_Code` عن PK.
+- **Migration بيانات مستقبلية:** فقط عند التحويل لرقمي؛ وإلا Migration قيود وفهارس فقط.
 
-`Created_By`, `Updated_By`, `Posted_By`, `Cancelled_By`, `Reversed_By` في Migration القيود نصوص. `users.User_ID` في الكود عدد صحيح. يلزم تحويلها إلى `int?` أو تعريف هوية نصية مستقلة؛ الوضع المختلط غير مقبول في Baseline.
+### Cash_Box_ID
+- **الجداول/API:** كيان الصندوق ينشئ GUID نصيًا وController routes تستخدم `string id`.
+- **Desktop:** `CashBoxModel` والخدمات تتعامل مع النص.
+- **Mobile:** السندات تعتمد الحساب المرتبط أكثر من معرف الصندوق.
+- **المقترح:** `CHAR(36)` أو `VARCHAR(50)` نصي موحد، لا `int`.
+- **Migration بيانات مستقبلية:** نعم عند تغيير الطول أو التحويل العددي.
 
-### 3.3 Account_ID وCost_Center_ID
+### Party_ID
+- **الجداول:** `parties`, `financial_voucher_headers`, `payment_requests`.
+- **APIs/Desktop/Mobile:** خيارات الطرف وقيم السند نصية.
+- **المقترح:** نصي موحد بطول 50 مع FK nullable.
+- **Migration بيانات مستقبلية:** لا لتثبيت النوع النصي، نعم لإضافة FK أو تغيير الصيغة.
 
-Migration القيود تستخدم `varchar(50)`. يجب تحديد هل هذه قيم PK أم أكواد أعمال. إن كانت أكواداً، يجب إضافة PK رقمي مستقل أو توثيق أن الكود نفسه هو PK في كل النظام.
+### Payment_Request_ID
+- **الجداول:** الرأس والخطوط والمرفقات.
+- **API/Mobile/Desktop:** routes وDTOs تستخدم `long`.
+- **المقترح:** تثبيت `BIGINT`.
+- **Migration بيانات مستقبلية:** لا لتغيير النوع؛ نعم لإنشاء المخطط من Baseline.
 
-### 3.4 Company_ID وGroup_ID
+## 3. العلاقات التي لا يمكن فرضها حاليًا
 
-كلاهما نصي حالياً. يجب تثبيت الطول (`char(36)` للـGUID أو `varchar(50)` لكود مولد) وتوحيد Collation قبل إنشاء FK نصية.
+- `journal_entry_headers.Branch_ID` و`financial_voucher_headers.Branch_ID` إلى `tenant_branches.Branch_ID`.
+- حقول المستخدم النصية إلى `users.User_ID`.
+- علاقات `Currency_Code` إلى `currencies.Currency_ID`.
+- بعض علاقات الحساب ومركز التكلفة بسبب غياب قيود موحدة رغم توافق النوع النصي.
 
-## 4. Nullability
+## 4. القرارات المطلوبة
 
-- المفاتيح الخارجية التشغيلية مثل الشركة والفرع والسنة والعملة يجب أن تكون إلزامية بعد مرحلة المسودة، لكن بعض الجداول تسمح بـNULL.
-- مفاتيح التدقيق (`Created_By`, `Updated_By`) يمكن أن تكون nullable عند ترحيل بيانات قديمة، مع FK `SET NULL`.
-- `Parent_Branch_ID`, `Parent_Account_ID`, `Parent_Cost_Center_ID` يجب أن تكون nullable مع `Restrict` أو `NoAction` عند الحذف.
+1. صيغة وطول `Group_ID` و`Company_ID`.
+2. قرار `Branch_ID` بعد تقرير القيم الفعلية.
+3. هل حقول التدقيق FKs رقمية أم Snapshots نصية أو كلاهما.
+4. اعتماد `Account_ID`, `Cost_Center_ID`, `Cash_Box_ID`, `Party_ID` نصية نهائيًا وتحديد طولها.
+5. تثبيت `Payment_Request_ID`, `Voucher_ID`, `Journal_Entry_ID` كـ`BIGINT`.
 
-## 5. أثر الاختلاف على التطبيقات
+## 5. التأكيد
 
-- API يضطر للتحويل بين string وint.
-- Desktop/Mobile قد يرسل قيمة نصية بينما Controller يتوقع رقمية.
-- MySQL قد يرفض FK بسبب اختلاف النوع أو الطول أو Collation.
-- الفهارس النصية أكبر وأبطأ من العددية في الجداول عالية الحركة.
-- ترحيل البيانات لاحقاً يصبح أكثر خطراً إذا لم يُحسم النوع قبل Baseline.
-
-## 6. قرارات تحتاج موافقة
-
-1. هل `Group_ID` و`Company_ID` GUID نصية نهائياً؟
-2. هل `Branch_ID` يجب أن يكون `int` في كل النظام؟
-3. هل `Account_ID` و`Cost_Center_ID` معرفات أم أكواد أعمال؟
-4. هل حقول المستخدم في التدقيق FK عددية أم snapshots نصية؟
-5. نوع `Party_ID` و`Payment_Request_ID` النهائي.
-
-## 7. حالة التقرير
-
-لم يُعدّل أي Entity أو DTO أو Migration أو SQL.
+لم يُعدّل أي Entity أو DTO أو Migration أو قاعدة بيانات.
