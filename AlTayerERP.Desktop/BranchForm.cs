@@ -27,6 +27,9 @@ namespace AlTayerERP.Desktop
         // يمنع إعادة تحميل الجدول أثناء تعبئة قائمة الشركات عند فتح الشاشة.
         private bool _isLoadingCompanies;
 
+        // يمنع تكرار رسالة الفشل نفسها أثناء إعادة التحميل أو تغيير الشركة.
+        private readonly HashSet<string> _shownLookupWarnings = new HashSet<string>();
+
         // كائنات نظام الطباعة والمعاينة
         private System.Drawing.Printing.PrintDocument printDocument = new System.Drawing.Printing.PrintDocument();
         private PrintPreviewDialog printPreviewDialog = new PrintPreviewDialog();
@@ -37,6 +40,9 @@ namespace AlTayerERP.Desktop
             InitializeComponent();
             // يرث القالب المرئي الموحد من BaseForm دون نقل قواعد الحفظ أو التدقيق إلى الواجهة.
             ApplyBaseFormStyle();
+            // تعريف الحقول الإلزامية مرة واحدة؛ الخدمة الموحدة تتولى اللون والتحقق والرسالة.
+            ApplyRequiredFieldStyle(cmbCompanies, txtBranchNameAr, cmbBranchType, cmbCity);
+            ConfigureBranchEditorLayout();
 
             // توحيد شكل الشاشة القديمة والاختصارات العربية دون تغيير منطقها.
             this.Load -= BranchForm_Load;
@@ -45,6 +51,23 @@ namespace AlTayerERP.Desktop
             cmbCity.SelectedValueChanged += cmbCity_SelectedValueChanged;
             cmbParentBranch.DropDown += cmbParentBranch_DropDown;
             printDocument.PrintPage += PrintDocument_PrintPage;
+        }
+
+        /// <summary>يضبط حقول الاتصال والإدارة دون تلوين أو منطق مكرر داخل الشاشة.</summary>
+        private void ConfigureBranchEditorLayout()
+        {
+            cmbManager.FlatStyle = FlatStyle.Flat;
+            cmbManager.Width = 138;
+            txtPhone.Width = 112;
+            txtMobile.Width = 112;
+            txtEmail.Width = 112;
+            txtWebsite.Width = 112;
+        }
+
+        private void ShowLookupWarningOnce(string key, string message, string title, MessageBoxIcon icon = MessageBoxIcon.Warning)
+        {
+            if (_shownLookupWarnings.Add(key))
+                MessageBox.Show(message, title, MessageBoxButtons.OK, icon);
         }
 
         private async void BranchForm_Load(object sender, EventArgs e)
@@ -99,15 +122,15 @@ namespace AlTayerERP.Desktop
                 cmbBranchType.ValueMember = nameof(BranchTypeLookupModel.Branch_Type_Code);
                 cmbBranchType.SelectedIndex = -1;
                 if (_branchTypes.Count == 0)
-                    MessageBox.Show("لا توجد أنواع فروع نشطة. أضف نوع فرع أو فعّله ثم أعد المحاولة.", "قائمة أنواع الفروع", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    ShowLookupWarningOnce("branch-types-empty", "لا توجد أنواع فروع نشطة. أضف نوع فرع أو فعّله ثم أعد المحاولة.", "قائمة أنواع الفروع");
             }
             catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
             {
-                MessageBox.Show("تعذر تحميل قائمة أنواع الفروع لأن خدمة أنواع الفروع غير موجودة في API المشغّل. حدّث API ثم أعد تشغيله.", "قائمة أنواع الفروع", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                ShowLookupWarningOnce("branch-types-not-found", "تعذر تحميل قائمة أنواع الفروع لأن خدمة أنواع الفروع غير موجودة في API المشغّل. حدّث API ثم أعد تشغيله.", "قائمة أنواع الفروع");
             }
             catch (Exception ex)
             {
-                MessageBox.Show("تعذر تحميل قائمة أنواع الفروع:\n" + ex.Message, "قائمة أنواع الفروع", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                ShowLookupWarningOnce("branch-types-error", "تعذر تحميل قائمة أنواع الفروع. تحقق من اتصال API ثم أعد المحاولة.", "قائمة أنواع الفروع");
             }
         }
 
@@ -123,15 +146,15 @@ namespace AlTayerERP.Desktop
                     ?? currencies.FirstOrDefault();
                 _defaultCurrencyId = currency?.Currency_ID ?? 0;
                 if (_defaultCurrencyId <= 0)
-                    MessageBox.Show("لا توجد عملة نشطة للشركة المختارة. أضف عملة افتراضية للشركة ثم أعد المحاولة.", "قائمة عملات الشركة", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    ShowLookupWarningOnce("currencies-empty", "لا توجد عملة نشطة للشركة المختارة. أضف عملة افتراضية للشركة ثم أعد المحاولة.", "قائمة عملات الشركة");
             }
             catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
             {
-                MessageBox.Show("تعذر تحميل قائمة عملات الشركة لأن الشركة أو خدمة العملات غير موجودة في API المشغّل.", "قائمة عملات الشركة", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                ShowLookupWarningOnce("currencies-not-found", "تعذر تحميل قائمة عملات الشركة لأن الشركة أو خدمة العملات غير موجودة في API المشغّل.", "قائمة عملات الشركة");
             }
             catch (Exception ex)
             {
-                MessageBox.Show("تعذر تحميل قائمة عملات الشركة:\n" + ex.Message, "قائمة عملات الشركة", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                ShowLookupWarningOnce("currencies-error", "تعذر تحميل قائمة عملات الشركة. تحقق من اتصال API ثم أعد المحاولة.", "قائمة عملات الشركة");
             }
         }
 
@@ -144,7 +167,7 @@ namespace AlTayerERP.Desktop
                 if (companies is null || companies.Count == 0)
                 {
                     cmbCompanies.DataSource = null;
-                    MessageBox.Show("لا توجد شركات نشطة متاحة. فعّل شركة أولاً ثم أعد فتح شاشة الفروع.", "قائمة الشركات", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    ShowLookupWarningOnce("companies-empty", "لا توجد شركات نشطة متاحة. فعّل شركة أولاً ثم أعد فتح شاشة الفروع.", "قائمة الشركات");
                     return;
                 }
 
@@ -158,7 +181,7 @@ namespace AlTayerERP.Desktop
             }
             catch (Exception ex)
             {
-                MessageBox.Show("تعذر تحميل قائمة الشركات:\n" + ex.Message, "قائمة الشركات", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                ShowLookupWarningOnce("companies-error", "تعذر تحميل قائمة الشركات. تحقق من اتصال API ثم أعد المحاولة.", "قائمة الشركات");
             }
             finally
             {
@@ -202,11 +225,11 @@ namespace AlTayerERP.Desktop
                 cmbCity.ValueMember = nameof(CityLookupModel.City_ID);
                 cmbCity.SelectedIndex = -1;
                 if (_cities.Count == 0)
-                    MessageBox.Show("لا توجد مدن نشطة في جدول المدن. أضف مدينة أو فعّلها ثم أعد المحاولة.", "قائمة المدن", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    ShowLookupWarningOnce("cities-empty", "لا توجد مدن نشطة في جدول المدن. أضف مدينة أو فعّلها ثم أعد المحاولة.", "قائمة المدن");
             }
             catch (Exception ex)
             {
-                MessageBox.Show("تعذر تحميل المدن من جدول المدن:\n" + ex.Message, "الفروع", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                ShowLookupWarningOnce("cities-error", "تعذر تحميل قائمة المدن. تحقق من اتصال API ثم أعد المحاولة.", "قائمة المدن");
             }
         }
 
@@ -248,7 +271,7 @@ namespace AlTayerERP.Desktop
         private void cmbParentBranch_DropDown(object? sender, EventArgs e)
         {
             if (cmbParentBranch.Items.Count == 0)
-                MessageBox.Show("لا يوجد فرع أب نشط من نوع «فرع رئيسي» أو «فرع» ضمن الشركة المختارة.", "قائمة الفرع الأب", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                ShowLookupWarningOnce("parent-branch-empty", "لا يوجد فرع أب نشط من نوع «فرع رئيسي» أو «فرع» ضمن الشركة المختارة.", "قائمة الفرع الأب", MessageBoxIcon.Information);
         }
 
         private void SetupBranchesGrid()
@@ -352,29 +375,17 @@ namespace AlTayerERP.Desktop
 
         private bool ValidateForm()
         {
-            if (cmbCompanies.SelectedValue == null)
-            {
-                MessageBox.Show("يرجى اختيار الشركة التابعة.");
+            if (!ValidateRequiredField(cmbCompanies, "اختر الشركة التابعة."))
                 return false;
-            }
 
-            if (string.IsNullOrWhiteSpace(txtBranchNameAr.Text))
-            {
-                MessageBox.Show("يرجى إدخال اسم الفرع بالعربي.");
+            if (!ValidateRequiredField(txtBranchNameAr, "أدخل اسم الفرع بالعربي."))
                 return false;
-            }
 
-            if (cmbBranchType.SelectedValue is null)
-            {
-                MessageBox.Show("يرجى اختيار نوع الفرع.");
+            if (!ValidateRequiredField(cmbBranchType, "اختر نوع الفرع."))
                 return false;
-            }
 
-            if (cmbCity.SelectedValue is null)
-            {
-                MessageBox.Show("يرجى اختيار المدينة من قائمة المدن.");
+            if (!ValidateRequiredField(cmbCity, "اختر المدينة من القائمة."))
                 return false;
-            }
 
             if (cmbParentBranch.SelectedValue is not null &&
                 Convert.ToInt32(cmbParentBranch.SelectedValue) == _selectedBranchId)
