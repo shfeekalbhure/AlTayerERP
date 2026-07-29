@@ -31,7 +31,7 @@ if violations:
 if re.search(r"\bdrop\s+table\b", lower):
     raise SystemExit("فشل فحص الأمان: السكربت المولد يحتوي DROP TABLE.")
 
-create_tables = re.findall(r"CREATE\s+TABLE\s+`?([a-z0-9_]+)`?", sql, flags=re.I)
+create_tables = re.findall(r"CREATE\\s+TABLE\\s+(?:IF\\s+NOT\\s+EXISTS\\s+)?`?([a-z0-9_]+)`?", sql, flags=re.I)
 foreign_keys = re.findall(r"FOREIGN\s+KEY", sql, flags=re.I)
 unique_constraints = re.findall(r"\bUNIQUE\b", sql, flags=re.I)
 check_constraints = re.findall(r"\bCHECK\s*\(", sql, flags=re.I)
