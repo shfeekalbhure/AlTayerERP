@@ -51,6 +51,7 @@ jobs:
             --startup-project AlTayerERP.API/AlTayerERP.API.csproj \
             --context AppDbContext \
             --output-dir Migrations \
+            --configuration Release \
             --no-build
 
       - name: Generate review SQL without applying it
@@ -60,6 +61,7 @@ jobs:
             --startup-project AlTayerERP.API/AlTayerERP.API.csproj \
             --context AppDbContext \
             --output Database/Baseline/Baseline_Phase1.sql \
+            --configuration Release \
             --no-build
 
       - name: Analyze and secure generated baseline
