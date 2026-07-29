@@ -12,6 +12,17 @@ on:
       - "AlTayerERP.Infrastructure/Data/Phase1BaselineModelConfiguration.cs"
       - "tools/analyze_phase1_baseline.py"
       - "tools/verify_phase1_baseline_collation.py"
+  pull_request:
+    branches:
+      - master
+    paths:
+      - ".github/workflows/phase1-baseline-generation.yml"
+      - "AlTayerERP.Core/Entities/**"
+      - "AlTayerERP.Infrastructure/Data/AppDbContext.cs"
+      - "AlTayerERP.Infrastructure/Data/AppDbContextDesignTimeFactory.cs"
+      - "AlTayerERP.Infrastructure/Data/Phase1BaselineModelConfiguration.cs"
+      - "tools/analyze_phase1_baseline.py"
+      - "tools/verify_phase1_baseline_collation.py"
   workflow_dispatch:
 
 permissions:
@@ -109,6 +120,7 @@ jobs:
         run: dotnet build AlTayerERP.Mobile.Office/AlTayerERP.Mobile.Office.csproj -c Release -f net10.0-android
 
       - name: Commit generated Baseline and reports
+        if: github.event_name == 'push'
         shell: bash
         run: |
           git config user.name "github-actions[bot]"
