@@ -31,6 +31,7 @@ jobs:
         run: |
           python tools/fix_phase2_branch_id_compatibility.py
           python tools/fix_branch_id_build_errors.py
+          python tools/fix_branch_id_final_two.py
 
       - name: Restore API packages
         run: dotnet restore AlTayerERP.API/AlTayerERP.API.csproj
