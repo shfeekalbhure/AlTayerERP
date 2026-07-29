@@ -23,6 +23,12 @@ jobs:
         with:
           dotnet-version: 8.0.x
 
+      - name: Prepare phase one EF model
+        if: ${{ github.head_ref == 'agent/phase1-clean-database-implementation' || github.ref_name == 'agent/phase1-clean-database-implementation' }}
+        run: |
+          python tools/phase2_build_clean_model.py
+          python tools/fix_phase2_branch_id_compatibility.py
+
       - name: Restore API packages
         run: dotnet restore AlTayerERP.API/AlTayerERP.API.csproj
 
