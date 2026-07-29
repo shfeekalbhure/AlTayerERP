@@ -29,8 +29,11 @@ jobs:
       - name: Prepare clean EF model
         run: python3 tools/phase2_build_clean_model.py
 
+      - name: Normalize Branch ID compatibility
+        run: python3 tools/fix_phase2_branch_id_compatibility.py
+
       - name: Install dotnet-ef
-        run: dotnet tool install --global dotnet-ef --version 8.0.12
+        run: dotnet tool install --global dotnet-ef --version 8.0.2
 
       - name: Restore API and Infrastructure
         run: |
