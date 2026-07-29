@@ -20,6 +20,8 @@ public abstract class BaseForm : Form
     private bool _responsiveRefreshQueued;
     private bool _applyingResponsiveLayout;
 
+    private RequiredFieldStyleService? _requiredFieldStyle;
+
     protected void ApplyBaseFormStyle()
     {
         RightToLeft = RightToLeft.Yes;
@@ -86,6 +88,7 @@ public abstract class BaseForm : Form
     {
         ReplaceLegacyHeader(root);
         StyleControlTree(root);
+        _requiredFieldStyle?.RefreshAppearance();
     }
 
     private void ReplaceLegacyHeader(Control root)
@@ -435,6 +438,23 @@ public abstract class BaseForm : Form
         SetAuditLabel("auditUpdatedBy", values.UpdatedBy);
         SetAuditLabel("auditUpdatedAt", FormatDate(values.UpdatedAt));
     }
+
+    /// <summary>تطبيق قاعدة الحقول الإلزامية الموحدة دون تلوين يدوي داخل الشاشة.</summary>
+    protected void ApplyRequiredFieldStyle(params Control[] requiredFields)
+    {
+        _requiredFieldStyle ??= new RequiredFieldStyleService(this);
+        _requiredFieldStyle.ApplyRequiredFieldStyle(requiredFields);
+    }
+
+    /// <summary>يعرض حدًا أحمر ورسالة عربية عند غياب قيمة إلزامية، ويعيد الحد تلقائياً بعد الإدخال.</summary>
+    protected bool ValidateRequiredField(Control field, string message, Func<bool>? hasValue = null)
+    {
+        _requiredFieldStyle ??= new RequiredFieldStyleService(this);
+        return _requiredFieldStyle.ValidateRequiredField(field, message, hasValue);
+    }
+
+    protected void ClearRequiredFieldValidation(Control field) =>
+        _requiredFieldStyle?.ClearValidation(field);
 
     protected void EnablePrintAudit() => _showPrintAudit = true;
 
