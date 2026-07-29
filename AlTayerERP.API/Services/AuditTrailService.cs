@@ -35,7 +35,7 @@ namespace AlTayerERP.API.Services
                 Record_ID = recordId,
                 Action_Type = actionType,
                 User_ID = session.User_ID.ToString(),
-                Branch_ID = session.Branch_ID.ToString(),
+                Branch_ID = session.Branch_ID,
                 Action_At = DateTime.UtcNow,
                 Old_Values = oldValues == null ? null : JsonSerializer.Serialize(oldValues),
                 New_Values = newValues == null ? null : JsonSerializer.Serialize(newValues),

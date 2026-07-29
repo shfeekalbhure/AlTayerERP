@@ -22,9 +22,8 @@ namespace AlTayerERP.API.DTOs.Accounting
         [Required(ErrorMessage = "حالة السند مطلوبة.")]
         public int Voucher_Status_ID { get; set; }
 
-        [Required(ErrorMessage = "الفرع مطلوب.")]
-        [MaxLength(50)]
-        public string Branch_ID { get; set; } = string.Empty;
+        [Range(1, int.MaxValue, ErrorMessage = "الفرع مطلوب.")]
+        public int Branch_ID { get; set; }
 
         [Required(ErrorMessage = "السنة المالية مطلوبة.")]
         public int Fiscal_Year_ID { get; set; }

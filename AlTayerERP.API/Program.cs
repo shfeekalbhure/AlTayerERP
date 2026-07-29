@@ -198,11 +198,7 @@ public sealed class VoucherPostingGuardMiddleware
             return;
         }
 
-        if (!int.TryParse(voucher.Branch_ID, out int branchId))
-        {
-            await RejectAsync(context, "معرف فرع السند غير صالح.");
-            return;
-        }
+        int branchId = voucher.Branch_ID;
 
         var branch = await db.Tenant_Branches.AsNoTracking()
             .FirstOrDefaultAsync(x => x.Branch_ID == branchId && x.Is_Active, context.RequestAborted);

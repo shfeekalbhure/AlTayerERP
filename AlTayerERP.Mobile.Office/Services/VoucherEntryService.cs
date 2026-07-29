@@ -88,7 +88,7 @@ public sealed class VoucherEntryService(HttpClient httpClient, SessionStorageSer
     public async Task<CreateMobileVoucherResultDto> CreateAsync(CreateMobileVoucherDto dto, CancellationToken cancellationToken = default)
     {
         var session = await GetSessionAsync();
-        dto.Branch_ID = session.BranchId.ToString();
+        dto.Branch_ID = session.BranchId;
         dto.Fiscal_Year_ID = session.YearId;
 
         using var request = CreateRequest(HttpMethod.Post, "api/FinancialVoucher", session.AccessToken);
@@ -106,7 +106,7 @@ public sealed class VoucherEntryService(HttpClient httpClient, SessionStorageSer
             throw new InvalidOperationException("معرف السند غير صحيح.");
 
         var session = await GetSessionAsync();
-        dto.Branch_ID = session.BranchId.ToString();
+        dto.Branch_ID = session.BranchId;
         dto.Fiscal_Year_ID = session.YearId;
 
         using var request = CreateRequest(HttpMethod.Put, $"api/FinancialVoucher/{dto.Voucher_ID}", session.AccessToken);

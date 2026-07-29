@@ -1,9 +1,6 @@
 name: Phase1 Baseline Generation
 
 on:
-  push:
-    branches:
-      - agent/phase1-clean-database-implementation
   workflow_dispatch:
 
 permissions:

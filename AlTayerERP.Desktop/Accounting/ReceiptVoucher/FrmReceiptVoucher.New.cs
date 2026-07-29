@@ -16,7 +16,7 @@ namespace AlTayerERP.Desktop
             _selectedVoucherId = 0;
             _currentReviewStatus = 0;
             _currentApprovalStatus = 0;
-            _loadedVoucherBranchId = CurrentSession.Branch_ID.ToString();
+            _loadedVoucherBranchId = CurrentSession.Branch_ID;
             _loadedFiscalYearId = CurrentSession.Year_ID;
             _loadedPartyId = null;
             _loadedReceivedFromName = string.Empty;

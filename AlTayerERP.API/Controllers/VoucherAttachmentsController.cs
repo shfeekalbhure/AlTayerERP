@@ -31,7 +31,7 @@ public sealed class VoucherAttachmentsController : ControllerBase
             .Where(x => x.Voucher_ID == voucherId && x.Is_Active)
             .Select(x => new { x.Voucher_ID, x.Branch_ID, x.Fiscal_Year_ID, x.Voucher_Type_ID, x.Voucher_No })
             .SingleOrDefaultAsync();
-        if (voucher == null || voucher.Branch_ID != session.Branch_ID.ToString() || voucher.Fiscal_Year_ID != session.Year_ID)
+        if (voucher == null || voucher.Branch_ID != session.Branch_ID || voucher.Fiscal_Year_ID != session.Year_ID)
             return NotFound(new { message = "السند غير موجود ضمن نطاق الجلسة." });
         var type = await _db.Voucher_Types.AsNoTracking().Where(x => x.Voucher_Type_ID == voucher.Voucher_Type_ID)
             .Select(x => x.Voucher_Type_Code).SingleOrDefaultAsync();

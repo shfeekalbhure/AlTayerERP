@@ -114,14 +114,14 @@ namespace AlTayerERP.API.Controllers
         private static IQueryable<AuditLog> ApplyScope(IQueryable<AuditLog> query, ServerSession session) =>
             session.Is_System_Admin
                 ? query
-                : query.Where(x => x.User_ID == session.User_ID.ToString() && x.Branch_ID == session.Branch_ID.ToString());
+                : query.Where(x => x.User_ID == session.User_ID.ToString() && x.Branch_ID == session.Branch_ID);
 
         private static IQueryable<AuditLog> ApplyFilters(IQueryable<AuditLog> query, AuditLogSearchRequest request)
         {
             if (request.From.HasValue) query = query.Where(x => x.Action_At >= request.From.Value.ToUniversalTime());
             if (request.To.HasValue) query = query.Where(x => x.Action_At <= request.To.Value.ToUniversalTime());
             if (request.User_ID.HasValue) query = query.Where(x => x.User_ID == request.User_ID.Value.ToString());
-            if (request.Branch_ID.HasValue) query = query.Where(x => x.Branch_ID == request.Branch_ID.Value.ToString());
+            if (request.Branch_ID.HasValue) query = query.Where(x => x.Branch_ID == request.Branch_ID.Value);
             if (!string.IsNullOrWhiteSpace(request.Table_Name)) query = query.Where(x => x.Table_Name == request.Table_Name.Trim());
             if (!string.IsNullOrWhiteSpace(request.Action_Type)) query = query.Where(x => x.Action_Type == request.Action_Type.Trim());
             if (!string.IsNullOrWhiteSpace(request.Record_ID)) query = query.Where(x => x.Record_ID.Contains(request.Record_ID.Trim()));
@@ -139,7 +139,7 @@ namespace AlTayerERP.API.Controllers
         private async Task<List<AuditLogRow>> ToRowsAsync(IReadOnlyCollection<AuditLog> logs)
         {
             var userIds = logs.Select(x => x.User_ID).Where(x => int.TryParse(x, out _)).Select(x => int.Parse(x!)).Distinct().ToList();
-            var branchIds = logs.Select(x => x.Branch_ID).Where(x => int.TryParse(x, out _)).Select(x => int.Parse(x!)).Distinct().ToList();
+            var branchIds = logs.Select(x => x.Branch_ID).Where(x => x.HasValue).Select(x => x!.Value).Distinct().ToList();
             var users = userIds.Count == 0 ? new Dictionary<int, string>() : await _context.Users.AsNoTracking()
                 .Where(x => userIds.Contains(x.User_ID)).ToDictionaryAsync(x => x.User_ID, x => x.Full_Name);
             var branches = branchIds.Count == 0 ? new Dictionary<int, string>() : await _context.Tenant_Branches.AsNoTracking()
@@ -148,7 +148,7 @@ namespace AlTayerERP.API.Controllers
             {
                 Audit_ID = x.Audit_ID, Table_Name = x.Table_Name, Record_ID = x.Record_ID, Action_Type = x.Action_Type,
                 User_ID = x.User_ID, User_Name = int.TryParse(x.User_ID, out var userId) && users.TryGetValue(userId, out var userName) ? userName : "غير متاح",
-                Branch_ID = x.Branch_ID, Branch_Name = int.TryParse(x.Branch_ID, out var branchId) && branches.TryGetValue(branchId, out var branchName) ? branchName : "غير متاح",
+                Branch_ID = x.Branch_ID, Branch_Name = x.Branch_ID.HasValue && branches.TryGetValue(x.Branch_ID.Value, out var branchName) ? branchName : "غير متاح",
                 Action_At = x.Action_At, Action_Channel = x.Action_Channel, Device_Name = x.Device_Name, IP_Address = x.IP_Address, Notes = x.Notes
             }).ToList();
         }
@@ -180,7 +180,7 @@ namespace AlTayerERP.API.Controllers
         public string Action_Type { get; set; } = string.Empty;
         public string? User_ID { get; set; }
         public string User_Name { get; set; } = "غير متاح";
-        public string? Branch_ID { get; set; }
+        public int? Branch_ID { get; set; }
         public string Branch_Name { get; set; } = "غير متاح";
         public DateTime Action_At { get; set; }
         public string Action_Channel { get; set; } = string.Empty;

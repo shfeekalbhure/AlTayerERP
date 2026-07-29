@@ -29,7 +29,7 @@ public sealed class MobileVoucherJournalController : ControllerBase
         var voucher = await (
             from h in _db.Financial_Voucher_Headers.AsNoTracking()
             join t in _db.Voucher_Types.AsNoTracking() on h.Voucher_Type_ID equals t.Voucher_Type_ID
-            where h.Voucher_ID == voucherId && h.Branch_ID == session.Branch_ID.ToString() &&
+            where h.Voucher_ID == voucherId && h.Branch_ID == session.Branch_ID &&
                   h.Fiscal_Year_ID == session.Year_ID && h.Is_Active
             select new
             {
@@ -59,7 +59,7 @@ public sealed class MobileVoucherJournalController : ControllerBase
 
         var header = await _db.Journal_Entry_Headers.AsNoTracking()
             .Where(x => x.Journal_Entry_ID == voucher.Journal_Entry_ID.Value &&
-                        x.Branch_ID == session.Branch_ID.ToString() && x.Fiscal_Year_ID == session.Year_ID)
+                        x.Branch_ID == session.Branch_ID && x.Fiscal_Year_ID == session.Year_ID)
             .Select(x => new
             {
                 journalEntryId = x.Journal_Entry_ID,

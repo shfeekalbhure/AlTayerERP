@@ -65,7 +65,7 @@ public sealed class MobileDocumentSearchController : ControllerBase
         {
             var vouchersQuery = from h in _db.Financial_Voucher_Headers.AsNoTracking()
                                 join t in _db.Voucher_Types.AsNoTracking() on h.Voucher_Type_ID equals t.Voucher_Type_ID
-                                where h.Branch_ID == session.Branch_ID.ToString() && h.Fiscal_Year_ID == session.Year_ID && h.Is_Active
+                                where h.Branch_ID == session.Branch_ID && h.Fiscal_Year_ID == session.Year_ID && h.Is_Active
                                    && (h.Voucher_No.Contains(query) || (h.Reference_No != null && h.Reference_No.Contains(query)) ||
                                        (h.Source_Document_No != null && h.Source_Document_No.Contains(query)))
                                 select new { h, t.Voucher_Type_Code };

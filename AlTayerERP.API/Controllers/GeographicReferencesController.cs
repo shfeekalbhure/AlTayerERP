@@ -387,7 +387,7 @@ public sealed class GeographicReferencesController : ControllerBase
     private void AddAudit(string tableName,int recordId,string action,string reason)
     {
         var session=HttpContext.Items["ServerSession"] as ServerSession;
-        _context.Audit_Logs.Add(new AuditLog { Table_Name=tableName, Record_ID=recordId.ToString(), Action_Type=action, User_ID=session?.User_ID.ToString(), Branch_ID=session?.Branch_ID.ToString(), Action_At=DateTime.UtcNow, Action_Channel="DESKTOP", Device_Name=Request.Headers["X-Device-ID"].ToString(), IP_Address=HttpContext.Connection.RemoteIpAddress?.ToString(), Notes=reason, New_Values=JsonSerializer.Serialize(new { Is_Active = !string.Equals(action, "DEACTIVATE", StringComparison.Ordinal), Reason = reason })});
+        _context.Audit_Logs.Add(new AuditLog { Table_Name=tableName, Record_ID=recordId.ToString(), Action_Type=action, User_ID=session?.User_ID.ToString(), Branch_ID=session?.Branch_ID, Action_At=DateTime.UtcNow, Action_Channel="DESKTOP", Device_Name=Request.Headers["X-Device-ID"].ToString(), IP_Address=HttpContext.Connection.RemoteIpAddress?.ToString(), Notes=reason, New_Values=JsonSerializer.Serialize(new { Is_Active = !string.Equals(action, "DEACTIVATE", StringComparison.Ordinal), Reason = reason })});
     }
 
     private async Task<List<Dictionary<string, object?>>> QueryAsync(string sql, params (string Name, object? Value)[] parameters)

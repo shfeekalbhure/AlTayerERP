@@ -110,7 +110,7 @@ namespace AlTayerERP.API.Controllers
             var voucher = await _service.GetByIdAsync(voucherId);
 
             if (voucher == null ||
-                !string.Equals(voucher.Branch_ID, session.Branch_ID.ToString(), StringComparison.Ordinal) ||
+                voucher.Branch_ID != session.Branch_ID ||
                 voucher.Fiscal_Year_ID != session.Year_ID)
             {
                 return NotFound(new
@@ -198,7 +198,7 @@ namespace AlTayerERP.API.Controllers
             var session = GetServerSession();
             // نطاق السند والمستخدم المنشئ يأتي من جلسة الخادم فقط.
             // يتم ذلك قبل ModelState لأن الهوية لا ينبغي أن تأتي من العميل.
-            dto.Branch_ID = session.Branch_ID.ToString();
+            dto.Branch_ID = session.Branch_ID;
             dto.Fiscal_Year_ID = session.Year_ID;
             dto.Created_By = session.User_ID.ToString();
             dto.Updated_By = session.User_ID.ToString();
@@ -257,7 +257,7 @@ namespace AlTayerERP.API.Controllers
             var result =
                 await _journalEntryInquiryService.GetByVoucherNoAsync(
                     voucherNo,
-                    session.Branch_ID.ToString(),
+                    session.Branch_ID,
                     voucherTypeId,
                     session.Year_ID);
 
@@ -305,7 +305,7 @@ namespace AlTayerERP.API.Controllers
             var session = GetServerSession();
 
             if (voucher == null ||
-                !string.Equals(voucher.Branch_ID, session.Branch_ID.ToString(), StringComparison.Ordinal) ||
+                voucher.Branch_ID != session.Branch_ID ||
                 voucher.Fiscal_Year_ID != session.Year_ID)
             {
                 return NotFound(new
@@ -364,7 +364,7 @@ namespace AlTayerERP.API.Controllers
             var session = GetServerSession();
             // لا يسمح للعميل بنقل السند إلى فرع أو سنة أخرى.
             // يُفرض المستخدم المعدل قبل التحقق من النموذج.
-            dto.Branch_ID = session.Branch_ID.ToString();
+            dto.Branch_ID = session.Branch_ID;
             dto.Fiscal_Year_ID = session.Year_ID;
             dto.Updated_By = session.User_ID.ToString();
 
@@ -471,7 +471,7 @@ namespace AlTayerERP.API.Controllers
             var voucher =
                 await _service.GetByVoucherNumberAsync(
                     voucherNumber,
-                    session.Branch_ID.ToString(),
+                    session.Branch_ID,
                     session.Year_ID,
                     voucherTypeId);
 

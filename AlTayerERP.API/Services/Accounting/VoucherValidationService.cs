@@ -23,7 +23,7 @@ public class VoucherValidationService
         if (!result.IsValid)
             return result;
 
-        if (string.IsNullOrWhiteSpace(voucher.Branch_ID) ||
+        if (voucher.Branch_ID <= 0 ||
             voucher.Fiscal_Year_ID <= 0 ||
             string.IsNullOrWhiteSpace(voucher.Against_Text))
             return (false, "الفرع والسنة والبيان المحاسبي حقول إلزامية.");
@@ -62,8 +62,7 @@ public class VoucherValidationService
             voucher.Details.Any(x => x.Line_No <= 0 || string.IsNullOrWhiteSpace(x.Account_ID)))
             return (false, "أرقام سطور السند أو حساباته غير صالحة.");
 
-        if (!int.TryParse(voucher.Branch_ID, out int branchId))
-            return (false, "معرف الفرع غير صالح.");
+        int branchId = voucher.Branch_ID;
 
         var branch = await _context.Tenant_Branches.AsNoTracking()
             .FirstOrDefaultAsync(x => x.Branch_ID == branchId && x.Is_Active);

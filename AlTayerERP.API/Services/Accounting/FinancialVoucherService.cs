@@ -287,9 +287,7 @@ namespace AlTayerERP.API.Services.Accounting
             // إضافة الفرع بحسب إعداد الترقيم.
             if (setting.Use_Branch)
             {
-          //      numberParts.Add(dto.Branch_ID.ToString());
-
-                numberParts.Add(dto.Branch_ID);
+                numberParts.Add(await ResolveBranchCodeAsync(dto.Branch_ID));
             }
 
             // إضافة السنة بحسب إعداد الترقيم.
@@ -314,17 +312,27 @@ namespace AlTayerERP.API.Services.Accounting
         /// </summary>
         private async Task<string> ResolveCompanyIdAsync(CreateFinancialVoucherDto dto)
         {
-            if (!int.TryParse(dto.Branch_ID, out var branchId))
-                throw new InvalidOperationException("معرف الفرع غير صالح لتوليد رقم المستند.");
-
             var companyId = await _context.Tenant_Branches.AsNoTracking()
-                .Where(x => x.Branch_ID == branchId && x.Is_Active)
+                .Where(x => x.Branch_ID == dto.Branch_ID && x.Is_Active)
                 .Select(x => x.Company_ID)
                 .SingleOrDefaultAsync();
 
             return string.IsNullOrWhiteSpace(companyId)
                 ? throw new InvalidOperationException("تعذر تحديد الشركة التابعة للفرع عند توليد رقم المستند.")
                 : companyId;
+        }
+
+        /// <summary>يستخرج كود الفرع النصي لاستخدامه في رقم المستند.</summary>
+        private async Task<string> ResolveBranchCodeAsync(int branchId)
+        {
+            var branchCode = await _context.Tenant_Branches.AsNoTracking()
+                .Where(x => x.Branch_ID == branchId && x.Is_Active)
+                .Select(x => x.Branch_Code)
+                .SingleOrDefaultAsync();
+
+            return string.IsNullOrWhiteSpace(branchCode)
+                ? throw new InvalidOperationException("تعذر تحديد كود الفرع لتوليد رقم المستند.")
+                : branchCode;
         }
 
         /// <summary>
@@ -1169,13 +1177,13 @@ namespace AlTayerERP.API.Services.Accounting
         public async Task<FinancialVoucherResponseDto?>
             GetByVoucherNumberAsync(
                 string voucherNumber,
-                string? branchId,
+                int? branchId,
                 int? fiscalYearId,
                 int? voucherTypeId = null)
         {
             // لا يسمح بالبحث خارج سياق الفرع والسنة؛ هذه القيم يفرضها المتحكم من جلسة الخادم.
             if (string.IsNullOrWhiteSpace(voucherNumber) ||
-                string.IsNullOrWhiteSpace(branchId) ||
+                !branchId.HasValue ||
                 !fiscalYearId.HasValue ||
                 fiscalYearId.Value <= 0)
             {
@@ -1183,7 +1191,7 @@ namespace AlTayerERP.API.Services.Accounting
             }
 
             string searchValue = voucherNumber.Trim();
-            string currentBranch = branchId.Trim();
+            int currentBranch = branchId.Value;
             int currentFiscalYearId = fiscalYearId.Value;
 
             IQueryable<FinancialVoucherHeader> query =
