@@ -23,12 +23,6 @@ jobs:
         with:
           dotnet-version: 8.0.x
 
-      - name: Prepare clean EF model
-        run: python3 tools/phase2_build_clean_model.py
-
-      - name: Normalize Branch ID compatibility
-        run: python3 tools/fix_phase2_branch_id_compatibility.py
-
       - name: Install dotnet-ef
         run: dotnet tool install --global dotnet-ef --version 8.0.2
 
@@ -40,11 +34,9 @@ jobs:
       - name: Build API before migration generation
         run: dotnet build AlTayerERP.API/AlTayerERP.API.csproj -c Release --no-restore
 
-      - name: Reset active generated migration directory
+      - name: Prepare empty active migration directory
         run: |
-          rm -rf AlTayerERP.Infrastructure/Migrations
           mkdir -p AlTayerERP.Infrastructure/Migrations
-          rm -rf Database/Baseline
           mkdir -p Database/Baseline
 
       - name: Generate Baseline_Phase1 migration
@@ -62,7 +54,6 @@ jobs:
             --project AlTayerERP.Infrastructure/AlTayerERP.Infrastructure.csproj \
             --startup-project AlTayerERP.API/AlTayerERP.API.csproj \
             --context AppDbContext \
-            --idempotent \
             --output Database/Baseline/Baseline_Phase1.sql \
             --no-build
 
