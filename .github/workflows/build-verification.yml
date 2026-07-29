@@ -23,11 +23,13 @@ jobs:
         with:
           dotnet-version: 8.0.x
 
-      - name: Prepare phase one EF model
+      # النموذج المنظم محفوظ في الفرع؛ نطبق فقط إصلاحات التوافق الموجهة.
+      # لا تنفذ هذه الخطوة Migration أو SQL أو اتصالاً بقاعدة البيانات.
+      - name: Apply targeted Branch ID fixes
         if: ${{ github.head_ref == 'agent/phase1-clean-database-implementation' || github.ref_name == 'agent/phase1-clean-database-implementation' }}
-        run: |
-          python tools/phase2_build_clean_model.py
-          python tools/fix_phase2_branch_id_compatibility.py
+        env:
+          PYTHONUTF8: '1'
+        run: python tools/fix_phase2_branch_id_compatibility.py
 
       - name: Restore API packages
         run: dotnet restore AlTayerERP.API/AlTayerERP.API.csproj
