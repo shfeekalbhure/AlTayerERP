@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - agent/unified-phase1-screens
+      - agent/phase1-clean-database-implementation
   pull_request:
     branches:
       - master
@@ -22,8 +23,6 @@ jobs:
         with:
           dotnet-version: 8.0.x
 
-      # استعادة الحزم ثم بناء طبقة API وتطبيق سطح المكتب فقط.
-      # لا يشغّل هذا المسار أي Migration أو تعديل على قاعدة بيانات الإنتاج.
       - name: Restore API packages
         run: dotnet restore AlTayerERP.API/AlTayerERP.API.csproj
 
