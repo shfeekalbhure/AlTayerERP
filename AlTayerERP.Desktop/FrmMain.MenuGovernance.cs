@@ -13,18 +13,47 @@ namespace AlTayerERP.Desktop;
 /// </summary>
 internal static class MainMenuGovernance
 {
-    private const string MarkerName = "MainMenuGovernanceApplied";
-
-    private static readonly (string Section, string[] Codes)[] ApprovedSections =
+    private static readonly IReadOnlyList<MenuSection> ApprovedSections = new[]
     {
-        ("الهيكل المؤسسي", new[] { "TenantGroups", "Companies", "Branches", "Countries", "Governorates", "Cities" }),
-        ("المستخدمون والصلاحيات", new[] { "Users", "Roles", "RolePermissions", "PasswordChange", "Sessions" }),
-        ("الأمن والرقابة", new[] { "AuditLogs" }),
-        ("التقارير المالية", new[] { "TrialBalance", "GeneralLedger" }),
-        ("التهيئة والإعدادات", new[]
+        new MenuSection("الهيكل المؤسسي", new[]
         {
-            "GeneralSettings", "SystemScreens", "NumberingSettings", "FiscalYears", "FiscalPeriods",
-            "ExchangeRates", "PaymentMethods", "VoucherTypes", "VoucherStatuses", "ApprovalPolicies", "FinancialLimits"
+            new MenuItem("TenantGroups", "المجموعات التجارية"),
+            new MenuItem("Companies", "الشركات"),
+            new MenuItem("Branches", "الفروع"),
+            new MenuItem("Countries", "الدول"),
+            new MenuItem("Governorates", "المحافظات"),
+            new MenuItem("Cities", "المدن")
+        }),
+        new MenuSection("المستخدمون والصلاحيات", new[]
+        {
+            new MenuItem("Users", "المستخدمون"),
+            new MenuItem("Roles", "الأدوار"),
+            new MenuItem("RolePermissions", "صلاحيات الأدوار"),
+            new MenuItem("PasswordChange", "تغيير كلمة المرور"),
+            new MenuItem("Sessions", "الجلسات النشطة")
+        }),
+        new MenuSection("الأمن والرقابة", new[]
+        {
+            new MenuItem("AuditLogs", "سجل التدقيق والرقابة")
+        }),
+        new MenuSection("التقارير المالية", new[]
+        {
+            new MenuItem("TrialBalance", "ميزان المراجعة"),
+            new MenuItem("GeneralLedger", "الأستاذ العام")
+        }),
+        new MenuSection("التهيئة والإعدادات", new[]
+        {
+            new MenuItem("GeneralSettings", "الإعدادات العامة والمالية"),
+            new MenuItem("SystemScreens", "كتالوج شاشات النظام"),
+            new MenuItem("NumberingSettings", "إعدادات الترقيم"),
+            new MenuItem("FiscalYears", "السنوات المالية"),
+            new MenuItem("FiscalPeriods", "الفترات المالية"),
+            new MenuItem("ExchangeRates", "أسعار الصرف"),
+            new MenuItem("PaymentMethods", "طرق السداد"),
+            new MenuItem("VoucherTypes", "أنواع السندات"),
+            new MenuItem("VoucherStatuses", "حالات السندات"),
+            new MenuItem("ApprovalPolicies", "سياسات الاعتماد والسقوف"),
+            new MenuItem("FinancialLimits", "السقوف المالية")
         })
     };
 
@@ -44,14 +73,14 @@ internal static class MainMenuGovernance
         if (tree is null || tree.Nodes.Count == 0)
             return;
 
-        // يعاد التطبيق بعد كل إعادة بناء للشجرة، لكن لا يعاد إذا كانت البنية الحالية محكومة.
-        if (tree.Tag is string value && value == MarkerName)
+        var currentSignature = BuildSignature(tree);
+        if (tree.Tag is string appliedSignature && appliedSignature == currentSignature)
             return;
 
         var leaves = CollectLeaves(tree.Nodes)
-            .Where(x => !string.IsNullOrWhiteSpace(x.Code))
-            .GroupBy(x => x.Code, StringComparer.OrdinalIgnoreCase)
-            .ToDictionary(x => x.Key, x => x.First(), StringComparer.OrdinalIgnoreCase);
+            .Where(item => !string.IsNullOrWhiteSpace(item.Code))
+            .GroupBy(item => item.Code, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(group => group.Key, group => group.First(), StringComparer.OrdinalIgnoreCase);
 
         if (leaves.Count == 0)
             return;
@@ -62,12 +91,12 @@ internal static class MainMenuGovernance
             tree.Nodes.Clear();
             var used = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-            foreach (var (section, codes) in ApprovedSections)
+            foreach (var section in ApprovedSections)
             {
-                var root = CreateSectionNode(section);
-                foreach (var code in codes)
+                var root = CreateSectionNode(section.Caption);
+                foreach (var item in section.Items)
                 {
-                    if (!leaves.TryGetValue(code, out var item) || !used.Add(code))
+                    if (!leaves.ContainsKey(item.Code) || !used.Add(item.Code))
                         continue;
 
                     root.Nodes.Add(CreateScreenNode(item.Code, item.Caption));
@@ -80,10 +109,10 @@ internal static class MainMenuGovernance
                 }
             }
 
-            // لا نخفي أي شاشة أخرى مسموحة؛ تجمع في قسم مستقل بعد الأقسام المعتمدة.
+            // نحافظ على أي شاشة أخرى مسموحة ولا نخفيها، مع منع تكرار Screen_Code.
             var remaining = leaves.Values
-                .Where(x => used.Add(x.Code))
-                .OrderBy(x => x.Caption, StringComparer.CurrentCultureIgnoreCase)
+                .Where(item => used.Add(item.Code))
+                .OrderBy(item => item.Caption, StringComparer.CurrentCultureIgnoreCase)
                 .ToList();
             if (remaining.Count > 0)
             {
@@ -94,15 +123,19 @@ internal static class MainMenuGovernance
             }
 
             tree.ShowNodeToolTips = true;
-            tree.ItemHeight = 31;
-            tree.Indent = 18;
+            tree.ItemHeight = 32;
+            tree.Indent = 14;
             tree.FullRowSelect = true;
             tree.HideSelection = false;
-            tree.Tag = MarkerName;
+            tree.HotTracking = true;
 
-            // عرض أوسع يمنع قص المسميات الطويلة ويقلل ظهور التمرير الأفقي.
-            if (tree.Parent is Control parent)
-                parent.Width = Math.Max(parent.Width, 300);
+            if (tree.Parent is Panel sidePanel)
+            {
+                sidePanel.Width = Math.Max(sidePanel.Width, 300);
+                sidePanel.AutoScroll = false;
+            }
+
+            tree.Tag = BuildSignature(tree);
         }
         finally
         {
@@ -110,12 +143,15 @@ internal static class MainMenuGovernance
         }
     }
 
+    private static string BuildSignature(TreeView tree) =>
+        string.Join("|", CollectLeaves(tree.Nodes).Select(item => $"{item.Code}:{item.Caption}"));
+
     private static TreeNode CreateSectionNode(string caption) => new(caption)
     {
         Name = "Section_" + caption,
         ToolTipText = caption,
         NodeFont = new Font("Segoe UI", 10F, FontStyle.Bold),
-        ForeColor = Color.White
+        ForeColor = Color.FromArgb(210, 228, 245)
     };
 
     private static TreeNode CreateScreenNode(string code, string caption) => new(caption)
@@ -158,5 +194,7 @@ internal static class MainMenuGovernance
         return null;
     }
 
+    private sealed record MenuSection(string Caption, IReadOnlyList<MenuItem> Items);
+    private sealed record MenuItem(string Code, string Caption);
     private sealed record MenuLeaf(string Code, string Caption);
 }
