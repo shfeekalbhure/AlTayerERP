@@ -280,7 +280,7 @@ public static class Phase1BaselineModelConfiguration
             entity.Property(x => x.Max_Rate).HasPrecision(18, 6);
             entity.HasOne<Company>().WithMany().HasForeignKey(x => x.Company_ID).OnDelete(DeleteBehavior.Restrict);
             entity.HasIndex(x => new { x.Company_ID, x.Currency_Code, x.Rate_Date }).IsUnique();
-            entity.ToTable(t => t.HasCheckConstraint("ck_exchange_rate_positive", "`exchange_rate` > 0"));
+            entity.ToTable(t => t.HasCheckConstraint("ck_exchange_rate_positive", "`exchange_rate_value` > 0"));
         });
 
         modelBuilder.Entity<NumberingSetting>(entity =>
