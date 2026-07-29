@@ -19,7 +19,6 @@ def normalize_source(path: Path) -> None:
     text = read(path)
     original = text
 
-    # عقود Branch_ID الحديثة تستخدم INT أو INT?، ولا يبقى المعرف الرقمي كنص.
     text = re.sub(
         r"public\s+string\s+Branch_ID\s*\{\s*get;\s*set;\s*\}\s*=\s*string\.Empty;",
         "public int Branch_ID { get; set; }",
@@ -31,7 +30,6 @@ def normalize_source(path: Path) -> None:
         text,
     )
 
-    # إزالة ToString عندما يكون الطرف الآخر هو Branch_ID الرقمي.
     text = re.sub(
         r"(\b[\w.]+\.Branch_ID\s*(?:==|!=)\s*)([\w.]+\.Branch_ID)\.ToString\(\)",
         r"\1\2",
@@ -53,7 +51,6 @@ def normalize_source(path: Path) -> None:
         text,
     )
 
-    # إزالة Parse/TryParse عن خاصية أصبحت INT فعليًا.
     text = re.sub(r"int\.Parse\(([^()]+\.Branch_ID)\)", r"\1", text)
     text = re.sub(r"Convert\.ToInt32\(([^()]+\.Branch_ID)\)", r"\1", text)
     text = re.sub(
@@ -68,7 +65,6 @@ def normalize_source(path: Path) -> None:
         text,
     )
 
-    # المعاملات المحلية التي تمثل Branch_ID تصبح رقمية.
     text = re.sub(r"\bstring\s+branchId\b", "int branchId", text)
     text = re.sub(r"\bstring\?\s+branchId\b", "int? branchId", text)
 
@@ -80,7 +76,6 @@ for project in PROJECTS:
     for source in (ROOT / project).rglob("*.cs"):
         normalize_source(source)
 
-# تصحيحات سجل التدقيق: User_ID يبقى Snapshot نصيًا، وBranch_ID يصبح INT?.
 audit_controller = ROOT / "AlTayerERP.API/Controllers/AuditLogsController.cs"
 if audit_controller.exists():
     text = read(audit_controller)
@@ -102,7 +97,6 @@ if audit_controller.exists():
     )
     write(audit_controller, text)
 
-# خدمة التدقيق لا تحول معرف الفرع الرقمي إلى نص.
 audit_service = ROOT / "AlTayerERP.API/Services/AuditTrailService.cs"
 if audit_service.exists():
     text = read(audit_service).replace(
@@ -111,7 +105,6 @@ if audit_service.exists():
     )
     write(audit_service, text)
 
-# التحقق المالي يتعامل مباشرة مع Branch_ID الرقمي.
 validation = ROOT / "AlTayerERP.API/Services/Accounting/VoucherValidationService.cs"
 if validation.exists():
     text = read(validation)
@@ -123,4 +116,4 @@ if validation.exists():
     )
     write(validation, text)
 
-print("تم توحيد توافق Branch_ID في API وDesktop وMobile دون تنفيذ SQL.")
+print("Branch_ID compatibility normalization completed without SQL execution.")
