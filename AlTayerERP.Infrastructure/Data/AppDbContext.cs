@@ -5,8 +5,9 @@ using Microsoft.EntityFrameworkCore;
 namespace AlTayerERP.Infrastructure.Data;
 
 /// <summary>
-/// سياق قاعدة بيانات المرحلة الأولى. جميع قواعد المخطط النهائية موجودة في
-/// <see cref="Phase1BaselineModel"/>، ولا ينشئ السياق أي مخطط وقت التشغيل.
+/// سياق قاعدة بيانات المرحلة الأولى.
+/// جميع قواعد المخطط معرفة في Phase1BaselineModelConfiguration،
+/// ولا ينشئ السياق أو يعدل المخطط وقت تشغيل API.
 /// </summary>
 public class AppDbContext : DbContext
 {
@@ -68,6 +69,6 @@ public class AppDbContext : DbContext
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
-        Phase1BaselineModel.Configure(modelBuilder);
+        Phase1BaselineModelConfiguration.Configure(modelBuilder);
     }
 }
