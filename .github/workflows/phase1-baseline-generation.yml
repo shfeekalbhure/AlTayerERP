@@ -54,6 +54,9 @@ jobs:
             --configuration Release \
             --no-build
 
+      - name: Build generated migration assembly
+        run: dotnet build AlTayerERP.Infrastructure/AlTayerERP.Infrastructure.csproj -c Release --no-restore
+
       - name: Generate review SQL without applying it
         run: |
           dotnet ef migrations script 0 Baseline_Phase1 \
