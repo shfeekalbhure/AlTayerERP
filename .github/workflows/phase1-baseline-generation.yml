@@ -1,6 +1,11 @@
 name: Phase1 Baseline Generation
 
 on:
+  push:
+    branches:
+      - agent/phase1-clean-database-implementation
+    paths:
+      - ".github/workflows/phase1-baseline-generation.yml"
   workflow_dispatch:
 
 permissions:
