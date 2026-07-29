@@ -27,6 +27,7 @@ namespace AlTayerERP.Desktop.Services
                 NormalizeDataGrids(form);
                 NormalizeSearchInputs(form);
                 NormalizeToolbars(form);
+                CompanyScreenPolishService.Apply(form);
             }
             finally
             {
@@ -156,10 +157,6 @@ namespace AlTayerERP.Desktop.Services
                 grid.AllowUserToResizeRows = false;
                 grid.BackgroundColor = Color.White;
 
-                // لا نملأ النموذج مباشرة عندما توجد حقول أعلى الجدول؛
-                // ذلك كان يجعل الجدول يغطي حقول الإدخال في الشاشات القديمة.
-                // داخل حاوية مخصصة للجدول يظل Dock.Fill هو السلوك الصحيح،
-                // أما الجدول المباشر فيتمدد بالـ Anchor مع أبعاد الشاشة.
                 if (CanFillGrid(grid))
                 {
                     grid.Dock = DockStyle.Fill;
@@ -187,7 +184,6 @@ namespace AlTayerERP.Desktop.Services
             if (grid.Parent is not Panel panel)
                 return false;
 
-            // Panel مخصص للجدول وحده، أو يحتوي عناصر Docked فقط.
             return panel.Controls.Count == 1 ||
                    panel.Controls.Cast<Control>().All(control =>
                        control == grid || control.Dock != DockStyle.None);
