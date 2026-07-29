@@ -9,6 +9,9 @@
 
 		<!-- تفعيل ميزة الاستدعاء التلقائي لملفات النظام الشائعة (Implicit Usings) -->
 		<ImplicitUsings>enable</ImplicitUsings>
+
+		<!-- معرف محلي فقط لتخزين أسرار الاتصال خارج المستودع. -->
+		<UserSecretsId>f5191049-1c26-4a07-9c00-bcc77535bd57</UserSecretsId>
 	</PropertyGroup>
 
 	<ItemGroup>
