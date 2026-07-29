@@ -1,0 +1,143 @@
+name: Phase1 baseline build
+
+on:
+  push:
+    branches:
+      - agent/phase1-clean-database-implementation
+
+permissions:
+  contents: write
+
+jobs:
+  baseline:
+    if: ${{ !contains(github.event.head_commit.message, '[baseline-output]') }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout implementation branch
+        uses: actions/checkout@v4
+        with:
+          ref: agent/phase1-clean-database-implementation
+          fetch-depth: 0
+
+      - name: Install .NET 8 SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Install EF Core CLI
+        run: dotnet tool install --global dotnet-ef --version 8.0.12
+
+      - name: Preserve historical migration outside compilation
+        shell: bash
+        run: |
+          mkdir -p Database/Legacy/Migrations
+          for file in \
+            AlTayerERP.Infrastructure/Migrations/20260716223222_AddJournalEntryTables.cs \
+            AlTayerERP.Infrastructure/Migrations/20260716223222_AddJournalEntryTables.Designer.cs \
+            AlTayerERP.Infrastructure/Migrations/AppDbContextModelSnapshot.cs; do
+            if [ -f "$file" ]; then
+              name=$(basename "$file")
+              git mv "$file" "Database/Legacy/Migrations/${name}.legacy.txt"
+            fi
+          done
+          rm -rf AlTayerERP.Infrastructure/Migrations
+
+      - name: Restore projects
+        run: |
+          dotnet restore AlTayerERP.Infrastructure/AlTayerERP.Infrastructure.csproj
+          dotnet restore AlTayerERP.API/AlTayerERP.API.csproj
+          dotnet restore AlTayerERP.Desktop/AlTayerERP.Desktop.csproj
+
+      - name: Build model API and Desktop before migration
+        run: |
+          dotnet build AlTayerERP.Infrastructure/AlTayerERP.Infrastructure.csproj -c Release --no-restore
+          dotnet build AlTayerERP.API/AlTayerERP.API.csproj -c Release --no-restore
+          dotnet build AlTayerERP.Desktop/AlTayerERP.Desktop.csproj -c Release --no-restore
+
+      - name: Generate Baseline_Phase1
+        run: |
+          dotnet ef migrations add Baseline_Phase1 \
+            --context AppDbContext \
+            --project AlTayerERP.Infrastructure/AlTayerERP.Infrastructure.csproj \
+            --startup-project AlTayerERP.API/AlTayerERP.API.csproj \
+            --output-dir Migrations
+
+      - name: Generate SQL script for review only
+        run: |
+          mkdir -p Database/Baseline
+          dotnet ef migrations script 0 Baseline_Phase1 \
+            --context AppDbContext \
+            --project AlTayerERP.Infrastructure/AlTayerERP.Infrastructure.csproj \
+            --startup-project AlTayerERP.API/AlTayerERP.API.csproj \
+            --output Database/Baseline/Baseline_Phase1.sql
+
+      - name: Validate forbidden content
+        shell: bash
+        run: |
+          set -euo pipefail
+          TARGETS="AlTayerERP.Infrastructure/Migrations Database/Baseline/Baseline_Phase1.sql"
+          if grep -RniE 'altayer_erp_db|DROP[[:space:]]+DATABASE|USE[[:space:]]+[`]?[A-Za-z0-9_]+|Password[[:space:]]*=' $TARGETS; then
+            echo 'Baseline contains forbidden database-specific or secret content.'
+            exit 1
+          fi
+          if grep -RniE 'INSERT INTO[[:space:]]+`?(companies|tenant_branches|users|cash_boxes|bank_accounts|financial_voucher_headers|journal_entry_headers)`?' Database/Baseline/Baseline_Phase1.sql; then
+            echo 'Baseline contains forbidden operational or test data.'
+            exit 1
+          fi
+
+      - name: Create pre-apply report
+        shell: bash
+        run: |
+          TABLES=$(grep -Eic '^CREATE TABLE' Database/Baseline/Baseline_Phase1.sql || true)
+          RELATIONS=$(grep -Eic 'FOREIGN KEY' Database/Baseline/Baseline_Phase1.sql || true)
+          INDEXES=$(grep -Eic '^CREATE( UNIQUE)? INDEX' Database/Baseline/Baseline_Phase1.sql || true)
+          UNIQUE=$(grep -Eic 'UNIQUE' Database/Baseline/Baseline_Phase1.sql || true)
+          CHECKS=$(grep -Eic 'CHECK ' Database/Baseline/Baseline_Phase1.sql || true)
+          mkdir -p Database/Reviews
+          cat > Database/Reviews/Phase2_Baseline_PreApply_Report.md <<EOF
+          # تقرير Baseline المرحلة الأولى قبل التطبيق
+
+          - فرع التنفيذ: \`agent/phase1-clean-database-implementation\`
+          - SHA نقطة البداية: \`1ddbbfcb65588fa8d6e8ebb235d655e88013cdbf\`
+          - Migration: \`Baseline_Phase1\`
+          - Character Set: \`utf8mb4\`
+          - Collation: \`utf8mb4_unicode_ci\`
+          - عدد الجداول: **$TABLES**
+          - عدد العلاقات: **$RELATIONS**
+          - عدد أوامر الفهارس: **$INDEXES**
+          - عدد القيود الفريدة: **$UNIQUE**
+          - عدد Check Constraints: **$CHECKS**
+          - سكربت المراجعة: \`Database/Baseline/Baseline_Phase1.sql\`
+
+          ## فحص الأمان
+
+          - لا يحتوي اسم القاعدة القديمة.
+          - لا يحتوي DROP DATABASE أو USE لقاعدة ثابتة.
+          - لا يحتوي كلمات مرور تشغيلية.
+          - لا يحتوي شركات أو فروعًا أو مستخدمين أو بيانات مالية تجريبية.
+          - لم يُنفذ Update-Database ولم يُفتح اتصال MySQL.
+          EOF
+
+      - name: Install .NET 10 and Android workload
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Build Mobile Android
+        run: |
+          dotnet workload install maui-android
+          dotnet restore AlTayerERP.Mobile.Office/AlTayerERP.Mobile.Office.csproj -p:TargetFramework=net10.0-android
+          dotnet build AlTayerERP.Mobile.Office/AlTayerERP.Mobile.Office.csproj -c Release -f net10.0-android --no-restore
+
+      - name: Commit generated output
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add AlTayerERP.Infrastructure/Migrations Database/Baseline Database/Legacy/Migrations Database/Reviews/Phase2_Baseline_PreApply_Report.md
+          if git diff --cached --quiet; then
+            echo 'No generated changes.'
+            exit 0
+          fi
+          git commit -m 'feat(database): generate Baseline_Phase1 outputs [baseline-output]'
+          git push origin HEAD:agent/phase1-clean-database-implementation
