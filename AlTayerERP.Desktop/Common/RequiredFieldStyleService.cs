@@ -30,9 +30,7 @@ internal sealed class RequiredFieldStyleService : IDisposable
         _errorProvider = new ErrorProvider
         {
             ContainerControl = form,
-            BlinkStyle = ErrorBlinkStyle.NeverBlink,
-            IconAlignment = ErrorIconAlignment.MiddleLeft,
-            IconPadding = 4
+            BlinkStyle = ErrorBlinkStyle.NeverBlink
         };
         _toolTip = new ToolTip();
         _toolTip.SetToolTip(form, "الحقول ذات الخلفية الصفراء مطلوبة");
@@ -46,6 +44,8 @@ internal sealed class RequiredFieldStyleService : IDisposable
             if (!_requiredFields.Add(field))
                 continue;
 
+            _errorProvider.SetIconAlignment(field, ErrorIconAlignment.MiddleLeft);
+            _errorProvider.SetIconPadding(field, 6);
             WireInput(field);
             WireParent(field.Parent);
         }
