@@ -6,6 +6,12 @@ on:
       - agent/phase1-clean-database-implementation
     paths:
       - ".github/workflows/phase1-baseline-generation.yml"
+      - "AlTayerERP.Core/Entities/**"
+      - "AlTayerERP.Infrastructure/Data/AppDbContext.cs"
+      - "AlTayerERP.Infrastructure/Data/AppDbContextDesignTimeFactory.cs"
+      - "AlTayerERP.Infrastructure/Data/Phase1BaselineModelConfiguration.cs"
+      - "tools/analyze_phase1_baseline.py"
+      - "tools/verify_phase1_baseline_collation.py"
   workflow_dispatch:
 
 permissions:
@@ -43,8 +49,13 @@ jobs:
         run: |
           mkdir -p AlTayerERP.Infrastructure/Migrations
           mkdir -p Database/Baseline
+          rm -f AlTayerERP.Infrastructure/Migrations/*.cs
 
       - name: Generate Baseline_Phase1 migration
+        env:
+          # قيمة نموذجية غير قابلة للاتصال: تستخدمها أدوات EF لتوليد SQL فقط.
+          # لا تحتوي خادمًا أو مستخدمًا أو كلمة مرور ولا تنفذ أي اتصال بقاعدة بيانات.
+          ConnectionStrings__DefaultConnection: "Database=altayer_erp_db_clean"
         run: |
           dotnet ef migrations add Baseline_Phase1 \
             --project AlTayerERP.Infrastructure/AlTayerERP.Infrastructure.csproj \
@@ -58,6 +69,8 @@ jobs:
         run: dotnet build AlTayerERP.API/AlTayerERP.API.csproj -c Release --no-restore
 
       - name: Generate review SQL without applying it
+        env:
+          ConnectionStrings__DefaultConnection: "Database=altayer_erp_db_clean"
         run: |
           dotnet ef migrations script 0 Baseline_Phase1 \
             --project AlTayerERP.Infrastructure/AlTayerERP.Infrastructure.csproj \
@@ -68,7 +81,9 @@ jobs:
             --no-build
 
       - name: Analyze and secure generated baseline
-        run: python3 tools/analyze_phase1_baseline.py
+        run: |
+          python3 tools/verify_phase1_baseline_collation.py
+          python3 tools/analyze_phase1_baseline.py
 
       - name: Verify no forbidden runtime DDL or legacy database name
         shell: bash

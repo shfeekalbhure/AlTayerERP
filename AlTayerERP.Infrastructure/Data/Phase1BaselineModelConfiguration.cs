@@ -796,8 +796,16 @@ public static class Phase1BaselineModelConfiguration
             foreach (var property in entityType.GetProperties())
             {
                 property.SetColumnName(ToSnakeCase(property.Name));
-                if (property.ClrType == typeof(string) && property.GetMaxLength() is null)
+
+                // MySQL لا يقبل COLLATE إلا للأنواع النصية. لا تطبّقه على المفاتيح
+                // الرقمية أو التواريخ أو decimal أو byte[]، وإلا سيولّد EF DDL غير صالح.
+                var clrType = Nullable.GetUnderlyingType(property.ClrType) ?? property.ClrType;
+                if (clrType != typeof(string))
+                    continue;
+
+                if (property.GetMaxLength() is null)
                     property.SetMaxLength(DefaultLength(property.Name));
+
                 property.SetCollation(Collation);
             }
         }
