@@ -62,6 +62,9 @@ jobs:
           mkdir -p Database/Baseline
           rm -f AlTayerERP.Infrastructure/Migrations/*.cs
 
+      - name: Rebuild Infrastructure without prior migrations
+        run: dotnet build AlTayerERP.Infrastructure/AlTayerERP.Infrastructure.csproj -c Release --no-restore
+
       - name: Generate Baseline_Phase1 migration
         env:
           # قيمة نموذجية غير قابلة للاتصال: تستخدمها أدوات EF لتوليد SQL فقط.
