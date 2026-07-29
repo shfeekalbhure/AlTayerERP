@@ -255,7 +255,7 @@ public sealed class PaymentRequestsController : ControllerBase
             {
                 Voucher_Type_ID = type,
                 Voucher_Status_ID = draft,
-                Branch_ID = session.Branch_ID.ToString(),
+                Branch_ID = session.Branch_ID,
                 Fiscal_Year_ID = session.Year_ID,
                 Voucher_Date = now,
                 Transaction_Date = now,

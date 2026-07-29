@@ -9,6 +9,9 @@
 
 		<!-- تفعيل ميزة الاستدعاء التلقائي لملفات النظام الشائعة (Implicit Usings) -->
 		<ImplicitUsings>enable</ImplicitUsings>
+
+		<!-- معرف محلي فقط لتخزين أسرار الاتصال خارج المستودع. -->
+		<UserSecretsId>f5191049-1c26-4a07-9c00-bcc77535bd57</UserSecretsId>
 	</PropertyGroup>
 
 	<ItemGroup>
@@ -16,6 +19,11 @@
 		<PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2" />
 		<!-- إصدار والتحقق من JWT الموقّع في طبقة API. -->
 		<PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="7.6.2" />
+		<!-- خدمات EF التصميمية مطلوبة لـ dotnet ef فقط؛ لا تنفذ DDL وقت التشغيل. -->
+		<PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.2">
+			<PrivateAssets>all</PrivateAssets>
+			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+		</PackageReference>
 	</ItemGroup>
 
 	<ItemGroup>

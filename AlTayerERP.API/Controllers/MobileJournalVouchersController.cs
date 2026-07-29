@@ -37,7 +37,7 @@ public sealed class MobileJournalVouchersController : ControllerBase
 
         var query = _db.Financial_Voucher_Headers.AsNoTracking()
             .Where(x => x.Voucher_Type_ID == typeId &&
-                        x.Branch_ID == session.Branch_ID.ToString() &&
+                        x.Branch_ID == session.Branch_ID &&
                         x.Fiscal_Year_ID == session.Year_ID && x.Is_Active);
 
         if (!string.IsNullOrWhiteSpace(voucherNo))
@@ -77,7 +77,7 @@ public sealed class MobileJournalVouchersController : ControllerBase
 
         var header = await _db.Financial_Voucher_Headers.AsNoTracking()
             .Where(x => x.Voucher_ID == voucherId && x.Voucher_Type_ID == typeId &&
-                        x.Branch_ID == session.Branch_ID.ToString() &&
+                        x.Branch_ID == session.Branch_ID &&
                         x.Fiscal_Year_ID == session.Year_ID && x.Is_Active)
             .Select(x => new
             {

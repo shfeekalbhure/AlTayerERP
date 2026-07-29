@@ -223,11 +223,7 @@ namespace AlTayerERP.API.Services.Accounting.VoucherWorkflow
 
                 #region التحقق من سياق الفترة والبيانات المرجعية عند الترحيل
 
-                if (!int.TryParse(voucher.Branch_ID, out var branchId))
-                {
-                    await transaction.RollbackAsync();
-                    return PostingResult.Fail("معرف فرع السند غير صالح.");
-                }
+                int branchId = voucher.Branch_ID;
 
                 bool periodIsOpen = await _context.Fiscal_Periods.AsNoTracking().AnyAsync(x =>
                     x.Branch_ID == branchId &&
@@ -1026,7 +1022,7 @@ namespace AlTayerERP.API.Services.Accounting.VoucherWorkflow
             if (setting.Use_Branch)
             {
                 parts.Add(
-                    voucher.Branch_ID);
+                    await GetCurrentBranchCodeAsync(voucher.Branch_ID));
             }
 
             if (setting.Use_Year)
@@ -1105,19 +1101,29 @@ namespace AlTayerERP.API.Services.Accounting.VoucherWorkflow
         /// معرف الشركة الحالي المستخدم في الترقيم.
         /// يستبدل لاحقًا بقيمة الجلسة الحالية.
         /// </summary>
-        private async Task<string> GetCurrentCompanyIdAsync(string branchId)
+        private async Task<string> GetCurrentCompanyIdAsync(int branchId)
         {
-            if (!int.TryParse(branchId, out var branchKey))
-                throw new InvalidOperationException("معرف الفرع غير صالح لتوليد رقم القيد.");
-
             var companyId = await _context.Tenant_Branches.AsNoTracking()
-                .Where(x => x.Branch_ID == branchKey && x.Is_Active)
+                .Where(x => x.Branch_ID == branchId && x.Is_Active)
                 .Select(x => x.Company_ID)
                 .FirstOrDefaultAsync();
 
             return string.IsNullOrWhiteSpace(companyId)
                 ? throw new InvalidOperationException("تعذر تحديد شركة الفرع لتوليد رقم القيد.")
                 : companyId;
+        }
+
+        /// <summary>يستخرج كود الفرع النصي للاستخدام داخل رقم المستند.</summary>
+        private async Task<string> GetCurrentBranchCodeAsync(int branchId)
+        {
+            var branchCode = await _context.Tenant_Branches.AsNoTracking()
+                .Where(x => x.Branch_ID == branchId && x.Is_Active)
+                .Select(x => x.Branch_Code)
+                .FirstOrDefaultAsync();
+
+            return string.IsNullOrWhiteSpace(branchCode)
+                ? throw new InvalidOperationException("تعذر تحديد كود الفرع لتوليد رقم القيد.")
+                : branchCode;
         }
 
         /// <summary>

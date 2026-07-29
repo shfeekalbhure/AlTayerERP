@@ -73,7 +73,7 @@ public sealed class BranchGeographyController : ControllerBase
             Record_ID = branchId.ToString(),
             Action_Type = "UPDATE_GEOGRAPHY",
             User_ID = session.User_ID.ToString(),
-            Branch_ID = session.Branch_ID.ToString(),
+            Branch_ID = session.Branch_ID,
             Action_At = DateTime.UtcNow,
             New_Values = System.Text.Json.JsonSerializer.Serialize(dto),
             Action_Channel = "DESKTOP",

@@ -30,7 +30,7 @@ public sealed class CreateMobileVoucherDto
 {
     public int Voucher_Type_ID { get; set; }
     public int Voucher_Status_ID { get; set; }
-    public string Branch_ID { get; set; } = string.Empty;
+    public int Branch_ID { get; set; }
     public int Fiscal_Year_ID { get; set; }
     public DateTime Voucher_Date { get; set; }
     public DateTime Transaction_Date { get; set; }
@@ -70,7 +70,7 @@ public sealed class UpdateMobileVoucherDto
     public long Voucher_ID { get; set; }
     public int Voucher_Type_ID { get; set; }
     public int Voucher_Status_ID { get; set; }
-    public string Branch_ID { get; set; } = string.Empty;
+    public int Branch_ID { get; set; }
     public int Fiscal_Year_ID { get; set; }
     public DateTime Voucher_Date { get; set; }
     public DateTime Transaction_Date { get; set; }

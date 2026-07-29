@@ -226,7 +226,7 @@ namespace AlTayerERP.API.Controllers
                 Record_ID = company.Company_ID,
                 Action_Type = action,
                 User_ID = session.User_ID.ToString(),
-                Branch_ID = session.Branch_ID.ToString(),
+                Branch_ID = session.Branch_ID,
                 Action_At = DateTime.UtcNow,
                 Old_Values = oldValues,
                 New_Values = newValues,

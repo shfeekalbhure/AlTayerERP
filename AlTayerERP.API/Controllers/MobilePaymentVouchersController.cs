@@ -40,7 +40,7 @@ public sealed class MobilePaymentVouchersController : ControllerBase
 
         var query = _db.Financial_Voucher_Headers.AsNoTracking()
             .Where(x => x.Voucher_Type_ID == paymentTypeId &&
-                        x.Branch_ID == session.Branch_ID.ToString() &&
+                        x.Branch_ID == session.Branch_ID &&
                         x.Fiscal_Year_ID == session.Year_ID &&
                         x.Is_Active);
 
@@ -86,7 +86,7 @@ public sealed class MobilePaymentVouchersController : ControllerBase
         var voucher = await _db.Financial_Voucher_Headers.AsNoTracking()
             .SingleOrDefaultAsync(x => x.Voucher_ID == voucherId &&
                         x.Voucher_Type_ID == paymentTypeId &&
-                        x.Branch_ID == session.Branch_ID.ToString() &&
+                        x.Branch_ID == session.Branch_ID &&
                         x.Fiscal_Year_ID == session.Year_ID &&
                         x.Is_Active,
                 cancellationToken);

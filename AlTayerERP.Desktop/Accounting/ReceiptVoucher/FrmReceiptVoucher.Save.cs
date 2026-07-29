@@ -22,7 +22,7 @@ namespace AlTayerERP.Desktop
         {
             public int Voucher_Type_ID { get; set; } // معرف نوع السند
             public int Voucher_Status_ID { get; set; } // معرف حالة السند
-            public string Branch_ID { get; set; } = string.Empty; // معرف الفرع
+            public int Branch_ID { get; set; } // معرف الفرع
             public int Fiscal_Year_ID { get; set; } // معرف السنة المالية
             public DateTime Voucher_Date { get; set; } // تاريخ السند
             public DateTime Transaction_Date { get; set; } // تاريخ الحركة المالية
@@ -555,10 +555,10 @@ namespace AlTayerERP.Desktop
             int currencyId = Convert.ToInt32(cmbCurrency.SelectedValue, CultureInfo.InvariantCulture);
             string? defaultCostCenterId = cmbCostCenter.SelectedValue?.ToString()?.Trim();
             string referenceNo = !string.IsNullOrWhiteSpace(txtReference.Text) ? txtReference.Text.Trim() : txtReferenceNo.Text.Trim();
-            string branchId =
-                _screenMode == VoucherScreenMode.Edit && !string.IsNullOrWhiteSpace(_loadedVoucherBranchId)
+            int branchId =
+                _screenMode == VoucherScreenMode.Edit && _loadedVoucherBranchId > 0
                     ? _loadedVoucherBranchId
-                    : CurrentSession.Branch_ID.ToString(CultureInfo.InvariantCulture);
+                    : CurrentSession.Branch_ID;
             int fiscalYearId =
                 _screenMode == VoucherScreenMode.Edit && _loadedFiscalYearId > 0
                     ? _loadedFiscalYearId

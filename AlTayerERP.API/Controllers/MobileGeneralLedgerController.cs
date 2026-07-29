@@ -71,7 +71,7 @@ public sealed class MobileGeneralLedgerController : ControllerBase
 
         var start = fromDate.Date;
         var endExclusive = toDate.Date.AddDays(1);
-        var branchId = session.Branch_ID.ToString();
+        int branchId = session.Branch_ID;
 
         var opening = await (
             from d in _db.Journal_Entry_Details.AsNoTracking()

@@ -17,67 +17,165 @@ namespace AlTayerERP.Infrastructure.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "8.0.12")
+                .UseCollation("utf8mb4_unicode_ci")
+                .HasAnnotation("ProductVersion", "8.0.2")
                 .HasAnnotation("Relational:MaxIdentifierLength", 64);
 
+            MySqlModelBuilderExtensions.HasCharSet(modelBuilder, "utf8mb4");
             MySqlModelBuilderExtensions.AutoIncrementColumns(modelBuilder);
+
+            modelBuilder.Entity("AlTayerERP.Core.Entities.AccountCategory", b =>
+                {
+                    b.Property<string>("Category_ID")
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)")
+                        .HasColumnName("category_id")
+                        .UseCollation("utf8mb4_unicode_ci");
+
+                    b.Property<string>("Account_Type")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("varchar(30)")
+                        .HasColumnName("account_type")
+                        .UseCollation("utf8mb4_unicode_ci");
+
+                    b.Property<string>("Category_Code")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)")
+                        .HasColumnName("category_code")
+                        .UseCollation("utf8mb4_unicode_ci");
+
+                    b.Property<string>("Category_Name_AR")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("varchar(150)")
+                        .HasColumnName("category_name_ar")
+                        .UseCollation("utf8mb4_unicode_ci");
+
+                    b.Property<string>("Category_Name_EN")
+                        .HasMaxLength(150)
+                        .HasColumnType("varchar(150)")
+                        .HasColumnName("category_name_en")
+                        .UseCollation("utf8mb4_unicode_ci");
+
+                    b.Property<string>("Company_ID")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)")
+                        .HasColumnName("company_id")
+                        .UseCollation("utf8mb4_unicode_ci");
+
+                    b.Property<DateTime>("Created_At")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("Created_By")
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)")
+                        .HasColumnName("created_by")
+                        .UseCollation("utf8mb4_unicode_ci");
+
+                    b.Property<bool>("Is_Active")
+                        .HasColumnType("tinyint(1)")
+                        .HasColumnName("is_active");
+
+                    b.Property<bool>("Is_System")
+                        .HasColumnType("tinyint(1)")
+                        .HasColumnName("is_system");
+
+                    b.Property<string>("Normal_Balance")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("varchar(10)")
+                        .HasColumnName("normal_balance")
+                        .UseCollation("utf8mb4_unicode_ci");
+
+                    b.Property<int>("Sort_Order")
+                        .HasColumnType("int")
+                        .HasColumnName("sort_order");
+
+                    b.Property<DateTime?>("Updated_At")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("updated_at");
+
+                    b.Property<string>("Updated_By")
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)")
+                        .HasColumnName("updated_by")
+                        .UseCollation("utf8mb4_unicode_ci");
+
+                    b.HasKey("Category_ID");
+
+                    b.HasIndex("Company_ID", "Category_Code")
+                        .IsUnique();
+
+                    b.ToTable("account_categories", (string)null);
+                });
 
             modelBuilder.Entity("AlTayerERP.Core.Entities.AccountCodeSetting", b =>
                 {
                     b.Property<int>("Setting_ID")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int")
-                        .HasColumnName("Setting_ID");
+                        .HasColumnName("setting_id");
 
                     MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Setting_ID"));
 
                     b.Property<bool>("Allow_Manual_Code")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("Allow_Manual_Code");
+                        .HasColumnName("allow_manual_code");
 
                     b.Property<bool>("Auto_Generate")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("Auto_Generate");
+                        .HasColumnName("auto_generate");
 
                     b.Property<string>("Company_ID")
                         .IsRequired()
-                        .HasColumnType("longtext")
-                        .HasColumnName("Company_ID");
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)")
+                        .HasColumnName("company_id")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<DateTime>("Created_At")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("Created_At");
+                        .HasColumnName("created_at");
 
                     b.Property<bool>("Is_Active")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("Is_Active");
+                        .HasColumnName("is_active");
 
                     b.Property<int>("Level_No")
                         .HasColumnType("int")
-                        .HasColumnName("Level_No");
+                        .HasColumnName("level_no");
 
                     b.Property<int>("Max_Serial")
                         .HasColumnType("int")
-                        .HasColumnName("Max_Serial");
+                        .HasColumnName("max_serial");
 
                     b.Property<string>("Padding_Char")
                         .IsRequired()
-                        .HasColumnType("longtext")
-                        .HasColumnName("Padding_Char");
+                        .HasMaxLength(1)
+                        .HasColumnType("varchar(1)")
+                        .HasColumnName("padding_char")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<bool>("Parent_Based")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("Parent_Based");
+                        .HasColumnName("parent_based");
 
                     b.Property<int>("Segment_Length")
                         .HasColumnType("int")
-                        .HasColumnName("Segment_Length");
+                        .HasColumnName("segment_length");
 
                     b.Property<int>("Start_Number")
                         .HasColumnType("int")
-                        .HasColumnName("Start_Number");
+                        .HasColumnName("start_number");
 
                     b.HasKey("Setting_ID");
+
+                    b.HasIndex("Company_ID", "Level_No")
+                        .IsUnique();
 
                     b.ToTable("account_code_settings", (string)null);
                 });
@@ -87,78 +185,190 @@ namespace AlTayerERP.Infrastructure.Migrations
                     b.Property<long>("Audit_ID")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bigint")
-                        .HasColumnName("Audit_ID");
+                        .HasColumnName("audit_id");
 
                     MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<long>("Audit_ID"));
 
                     b.Property<DateTime>("Action_At")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("Action_At");
+                        .HasColumnName("action_at");
 
                     b.Property<string>("Action_Channel")
                         .IsRequired()
                         .HasMaxLength(20)
                         .HasColumnType("varchar(20)")
-                        .HasColumnName("Action_Channel");
+                        .HasColumnName("action_channel")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<string>("Action_Type")
                         .IsRequired()
-                        .HasMaxLength(30)
-                        .HasColumnType("varchar(30)")
-                        .HasColumnName("Action_Type");
+                        .HasMaxLength(64)
+                        .HasColumnType("varchar(64)")
+                        .HasColumnName("action_type")
+                        .UseCollation("utf8mb4_unicode_ci");
 
-                    b.Property<string>("Branch_ID")
-                        .HasMaxLength(50)
-                        .HasColumnType("varchar(50)")
-                        .HasColumnName("Branch_ID");
+                    b.Property<int?>("Branch_ID")
+                        .HasColumnType("int")
+                        .HasColumnName("branch_id");
 
                     b.Property<string>("Device_Name")
                         .HasMaxLength(150)
                         .HasColumnType("varchar(150)")
-                        .HasColumnName("Device_Name");
+                        .HasColumnName("device_name")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<string>("IP_Address")
                         .HasMaxLength(50)
                         .HasColumnType("varchar(50)")
-                        .HasColumnName("IP_Address");
+                        .HasColumnName("ip_address")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<int?>("Module_ID")
                         .HasColumnType("int")
-                        .HasColumnName("Module_ID");
+                        .HasColumnName("module_id");
 
                     b.Property<string>("New_Values")
+                        .HasMaxLength(255)
                         .HasColumnType("json")
-                        .HasColumnName("New_Values");
+                        .HasColumnName("new_values")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<string>("Notes")
                         .HasMaxLength(500)
                         .HasColumnType("varchar(500)")
-                        .HasColumnName("Notes");
+                        .HasColumnName("notes")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<string>("Old_Values")
+                        .HasMaxLength(255)
                         .HasColumnType("json")
-                        .HasColumnName("Old_Values");
+                        .HasColumnName("old_values")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<string>("Record_ID")
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("varchar(100)")
-                        .HasColumnName("Record_ID");
+                        .HasColumnName("record_id")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<string>("Table_Name")
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("varchar(100)")
-                        .HasColumnName("Table_Name");
+                        .HasColumnName("table_name")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<string>("User_ID")
                         .HasMaxLength(50)
                         .HasColumnType("varchar(50)")
-                        .HasColumnName("User_ID");
+                        .HasColumnName("user_id")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.HasKey("Audit_ID");
 
-                    b.ToTable("audit_logs", (string)null);
+                    b.HasIndex("Branch_ID");
+
+                    b.HasIndex("Table_Name", "Record_ID", "Action_At");
+
+                    b.ToTable("audit_logs", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_audit_action", "CHAR_LENGTH(`action_type`) BETWEEN 1 AND 64 AND `action_type` = UPPER(`action_type`)");
+                        });
+                });
+
+            modelBuilder.Entity("AlTayerERP.Core.Entities.Accounting.BankAccount", b =>
+                {
+                    b.Property<int>("Bank_Account_ID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasColumnName("bank_account_id");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Bank_Account_ID"));
+
+                    b.Property<string>("Account_No")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)")
+                        .HasColumnName("account_no")
+                        .UseCollation("utf8mb4_unicode_ci");
+
+                    b.Property<string>("Bank_Code")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)")
+                        .HasColumnName("bank_code")
+                        .UseCollation("utf8mb4_unicode_ci");
+
+                    b.Property<string>("Bank_Name_AR")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)")
+                        .HasColumnName("bank_name_ar")
+                        .UseCollation("utf8mb4_unicode_ci");
+
+                    b.Property<string>("Bank_Name_EN")
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)")
+                        .HasColumnName("bank_name_en")
+                        .UseCollation("utf8mb4_unicode_ci");
+
+                    b.Property<string>("Branch_Name")
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)")
+                        .HasColumnName("branch_name")
+                        .UseCollation("utf8mb4_unicode_ci");
+
+                    b.Property<string>("Company_ID")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)")
+                        .HasColumnName("company_id")
+                        .UseCollation("utf8mb4_unicode_ci");
+
+                    b.Property<DateTime>("Created_At")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("Currency_Code")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("varchar(20)")
+                        .HasColumnName("currency_code")
+                        .UseCollation("utf8mb4_unicode_ci");
+
+                    b.Property<string>("GL_Account")
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)")
+                        .HasColumnName("gl_account")
+                        .UseCollation("utf8mb4_unicode_ci");
+
+                    b.Property<string>("IBAN")
+                        .HasMaxLength(64)
+                        .HasColumnType("varchar(64)")
+                        .HasColumnName("iban")
+                        .UseCollation("utf8mb4_unicode_ci");
+
+                    b.Property<bool>("Is_Active")
+                        .HasColumnType("tinyint(1)")
+                        .HasColumnName("is_active");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)")
+                        .HasColumnName("notes")
+                        .UseCollation("utf8mb4_unicode_ci");
+
+                    b.Property<DateTime?>("Updated_At")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Bank_Account_ID");
+
+                    b.HasIndex("Company_ID", "Account_No")
+                        .IsUnique();
+
+                    b.ToTable("bank_accounts", (string)null);
                 });
 
             modelBuilder.Entity("AlTayerERP.Core.Entities.Accounting.DocumentAllocation", b =>
@@ -166,94 +376,98 @@ namespace AlTayerERP.Infrastructure.Migrations
                     b.Property<long>("Allocation_ID")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bigint")
-                        .HasColumnName("Allocation_ID");
+                        .HasColumnName("allocation_id");
 
                     MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<long>("Allocation_ID"));
 
                     b.Property<decimal>("Collected_Before")
-                        .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)")
-                        .HasColumnName("Collected_Before");
+                        .HasColumnName("collected_before");
 
                     b.Property<decimal>("Collected_Now")
-                        .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)")
-                        .HasColumnName("Collected_Now");
+                        .HasColumnName("collected_now");
 
                     b.Property<DateTime>("Created_At")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("Created_At");
+                        .HasColumnName("created_at");
 
                     b.Property<string>("Created_By")
                         .HasMaxLength(50)
                         .HasColumnType("varchar(50)")
-                        .HasColumnName("Created_By");
+                        .HasColumnName("created_by")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<int>("Currency_ID")
                         .HasColumnType("int")
-                        .HasColumnName("Currency_ID");
+                        .HasColumnName("currency_id");
 
                     b.Property<long>("Document_ID")
                         .HasColumnType("bigint")
-                        .HasColumnName("Document_ID");
+                        .HasColumnName("document_id");
 
                     b.Property<string>("Document_No")
                         .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("varchar(50)")
-                        .HasColumnName("Document_No");
+                        .HasColumnName("document_no")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<decimal>("Document_Total")
-                        .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)")
-                        .HasColumnName("Document_Total");
+                        .HasColumnName("document_total");
 
                     b.Property<int>("Document_Type_ID")
                         .HasColumnType("int")
-                        .HasColumnName("Document_Type_ID");
+                        .HasColumnName("document_type_id");
 
                     b.Property<decimal>("Exchange_Rate")
-                        .HasPrecision(18, 6)
                         .HasColumnType("decimal(18,6)")
-                        .HasColumnName("Exchange_Rate");
+                        .HasColumnName("exchange_rate");
 
                     b.Property<bool>("Is_Active")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("Is_Active");
+                        .HasColumnName("is_active");
 
                     b.Property<int>("Module_ID")
                         .HasColumnType("int")
-                        .HasColumnName("Module_ID");
+                        .HasColumnName("module_id");
 
                     b.Property<string>("Notes")
                         .HasMaxLength(500)
                         .HasColumnType("varchar(500)")
-                        .HasColumnName("Notes");
+                        .HasColumnName("notes")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<string>("Party_ID")
                         .HasMaxLength(50)
                         .HasColumnType("varchar(50)")
-                        .HasColumnName("Party_ID");
+                        .HasColumnName("party_id")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<decimal>("Remaining_Balance")
-                        .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)")
-                        .HasColumnName("Remaining_Balance");
+                        .HasColumnName("remaining_balance");
 
                     b.Property<DateTime?>("Updated_At")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("Updated_At");
+                        .HasColumnName("updated_at");
 
                     b.Property<string>("Updated_By")
                         .HasMaxLength(50)
                         .HasColumnType("varchar(50)")
-                        .HasColumnName("Updated_By");
+                        .HasColumnName("updated_by")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<long>("Voucher_ID")
                         .HasColumnType("bigint")
-                        .HasColumnName("Voucher_ID");
+                        .HasColumnName("voucher_id");
 
                     b.HasKey("Allocation_ID");
+
+                    b.HasIndex("Currency_ID");
+
+                    b.HasIndex("Party_ID");
 
                     b.HasIndex("Voucher_ID");
 
@@ -265,78 +479,88 @@ namespace AlTayerERP.Infrastructure.Migrations
                     b.Property<long>("Document_Link_ID")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bigint")
-                        .HasColumnName("Document_Link_ID");
+                        .HasColumnName("document_link_id");
 
                     MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<long>("Document_Link_ID"));
 
                     b.Property<DateTime>("Created_At")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("Created_At");
+                        .HasColumnName("created_at");
 
                     b.Property<string>("Created_By")
                         .HasMaxLength(50)
                         .HasColumnType("varchar(50)")
-                        .HasColumnName("Created_By");
+                        .HasColumnName("created_by")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<long>("From_Document_ID")
                         .HasColumnType("bigint")
-                        .HasColumnName("From_Document_ID");
+                        .HasColumnName("from_document_id");
 
                     b.Property<string>("From_Document_No")
                         .HasMaxLength(100)
                         .HasColumnType("varchar(100)")
-                        .HasColumnName("From_Document_No");
+                        .HasColumnName("from_document_no")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<int>("From_Document_Type_ID")
                         .HasColumnType("int")
-                        .HasColumnName("From_Document_Type_ID");
+                        .HasColumnName("from_document_type_id");
 
                     b.Property<int>("From_Module_ID")
                         .HasColumnType("int")
-                        .HasColumnName("From_Module_ID");
+                        .HasColumnName("from_module_id");
 
                     b.Property<bool>("Is_Active")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("Is_Active");
+                        .HasColumnName("is_active");
 
                     b.Property<string>("Link_Type")
                         .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("varchar(50)")
-                        .HasColumnName("Link_Type");
+                        .HasColumnName("link_type")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<string>("Notes")
                         .HasMaxLength(500)
                         .HasColumnType("varchar(500)")
-                        .HasColumnName("Notes");
+                        .HasColumnName("notes")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<long>("To_Document_ID")
                         .HasColumnType("bigint")
-                        .HasColumnName("To_Document_ID");
+                        .HasColumnName("to_document_id");
 
                     b.Property<string>("To_Document_No")
                         .HasMaxLength(100)
                         .HasColumnType("varchar(100)")
-                        .HasColumnName("To_Document_No");
+                        .HasColumnName("to_document_no")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<int>("To_Document_Type_ID")
                         .HasColumnType("int")
-                        .HasColumnName("To_Document_Type_ID");
+                        .HasColumnName("to_document_type_id");
 
                     b.Property<int>("To_Module_ID")
                         .HasColumnType("int")
-                        .HasColumnName("To_Module_ID");
+                        .HasColumnName("to_module_id");
 
                     b.Property<DateTime?>("Updated_At")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("Updated_At");
+                        .HasColumnName("updated_at");
 
                     b.Property<string>("Updated_By")
                         .HasMaxLength(50)
                         .HasColumnType("varchar(50)")
-                        .HasColumnName("Updated_By");
+                        .HasColumnName("updated_by")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.HasKey("Document_Link_ID");
+
+                    b.HasIndex("From_Module_ID", "From_Document_Type_ID", "From_Document_ID");
+
+                    b.HasIndex("To_Module_ID", "To_Document_Type_ID", "To_Document_ID");
 
                     b.ToTable("document_links", (string)null);
                 });
@@ -346,7 +570,7 @@ namespace AlTayerERP.Infrastructure.Migrations
                     b.Property<long>("Voucher_Detail_ID")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bigint")
-                        .HasColumnName("Voucher_Detail_ID");
+                        .HasColumnName("voucher_detail_id");
 
                     MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<long>("Voucher_Detail_ID"));
 
@@ -354,128 +578,130 @@ namespace AlTayerERP.Infrastructure.Migrations
                         .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("varchar(50)")
-                        .HasColumnName("Account_ID");
+                        .HasColumnName("account_id")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<string>("Cost_Center_ID")
                         .HasMaxLength(50)
                         .HasColumnType("varchar(50)")
-                        .HasColumnName("Cost_Center_ID");
+                        .HasColumnName("cost_center_id")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<DateTime>("Created_At")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("Created_At");
+                        .HasColumnName("created_at");
 
                     b.Property<string>("Created_By")
                         .HasMaxLength(50)
                         .HasColumnType("varchar(50)")
-                        .HasColumnName("Created_By");
+                        .HasColumnName("created_by")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<decimal>("Credit_Amount")
-                        .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)")
-                        .HasColumnName("Credit_Amount");
+                        .HasColumnName("credit_amount");
 
                     b.Property<int>("Currency_ID")
                         .HasColumnType("int")
-                        .HasColumnName("Currency_ID");
+                        .HasColumnName("currency_id");
 
                     b.Property<decimal>("Debit_Amount")
-                        .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)")
-                        .HasColumnName("Debit_Amount");
+                        .HasColumnName("debit_amount");
 
                     b.Property<string>("Description")
                         .HasMaxLength(500)
                         .HasColumnType("varchar(500)")
-                        .HasColumnName("Description");
+                        .HasColumnName("description")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<decimal>("Exchange_Rate")
-                        .HasPrecision(18, 6)
                         .HasColumnType("decimal(18,6)")
-                        .HasColumnName("Exchange_Rate");
+                        .HasColumnName("exchange_rate");
 
                     b.Property<decimal>("Foreign_Amount")
-                        .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)")
-                        .HasColumnName("Foreign_Amount");
+                        .HasColumnName("foreign_amount");
 
                     b.Property<int>("Line_No")
                         .HasColumnType("int")
-                        .HasColumnName("Line_No");
+                        .HasColumnName("line_no");
 
                     b.Property<byte>("Line_Type")
                         .HasColumnType("tinyint unsigned")
-                        .HasColumnName("Line_Type");
+                        .HasColumnName("line_type");
 
                     b.Property<decimal>("Local_Amount")
-                        .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)")
-                        .HasColumnName("Local_Amount");
+                        .HasColumnName("local_amount");
 
                     b.Property<string>("Notes")
                         .HasMaxLength(500)
                         .HasColumnType("varchar(500)")
-                        .HasColumnName("Notes");
+                        .HasColumnName("notes")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<string>("Project_ID")
                         .HasMaxLength(50)
                         .HasColumnType("varchar(50)")
-                        .HasColumnName("Project_ID");
+                        .HasColumnName("project_id")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<DateTime?>("Reference_Date")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("Reference_Date");
+                        .HasColumnName("reference_date");
 
                     b.Property<string>("Reference_Name")
                         .HasMaxLength(250)
                         .HasColumnType("varchar(250)")
-                        .HasColumnName("Reference_Name");
+                        .HasColumnName("reference_name")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<string>("Reference_No")
                         .HasMaxLength(100)
                         .HasColumnType("varchar(100)")
-                        .HasColumnName("Reference_No");
+                        .HasColumnName("reference_no")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<string>("Reference_Type")
                         .HasMaxLength(50)
                         .HasColumnType("varchar(50)")
-                        .HasColumnName("Reference_Type");
+                        .HasColumnName("reference_type")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<DateTime?>("Updated_At")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("Updated_At");
+                        .HasColumnName("updated_at");
 
                     b.Property<string>("Updated_By")
                         .HasMaxLength(50)
                         .HasColumnType("varchar(50)")
-                        .HasColumnName("Updated_By");
+                        .HasColumnName("updated_by")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<long>("Voucher_ID")
                         .HasColumnType("bigint")
-                        .HasColumnName("Voucher_ID");
+                        .HasColumnName("voucher_id");
 
                     b.HasKey("Voucher_Detail_ID");
 
-                    b.HasIndex("Account_ID")
-                        .HasDatabaseName("IX_Financial_Voucher_Details_Account");
+                    b.HasIndex("Account_ID");
 
-                    b.HasIndex("Cost_Center_ID")
-                        .HasDatabaseName("IX_Financial_Voucher_Details_Cost_Center");
+                    b.HasIndex("Cost_Center_ID");
 
-                    b.HasIndex("Currency_ID")
-                        .HasDatabaseName("IX_Financial_Voucher_Details_Currency");
-
-                    b.HasIndex("Project_ID")
-                        .HasDatabaseName("IX_Financial_Voucher_Details_Project");
-
-                    b.HasIndex("Voucher_ID")
-                        .HasDatabaseName("IX_Financial_Voucher_Details_Voucher");
+                    b.HasIndex("Currency_ID");
 
                     b.HasIndex("Voucher_ID", "Line_No")
-                        .IsUnique()
-                        .HasDatabaseName("UQ_Financial_Voucher_Detail_Line");
+                        .IsUnique();
 
-                    b.ToTable("financial_voucher_details", (string)null);
+                    b.ToTable("financial_voucher_details", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_voucher_detail_debit_credit", "NOT (`debit_amount` > 0 AND `credit_amount` > 0)");
+
+                            t.HasCheckConstraint("ck_voucher_detail_nonnegative", "`debit_amount` >= 0 AND `credit_amount` >= 0 AND `foreign_amount` >= 0 AND `local_amount` >= 0");
+
+                            t.HasCheckConstraint("ck_voucher_detail_rate", "`exchange_rate` > 0");
+                        });
                 });
 
             modelBuilder.Entity("AlTayerERP.Core.Entities.Accounting.FinancialVoucherHeader", b =>
@@ -483,271 +709,313 @@ namespace AlTayerERP.Infrastructure.Migrations
                     b.Property<long>("Voucher_ID")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bigint")
-                        .HasColumnName("Voucher_ID");
+                        .HasColumnName("voucher_id");
 
                     MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<long>("Voucher_ID"));
 
                     b.Property<string>("Against_Text")
                         .HasMaxLength(500)
                         .HasColumnType("varchar(500)")
-                        .HasColumnName("Against_Text");
+                        .HasColumnName("against_text")
+                        .UseCollation("utf8mb4_unicode_ci");
+
+                    b.Property<decimal>("Amount")
+                        .HasColumnType("decimal(18,2)")
+                        .HasColumnName("amount");
 
                     b.Property<DateTime?>("Approval_Requested_At")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("Approval_Requested_At");
+                        .HasColumnName("approval_requested_at");
 
                     b.Property<string>("Approval_Requested_By_User_ID")
                         .HasMaxLength(50)
                         .HasColumnType("varchar(50)")
-                        .HasColumnName("Approval_Requested_By_User_ID");
+                        .HasColumnName("approval_requested_by_user_id")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<byte>("Approval_Status")
                         .HasColumnType("tinyint unsigned")
-                        .HasColumnName("Approval_Status");
+                        .HasColumnName("approval_status");
 
                     b.Property<DateTime?>("Approved_At")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("Approved_At");
+                        .HasColumnName("approved_at");
 
                     b.Property<string>("Approved_By_User_ID")
                         .HasMaxLength(50)
                         .HasColumnType("varchar(50)")
-                        .HasColumnName("Approved_By_User_ID");
+                        .HasColumnName("approved_by_user_id")
+                        .UseCollation("utf8mb4_unicode_ci");
 
-                    b.Property<string>("Branch_ID")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("varchar(50)")
-                        .HasColumnName("Branch_ID");
+                    b.Property<int>("Branch_ID")
+                        .HasColumnType("int")
+                        .HasColumnName("branch_id");
 
                     b.Property<string>("Cash_Account_ID")
                         .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("varchar(50)")
-                        .HasColumnName("Cash_Account_ID");
+                        .HasColumnName("cash_account_id")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<DateTime>("Created_At")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("Created_At");
+                        .HasColumnName("created_at");
 
                     b.Property<string>("Created_By")
                         .HasMaxLength(50)
                         .HasColumnType("varchar(50)")
-                        .HasColumnName("Created_By");
+                        .HasColumnName("created_by")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<int>("Currency_ID")
                         .HasColumnType("int")
-                        .HasColumnName("Currency_ID");
+                        .HasColumnName("currency_id");
 
                     b.Property<string>("Description")
                         .HasMaxLength(500)
                         .HasColumnType("varchar(500)")
-                        .HasColumnName("Description");
+                        .HasColumnName("description")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<long?>("Document_ID")
                         .HasColumnType("bigint")
-                        .HasColumnName("Document_ID");
+                        .HasColumnName("document_id");
 
                     b.Property<int?>("Document_Type_ID")
                         .HasColumnType("int")
-                        .HasColumnName("Document_Type_ID");
+                        .HasColumnName("document_type_id");
 
                     b.Property<int>("Edit_Count")
                         .HasColumnType("int")
-                        .HasColumnName("Edit_Count");
+                        .HasColumnName("edit_count");
 
                     b.Property<decimal>("Exchange_Rate")
-                        .HasPrecision(18, 6)
                         .HasColumnType("decimal(18,6)")
-                        .HasColumnName("Exchange_Rate");
+                        .HasColumnName("exchange_rate");
 
                     b.Property<int?>("Fiscal_Year_ID")
                         .HasColumnType("int")
-                        .HasColumnName("Fiscal_Year_ID");
+                        .HasColumnName("fiscal_year_id");
 
                     b.Property<decimal>("Foreign_Total")
-                        .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)")
-                        .HasColumnName("Foreign_Total");
+                        .HasColumnName("foreign_total");
 
                     b.Property<bool>("Is_Active")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("Is_Active");
+                        .HasColumnName("is_active");
 
                     b.Property<bool>("Is_Posted")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("Is_Posted");
+                        .HasColumnName("is_posted");
 
                     b.Property<long?>("Journal_Entry_ID")
                         .HasColumnType("bigint")
-                        .HasColumnName("Journal_Entry_ID");
+                        .HasColumnName("journal_entry_id");
 
                     b.Property<DateTime?>("Last_Print_Date")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("Last_Print_Date");
+                        .HasColumnName("last_print_date");
 
                     b.Property<string>("Last_Printed_By")
                         .HasMaxLength(50)
                         .HasColumnType("varchar(50)")
-                        .HasColumnName("Last_Printed_By");
+                        .HasColumnName("last_printed_by")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<DateTime?>("Last_Undo_At")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("Last_Undo_At");
+                        .HasColumnName("last_undo_at");
 
                     b.Property<string>("Last_Undo_By")
                         .HasMaxLength(50)
                         .HasColumnType("varchar(50)")
-                        .HasColumnName("Last_Undo_By");
+                        .HasColumnName("last_undo_by")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<decimal>("Local_Total")
-                        .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)")
-                        .HasColumnName("Local_Total");
+                        .HasColumnName("local_total");
 
                     b.Property<int?>("Module_ID")
                         .HasColumnType("int")
-                        .HasColumnName("Module_ID");
+                        .HasColumnName("module_id");
 
                     b.Property<string>("Notes")
                         .HasMaxLength(1000)
                         .HasColumnType("varchar(1000)")
-                        .HasColumnName("Notes");
+                        .HasColumnName("notes")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<string>("Party_ID")
                         .HasMaxLength(50)
                         .HasColumnType("varchar(50)")
-                        .HasColumnName("Party_ID");
+                        .HasColumnName("party_id")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<int?>("Payment_Method_ID")
                         .HasColumnType("int")
-                        .HasColumnName("Payment_Method_ID");
+                        .HasColumnName("payment_method_id");
 
                     b.Property<DateTime?>("Posted_At")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("Posted_At");
+                        .HasColumnName("posted_at");
 
                     b.Property<string>("Posted_By_User_ID")
                         .HasMaxLength(50)
                         .HasColumnType("varchar(50)")
-                        .HasColumnName("Posted_By_User_ID");
+                        .HasColumnName("posted_by_user_id")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<int>("Print_Count")
                         .HasColumnType("int")
-                        .HasColumnName("Print_Count");
+                        .HasColumnName("print_count");
+
+                    b.Property<string>("Received_From_Name")
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)")
+                        .HasColumnName("received_from_name")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<DateTime?>("Reference_Date")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("Reference_Date");
+                        .HasColumnName("reference_date");
 
                     b.Property<string>("Reference_No")
                         .HasMaxLength(100)
                         .HasColumnType("varchar(100)")
-                        .HasColumnName("Reference_No");
+                        .HasColumnName("reference_no")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<DateTime?>("Rejected_At")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("Rejected_At");
+                        .HasColumnName("rejected_at");
 
                     b.Property<string>("Rejected_By_User_ID")
                         .HasMaxLength(50)
                         .HasColumnType("varchar(50)")
-                        .HasColumnName("Rejected_By_User_ID");
+                        .HasColumnName("rejected_by_user_id")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<string>("Rejection_Reason")
                         .HasMaxLength(500)
                         .HasColumnType("varchar(500)")
-                        .HasColumnName("Rejection_Reason");
+                        .HasColumnName("rejection_reason")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<bool>("Requires_Approval")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("Requires_Approval");
+                        .HasColumnName("requires_approval");
+
+                    b.Property<string>("Review_Notes")
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)")
+                        .HasColumnName("review_notes")
+                        .UseCollation("utf8mb4_unicode_ci");
+
+                    b.Property<byte>("Review_Status")
+                        .HasColumnType("tinyint unsigned")
+                        .HasColumnName("review_status");
+
+                    b.Property<DateTime?>("Reviewed_At")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("reviewed_at");
+
+                    b.Property<string>("Reviewed_By_User_ID")
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)")
+                        .HasColumnName("reviewed_by_user_id")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<string>("Source_Document_No")
                         .HasMaxLength(100)
                         .HasColumnType("varchar(100)")
-                        .HasColumnName("Source_Document_No");
+                        .HasColumnName("source_document_no")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<DateTime>("Transaction_Date")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("Transaction_Date");
+                        .HasColumnName("transaction_date");
 
                     b.Property<int>("Undo_Count")
                         .HasColumnType("int")
-                        .HasColumnName("Undo_Count");
+                        .HasColumnName("undo_count");
 
                     b.Property<string>("Unpost_Reason")
                         .HasMaxLength(500)
                         .HasColumnType("varchar(500)")
-                        .HasColumnName("Unpost_Reason");
+                        .HasColumnName("unpost_reason")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<DateTime?>("Unposted_At")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("Unposted_At");
+                        .HasColumnName("unposted_at");
 
                     b.Property<string>("Unposted_By")
                         .HasMaxLength(50)
                         .HasColumnType("varchar(50)")
-                        .HasColumnName("Unposted_By");
+                        .HasColumnName("unposted_by")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<DateTime?>("Updated_At")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("Updated_At");
+                        .HasColumnName("updated_at");
 
                     b.Property<string>("Updated_By")
                         .HasMaxLength(50)
                         .HasColumnType("varchar(50)")
-                        .HasColumnName("Updated_By");
+                        .HasColumnName("updated_by")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<DateTime>("Voucher_Date")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("Voucher_Date");
+                        .HasColumnName("voucher_date");
 
                     b.Property<string>("Voucher_No")
                         .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("varchar(50)")
-                        .HasColumnName("Voucher_No");
+                        .HasColumnName("voucher_no")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<int>("Voucher_Status_ID")
                         .HasColumnType("int")
-                        .HasColumnName("Voucher_Status_ID");
+                        .HasColumnName("voucher_status_id");
 
                     b.Property<int>("Voucher_Type_ID")
                         .HasColumnType("int")
-                        .HasColumnName("Voucher_Type_ID");
+                        .HasColumnName("voucher_type_id");
 
                     b.HasKey("Voucher_ID");
 
-                    b.HasIndex("Cash_Account_ID")
-                        .HasDatabaseName("IX_Financial_Voucher_Cash_Account");
+                    b.HasIndex("Cash_Account_ID");
 
-                    b.HasIndex("Is_Posted")
-                        .HasDatabaseName("IX_Financial_Voucher_Posted");
+                    b.HasIndex("Currency_ID");
 
-                    b.HasIndex("Party_ID")
-                        .HasDatabaseName("IX_Financial_Voucher_Party");
+                    b.HasIndex("Fiscal_Year_ID");
 
-                    b.HasIndex("Transaction_Date")
-                        .HasDatabaseName("IX_Financial_Voucher_Transaction_Date");
+                    b.HasIndex("Is_Posted");
 
-                    b.HasIndex("Voucher_Date")
-                        .HasDatabaseName("IX_Financial_Voucher_Date");
+                    b.HasIndex("Party_ID");
 
-                    b.HasIndex("Voucher_Status_ID")
-                        .HasDatabaseName("IX_Financial_Voucher_Status");
+                    b.HasIndex("Payment_Method_ID");
 
-                    b.HasIndex("Voucher_Type_ID")
-                        .HasDatabaseName("IX_Financial_Voucher_Type");
+                    b.HasIndex("Voucher_Date");
 
-                    b.HasIndex("Document_Type_ID", "Document_ID")
-                        .HasDatabaseName("IX_Financial_Voucher_Source");
+                    b.HasIndex("Voucher_Status_ID");
+
+                    b.HasIndex("Voucher_Type_ID");
 
                     b.HasIndex("Branch_ID", "Fiscal_Year_ID", "Voucher_Type_ID", "Voucher_No")
-                        .IsUnique()
-                        .HasDatabaseName("UQ_Financial_Voucher_Branch_Year_Type_No");
+                        .IsUnique();
 
-                    b.ToTable("financial_voucher_headers", (string)null);
+                    b.ToTable("financial_voucher_headers", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_voucher_exchange_rate", "`exchange_rate` > 0");
+
+                            t.HasCheckConstraint("ck_voucher_totals", "`amount` >= 0 AND `foreign_total` >= 0 AND `local_total` >= 0");
+                        });
                 });
 
             modelBuilder.Entity("AlTayerERP.Core.Entities.Accounting.JournalEntryDetail", b =>
@@ -755,7 +1023,7 @@ namespace AlTayerERP.Infrastructure.Migrations
                     b.Property<long>("Journal_Entry_Detail_ID")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bigint")
-                        .HasColumnName("Journal_Entry_Detail_ID");
+                        .HasColumnName("journal_entry_detail_id");
 
                     MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<long>("Journal_Entry_Detail_ID"));
 
@@ -763,116 +1031,132 @@ namespace AlTayerERP.Infrastructure.Migrations
                         .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("varchar(50)")
-                        .HasColumnName("Account_ID");
+                        .HasColumnName("account_id")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<string>("Cost_Center_ID")
                         .HasMaxLength(50)
                         .HasColumnType("varchar(50)")
-                        .HasColumnName("Cost_Center_ID");
+                        .HasColumnName("cost_center_id")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<DateTime>("Created_At")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("Created_At");
+                        .HasColumnName("created_at");
 
                     b.Property<string>("Created_By")
                         .HasMaxLength(50)
                         .HasColumnType("varchar(50)")
-                        .HasColumnName("Created_By");
+                        .HasColumnName("created_by")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<decimal>("Credit_Amount")
-                        .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)")
-                        .HasColumnName("Credit_Amount");
+                        .HasColumnName("credit_amount");
 
                     b.Property<int>("Currency_ID")
                         .HasColumnType("int")
-                        .HasColumnName("Currency_ID");
+                        .HasColumnName("currency_id");
 
                     b.Property<decimal>("Debit_Amount")
-                        .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)")
-                        .HasColumnName("Debit_Amount");
+                        .HasColumnName("debit_amount");
 
                     b.Property<string>("Description")
                         .HasMaxLength(500)
                         .HasColumnType("varchar(500)")
-                        .HasColumnName("Description");
+                        .HasColumnName("description")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<decimal>("Exchange_Rate")
-                        .HasPrecision(18, 6)
                         .HasColumnType("decimal(18,6)")
-                        .HasColumnName("Exchange_Rate");
+                        .HasColumnName("exchange_rate");
 
                     b.Property<decimal>("Foreign_Amount")
-                        .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)")
-                        .HasColumnName("Foreign_Amount");
+                        .HasColumnName("foreign_amount");
 
                     b.Property<long>("Journal_Entry_ID")
                         .HasColumnType("bigint")
-                        .HasColumnName("Journal_Entry_ID");
+                        .HasColumnName("journal_entry_id");
 
                     b.Property<int>("Line_No")
                         .HasColumnType("int")
-                        .HasColumnName("Line_No");
+                        .HasColumnName("line_no");
 
                     b.Property<byte>("Line_Type")
                         .HasColumnType("tinyint unsigned")
-                        .HasColumnName("Line_Type");
+                        .HasColumnName("line_type");
 
                     b.Property<decimal>("Local_Amount")
-                        .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)")
-                        .HasColumnName("Local_Amount");
+                        .HasColumnName("local_amount");
 
                     b.Property<string>("Notes")
                         .HasMaxLength(500)
                         .HasColumnType("varchar(500)")
-                        .HasColumnName("Notes");
+                        .HasColumnName("notes")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<string>("Project_ID")
                         .HasMaxLength(50)
                         .HasColumnType("varchar(50)")
-                        .HasColumnName("Project_ID");
+                        .HasColumnName("project_id")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<DateTime?>("Reference_Date")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("Reference_Date");
+                        .HasColumnName("reference_date");
 
                     b.Property<string>("Reference_Name")
                         .HasMaxLength(250)
                         .HasColumnType("varchar(250)")
-                        .HasColumnName("Reference_Name");
+                        .HasColumnName("reference_name")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<string>("Reference_No")
                         .HasMaxLength(100)
                         .HasColumnType("varchar(100)")
-                        .HasColumnName("Reference_No");
+                        .HasColumnName("reference_no")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<string>("Reference_Type")
                         .HasMaxLength(50)
                         .HasColumnType("varchar(50)")
-                        .HasColumnName("Reference_Type");
+                        .HasColumnName("reference_type")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<long?>("Source_Voucher_Detail_ID")
                         .HasColumnType("bigint")
-                        .HasColumnName("Source_Voucher_Detail_ID");
+                        .HasColumnName("source_voucher_detail_id");
 
                     b.Property<DateTime?>("Updated_At")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("Updated_At");
+                        .HasColumnName("updated_at");
 
                     b.Property<string>("Updated_By")
                         .HasMaxLength(50)
                         .HasColumnType("varchar(50)")
-                        .HasColumnName("Updated_By");
+                        .HasColumnName("updated_by")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.HasKey("Journal_Entry_Detail_ID");
+
+                    b.HasIndex("Account_ID");
+
+                    b.HasIndex("Cost_Center_ID");
+
+                    b.HasIndex("Currency_ID");
 
                     b.HasIndex("Journal_Entry_ID", "Line_No")
                         .IsUnique();
 
-                    b.ToTable("journal_entry_details", (string)null);
+                    b.ToTable("journal_entry_details", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_journal_detail_debit_credit", "NOT (`debit_amount` > 0 AND `credit_amount` > 0)");
+
+                            t.HasCheckConstraint("ck_journal_detail_rate", "`exchange_rate` > 0");
+                        });
                 });
 
             modelBuilder.Entity("AlTayerERP.Core.Entities.Accounting.JournalEntryHeader", b =>
@@ -880,180 +1164,195 @@ namespace AlTayerERP.Infrastructure.Migrations
                     b.Property<long>("Journal_Entry_ID")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bigint")
-                        .HasColumnName("Journal_Entry_ID");
+                        .HasColumnName("journal_entry_id");
 
                     MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<long>("Journal_Entry_ID"));
 
-                    b.Property<string>("Branch_ID")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("varchar(50)")
-                        .HasColumnName("Branch_ID");
+                    b.Property<int>("Branch_ID")
+                        .HasColumnType("int")
+                        .HasColumnName("branch_id");
 
                     b.Property<string>("Cancellation_Reason")
                         .HasMaxLength(500)
                         .HasColumnType("varchar(500)")
-                        .HasColumnName("Cancellation_Reason");
+                        .HasColumnName("cancellation_reason")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<DateTime?>("Cancelled_At")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("Cancelled_At");
+                        .HasColumnName("cancelled_at");
 
                     b.Property<string>("Cancelled_By")
                         .HasMaxLength(50)
                         .HasColumnType("varchar(50)")
-                        .HasColumnName("Cancelled_By");
+                        .HasColumnName("cancelled_by")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<DateTime>("Created_At")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("Created_At");
+                        .HasColumnName("created_at");
 
                     b.Property<string>("Created_By")
                         .HasMaxLength(50)
                         .HasColumnType("varchar(50)")
-                        .HasColumnName("Created_By");
+                        .HasColumnName("created_by")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<string>("Description")
                         .HasMaxLength(500)
                         .HasColumnType("varchar(500)")
-                        .HasColumnName("Description");
+                        .HasColumnName("description")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<DateTime>("Entry_Date")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("Entry_Date");
+                        .HasColumnName("entry_date");
 
                     b.Property<string>("Entry_No")
                         .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("varchar(50)")
-                        .HasColumnName("Entry_No");
+                        .HasColumnName("entry_no")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<int>("Entry_Status_ID")
                         .HasColumnType("int")
-                        .HasColumnName("Entry_Status_ID");
+                        .HasColumnName("entry_status_id");
 
                     b.Property<byte>("Entry_Type")
                         .HasColumnType("tinyint unsigned")
-                        .HasColumnName("Entry_Type");
+                        .HasColumnName("entry_type");
 
                     b.Property<int?>("Fiscal_Year_ID")
                         .HasColumnType("int")
-                        .HasColumnName("Fiscal_Year_ID");
+                        .HasColumnName("fiscal_year_id");
 
                     b.Property<bool>("Is_Active")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("Is_Active");
+                        .HasColumnName("is_active");
 
                     b.Property<bool>("Is_Cancelled")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("Is_Cancelled");
+                        .HasColumnName("is_cancelled");
 
                     b.Property<bool>("Is_Posted")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("Is_Posted");
+                        .HasColumnName("is_posted");
 
                     b.Property<bool>("Is_Reversal")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("Is_Reversal");
+                        .HasColumnName("is_reversal");
 
                     b.Property<bool>("Is_Reversed")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("Is_Reversed");
+                        .HasColumnName("is_reversed");
 
                     b.Property<bool>("Is_System_Generated")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("Is_System_Generated");
+                        .HasColumnName("is_system_generated");
 
                     b.Property<string>("Notes")
                         .HasMaxLength(1000)
                         .HasColumnType("varchar(1000)")
-                        .HasColumnName("Notes");
+                        .HasColumnName("notes")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<long?>("Original_Journal_Entry_ID")
                         .HasColumnType("bigint")
-                        .HasColumnName("Original_Journal_Entry_ID");
+                        .HasColumnName("original_journal_entry_id");
 
                     b.Property<DateTime?>("Posted_At")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("Posted_At");
+                        .HasColumnName("posted_at");
 
                     b.Property<string>("Posted_By")
                         .HasMaxLength(50)
                         .HasColumnType("varchar(50)")
-                        .HasColumnName("Posted_By");
+                        .HasColumnName("posted_by")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<long?>("Reversal_Journal_Entry_ID")
                         .HasColumnType("bigint")
-                        .HasColumnName("Reversal_Journal_Entry_ID");
+                        .HasColumnName("reversal_journal_entry_id");
 
                     b.Property<string>("Reversal_Reason")
                         .HasMaxLength(500)
                         .HasColumnType("varchar(500)")
-                        .HasColumnName("Reversal_Reason");
+                        .HasColumnName("reversal_reason")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<DateTime?>("Reversed_At")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("Reversed_At");
+                        .HasColumnName("reversed_at");
 
                     b.Property<string>("Reversed_By")
                         .HasMaxLength(50)
                         .HasColumnType("varchar(50)")
-                        .HasColumnName("Reversed_By");
+                        .HasColumnName("reversed_by")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<string>("Source_Document_No")
                         .HasMaxLength(100)
                         .HasColumnType("varchar(100)")
-                        .HasColumnName("Source_Document_No");
+                        .HasColumnName("source_document_no")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<string>("Source_Document_Type")
                         .HasMaxLength(50)
                         .HasColumnType("varchar(50)")
-                        .HasColumnName("Source_Document_Type");
+                        .HasColumnName("source_document_type")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<string>("Source_System")
                         .IsRequired()
                         .HasMaxLength(30)
                         .HasColumnType("varchar(30)")
-                        .HasColumnName("Source_System");
+                        .HasColumnName("source_system")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<long?>("Source_Voucher_ID")
                         .HasColumnType("bigint")
-                        .HasColumnName("Source_Voucher_ID");
+                        .HasColumnName("source_voucher_id");
 
                     b.Property<decimal>("Total_Credit")
-                        .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)")
-                        .HasColumnName("Total_Credit");
+                        .HasColumnName("total_credit");
 
                     b.Property<decimal>("Total_Debit")
-                        .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)")
-                        .HasColumnName("Total_Debit");
+                        .HasColumnName("total_debit");
 
                     b.Property<DateTime>("Transaction_Date")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("Transaction_Date");
+                        .HasColumnName("transaction_date");
 
                     b.Property<DateTime?>("Updated_At")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("Updated_At");
+                        .HasColumnName("updated_at");
 
                     b.Property<string>("Updated_By")
                         .HasMaxLength(50)
                         .HasColumnType("varchar(50)")
-                        .HasColumnName("Updated_By");
+                        .HasColumnName("updated_by")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.HasKey("Journal_Entry_ID");
+
+                    b.HasIndex("Branch_ID");
 
                     b.HasIndex("Entry_Date");
 
                     b.HasIndex("Entry_No")
-                        .IsUnique()
-                        .HasDatabaseName("UQ_Journal_Entry_No");
+                        .IsUnique();
+
+                    b.HasIndex("Fiscal_Year_ID");
 
                     b.HasIndex("Source_Voucher_ID");
 
-                    b.ToTable("journal_entry_headers", (string)null);
+                    b.ToTable("journal_entry_headers", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_journal_balanced", "`total_debit` = `total_credit`");
+                        });
                 });
 
             modelBuilder.Entity("AlTayerERP.Core.Entities.Accounting.Party", b =>
@@ -1061,105 +1360,126 @@ namespace AlTayerERP.Infrastructure.Migrations
                     b.Property<string>("Party_ID")
                         .HasMaxLength(50)
                         .HasColumnType("varchar(50)")
-                        .HasColumnName("Party_ID");
+                        .HasColumnName("party_id")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<string>("Account_ID")
                         .HasMaxLength(50)
                         .HasColumnType("varchar(50)")
-                        .HasColumnName("Account_ID");
+                        .HasColumnName("account_id")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<string>("Address")
                         .HasMaxLength(500)
                         .HasColumnType("varchar(500)")
-                        .HasColumnName("Address");
+                        .HasColumnName("address")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<string>("City_Name")
                         .HasMaxLength(150)
                         .HasColumnType("varchar(150)")
-                        .HasColumnName("City_Name");
+                        .HasColumnName("city_name")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<string>("Company_ID")
                         .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("varchar(50)")
-                        .HasColumnName("Company_ID");
+                        .HasColumnName("company_id")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<DateTime>("Created_At")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("Created_At");
+                        .HasColumnName("created_at");
 
                     b.Property<string>("Created_By")
                         .HasMaxLength(50)
                         .HasColumnType("varchar(50)")
-                        .HasColumnName("Created_By");
+                        .HasColumnName("created_by")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<decimal>("Credit_Limit")
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)")
-                        .HasColumnName("Credit_Limit");
+                        .HasColumnName("credit_limit");
 
                     b.Property<string>("Identity_No")
                         .HasMaxLength(100)
                         .HasColumnType("varchar(100)")
-                        .HasColumnName("Identity_No");
+                        .HasColumnName("identity_no")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<bool>("Is_Active")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("Is_Active");
+                        .HasColumnName("is_active");
 
                     b.Property<string>("Mobile_No")
                         .HasMaxLength(30)
                         .HasColumnType("varchar(30)")
-                        .HasColumnName("Mobile_No");
+                        .HasColumnName("mobile_no")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<string>("Notes")
                         .HasMaxLength(500)
                         .HasColumnType("varchar(500)")
-                        .HasColumnName("Notes");
+                        .HasColumnName("notes")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<string>("Party_Code")
                         .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("varchar(50)")
-                        .HasColumnName("Party_Code");
+                        .HasColumnName("party_code")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<string>("Party_Name_AR")
                         .IsRequired()
                         .HasMaxLength(200)
                         .HasColumnType("varchar(200)")
-                        .HasColumnName("Party_Name_AR");
+                        .HasColumnName("party_name_ar")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<string>("Party_Name_EN")
                         .HasMaxLength(200)
                         .HasColumnType("varchar(200)")
-                        .HasColumnName("Party_Name_EN");
+                        .HasColumnName("party_name_en")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<string>("Party_Type")
                         .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("varchar(50)")
-                        .HasColumnName("Party_Type");
+                        .HasColumnName("party_type")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<string>("Phone_No")
                         .HasMaxLength(30)
                         .HasColumnType("varchar(30)")
-                        .HasColumnName("Phone_No");
+                        .HasColumnName("phone_no")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<string>("Tax_No")
                         .HasMaxLength(100)
                         .HasColumnType("varchar(100)")
-                        .HasColumnName("Tax_No");
+                        .HasColumnName("tax_no")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<DateTime?>("Updated_At")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("Updated_At");
+                        .HasColumnName("updated_at");
 
                     b.Property<string>("Updated_By")
                         .HasMaxLength(50)
                         .HasColumnType("varchar(50)")
-                        .HasColumnName("Updated_By");
+                        .HasColumnName("updated_by")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.HasKey("Party_ID");
+
+                    b.HasIndex("Account_ID");
+
+                    b.HasIndex("Company_ID", "Party_Code")
+                        .IsUnique();
 
                     b.ToTable("parties", (string)null);
                 });
@@ -1169,54 +1489,392 @@ namespace AlTayerERP.Infrastructure.Migrations
                     b.Property<int>("Payment_Method_ID")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int")
-                        .HasColumnName("Payment_Method_ID");
+                        .HasColumnName("payment_method_id");
 
                     MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Payment_Method_ID"));
 
                     b.Property<bool>("Is_Active")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("Is_Active");
+                        .HasColumnName("is_active");
 
                     b.Property<bool>("Is_Bank")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("Is_Bank");
+                        .HasColumnName("is_bank");
 
                     b.Property<bool>("Is_Cash")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("Is_Cash");
+                        .HasColumnName("is_cash");
 
                     b.Property<string>("Payment_Method_Code")
                         .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("varchar(50)")
-                        .HasColumnName("Payment_Method_Code");
+                        .HasColumnName("payment_method_code")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<string>("Payment_Method_Name_AR")
                         .IsRequired()
                         .HasMaxLength(150)
                         .HasColumnType("varchar(150)")
-                        .HasColumnName("Payment_Method_Name_AR");
+                        .HasColumnName("payment_method_name_ar")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<string>("Payment_Method_Name_EN")
                         .HasMaxLength(150)
                         .HasColumnType("varchar(150)")
-                        .HasColumnName("Payment_Method_Name_EN");
+                        .HasColumnName("payment_method_name_en")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<bool>("Requires_Reference")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("Requires_Reference");
+                        .HasColumnName("requires_reference");
 
                     b.Property<bool>("Requires_Reference_Date")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("Requires_Reference_Date");
+                        .HasColumnName("requires_reference_date");
 
                     b.Property<int>("Sort_Order")
                         .HasColumnType("int")
-                        .HasColumnName("Sort_Order");
+                        .HasColumnName("sort_order");
 
                     b.HasKey("Payment_Method_ID");
 
+                    b.HasIndex("Payment_Method_Code")
+                        .IsUnique();
+
                     b.ToTable("payment_methods", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            Payment_Method_ID = 1,
+                            Is_Active = true,
+                            Is_Bank = false,
+                            Is_Cash = true,
+                            Payment_Method_Code = "CASH",
+                            Payment_Method_Name_AR = "نقدي",
+                            Requires_Reference = false,
+                            Requires_Reference_Date = false,
+                            Sort_Order = 1
+                        },
+                        new
+                        {
+                            Payment_Method_ID = 2,
+                            Is_Active = true,
+                            Is_Bank = true,
+                            Is_Cash = false,
+                            Payment_Method_Code = "CHEQUE",
+                            Payment_Method_Name_AR = "شيك",
+                            Requires_Reference = true,
+                            Requires_Reference_Date = true,
+                            Sort_Order = 2
+                        },
+                        new
+                        {
+                            Payment_Method_ID = 3,
+                            Is_Active = true,
+                            Is_Bank = true,
+                            Is_Cash = false,
+                            Payment_Method_Code = "BANK_TRANSFER",
+                            Payment_Method_Name_AR = "تحويل بنكي",
+                            Requires_Reference = true,
+                            Requires_Reference_Date = true,
+                            Sort_Order = 3
+                        });
+                });
+
+            modelBuilder.Entity("AlTayerERP.Core.Entities.Accounting.PaymentRequest", b =>
+                {
+                    b.Property<long>("Payment_Request_ID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("payment_request_id");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<long>("Payment_Request_ID"));
+
+                    b.Property<string>("Approval_Reason")
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)")
+                        .HasColumnName("approval_reason")
+                        .UseCollation("utf8mb4_unicode_ci");
+
+                    b.Property<decimal>("Approved_Local_Total")
+                        .HasPrecision(19, 4)
+                        .HasColumnType("decimal(19,4)")
+                        .HasColumnName("approved_local_total");
+
+                    b.Property<string>("Beneficiary_Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)")
+                        .HasColumnName("beneficiary_name")
+                        .UseCollation("utf8mb4_unicode_ci");
+
+                    b.Property<int>("Branch_ID")
+                        .HasColumnType("int")
+                        .HasColumnName("branch_id");
+
+                    b.Property<string>("Company_ID")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)")
+                        .HasColumnName("company_id")
+                        .UseCollation("utf8mb4_unicode_ci");
+
+                    b.Property<DateTime>("Created_At")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("Created_By")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)")
+                        .HasColumnName("created_by")
+                        .UseCollation("utf8mb4_unicode_ci");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)")
+                        .HasColumnName("description")
+                        .UseCollation("utf8mb4_unicode_ci");
+
+                    b.Property<int>("Fiscal_Year_ID")
+                        .HasColumnType("int")
+                        .HasColumnName("fiscal_year_id");
+
+                    b.Property<string>("Header_Reference_No")
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)")
+                        .HasColumnName("header_reference_no")
+                        .UseCollation("utf8mb4_unicode_ci");
+
+                    b.Property<string>("Party_ID")
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)")
+                        .HasColumnName("party_id")
+                        .UseCollation("utf8mb4_unicode_ci");
+
+                    b.Property<int?>("Payment_Method_ID")
+                        .HasColumnType("int")
+                        .HasColumnName("payment_method_id");
+
+                    b.Property<long?>("Payment_Voucher_ID")
+                        .HasColumnType("bigint")
+                        .HasColumnName("payment_voucher_id");
+
+                    b.Property<DateTime>("Request_Date")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("request_date");
+
+                    b.Property<string>("Request_No")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)")
+                        .HasColumnName("request_no")
+                        .UseCollation("utf8mb4_unicode_ci");
+
+                    b.Property<string>("Review_Reason")
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)")
+                        .HasColumnName("review_reason")
+                        .UseCollation("utf8mb4_unicode_ci");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("varchar(30)")
+                        .HasColumnName("status")
+                        .UseCollation("utf8mb4_unicode_ci");
+
+                    b.Property<DateTime?>("Updated_At")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("updated_at");
+
+                    b.Property<string>("Updated_By")
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)")
+                        .HasColumnName("updated_by")
+                        .UseCollation("utf8mb4_unicode_ci");
+
+                    b.HasKey("Payment_Request_ID");
+
+                    b.HasIndex("Branch_ID");
+
+                    b.HasIndex("Fiscal_Year_ID");
+
+                    b.HasIndex("Party_ID");
+
+                    b.HasIndex("Payment_Method_ID");
+
+                    b.HasIndex("Payment_Voucher_ID");
+
+                    b.HasIndex("Company_ID", "Branch_ID", "Fiscal_Year_ID", "Request_No")
+                        .IsUnique();
+
+                    b.HasIndex("Company_ID", "Branch_ID", "Fiscal_Year_ID", "Status");
+
+                    b.ToTable("payment_requests", (string)null);
+                });
+
+            modelBuilder.Entity("AlTayerERP.Core.Entities.Accounting.PaymentRequestAttachment", b =>
+                {
+                    b.Property<long>("Payment_Request_Attachment_ID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("payment_request_attachment_id");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<long>("Payment_Request_Attachment_ID"));
+
+                    b.Property<int>("Branch_ID")
+                        .HasColumnType("int")
+                        .HasColumnName("branch_id");
+
+                    b.Property<string>("Company_ID")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)")
+                        .HasColumnName("company_id")
+                        .UseCollation("utf8mb4_unicode_ci");
+
+                    b.Property<string>("Content_Type")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)")
+                        .HasColumnName("content_type")
+                        .UseCollation("utf8mb4_unicode_ci");
+
+                    b.Property<DateTime>("Created_At")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("Created_By")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)")
+                        .HasColumnName("created_by")
+                        .UseCollation("utf8mb4_unicode_ci");
+
+                    b.Property<long>("File_Size")
+                        .HasColumnType("bigint")
+                        .HasColumnName("file_size");
+
+                    b.Property<int>("Fiscal_Year_ID")
+                        .HasColumnType("int")
+                        .HasColumnName("fiscal_year_id");
+
+                    b.Property<bool>("Is_Active")
+                        .HasColumnType("tinyint(1)")
+                        .HasColumnName("is_active");
+
+                    b.Property<string>("Original_File_Name")
+                        .IsRequired()
+                        .HasMaxLength(260)
+                        .HasColumnType("varchar(260)")
+                        .HasColumnName("original_file_name")
+                        .UseCollation("utf8mb4_unicode_ci");
+
+                    b.Property<long>("Payment_Request_ID")
+                        .HasColumnType("bigint")
+                        .HasColumnName("payment_request_id");
+
+                    b.Property<string>("Storage_Key")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)")
+                        .HasColumnName("storage_key")
+                        .UseCollation("utf8mb4_unicode_ci");
+
+                    b.HasKey("Payment_Request_Attachment_ID");
+
+                    b.HasIndex("Branch_ID");
+
+                    b.HasIndex("Company_ID");
+
+                    b.HasIndex("Fiscal_Year_ID");
+
+                    b.HasIndex("Payment_Request_ID", "Is_Active");
+
+                    b.ToTable("payment_request_attachments", (string)null);
+                });
+
+            modelBuilder.Entity("AlTayerERP.Core.Entities.Accounting.PaymentRequestLine", b =>
+                {
+                    b.Property<long>("Payment_Request_Line_ID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("payment_request_line_id");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<long>("Payment_Request_Line_ID"));
+
+                    b.Property<string>("Account_ID")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)")
+                        .HasColumnName("account_id")
+                        .UseCollation("utf8mb4_unicode_ci");
+
+                    b.Property<string>("Cost_Center_ID")
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)")
+                        .HasColumnName("cost_center_id")
+                        .UseCollation("utf8mb4_unicode_ci");
+
+                    b.Property<int>("Currency_ID")
+                        .HasColumnType("int")
+                        .HasColumnName("currency_id");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)")
+                        .HasColumnName("description")
+                        .UseCollation("utf8mb4_unicode_ci");
+
+                    b.Property<decimal>("Exchange_Rate")
+                        .HasPrecision(19, 8)
+                        .HasColumnType("decimal(19,8)")
+                        .HasColumnName("exchange_rate");
+
+                    b.Property<decimal>("Foreign_Amount")
+                        .HasPrecision(19, 4)
+                        .HasColumnType("decimal(19,4)")
+                        .HasColumnName("foreign_amount");
+
+                    b.Property<int>("Line_No")
+                        .HasColumnType("int")
+                        .HasColumnName("line_no");
+
+                    b.Property<decimal>("Local_Amount")
+                        .HasPrecision(19, 4)
+                        .HasColumnType("decimal(19,4)")
+                        .HasColumnName("local_amount");
+
+                    b.Property<long>("Payment_Request_ID")
+                        .HasColumnType("bigint")
+                        .HasColumnName("payment_request_id");
+
+                    b.Property<string>("Reference_No")
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)")
+                        .HasColumnName("reference_no")
+                        .UseCollation("utf8mb4_unicode_ci");
+
+                    b.HasKey("Payment_Request_Line_ID");
+
+                    b.HasIndex("Account_ID");
+
+                    b.HasIndex("Cost_Center_ID");
+
+                    b.HasIndex("Currency_ID");
+
+                    b.HasIndex("Payment_Request_ID", "Line_No")
+                        .IsUnique();
+
+                    b.ToTable("payment_request_lines", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_payment_request_line_amounts", "`foreign_amount` >= 0 AND `local_amount` >= 0");
+
+                            t.HasCheckConstraint("ck_payment_request_line_rate", "`exchange_rate` > 0");
+                        });
                 });
 
             modelBuilder.Entity("AlTayerERP.Core.Entities.Accounting.VoucherActionLog", b =>
@@ -1224,66 +1882,73 @@ namespace AlTayerERP.Infrastructure.Migrations
                     b.Property<long>("Voucher_Action_ID")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bigint")
-                        .HasColumnName("Voucher_Action_ID");
+                        .HasColumnName("voucher_action_id");
 
                     MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<long>("Voucher_Action_ID"));
 
                     b.Property<DateTime>("Action_At")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("Action_At");
+                        .HasColumnName("action_at");
 
                     b.Property<string>("Action_Channel")
                         .IsRequired()
                         .HasMaxLength(20)
                         .HasColumnType("varchar(20)")
-                        .HasColumnName("Action_Channel");
+                        .HasColumnName("action_channel")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<string>("Action_Type")
                         .IsRequired()
                         .HasMaxLength(30)
                         .HasColumnType("varchar(30)")
-                        .HasColumnName("Action_Type");
+                        .HasColumnName("action_type")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<string>("Device_Name")
                         .HasMaxLength(150)
                         .HasColumnType("varchar(150)")
-                        .HasColumnName("Device_Name");
+                        .HasColumnName("device_name")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<string>("IP_Address")
                         .HasMaxLength(50)
                         .HasColumnType("varchar(50)")
-                        .HasColumnName("IP_Address");
+                        .HasColumnName("ip_address")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<int?>("New_Status_ID")
                         .HasColumnType("int")
-                        .HasColumnName("New_Status_ID");
+                        .HasColumnName("new_status_id");
 
                     b.Property<string>("Notes")
                         .HasMaxLength(500)
                         .HasColumnType("varchar(500)")
-                        .HasColumnName("Notes");
+                        .HasColumnName("notes")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<int?>("Old_Status_ID")
                         .HasColumnType("int")
-                        .HasColumnName("Old_Status_ID");
+                        .HasColumnName("old_status_id");
 
                     b.Property<string>("Reason")
                         .HasMaxLength(500)
                         .HasColumnType("varchar(500)")
-                        .HasColumnName("Reason");
+                        .HasColumnName("reason")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<string>("User_ID")
                         .HasMaxLength(50)
                         .HasColumnType("varchar(50)")
-                        .HasColumnName("User_ID");
+                        .HasColumnName("user_id")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<long>("Voucher_ID")
                         .HasColumnType("bigint")
-                        .HasColumnName("Voucher_ID");
+                        .HasColumnName("voucher_id");
 
                     b.HasKey("Voucher_Action_ID");
 
-                    b.HasIndex("Voucher_ID");
+                    b.HasIndex("Voucher_ID", "Action_At");
 
                     b.ToTable("voucher_action_logs", (string)null);
                 });
@@ -1293,38 +1958,110 @@ namespace AlTayerERP.Infrastructure.Migrations
                     b.Property<int>("Voucher_Status_ID")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int")
-                        .HasColumnName("Voucher_Status_ID");
+                        .HasColumnName("voucher_status_id");
 
                     MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Voucher_Status_ID"));
 
                     b.Property<bool>("Is_Active")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("Is_Active");
+                        .HasColumnName("is_active");
 
                     b.Property<int>("Sort_Order")
                         .HasColumnType("int")
-                        .HasColumnName("Sort_Order");
+                        .HasColumnName("sort_order");
 
                     b.Property<string>("Voucher_Status_Code")
                         .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("varchar(50)")
-                        .HasColumnName("Voucher_Status_Code");
+                        .HasColumnName("voucher_status_code")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<string>("Voucher_Status_Name_AR")
                         .IsRequired()
                         .HasMaxLength(150)
                         .HasColumnType("varchar(150)")
-                        .HasColumnName("Voucher_Status_Name_AR");
+                        .HasColumnName("voucher_status_name_ar")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<string>("Voucher_Status_Name_EN")
                         .HasMaxLength(150)
                         .HasColumnType("varchar(150)")
-                        .HasColumnName("Voucher_Status_Name_EN");
+                        .HasColumnName("voucher_status_name_en")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.HasKey("Voucher_Status_ID");
 
+                    b.HasIndex("Voucher_Status_Code")
+                        .IsUnique();
+
                     b.ToTable("voucher_statuses", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            Voucher_Status_ID = 1,
+                            Is_Active = true,
+                            Sort_Order = 1,
+                            Voucher_Status_Code = "DRAFT",
+                            Voucher_Status_Name_AR = "مسودة"
+                        },
+                        new
+                        {
+                            Voucher_Status_ID = 2,
+                            Is_Active = true,
+                            Sort_Order = 2,
+                            Voucher_Status_Code = "PENDING",
+                            Voucher_Status_Name_AR = "معلق"
+                        },
+                        new
+                        {
+                            Voucher_Status_ID = 3,
+                            Is_Active = true,
+                            Sort_Order = 3,
+                            Voucher_Status_Code = "REVIEWED",
+                            Voucher_Status_Name_AR = "تمت المراجعة"
+                        },
+                        new
+                        {
+                            Voucher_Status_ID = 4,
+                            Is_Active = true,
+                            Sort_Order = 4,
+                            Voucher_Status_Code = "RETURNED",
+                            Voucher_Status_Name_AR = "معاد للتصحيح"
+                        },
+                        new
+                        {
+                            Voucher_Status_ID = 5,
+                            Is_Active = true,
+                            Sort_Order = 5,
+                            Voucher_Status_Code = "APPROVED",
+                            Voucher_Status_Name_AR = "معتمد"
+                        },
+                        new
+                        {
+                            Voucher_Status_ID = 6,
+                            Is_Active = true,
+                            Sort_Order = 6,
+                            Voucher_Status_Code = "POSTED",
+                            Voucher_Status_Name_AR = "مرحل"
+                        },
+                        new
+                        {
+                            Voucher_Status_ID = 7,
+                            Is_Active = true,
+                            Sort_Order = 7,
+                            Voucher_Status_Code = "CANCELLED",
+                            Voucher_Status_Name_AR = "ملغي"
+                        },
+                        new
+                        {
+                            Voucher_Status_ID = 8,
+                            Is_Active = true,
+                            Sort_Order = 8,
+                            Voucher_Status_Code = "REVERSED",
+                            Voucher_Status_Name_AR = "معكوس"
+                        });
                 });
 
             modelBuilder.Entity("AlTayerERP.Core.Entities.Accounting.VoucherType", b =>
@@ -1332,38 +2069,91 @@ namespace AlTayerERP.Infrastructure.Migrations
                     b.Property<int>("Voucher_Type_ID")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int")
-                        .HasColumnName("Voucher_Type_ID");
+                        .HasColumnName("voucher_type_id");
 
                     MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Voucher_Type_ID"));
 
                     b.Property<bool>("Is_Active")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("Is_Active");
+                        .HasColumnName("is_active");
 
                     b.Property<int>("Sort_Order")
                         .HasColumnType("int")
-                        .HasColumnName("Sort_Order");
+                        .HasColumnName("sort_order");
 
                     b.Property<string>("Voucher_Type_Code")
                         .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("varchar(50)")
-                        .HasColumnName("Voucher_Type_Code");
+                        .HasColumnName("voucher_type_code")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<string>("Voucher_Type_Name_AR")
                         .IsRequired()
                         .HasMaxLength(150)
                         .HasColumnType("varchar(150)")
-                        .HasColumnName("Voucher_Type_Name_AR");
+                        .HasColumnName("voucher_type_name_ar")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<string>("Voucher_Type_Name_EN")
                         .HasMaxLength(150)
                         .HasColumnType("varchar(150)")
-                        .HasColumnName("Voucher_Type_Name_EN");
+                        .HasColumnName("voucher_type_name_en")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.HasKey("Voucher_Type_ID");
 
+                    b.HasIndex("Voucher_Type_Code")
+                        .IsUnique();
+
                     b.ToTable("voucher_types", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            Voucher_Type_ID = 1,
+                            Is_Active = true,
+                            Sort_Order = 1,
+                            Voucher_Type_Code = "RECEIPT",
+                            Voucher_Type_Name_AR = "سند قبض",
+                            Voucher_Type_Name_EN = "Receipt Voucher"
+                        },
+                        new
+                        {
+                            Voucher_Type_ID = 2,
+                            Is_Active = true,
+                            Sort_Order = 2,
+                            Voucher_Type_Code = "PAYMENT",
+                            Voucher_Type_Name_AR = "سند صرف",
+                            Voucher_Type_Name_EN = "Payment Voucher"
+                        },
+                        new
+                        {
+                            Voucher_Type_ID = 3,
+                            Is_Active = true,
+                            Sort_Order = 3,
+                            Voucher_Type_Code = "JOURNAL",
+                            Voucher_Type_Name_AR = "قيد يومية",
+                            Voucher_Type_Name_EN = "Journal Voucher"
+                        },
+                        new
+                        {
+                            Voucher_Type_ID = 4,
+                            Is_Active = true,
+                            Sort_Order = 4,
+                            Voucher_Type_Code = "ADJUSTMENT",
+                            Voucher_Type_Name_AR = "قيد تسوية",
+                            Voucher_Type_Name_EN = "Adjustment Voucher"
+                        },
+                        new
+                        {
+                            Voucher_Type_ID = 5,
+                            Is_Active = true,
+                            Sort_Order = 5,
+                            Voucher_Type_Code = "OPENING",
+                            Voucher_Type_Name_AR = "قيد افتتاحي",
+                            Voucher_Type_Name_EN = "Opening Voucher"
+                        });
                 });
 
             modelBuilder.Entity("AlTayerERP.Core.Entities.ApprovalRequest", b =>
@@ -1371,137 +2161,403 @@ namespace AlTayerERP.Infrastructure.Migrations
                     b.Property<int>("Approval_ID")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int")
-                        .HasColumnName("Approval_ID");
+                        .HasColumnName("approval_id");
 
                     MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Approval_ID"));
 
                     b.Property<decimal?>("Amount")
+                        .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)")
-                        .HasColumnName("Amount");
+                        .HasColumnName("amount");
 
                     b.Property<string>("Approval_Notes")
-                        .HasColumnType("longtext")
-                        .HasColumnName("Approval_Notes");
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)")
+                        .HasColumnName("approval_notes")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<DateTime?>("Approved_At")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("Approved_At");
+                        .HasColumnName("approved_at");
 
                     b.Property<string>("Approved_By")
-                        .HasColumnType("longtext")
-                        .HasColumnName("Approved_By");
+                        .HasMaxLength(255)
+                        .HasColumnType("varchar(255)")
+                        .HasColumnName("approved_by")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<string>("Company_ID")
                         .IsRequired()
-                        .HasColumnType("longtext")
-                        .HasColumnName("Company_ID");
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)")
+                        .HasColumnName("company_id")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<string>("Currency_Code")
-                        .HasColumnType("longtext")
-                        .HasColumnName("Currency_Code");
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)")
+                        .HasColumnName("currency_code")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<string>("Entity_ID")
-                        .HasColumnType("longtext")
-                        .HasColumnName("Entity_ID");
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)")
+                        .HasColumnName("entity_id")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<string>("Entity_Type")
-                        .HasColumnType("longtext")
-                        .HasColumnName("Entity_Type");
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)")
+                        .HasColumnName("entity_type")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<string>("Reason")
-                        .HasColumnType("longtext")
-                        .HasColumnName("Reason");
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)")
+                        .HasColumnName("reason")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<string>("Reference_ID")
-                        .HasColumnType("longtext")
-                        .HasColumnName("Reference_ID");
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)")
+                        .HasColumnName("reference_id")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<string>("Reference_Type")
-                        .HasColumnType("longtext")
-                        .HasColumnName("Reference_Type");
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)")
+                        .HasColumnName("reference_type")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<string>("Request_Type")
                         .IsRequired()
-                        .HasColumnType("longtext")
-                        .HasColumnName("Request_Type");
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)")
+                        .HasColumnName("request_type")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<DateTime>("Requested_At")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("Requested_At");
+                        .HasColumnName("requested_at");
 
                     b.Property<string>("Requested_By")
-                        .HasColumnType("longtext")
-                        .HasColumnName("Requested_By");
+                        .HasMaxLength(255)
+                        .HasColumnType("varchar(255)")
+                        .HasColumnName("requested_by")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<string>("Status")
                         .IsRequired()
-                        .HasColumnType("longtext")
-                        .HasColumnName("Status");
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)")
+                        .HasColumnName("status")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.HasKey("Approval_ID");
 
+                    b.HasIndex("Company_ID");
+
                     b.ToTable("approval_requests", (string)null);
+                });
+
+            modelBuilder.Entity("AlTayerERP.Core.Entities.ApprovalStatusReference", b =>
+                {
+                    b.Property<int>("Approval_Status_ID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasColumnName("approval_status_id");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Approval_Status_ID"));
+
+                    b.Property<string>("Approval_Status_Code")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("varchar(30)")
+                        .HasColumnName("approval_status_code")
+                        .UseCollation("utf8mb4_unicode_ci");
+
+                    b.Property<string>("Approval_Status_Name_AR")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)")
+                        .HasColumnName("approval_status_name_ar")
+                        .UseCollation("utf8mb4_unicode_ci");
+
+                    b.Property<string>("Approval_Status_Name_EN")
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)")
+                        .HasColumnName("approval_status_name_en")
+                        .UseCollation("utf8mb4_unicode_ci");
+
+                    b.Property<bool>("Is_Active")
+                        .HasColumnType("tinyint(1)")
+                        .HasColumnName("is_active");
+
+                    b.Property<int>("Sort_Order")
+                        .HasColumnType("int")
+                        .HasColumnName("sort_order");
+
+                    b.HasKey("Approval_Status_ID");
+
+                    b.HasIndex("Approval_Status_Code")
+                        .IsUnique();
+
+                    b.ToTable("approval_statuses", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            Approval_Status_ID = 1,
+                            Approval_Status_Code = "PENDING",
+                            Approval_Status_Name_AR = "بانتظار الاعتماد",
+                            Is_Active = true,
+                            Sort_Order = 1
+                        },
+                        new
+                        {
+                            Approval_Status_ID = 2,
+                            Approval_Status_Code = "UNDER_REVIEW",
+                            Approval_Status_Name_AR = "تحت المراجعة",
+                            Is_Active = true,
+                            Sort_Order = 2
+                        },
+                        new
+                        {
+                            Approval_Status_ID = 3,
+                            Approval_Status_Code = "APPROVED",
+                            Approval_Status_Name_AR = "معتمد",
+                            Is_Active = true,
+                            Sort_Order = 3
+                        },
+                        new
+                        {
+                            Approval_Status_ID = 4,
+                            Approval_Status_Code = "REJECTED",
+                            Approval_Status_Name_AR = "مرفوض",
+                            Is_Active = true,
+                            Sort_Order = 4
+                        },
+                        new
+                        {
+                            Approval_Status_ID = 5,
+                            Approval_Status_Code = "RETURNED",
+                            Approval_Status_Name_AR = "معاد للتعديل",
+                            Is_Active = true,
+                            Sort_Order = 5
+                        },
+                        new
+                        {
+                            Approval_Status_ID = 6,
+                            Approval_Status_Code = "CANCELLED",
+                            Approval_Status_Name_AR = "ملغي",
+                            Is_Active = true,
+                            Sort_Order = 6
+                        });
+                });
+
+            modelBuilder.Entity("AlTayerERP.Core.Entities.BranchType", b =>
+                {
+                    b.Property<int>("Branch_Type_ID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasColumnName("branch_type_id");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Branch_Type_ID"));
+
+                    b.Property<string>("Branch_Type_Code")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("varchar(30)")
+                        .HasColumnName("branch_type_code")
+                        .UseCollation("utf8mb4_unicode_ci");
+
+                    b.Property<string>("Branch_Type_Name_AR")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)")
+                        .HasColumnName("branch_type_name_ar")
+                        .UseCollation("utf8mb4_unicode_ci");
+
+                    b.Property<string>("Branch_Type_Name_EN")
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)")
+                        .HasColumnName("branch_type_name_en")
+                        .UseCollation("utf8mb4_unicode_ci");
+
+                    b.Property<DateTime>("Created_At")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("created_at");
+
+                    b.Property<bool>("Is_Active")
+                        .HasColumnType("tinyint(1)")
+                        .HasColumnName("is_active");
+
+                    b.Property<int>("Sort_Order")
+                        .HasColumnType("int")
+                        .HasColumnName("sort_order");
+
+                    b.Property<DateTime?>("Updated_At")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Branch_Type_ID");
+
+                    b.HasIndex("Branch_Type_Code")
+                        .IsUnique();
+
+                    b.HasIndex("Is_Active", "Sort_Order");
+
+                    b.ToTable("branch_types", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            Branch_Type_ID = 1,
+                            Branch_Type_Code = "MAIN",
+                            Branch_Type_Name_AR = "رئيسي",
+                            Branch_Type_Name_EN = "Main",
+                            Created_At = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Is_Active = true,
+                            Sort_Order = 10
+                        },
+                        new
+                        {
+                            Branch_Type_ID = 2,
+                            Branch_Type_Code = "OPERATING",
+                            Branch_Type_Name_AR = "تشغيلي",
+                            Branch_Type_Name_EN = "Operating",
+                            Created_At = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Is_Active = true,
+                            Sort_Order = 20
+                        },
+                        new
+                        {
+                            Branch_Type_ID = 3,
+                            Branch_Type_Code = "DISTRIBUTION",
+                            Branch_Type_Name_AR = "نقطة توزيع",
+                            Branch_Type_Name_EN = "Distribution Point",
+                            Created_At = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Is_Active = true,
+                            Sort_Order = 30
+                        },
+                        new
+                        {
+                            Branch_Type_ID = 4,
+                            Branch_Type_Code = "WAREHOUSE",
+                            Branch_Type_Name_AR = "مستودع",
+                            Branch_Type_Name_EN = "Warehouse",
+                            Created_At = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Is_Active = true,
+                            Sort_Order = 40
+                        });
                 });
 
             modelBuilder.Entity("AlTayerERP.Core.Entities.CashBox", b =>
                 {
                     b.Property<string>("Cash_Box_ID")
-                        .HasColumnType("varchar(255)");
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)")
+                        .HasColumnName("cash_box_id")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<string>("Account_ID")
                         .IsRequired()
-                        .HasColumnType("longtext");
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)")
+                        .HasColumnName("account_id")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<string>("Box_Name_AR")
                         .IsRequired()
-                        .HasColumnType("longtext");
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)")
+                        .HasColumnName("box_name_ar")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<string>("Box_Name_EN")
-                        .HasColumnType("longtext");
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)")
+                        .HasColumnName("box_name_en")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<int>("Branch_ID")
-                        .HasColumnType("int");
+                        .HasColumnType("int")
+                        .HasColumnName("branch_id");
 
                     b.Property<string>("CashBox_Code")
                         .IsRequired()
-                        .HasColumnType("longtext");
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)")
+                        .HasColumnName("cash_box_code")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<string>("Company_ID")
                         .IsRequired()
-                        .HasColumnType("longtext");
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)")
+                        .HasColumnName("company_id")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<DateTime>("Created_At")
-                        .HasColumnType("datetime(6)");
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("created_at");
 
                     b.Property<string>("Created_By")
-                        .HasColumnType("longtext");
+                        .HasMaxLength(255)
+                        .HasColumnType("varchar(255)")
+                        .HasColumnName("created_by")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<string>("Currency_Code")
                         .IsRequired()
-                        .HasColumnType("longtext");
+                        .HasMaxLength(20)
+                        .HasColumnType("varchar(20)")
+                        .HasColumnName("currency_code")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<bool>("Is_Active")
-                        .HasColumnType("tinyint(1)");
+                        .HasColumnType("tinyint(1)")
+                        .HasColumnName("is_active");
 
                     b.Property<decimal>("Max_Limit")
-                        .HasColumnType("decimal(65,30)");
+                        .HasPrecision(19, 4)
+                        .HasColumnType("decimal(19,4)")
+                        .HasColumnName("max_limit");
 
                     b.Property<decimal>("Min_Limit")
-                        .HasColumnType("decimal(65,30)");
+                        .HasPrecision(19, 4)
+                        .HasColumnType("decimal(19,4)")
+                        .HasColumnName("min_limit");
 
                     b.Property<string>("Notes")
-                        .HasColumnType("longtext");
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)")
+                        .HasColumnName("notes")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<decimal>("Opening_Balance")
-                        .HasColumnType("decimal(65,30)");
+                        .HasPrecision(19, 4)
+                        .HasColumnType("decimal(19,4)")
+                        .HasColumnName("opening_balance");
 
                     b.Property<DateTime?>("Updated_At")
-                        .HasColumnType("datetime(6)");
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("updated_at");
 
                     b.Property<string>("Updated_By")
-                        .HasColumnType("longtext");
+                        .HasMaxLength(255)
+                        .HasColumnType("varchar(255)")
+                        .HasColumnName("updated_by")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.HasKey("Cash_Box_ID");
+
+                    b.HasIndex("Account_ID");
+
+                    b.HasIndex("Branch_ID");
+
+                    b.HasIndex("Company_ID", "Branch_ID", "CashBox_Code")
+                        .IsUnique();
 
                     b.ToTable("cash_boxes", (string)null);
                 });
@@ -1509,196 +2565,392 @@ namespace AlTayerERP.Infrastructure.Migrations
             modelBuilder.Entity("AlTayerERP.Core.Entities.ChartOfAccount", b =>
                 {
                     b.Property<string>("Account_ID")
-                        .HasColumnType("varchar(255)")
-                        .HasColumnName("Account_ID");
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)")
+                        .HasColumnName("account_id")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<string>("Account_Category")
-                        .HasColumnType("longtext")
-                        .HasColumnName("Account_Category");
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)")
+                        .HasColumnName("account_category")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<string>("Account_Code")
                         .IsRequired()
-                        .HasColumnType("longtext")
-                        .HasColumnName("Account_Code");
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)")
+                        .HasColumnName("account_code")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<int>("Account_Level")
                         .HasColumnType("int")
-                        .HasColumnName("Account_Level");
+                        .HasColumnName("account_level");
 
                     b.Property<string>("Account_Name_AR")
                         .IsRequired()
-                        .HasColumnType("longtext")
-                        .HasColumnName("Account_Name_AR");
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)")
+                        .HasColumnName("account_name_ar")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<string>("Account_Name_EN")
-                        .HasColumnType("longtext")
-                        .HasColumnName("Account_Name_EN");
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)")
+                        .HasColumnName("account_name_en")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<string>("Account_Path")
-                        .HasColumnType("longtext")
-                        .HasColumnName("Account_Path");
+                        .HasMaxLength(1000)
+                        .HasColumnType("varchar(1000)")
+                        .HasColumnName("account_path")
+                        .UseCollation("utf8mb4_unicode_ci");
 
-                    b.Property<int?>("Account_Serial")
+                    b.Property<int>("Account_Serial")
                         .HasColumnType("int")
-                        .HasColumnName("Account_Serial");
+                        .HasColumnName("account_serial");
 
                     b.Property<string>("Account_Type")
                         .IsRequired()
-                        .HasColumnType("longtext")
-                        .HasColumnName("Account_Type");
+                        .HasMaxLength(30)
+                        .HasColumnType("varchar(30)")
+                        .HasColumnName("account_type")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<bool>("Affects_Balance_Sheet")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("Affects_Balance_Sheet");
+                        .HasColumnName("affects_balance_sheet");
 
                     b.Property<bool>("Affects_Income_Statement")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("Affects_Income_Statement");
+                        .HasColumnName("affects_income_statement");
 
                     b.Property<bool>("Allow_ManualEntry")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("Allow_ManualEntry");
+                        .HasColumnName("allow_manual_entry");
 
                     b.Property<string>("Company_ID")
                         .IsRequired()
-                        .HasColumnType("longtext")
-                        .HasColumnName("Company_ID");
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)")
+                        .HasColumnName("company_id")
+                        .UseCollation("utf8mb4_unicode_ci");
+
+                    b.Property<string>("Control_Account_Type")
+                        .HasMaxLength(30)
+                        .HasColumnType("varchar(30)")
+                        .HasColumnName("control_account_type")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<DateTime>("Created_At")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("Created_At");
+                        .HasColumnName("created_at");
 
                     b.Property<string>("Created_By")
-                        .HasColumnType("longtext")
-                        .HasColumnName("Created_By");
+                        .HasMaxLength(255)
+                        .HasColumnType("varchar(255)")
+                        .HasColumnName("created_by")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<string>("Currency_Code")
-                        .HasColumnType("longtext")
-                        .HasColumnName("Currency_Code");
+                        .HasMaxLength(20)
+                        .HasColumnType("varchar(20)")
+                        .HasColumnName("currency_code")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<bool>("Is_Active")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("Is_Active");
+                        .HasColumnName("is_active");
+
+                    b.Property<bool>("Is_Control_Account")
+                        .HasColumnType("tinyint(1)")
+                        .HasColumnName("is_control_account");
 
                     b.Property<bool>("Is_Postable")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("Is_Postable");
+                        .HasColumnName("is_postable");
 
                     b.Property<bool>("Is_Summary_Account")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("Is_Summary_Account");
+                        .HasColumnName("is_summary_account");
 
                     b.Property<bool>("Multi_Currency")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("Multi_Currency");
+                        .HasColumnName("multi_currency");
 
                     b.Property<string>("Normal_Balance")
-                        .HasColumnType("longtext")
-                        .HasColumnName("Normal_Balance");
+                        .HasMaxLength(10)
+                        .HasColumnType("varchar(10)")
+                        .HasColumnName("normal_balance")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<string>("Notes")
-                        .HasColumnType("longtext")
-                        .HasColumnName("Notes");
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)")
+                        .HasColumnName("notes")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<string>("Parent_Account_ID")
-                        .HasColumnType("longtext")
-                        .HasColumnName("Parent_Account_ID");
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)")
+                        .HasColumnName("parent_account_id")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<bool>("Requires_CostCenter")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("Requires_CostCenter");
+                        .HasColumnName("requires_cost_center");
 
                     b.Property<bool>("Requires_Party")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("Requires_Party");
+                        .HasColumnName("requires_party");
 
                     b.Property<bool>("Requires_Project")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("Requires_Project");
+                        .HasColumnName("requires_project");
 
                     b.Property<bool>("System_Account")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("System_Account");
+                        .HasColumnName("system_account");
 
                     b.Property<DateTime?>("Updated_At")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("Updated_At");
+                        .HasColumnName("updated_at");
 
                     b.Property<string>("Updated_By")
-                        .HasColumnType("longtext")
-                        .HasColumnName("Updated_By");
+                        .HasMaxLength(255)
+                        .HasColumnType("varchar(255)")
+                        .HasColumnName("updated_by")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.HasKey("Account_ID");
 
-                    b.ToTable("chart_of_accounts", (string)null);
+                    b.HasIndex("Parent_Account_ID");
+
+                    b.HasIndex("Company_ID", "Account_Code")
+                        .IsUnique();
+
+                    b.HasIndex("Company_ID", "Is_Control_Account", "Control_Account_Type");
+
+                    b.ToTable("chart_of_accounts", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_chart_normal_balance", "`normal_balance` IS NULL OR `normal_balance` IN ('Debit','Credit')");
+
+                            t.HasCheckConstraint("ck_chart_postable_summary", "NOT (`is_postable` = 1 AND `is_summary_account` = 1)");
+                        });
+                });
+
+            modelBuilder.Entity("AlTayerERP.Core.Entities.City", b =>
+                {
+                    b.Property<int>("City_ID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasColumnName("city_id");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("City_ID"));
+
+                    b.Property<string>("City_Code")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("varchar(20)")
+                        .HasColumnName("city_code")
+                        .UseCollation("utf8mb4_unicode_ci");
+
+                    b.Property<string>("City_Name_AR")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("varchar(150)")
+                        .HasColumnName("city_name_ar")
+                        .UseCollation("utf8mb4_unicode_ci");
+
+                    b.Property<string>("City_Name_EN")
+                        .HasMaxLength(150)
+                        .HasColumnType("varchar(150)")
+                        .HasColumnName("city_name_en")
+                        .UseCollation("utf8mb4_unicode_ci");
+
+                    b.Property<int>("Country_ID")
+                        .HasColumnType("int")
+                        .HasColumnName("country_id");
+
+                    b.Property<DateTime>("Created_At")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("created_at");
+
+                    b.Property<int>("Governorate_ID")
+                        .HasColumnType("int")
+                        .HasColumnName("governorate_id");
+
+                    b.Property<bool>("Is_Active")
+                        .HasColumnType("tinyint(1)")
+                        .HasColumnName("is_active");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)")
+                        .HasColumnName("notes")
+                        .UseCollation("utf8mb4_unicode_ci");
+
+                    b.Property<string>("Postal_Code")
+                        .HasMaxLength(20)
+                        .HasColumnType("varchar(20)")
+                        .HasColumnName("postal_code")
+                        .UseCollation("utf8mb4_unicode_ci");
+
+                    b.Property<int>("Sort_Order")
+                        .HasColumnType("int")
+                        .HasColumnName("sort_order");
+
+                    b.Property<DateTime?>("Updated_At")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("City_ID");
+
+                    b.HasIndex("Country_ID");
+
+                    b.HasIndex("Governorate_ID", "City_Code")
+                        .IsUnique();
+
+                    b.HasIndex("Governorate_ID", "City_Name_AR")
+                        .IsUnique();
+
+                    b.ToTable("cities", (string)null);
                 });
 
             modelBuilder.Entity("AlTayerERP.Core.Entities.Company", b =>
                 {
                     b.Property<string>("Company_ID")
-                        .HasColumnType("varchar(255)")
-                        .HasColumnName("Company_ID");
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)")
+                        .HasColumnName("company_id")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<string>("Activity_Type")
-                        .HasColumnType("longtext")
-                        .HasColumnName("Activity_Type");
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)")
+                        .HasColumnName("activity_type")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<string>("Address")
-                        .HasColumnType("longtext")
-                        .HasColumnName("Address");
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)")
+                        .HasColumnName("address")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<byte[]>("Company_Logo")
                         .HasColumnType("longblob")
-                        .HasColumnName("Company_Logo");
+                        .HasColumnName("company_logo");
 
                     b.Property<string>("Company_Name_AR")
                         .IsRequired()
-                        .HasColumnType("longtext")
-                        .HasColumnName("Company_Name_AR");
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)")
+                        .HasColumnName("company_name_ar")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<string>("Company_Name_EN")
                         .IsRequired()
-                        .HasColumnType("longtext")
-                        .HasColumnName("Company_Name_EN");
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)")
+                        .HasColumnName("company_name_en")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<string>("Company_Prefix")
-                        .HasColumnType("longtext")
-                        .HasColumnName("Company_Prefix");
+                        .HasMaxLength(20)
+                        .HasColumnType("varchar(20)")
+                        .HasColumnName("company_prefix")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<DateTime>("Created_At")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("Created_At");
+                        .HasColumnName("created_at");
+
+                    b.Property<int?>("Created_By")
+                        .HasColumnType("int")
+                        .HasColumnName("created_by");
+
+                    b.Property<int>("Edit_Count")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0)
+                        .HasColumnName("edit_count");
 
                     b.Property<string>("Email")
-                        .HasColumnType("longtext")
-                        .HasColumnName("Email");
+                        .HasMaxLength(150)
+                        .HasColumnType("varchar(150)")
+                        .HasColumnName("email")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<string>("Group_ID")
                         .IsRequired()
-                        .HasColumnType("longtext")
-                        .HasColumnName("Group_ID");
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)")
+                        .HasColumnName("group_id")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<bool>("Is_Active")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("Is_Active");
+                        .HasDefaultValue(true)
+                        .HasColumnName("is_active");
 
                     b.Property<string>("Mobile")
-                        .HasColumnType("longtext")
-                        .HasColumnName("Mobile");
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)")
+                        .HasColumnName("mobile")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<string>("Phone")
-                        .HasColumnType("longtext")
-                        .HasColumnName("Phone");
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)")
+                        .HasColumnName("phone")
+                        .UseCollation("utf8mb4_unicode_ci");
+
+                    b.Property<string>("Reactivate_Reason")
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)")
+                        .HasColumnName("reactivate_reason")
+                        .UseCollation("utf8mb4_unicode_ci");
+
+                    b.Property<DateTime?>("Reactivated_At")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("reactivated_at");
+
+                    b.Property<int?>("Reactivated_By")
+                        .HasColumnType("int")
+                        .HasColumnName("reactivated_by");
+
+                    b.Property<DateTime?>("Stopped_At")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("stopped_at");
+
+                    b.Property<int?>("Stopped_By")
+                        .HasColumnType("int")
+                        .HasColumnName("stopped_by");
+
+                    b.Property<string>("Stopped_Reason")
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)")
+                        .HasColumnName("stopped_reason")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<string>("Tax_Number")
-                        .HasColumnType("longtext")
-                        .HasColumnName("Tax_Number");
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)")
+                        .HasColumnName("tax_number")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<DateTime?>("Updated_At")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("Updated_At");
+                        .HasColumnName("updated_at");
+
+                    b.Property<int?>("Updated_By")
+                        .HasColumnType("int")
+                        .HasColumnName("updated_by");
 
                     b.HasKey("Company_ID");
+
+                    b.HasIndex("Group_ID", "Is_Active");
 
                     b.ToTable("companies", (string)null);
                 });
@@ -1706,109 +2958,345 @@ namespace AlTayerERP.Infrastructure.Migrations
             modelBuilder.Entity("AlTayerERP.Core.Entities.CostCenter", b =>
                 {
                     b.Property<string>("Cost_Center_ID")
-                        .HasColumnType("varchar(255)");
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)")
+                        .HasColumnName("cost_center_id")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<string>("Center_Code")
                         .IsRequired()
-                        .HasColumnType("longtext");
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)")
+                        .HasColumnName("center_code")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<int>("Center_Level")
-                        .HasColumnType("int");
+                        .HasColumnType("int")
+                        .HasColumnName("center_level");
 
                     b.Property<string>("Center_Name_AR")
                         .IsRequired()
-                        .HasColumnType("longtext");
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)")
+                        .HasColumnName("center_name_ar")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<string>("Center_Name_EN")
-                        .HasColumnType("longtext");
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)")
+                        .HasColumnName("center_name_en")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<string>("Company_ID")
                         .IsRequired()
-                        .HasColumnType("longtext");
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)")
+                        .HasColumnName("company_id")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<DateTime>("Created_At")
-                        .HasColumnType("datetime(6)");
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("created_at");
 
                     b.Property<bool>("Is_Active")
-                        .HasColumnType("tinyint(1)");
+                        .HasColumnType("tinyint(1)")
+                        .HasColumnName("is_active");
 
                     b.Property<bool>("Is_Postable")
-                        .HasColumnType("tinyint(1)");
+                        .HasColumnType("tinyint(1)")
+                        .HasColumnName("is_postable");
 
                     b.Property<string>("Parent_Cost_Center_ID")
-                        .HasColumnType("longtext");
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)")
+                        .HasColumnName("parent_cost_center_id")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.HasKey("Cost_Center_ID");
 
+                    b.HasIndex("Parent_Cost_Center_ID");
+
+                    b.HasIndex("Company_ID", "Center_Code")
+                        .IsUnique();
+
                     b.ToTable("cost_centers", (string)null);
+                });
+
+            modelBuilder.Entity("AlTayerERP.Core.Entities.Country", b =>
+                {
+                    b.Property<int>("Country_ID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasColumnName("country_id");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Country_ID"));
+
+                    b.Property<string>("Country_Code")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("varchar(10)")
+                        .HasColumnName("country_code")
+                        .UseCollation("utf8mb4_unicode_ci");
+
+                    b.Property<string>("Country_Name_AR")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("varchar(150)")
+                        .HasColumnName("country_name_ar")
+                        .UseCollation("utf8mb4_unicode_ci");
+
+                    b.Property<string>("Country_Name_EN")
+                        .HasMaxLength(150)
+                        .HasColumnType("varchar(150)")
+                        .HasColumnName("country_name_en")
+                        .UseCollation("utf8mb4_unicode_ci");
+
+                    b.Property<DateTime>("Created_At")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("Currency_Code")
+                        .HasMaxLength(10)
+                        .HasColumnType("varchar(10)")
+                        .HasColumnName("currency_code")
+                        .UseCollation("utf8mb4_unicode_ci");
+
+                    b.Property<string>("ISO2")
+                        .HasMaxLength(2)
+                        .HasColumnType("varchar(2)")
+                        .HasColumnName("iso2")
+                        .UseCollation("utf8mb4_unicode_ci");
+
+                    b.Property<string>("ISO3")
+                        .HasMaxLength(3)
+                        .HasColumnType("varchar(3)")
+                        .HasColumnName("iso3")
+                        .UseCollation("utf8mb4_unicode_ci");
+
+                    b.Property<bool>("Is_Active")
+                        .HasColumnType("tinyint(1)")
+                        .HasColumnName("is_active");
+
+                    b.Property<string>("Nationality_Name_AR")
+                        .HasMaxLength(150)
+                        .HasColumnType("varchar(150)")
+                        .HasColumnName("nationality_name_ar")
+                        .UseCollation("utf8mb4_unicode_ci");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)")
+                        .HasColumnName("notes")
+                        .UseCollation("utf8mb4_unicode_ci");
+
+                    b.Property<string>("Phone_Code")
+                        .HasMaxLength(10)
+                        .HasColumnType("varchar(10)")
+                        .HasColumnName("phone_code")
+                        .UseCollation("utf8mb4_unicode_ci");
+
+                    b.Property<int>("Sort_Order")
+                        .HasColumnType("int")
+                        .HasColumnName("sort_order");
+
+                    b.Property<DateTime?>("Updated_At")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Country_ID");
+
+                    b.HasIndex("Country_Code")
+                        .IsUnique();
+
+                    b.HasIndex("ISO2")
+                        .IsUnique();
+
+                    b.HasIndex("ISO3")
+                        .IsUnique();
+
+                    b.ToTable("countries", (string)null);
                 });
 
             modelBuilder.Entity("AlTayerERP.Core.Entities.Currency", b =>
                 {
                     b.Property<int>("Currency_ID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("int")
+                        .HasColumnName("currency_id");
 
                     MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Currency_ID"));
 
                     b.Property<string>("Company_ID")
                         .IsRequired()
-                        .HasColumnType("longtext");
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)")
+                        .HasColumnName("company_id")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<DateTime?>("Created_At")
-                        .HasColumnType("datetime(6)");
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("created_at");
 
                     b.Property<string>("Created_By")
-                        .HasColumnType("longtext");
+                        .HasMaxLength(255)
+                        .HasColumnType("varchar(255)")
+                        .HasColumnName("created_by")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<string>("Currency_Code")
                         .IsRequired()
-                        .HasColumnType("longtext");
+                        .HasMaxLength(20)
+                        .HasColumnType("varchar(20)")
+                        .HasColumnName("currency_code")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<string>("Currency_Name_AR")
                         .IsRequired()
-                        .HasColumnType("longtext");
+                        .HasMaxLength(150)
+                        .HasColumnType("varchar(150)")
+                        .HasColumnName("currency_name_ar")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<string>("Currency_Name_EN")
-                        .HasColumnType("longtext");
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)")
+                        .HasColumnName("currency_name_en")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<string>("Currency_Symbol")
-                        .HasColumnType("longtext");
+                        .HasMaxLength(255)
+                        .HasColumnType("varchar(255)")
+                        .HasColumnName("currency_symbol")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<int>("Decimal_Places")
-                        .HasColumnType("int");
+                        .HasColumnType("int")
+                        .HasColumnName("decimal_places");
 
                     b.Property<decimal>("Exchange_Rate")
                         .HasPrecision(18, 6)
-                        .HasColumnType("decimal(18,6)");
+                        .HasColumnType("decimal(18,6)")
+                        .HasColumnName("exchange_rate");
 
                     b.Property<bool>("Is_Active")
-                        .HasColumnType("tinyint(1)");
+                        .HasColumnType("tinyint(1)")
+                        .HasColumnName("is_active");
 
                     b.Property<bool>("Is_Default")
-                        .HasColumnType("tinyint(1)");
+                        .HasColumnType("tinyint(1)")
+                        .HasColumnName("is_default");
 
                     b.Property<bool>("Is_Local_Currency")
-                        .HasColumnType("tinyint(1)");
+                        .HasColumnType("tinyint(1)")
+                        .HasColumnName("is_local_currency");
 
                     b.Property<decimal?>("Max_Exchange_Rate")
-                        .HasColumnType("decimal(65,30)");
+                        .HasPrecision(18, 6)
+                        .HasColumnType("decimal(18,6)")
+                        .HasColumnName("max_exchange_rate");
 
                     b.Property<decimal?>("Min_Exchange_Rate")
-                        .HasColumnType("decimal(65,30)");
+                        .HasPrecision(18, 6)
+                        .HasColumnType("decimal(18,6)")
+                        .HasColumnName("min_exchange_rate");
 
                     b.Property<string>("Notes")
-                        .HasColumnType("longtext");
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)")
+                        .HasColumnName("notes")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<DateTime?>("Updated_At")
-                        .HasColumnType("datetime(6)");
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("updated_at");
 
                     b.Property<string>("Updated_By")
-                        .HasColumnType("longtext");
+                        .HasMaxLength(255)
+                        .HasColumnType("varchar(255)")
+                        .HasColumnName("updated_by")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.HasKey("Currency_ID");
 
+                    b.HasIndex("Company_ID", "Currency_Code")
+                        .IsUnique();
+
                     b.ToTable("currencies", (string)null);
+                });
+
+            modelBuilder.Entity("AlTayerERP.Core.Entities.ExchangeRate", b =>
+                {
+                    b.Property<int>("Exchange_Rate_ID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasColumnName("exchange_rate_id");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Exchange_Rate_ID"));
+
+                    b.Property<string>("Company_ID")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)")
+                        .HasColumnName("company_id")
+                        .UseCollation("utf8mb4_unicode_ci");
+
+                    b.Property<DateTime>("Created_At")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("Currency_Code")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("varchar(20)")
+                        .HasColumnName("currency_code")
+                        .UseCollation("utf8mb4_unicode_ci");
+
+                    b.Property<decimal>("Exchange_Rate_Value")
+                        .HasPrecision(18, 6)
+                        .HasColumnType("decimal(18,6)")
+                        .HasColumnName("exchange_rate_value");
+
+                    b.Property<bool>("Is_Active")
+                        .HasColumnType("tinyint(1)")
+                        .HasColumnName("is_active");
+
+                    b.Property<bool>("Is_Default")
+                        .HasColumnType("tinyint(1)")
+                        .HasColumnName("is_default");
+
+                    b.Property<decimal?>("Max_Rate")
+                        .HasPrecision(18, 6)
+                        .HasColumnType("decimal(18,6)")
+                        .HasColumnName("max_rate");
+
+                    b.Property<decimal?>("Min_Rate")
+                        .HasPrecision(18, 6)
+                        .HasColumnType("decimal(18,6)")
+                        .HasColumnName("min_rate");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)")
+                        .HasColumnName("notes")
+                        .UseCollation("utf8mb4_unicode_ci");
+
+                    b.Property<DateTime>("Rate_Date")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("rate_date");
+
+                    b.Property<DateTime?>("Updated_At")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Exchange_Rate_ID");
+
+                    b.HasIndex("Company_ID", "Currency_Code", "Rate_Date")
+                        .IsUnique();
+
+                    b.ToTable("exchange_rates", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_exchange_rate_positive", "`exchange_rate_value` > 0");
+                        });
                 });
 
             modelBuilder.Entity("AlTayerERP.Core.Entities.FinancialPolicy", b =>
@@ -1816,65 +3304,81 @@ namespace AlTayerERP.Infrastructure.Migrations
                     b.Property<int>("Limit_ID")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int")
-                        .HasColumnName("Limit_ID");
+                        .HasColumnName("limit_id");
 
                     MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Limit_ID"));
 
                     b.Property<string>("Company_ID")
                         .IsRequired()
-                        .HasColumnType("longtext")
-                        .HasColumnName("Company_ID");
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)")
+                        .HasColumnName("company_id")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<DateTime>("Created_At")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("Created_At");
+                        .HasColumnName("created_at");
 
                     b.Property<string>("Currency_Code")
                         .IsRequired()
-                        .HasColumnType("longtext")
-                        .HasColumnName("Currency_Code");
+                        .HasMaxLength(20)
+                        .HasColumnType("varchar(20)")
+                        .HasColumnName("currency_code")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<string>("Entity_ID")
                         .IsRequired()
-                        .HasColumnType("longtext")
-                        .HasColumnName("Entity_ID");
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)")
+                        .HasColumnName("entity_id")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<string>("Entity_Type")
                         .IsRequired()
-                        .HasColumnType("longtext")
-                        .HasColumnName("Entity_Type");
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)")
+                        .HasColumnName("entity_type")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<bool>("Is_Active")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("Is_Active");
+                        .HasColumnName("is_active");
 
                     b.Property<decimal>("Limit_Amount")
-                        .HasColumnType("decimal(65,30)")
-                        .HasColumnName("Limit_Amount");
+                        .HasPrecision(19, 4)
+                        .HasColumnType("decimal(19,4)")
+                        .HasColumnName("limit_amount");
 
                     b.Property<string>("Limit_Type")
                         .IsRequired()
-                        .HasColumnType("longtext")
-                        .HasColumnName("Limit_Type");
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)")
+                        .HasColumnName("limit_type")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<string>("Period_Type")
                         .IsRequired()
-                        .HasColumnType("longtext")
-                        .HasColumnName("Period_Type");
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)")
+                        .HasColumnName("period_type")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<bool>("Requires_Approval")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("Requires_Approval");
+                        .HasColumnName("requires_approval");
 
                     b.Property<DateTime?>("Updated_At")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("Updated_At");
+                        .HasColumnName("updated_at");
 
                     b.Property<decimal>("Used_Amount")
-                        .HasColumnType("decimal(65,30)")
-                        .HasColumnName("Used_Amount");
+                        .HasPrecision(19, 4)
+                        .HasColumnType("decimal(19,4)")
+                        .HasColumnName("used_amount");
 
                     b.HasKey("Limit_ID");
+
+                    b.HasIndex("Company_ID");
 
                     b.ToTable("financial_limits", (string)null);
                 });
@@ -1884,64 +3388,169 @@ namespace AlTayerERP.Infrastructure.Migrations
                     b.Property<int>("Movement_ID")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int")
-                        .HasColumnName("Movement_ID");
+                        .HasColumnName("movement_id");
 
                     MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Movement_ID"));
 
                     b.Property<decimal>("Amount")
-                        .HasColumnType("decimal(65,30)")
-                        .HasColumnName("Amount");
+                        .HasPrecision(19, 4)
+                        .HasColumnType("decimal(19,4)")
+                        .HasColumnName("amount");
 
                     b.Property<decimal>("Balance_After")
-                        .HasColumnType("decimal(65,30)")
-                        .HasColumnName("Balance_After");
+                        .HasPrecision(19, 4)
+                        .HasColumnType("decimal(19,4)")
+                        .HasColumnName("balance_after");
 
                     b.Property<string>("Company_ID")
                         .IsRequired()
-                        .HasColumnType("longtext")
-                        .HasColumnName("Company_ID");
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)")
+                        .HasColumnName("company_id")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<DateTime>("Created_At")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("Created_At");
+                        .HasColumnName("created_at");
 
                     b.Property<string>("Created_By")
-                        .HasColumnType("longtext")
-                        .HasColumnName("Created_By");
+                        .HasMaxLength(255)
+                        .HasColumnType("varchar(255)")
+                        .HasColumnName("created_by")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<string>("Currency_Code")
                         .IsRequired()
-                        .HasColumnType("longtext")
-                        .HasColumnName("Currency_Code");
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)")
+                        .HasColumnName("currency_code")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<int>("Limit_ID")
                         .HasColumnType("int")
-                        .HasColumnName("Limit_ID");
+                        .HasColumnName("limit_id");
 
                     b.Property<DateTime>("Movement_Date")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("Movement_Date");
+                        .HasColumnName("movement_date");
 
                     b.Property<string>("Movement_Type")
                         .IsRequired()
-                        .HasColumnType("longtext")
-                        .HasColumnName("Movement_Type");
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)")
+                        .HasColumnName("movement_type")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<string>("Notes")
-                        .HasColumnType("longtext")
-                        .HasColumnName("Notes");
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)")
+                        .HasColumnName("notes")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<string>("Reference_ID")
-                        .HasColumnType("longtext")
-                        .HasColumnName("Reference_ID");
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)")
+                        .HasColumnName("reference_id")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<string>("Reference_Type")
-                        .HasColumnType("longtext")
-                        .HasColumnName("Reference_Type");
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)")
+                        .HasColumnName("reference_type")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.HasKey("Movement_ID");
 
+                    b.HasIndex("Limit_ID");
+
                     b.ToTable("financial_limit_movements", (string)null);
+                });
+
+            modelBuilder.Entity("AlTayerERP.Core.Entities.FiscalPeriod", b =>
+                {
+                    b.Property<int>("Fiscal_Period_ID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasColumnName("fiscal_period_id");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Fiscal_Period_ID"));
+
+                    b.Property<int>("Branch_ID")
+                        .HasColumnType("int")
+                        .HasColumnName("branch_id");
+
+                    b.Property<DateTime?>("Close_Date")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("close_date");
+
+                    b.Property<string>("Close_Reason")
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)")
+                        .HasColumnName("close_reason")
+                        .UseCollation("utf8mb4_unicode_ci");
+
+                    b.Property<string>("Company_ID")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)")
+                        .HasColumnName("company_id")
+                        .UseCollation("utf8mb4_unicode_ci");
+
+                    b.Property<DateTime>("Created_At")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTime>("End_Date")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("end_date");
+
+                    b.Property<int>("Fiscal_Year_ID")
+                        .HasColumnType("int")
+                        .HasColumnName("fiscal_year_id");
+
+                    b.Property<bool>("Is_Active")
+                        .HasColumnType("tinyint(1)")
+                        .HasColumnName("is_active");
+
+                    b.Property<bool>("Is_Closed")
+                        .HasColumnType("tinyint(1)")
+                        .HasColumnName("is_closed");
+
+                    b.Property<string>("Period_Code")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)")
+                        .HasColumnName("period_code")
+                        .UseCollation("utf8mb4_unicode_ci");
+
+                    b.Property<string>("Period_Name")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("varchar(150)")
+                        .HasColumnName("period_name")
+                        .UseCollation("utf8mb4_unicode_ci");
+
+                    b.Property<DateTime>("Start_Date")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("start_date");
+
+                    b.Property<DateTime?>("Updated_At")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Fiscal_Period_ID");
+
+                    b.HasIndex("Branch_ID");
+
+                    b.HasIndex("Fiscal_Year_ID");
+
+                    b.HasIndex("Company_ID", "Branch_ID", "Fiscal_Year_ID", "Period_Code")
+                        .IsUnique();
+
+                    b.ToTable("fiscal_periods", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_fiscal_period_dates", "`start_date` <= `end_date`");
+                        });
                 });
 
             modelBuilder.Entity("AlTayerERP.Core.Entities.FiscalYear", b =>
@@ -1949,86 +3558,413 @@ namespace AlTayerERP.Infrastructure.Migrations
                     b.Property<int>("Fiscal_Year_ID")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int")
-                        .HasColumnName("Fiscal_Year_ID");
+                        .HasColumnName("fiscal_year_id");
 
                     MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Fiscal_Year_ID"));
 
                     b.Property<string>("Company_ID")
                         .IsRequired()
-                        .HasColumnType("longtext")
-                        .HasColumnName("Company_ID");
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)")
+                        .HasColumnName("company_id")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<DateTime>("Created_At")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("Created_At");
+                        .HasColumnName("created_at");
 
                     b.Property<DateTime>("End_Date")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("End_Date");
+                        .HasColumnName("end_date");
 
                     b.Property<bool>("Is_Active")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("Is_Active");
+                        .HasColumnName("is_active");
 
                     b.Property<bool>("Is_Closed")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("Is_Closed");
+                        .HasColumnName("is_closed");
 
                     b.Property<bool>("Is_Default")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("Is_Default");
+                        .HasColumnName("is_default");
 
                     b.Property<DateTime>("Start_Date")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("Start_Date");
+                        .HasColumnName("start_date");
 
                     b.Property<DateTime?>("Updated_At")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("Updated_At");
+                        .HasColumnName("updated_at");
 
                     b.Property<string>("Year_Name")
                         .IsRequired()
-                        .HasColumnType("longtext")
-                        .HasColumnName("Year_Name");
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)")
+                        .HasColumnName("year_name")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.HasKey("Fiscal_Year_ID");
 
-                    b.ToTable("fiscal_years", (string)null);
+                    b.HasIndex("Company_ID", "Year_Name")
+                        .IsUnique();
+
+                    b.ToTable("fiscal_years", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_fiscal_year_dates", "`start_date` <= `end_date`");
+                        });
+                });
+
+            modelBuilder.Entity("AlTayerERP.Core.Entities.Governorate", b =>
+                {
+                    b.Property<int>("Governorate_ID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasColumnName("governorate_id");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Governorate_ID"));
+
+                    b.Property<int>("Country_ID")
+                        .HasColumnType("int")
+                        .HasColumnName("country_id");
+
+                    b.Property<DateTime>("Created_At")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("Governorate_Code")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("varchar(20)")
+                        .HasColumnName("governorate_code")
+                        .UseCollation("utf8mb4_unicode_ci");
+
+                    b.Property<string>("Governorate_Name_AR")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("varchar(150)")
+                        .HasColumnName("governorate_name_ar")
+                        .UseCollation("utf8mb4_unicode_ci");
+
+                    b.Property<string>("Governorate_Name_EN")
+                        .HasMaxLength(150)
+                        .HasColumnType("varchar(150)")
+                        .HasColumnName("governorate_name_en")
+                        .UseCollation("utf8mb4_unicode_ci");
+
+                    b.Property<bool>("Is_Active")
+                        .HasColumnType("tinyint(1)")
+                        .HasColumnName("is_active");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)")
+                        .HasColumnName("notes")
+                        .UseCollation("utf8mb4_unicode_ci");
+
+                    b.Property<int>("Sort_Order")
+                        .HasColumnType("int")
+                        .HasColumnName("sort_order");
+
+                    b.Property<DateTime?>("Updated_At")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Governorate_ID");
+
+                    b.HasIndex("Country_ID", "Governorate_Code")
+                        .IsUnique();
+
+                    b.HasIndex("Country_ID", "Governorate_Name_AR")
+                        .IsUnique();
+
+                    b.ToTable("governorates", (string)null);
+                });
+
+            modelBuilder.Entity("AlTayerERP.Core.Entities.LoginAttempt", b =>
+                {
+                    b.Property<long>("Login_Attempt_ID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("login_attempt_id");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<long>("Login_Attempt_ID"));
+
+                    b.Property<DateTime>("Attempted_At")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("attempted_at");
+
+                    b.Property<int?>("Branch_ID")
+                        .HasColumnType("int")
+                        .HasColumnName("branch_id");
+
+                    b.Property<string>("Company_ID")
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)")
+                        .HasColumnName("company_id")
+                        .UseCollation("utf8mb4_unicode_ci");
+
+                    b.Property<string>("Device_ID")
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)")
+                        .HasColumnName("device_id")
+                        .UseCollation("utf8mb4_unicode_ci");
+
+                    b.Property<string>("Failure_Reason")
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)")
+                        .HasColumnName("failure_reason")
+                        .UseCollation("utf8mb4_unicode_ci");
+
+                    b.Property<int?>("Fiscal_Year_ID")
+                        .HasColumnType("int")
+                        .HasColumnName("fiscal_year_id");
+
+                    b.Property<string>("IP_Address")
+                        .HasMaxLength(255)
+                        .HasColumnType("varchar(255)")
+                        .HasColumnName("ip_address")
+                        .UseCollation("utf8mb4_unicode_ci");
+
+                    b.Property<bool>("Is_Success")
+                        .HasColumnType("tinyint(1)")
+                        .HasColumnName("is_success");
+
+                    b.Property<DateTime?>("Lockout_Until")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("lockout_until");
+
+                    b.Property<string>("Login_Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)")
+                        .HasColumnName("login_name")
+                        .UseCollation("utf8mb4_unicode_ci");
+
+                    b.Property<string>("Session_ID")
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)")
+                        .HasColumnName("session_id")
+                        .UseCollation("utf8mb4_unicode_ci");
+
+                    b.Property<string>("User_Agent")
+                        .HasMaxLength(255)
+                        .HasColumnType("varchar(255)")
+                        .HasColumnName("user_agent")
+                        .UseCollation("utf8mb4_unicode_ci");
+
+                    b.Property<int?>("User_ID")
+                        .HasColumnType("int")
+                        .HasColumnName("user_id");
+
+                    b.HasKey("Login_Attempt_ID");
+
+                    b.HasIndex("Session_ID");
+
+                    b.HasIndex("Login_Name", "Attempted_At");
+
+                    b.HasIndex("User_ID", "Attempted_At");
+
+                    b.ToTable("login_attempts", (string)null);
                 });
 
             modelBuilder.Entity("AlTayerERP.Core.Entities.NumberingCounter", b =>
                 {
                     b.Property<int>("Counter_ID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("int")
+                        .HasColumnName("counter_id");
 
                     MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Counter_ID"));
 
                     b.Property<int?>("Branch_ID")
-                        .HasColumnType("int");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0)
+                        .HasColumnName("branch_id");
 
                     b.Property<string>("Company_ID")
-                        .HasColumnType("longtext");
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)")
+                        .HasDefaultValue("")
+                        .HasColumnName("company_id")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<DateTime>("Created_At")
-                        .HasColumnType("datetime(6)");
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("created_at");
 
                     b.Property<string>("Document_Type")
                         .IsRequired()
-                        .HasColumnType("longtext");
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)")
+                        .HasColumnName("document_type")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<int>("Last_Number")
-                        .HasColumnType("int");
+                        .HasColumnType("int")
+                        .HasColumnName("last_number");
 
                     b.Property<DateTime?>("Updated_At")
-                        .HasColumnType("datetime(6)");
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("updated_at");
 
                     b.Property<int?>("Year_Value")
-                        .HasColumnType("int");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0)
+                        .HasColumnName("year_value");
 
                     b.HasKey("Counter_ID");
 
+                    b.HasIndex("Document_Type", "Company_ID", "Branch_ID", "Year_Value")
+                        .IsUnique();
+
                     b.ToTable("numbering_counters", (string)null);
+                });
+
+            modelBuilder.Entity("AlTayerERP.Core.Entities.NumberingDocumentType", b =>
+                {
+                    b.Property<int>("Numbering_Document_Type_ID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasColumnName("numbering_document_type_id");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Numbering_Document_Type_ID"));
+
+                    b.Property<string>("Document_Type_Code")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)")
+                        .HasColumnName("document_type_code")
+                        .UseCollation("utf8mb4_unicode_ci");
+
+                    b.Property<string>("Document_Type_Name_AR")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("varchar(150)")
+                        .HasColumnName("document_type_name_ar")
+                        .UseCollation("utf8mb4_unicode_ci");
+
+                    b.Property<string>("Document_Type_Name_EN")
+                        .HasMaxLength(150)
+                        .HasColumnType("varchar(150)")
+                        .HasColumnName("document_type_name_en")
+                        .UseCollation("utf8mb4_unicode_ci");
+
+                    b.Property<bool>("Is_Active")
+                        .HasColumnType("tinyint(1)")
+                        .HasColumnName("is_active");
+
+                    b.Property<int>("Sort_Order")
+                        .HasColumnType("int")
+                        .HasColumnName("sort_order");
+
+                    b.HasKey("Numbering_Document_Type_ID");
+
+                    b.HasIndex("Document_Type_Code")
+                        .IsUnique();
+
+                    b.ToTable("numbering_document_types", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            Numbering_Document_Type_ID = 1,
+                            Document_Type_Code = "BRANCH",
+                            Document_Type_Name_AR = "فرع",
+                            Is_Active = true,
+                            Sort_Order = 1
+                        },
+                        new
+                        {
+                            Numbering_Document_Type_ID = 2,
+                            Document_Type_Code = "COMPANY",
+                            Document_Type_Name_AR = "شركة",
+                            Is_Active = true,
+                            Sort_Order = 2
+                        },
+                        new
+                        {
+                            Numbering_Document_Type_ID = 3,
+                            Document_Type_Code = "RECEIPT_VOUCHER",
+                            Document_Type_Name_AR = "سند قبض",
+                            Is_Active = true,
+                            Sort_Order = 3
+                        },
+                        new
+                        {
+                            Numbering_Document_Type_ID = 4,
+                            Document_Type_Code = "PAYMENT_VOUCHER",
+                            Document_Type_Name_AR = "سند صرف",
+                            Is_Active = true,
+                            Sort_Order = 4
+                        },
+                        new
+                        {
+                            Numbering_Document_Type_ID = 5,
+                            Document_Type_Code = "PAYMENT_REQUEST",
+                            Document_Type_Name_AR = "طلب صرف",
+                            Is_Active = true,
+                            Sort_Order = 5
+                        },
+                        new
+                        {
+                            Numbering_Document_Type_ID = 6,
+                            Document_Type_Code = "JOURNAL_ENTRY",
+                            Document_Type_Name_AR = "قيد محاسبي",
+                            Is_Active = true,
+                            Sort_Order = 6
+                        },
+                        new
+                        {
+                            Numbering_Document_Type_ID = 7,
+                            Document_Type_Code = "CUSTOMER",
+                            Document_Type_Name_AR = "عميل",
+                            Is_Active = true,
+                            Sort_Order = 7
+                        },
+                        new
+                        {
+                            Numbering_Document_Type_ID = 8,
+                            Document_Type_Code = "VEHICLE",
+                            Document_Type_Name_AR = "مركبة",
+                            Is_Active = true,
+                            Sort_Order = 8
+                        },
+                        new
+                        {
+                            Numbering_Document_Type_ID = 9,
+                            Document_Type_Code = "DRIVER",
+                            Document_Type_Name_AR = "سائق",
+                            Is_Active = true,
+                            Sort_Order = 9
+                        },
+                        new
+                        {
+                            Numbering_Document_Type_ID = 10,
+                            Document_Type_Code = "SHIPMENT",
+                            Document_Type_Name_AR = "بوليصة شحن",
+                            Is_Active = true,
+                            Sort_Order = 10
+                        },
+                        new
+                        {
+                            Numbering_Document_Type_ID = 11,
+                            Document_Type_Code = "TICKET",
+                            Document_Type_Name_AR = "تذكرة",
+                            Is_Active = true,
+                            Sort_Order = 11
+                        },
+                        new
+                        {
+                            Numbering_Document_Type_ID = 12,
+                            Document_Type_Code = "TRIP",
+                            Document_Type_Name_AR = "رحلة",
+                            Is_Active = true,
+                            Sort_Order = 12
+                        });
                 });
 
             modelBuilder.Entity("AlTayerERP.Core.Entities.NumberingSetting", b =>
@@ -2036,52 +3972,153 @@ namespace AlTayerERP.Infrastructure.Migrations
                     b.Property<int>("Numbering_ID")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int")
-                        .HasColumnName("Numbering_ID");
+                        .HasColumnName("numbering_id");
 
                     MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Numbering_ID"));
 
                     b.Property<int>("Digits_Count")
                         .HasColumnType("int")
-                        .HasColumnName("Digits_Count");
+                        .HasColumnName("digits_count");
 
                     b.Property<string>("Document_Type")
                         .IsRequired()
-                        .HasColumnType("longtext")
-                        .HasColumnName("Document_Type");
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)")
+                        .HasColumnName("document_type")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<bool>("Is_Active")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("Is_Active");
+                        .HasColumnName("is_active");
 
                     b.Property<int>("Last_Number")
                         .HasColumnType("int")
-                        .HasColumnName("Last_Number");
+                        .HasColumnName("last_number");
 
                     b.Property<string>("Prefix")
                         .IsRequired()
-                        .HasColumnType("longtext")
-                        .HasColumnName("Prefix");
+                        .HasMaxLength(30)
+                        .HasColumnType("varchar(30)")
+                        .HasColumnName("prefix")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<string>("Reset_Type")
                         .IsRequired()
-                        .HasColumnType("longtext")
-                        .HasColumnName("Reset_Type");
+                        .HasMaxLength(30)
+                        .HasColumnType("varchar(30)")
+                        .HasColumnName("reset_type")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<bool>("Use_Branch")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("Use_Branch");
+                        .HasColumnName("use_branch");
 
                     b.Property<bool>("Use_Company")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("Use_Company");
+                        .HasColumnName("use_company");
 
                     b.Property<bool>("Use_Year")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("Use_Year");
+                        .HasColumnName("use_year");
 
                     b.HasKey("Numbering_ID");
 
+                    b.HasIndex("Document_Type")
+                        .IsUnique();
+
                     b.ToTable("numbering_settings", (string)null);
+                });
+
+            modelBuilder.Entity("AlTayerERP.Core.Entities.RefreshToken", b =>
+                {
+                    b.Property<long>("Refresh_Token_ID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("refresh_token_id");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<long>("Refresh_Token_ID"));
+
+                    b.Property<int>("Branch_ID")
+                        .HasColumnType("int")
+                        .HasColumnName("branch_id");
+
+                    b.Property<string>("Company_ID")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)")
+                        .HasColumnName("company_id")
+                        .UseCollation("utf8mb4_unicode_ci");
+
+                    b.Property<DateTime>("Created_At")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("Device_ID")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)")
+                        .HasColumnName("device_id")
+                        .UseCollation("utf8mb4_unicode_ci");
+
+                    b.Property<DateTime>("Expires_At")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("expires_at");
+
+                    b.Property<int>("Fiscal_Year_ID")
+                        .HasColumnType("int")
+                        .HasColumnName("fiscal_year_id");
+
+                    b.Property<string>("Replaced_By_Hash")
+                        .HasMaxLength(255)
+                        .HasColumnType("varchar(255)")
+                        .HasColumnName("replaced_by_hash")
+                        .UseCollation("utf8mb4_unicode_ci");
+
+                    b.Property<DateTime?>("Revoked_At")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("revoked_at");
+
+                    b.Property<string>("Revoked_Reason")
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)")
+                        .HasColumnName("revoked_reason")
+                        .UseCollation("utf8mb4_unicode_ci");
+
+                    b.Property<string>("Session_ID")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("varchar(64)")
+                        .HasColumnName("session_id")
+                        .UseCollation("utf8mb4_unicode_ci");
+
+                    b.Property<string>("Token_Hash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("char(64)")
+                        .HasColumnName("token_hash")
+                        .IsFixedLength()
+                        .UseCollation("utf8mb4_unicode_ci");
+
+                    b.Property<int>("User_ID")
+                        .HasColumnType("int")
+                        .HasColumnName("user_id");
+
+                    b.HasKey("Refresh_Token_ID");
+
+                    b.HasIndex("Branch_ID");
+
+                    b.HasIndex("Company_ID");
+
+                    b.HasIndex("Fiscal_Year_ID");
+
+                    b.HasIndex("Session_ID");
+
+                    b.HasIndex("Token_Hash")
+                        .IsUnique();
+
+                    b.HasIndex("User_ID", "Expires_At");
+
+                    b.ToTable("refresh_tokens", (string)null);
                 });
 
             modelBuilder.Entity("AlTayerERP.Core.Entities.Role", b =>
@@ -2089,39 +4126,49 @@ namespace AlTayerERP.Infrastructure.Migrations
                     b.Property<int>("Role_ID")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int")
-                        .HasColumnName("Role_ID");
+                        .HasColumnName("role_id");
 
                     MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Role_ID"));
 
                     b.Property<DateTime>("Created_At")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("Created_At");
+                        .HasColumnName("created_at");
 
                     b.Property<string>("Description")
-                        .HasColumnType("longtext")
-                        .HasColumnName("Description");
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)")
+                        .HasColumnName("description")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<bool>("Is_Active")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("Is_Active");
+                        .HasColumnName("is_active");
 
                     b.Property<bool>("Is_System_Admin")
-                        .HasColumnType("tinyint(1)");
+                        .HasColumnType("tinyint(1)")
+                        .HasColumnName("is_system_admin");
 
                     b.Property<string>("Role_Code")
-                        .HasColumnType("longtext")
-                        .HasColumnName("Role_Code");
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)")
+                        .HasColumnName("role_code")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<string>("Role_Name")
                         .IsRequired()
-                        .HasColumnType("longtext")
-                        .HasColumnName("Role_Name");
+                        .HasMaxLength(150)
+                        .HasColumnType("varchar(150)")
+                        .HasColumnName("role_name")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<DateTime?>("Updated_At")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("Updated_At");
+                        .HasColumnName("updated_at");
 
                     b.HasKey("Role_ID");
+
+                    b.HasIndex("Role_Code")
+                        .IsUnique();
 
                     b.ToTable("roles", (string)null);
                 });
@@ -2131,55 +4178,60 @@ namespace AlTayerERP.Infrastructure.Migrations
                     b.Property<int>("Permission_ID")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int")
-                        .HasColumnName("Permission_ID");
+                        .HasColumnName("permission_id");
 
                     MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Permission_ID"));
 
                     b.Property<bool>("Can_Add")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("Can_Add");
+                        .HasColumnName("can_add");
 
                     b.Property<bool>("Can_Approve")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("Can_Approve");
+                        .HasColumnName("can_approve");
 
                     b.Property<bool>("Can_Delete")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("Can_Delete");
+                        .HasColumnName("can_delete");
 
                     b.Property<bool>("Can_Edit")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("Can_Edit");
+                        .HasColumnName("can_edit");
 
                     b.Property<bool>("Can_Export")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("Can_Export");
+                        .HasColumnName("can_export");
 
                     b.Property<bool>("Can_Import")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("Can_Import");
+                        .HasColumnName("can_import");
 
                     b.Property<bool>("Can_Print")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("Can_Print");
+                        .HasColumnName("can_print");
 
                     b.Property<bool>("Can_UnApprove")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("Can_UnApprove");
+                        .HasColumnName("can_un_approve");
 
                     b.Property<bool>("Can_View")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("Can_View");
+                        .HasColumnName("can_view");
 
                     b.Property<int>("Role_ID")
                         .HasColumnType("int")
-                        .HasColumnName("Role_ID");
+                        .HasColumnName("role_id");
 
                     b.Property<int>("Screen_ID")
                         .HasColumnType("int")
-                        .HasColumnName("Screen_ID");
+                        .HasColumnName("screen_id");
 
                     b.HasKey("Permission_ID");
+
+                    b.HasIndex("Screen_ID");
+
+                    b.HasIndex("Role_ID", "Screen_ID")
+                        .IsUnique();
 
                     b.ToTable("role_permissions", (string)null);
                 });
@@ -2188,41 +4240,148 @@ namespace AlTayerERP.Infrastructure.Migrations
                 {
                     b.Property<int>("Permission_ID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("int")
+                        .HasColumnName("permission_id");
 
                     MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Permission_ID"));
 
                     b.Property<DateTime>("Created_At")
-                        .HasColumnType("datetime(6)");
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("created_at");
 
                     b.Property<bool>("Is_Active")
-                        .HasColumnType("tinyint(1)");
+                        .HasColumnType("tinyint(1)")
+                        .HasColumnName("is_active");
 
                     b.Property<string>("Module_Name")
                         .HasMaxLength(100)
-                        .HasColumnType("varchar(100)");
+                        .HasColumnType("varchar(100)")
+                        .HasColumnName("module_name")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<string>("Permission_Code")
                         .IsRequired()
                         .HasMaxLength(100)
-                        .HasColumnType("varchar(100)");
+                        .HasColumnType("varchar(100)")
+                        .HasColumnName("permission_code")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<string>("Permission_Name")
                         .IsRequired()
                         .HasMaxLength(200)
-                        .HasColumnType("varchar(200)");
+                        .HasColumnType("varchar(200)")
+                        .HasColumnName("permission_name")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<string>("Permission_Type")
                         .IsRequired()
                         .HasMaxLength(50)
-                        .HasColumnType("varchar(50)");
+                        .HasColumnType("varchar(50)")
+                        .HasColumnName("permission_type")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<int>("Sort_Order")
-                        .HasColumnType("int");
+                        .HasColumnType("int")
+                        .HasColumnName("sort_order");
 
                     b.HasKey("Permission_ID");
 
+                    b.HasIndex("Permission_Code")
+                        .IsUnique();
+
                     b.ToTable("system_permissions", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            Permission_ID = 1,
+                            Created_At = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Is_Active = true,
+                            Permission_Code = "VIEW",
+                            Permission_Name = "عرض",
+                            Permission_Type = "DATA",
+                            Sort_Order = 1
+                        },
+                        new
+                        {
+                            Permission_ID = 2,
+                            Created_At = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Is_Active = true,
+                            Permission_Code = "ADD",
+                            Permission_Name = "إضافة",
+                            Permission_Type = "DATA",
+                            Sort_Order = 2
+                        },
+                        new
+                        {
+                            Permission_ID = 3,
+                            Created_At = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Is_Active = true,
+                            Permission_Code = "EDIT",
+                            Permission_Name = "تعديل",
+                            Permission_Type = "DATA",
+                            Sort_Order = 3
+                        },
+                        new
+                        {
+                            Permission_ID = 4,
+                            Created_At = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Is_Active = true,
+                            Permission_Code = "DELETE",
+                            Permission_Name = "إيقاف أو حذف",
+                            Permission_Type = "DATA",
+                            Sort_Order = 4
+                        },
+                        new
+                        {
+                            Permission_ID = 5,
+                            Created_At = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Is_Active = true,
+                            Permission_Code = "PRINT",
+                            Permission_Name = "طباعة",
+                            Permission_Type = "DATA",
+                            Sort_Order = 5
+                        },
+                        new
+                        {
+                            Permission_ID = 6,
+                            Created_At = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Is_Active = true,
+                            Permission_Code = "EXPORT",
+                            Permission_Name = "تصدير",
+                            Permission_Type = "DATA",
+                            Sort_Order = 6
+                        },
+                        new
+                        {
+                            Permission_ID = 7,
+                            Created_At = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Is_Active = true,
+                            Permission_Code = "IMPORT",
+                            Permission_Name = "استيراد",
+                            Permission_Type = "DATA",
+                            Sort_Order = 7
+                        },
+                        new
+                        {
+                            Permission_ID = 8,
+                            Created_At = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Is_Active = true,
+                            Permission_Code = "APPROVE",
+                            Permission_Name = "اعتماد",
+                            Permission_Type = "DATA",
+                            Sort_Order = 8
+                        },
+                        new
+                        {
+                            Permission_ID = 9,
+                            Created_At = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Is_Active = true,
+                            Permission_Code = "UNAPPROVE",
+                            Permission_Name = "إلغاء اعتماد",
+                            Permission_Type = "DATA",
+                            Sort_Order = 9
+                        });
                 });
 
             modelBuilder.Entity("AlTayerERP.Core.Entities.SystemScreen", b =>
@@ -2230,40 +4389,497 @@ namespace AlTayerERP.Infrastructure.Migrations
                     b.Property<int>("Screen_ID")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int")
-                        .HasColumnName("Screen_ID");
+                        .HasColumnName("screen_id");
 
                     MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Screen_ID"));
 
                     b.Property<DateTime>("Created_At")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("Created_At");
+                        .HasColumnName("created_at");
 
                     b.Property<bool>("Is_Active")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("Is_Active");
+                        .HasColumnName("is_active");
 
                     b.Property<string>("Module_Name")
                         .IsRequired()
-                        .HasColumnType("longtext")
-                        .HasColumnName("Module_Name");
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)")
+                        .HasColumnName("module_name")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<string>("Screen_Code")
                         .IsRequired()
-                        .HasColumnType("longtext")
-                        .HasColumnName("Screen_Code");
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)")
+                        .HasColumnName("screen_code")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<string>("Screen_Name")
                         .IsRequired()
-                        .HasColumnType("longtext")
-                        .HasColumnName("Screen_Name");
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)")
+                        .HasColumnName("screen_name")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<int>("Sort_Order")
                         .HasColumnType("int")
-                        .HasColumnName("Sort_Order");
+                        .HasColumnName("sort_order");
 
                     b.HasKey("Screen_ID");
 
+                    b.HasIndex("Screen_Code")
+                        .IsUnique();
+
                     b.ToTable("system_screens", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            Screen_ID = 1,
+                            Created_At = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Is_Active = true,
+                            Module_Name = "الهيكل المؤسسي",
+                            Screen_Code = "TenantGroups",
+                            Screen_Name = "المجموعات التجارية",
+                            Sort_Order = 5
+                        },
+                        new
+                        {
+                            Screen_ID = 2,
+                            Created_At = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Is_Active = true,
+                            Module_Name = "الهيكل المؤسسي",
+                            Screen_Code = "Companies",
+                            Screen_Name = "الشركات",
+                            Sort_Order = 10
+                        },
+                        new
+                        {
+                            Screen_ID = 3,
+                            Created_At = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Is_Active = true,
+                            Module_Name = "الهيكل المؤسسي",
+                            Screen_Code = "Branches",
+                            Screen_Name = "الفروع",
+                            Sort_Order = 20
+                        },
+                        new
+                        {
+                            Screen_ID = 4,
+                            Created_At = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Is_Active = true,
+                            Module_Name = "الهيكل المؤسسي",
+                            Screen_Code = "Countries",
+                            Screen_Name = "الدول",
+                            Sort_Order = 25
+                        },
+                        new
+                        {
+                            Screen_ID = 5,
+                            Created_At = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Is_Active = true,
+                            Module_Name = "الهيكل المؤسسي",
+                            Screen_Code = "Governorates",
+                            Screen_Name = "المحافظات",
+                            Sort_Order = 26
+                        },
+                        new
+                        {
+                            Screen_ID = 6,
+                            Created_At = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Is_Active = true,
+                            Module_Name = "الهيكل المؤسسي",
+                            Screen_Code = "Cities",
+                            Screen_Name = "المدن",
+                            Sort_Order = 27
+                        },
+                        new
+                        {
+                            Screen_ID = 7,
+                            Created_At = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Is_Active = true,
+                            Module_Name = "المستخدمون والصلاحيات",
+                            Screen_Code = "Users",
+                            Screen_Name = "المستخدمون",
+                            Sort_Order = 40
+                        },
+                        new
+                        {
+                            Screen_ID = 8,
+                            Created_At = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Is_Active = true,
+                            Module_Name = "المستخدمون والصلاحيات",
+                            Screen_Code = "Roles",
+                            Screen_Name = "الأدوار",
+                            Sort_Order = 50
+                        },
+                        new
+                        {
+                            Screen_ID = 9,
+                            Created_At = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Is_Active = true,
+                            Module_Name = "المستخدمون والصلاحيات",
+                            Screen_Code = "RolePermissions",
+                            Screen_Name = "صلاحيات الأدوار",
+                            Sort_Order = 60
+                        },
+                        new
+                        {
+                            Screen_ID = 10,
+                            Created_At = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Is_Active = true,
+                            Module_Name = "الأمن والرقابة",
+                            Screen_Code = "AuditLogs",
+                            Screen_Name = "سجل التدقيق والرقابة",
+                            Sort_Order = 70
+                        },
+                        new
+                        {
+                            Screen_ID = 11,
+                            Created_At = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Is_Active = true,
+                            Module_Name = "المستخدمون والصلاحيات",
+                            Screen_Code = "Sessions",
+                            Screen_Name = "الجلسات النشطة",
+                            Sort_Order = 80
+                        },
+                        new
+                        {
+                            Screen_ID = 12,
+                            Created_At = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Is_Active = true,
+                            Module_Name = "التهيئة والإعدادات",
+                            Screen_Code = "GeneralSettings",
+                            Screen_Name = "الإعدادات العامة والمالية",
+                            Sort_Order = 70
+                        },
+                        new
+                        {
+                            Screen_ID = 13,
+                            Created_At = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Is_Active = true,
+                            Module_Name = "التهيئة والإعدادات",
+                            Screen_Code = "SystemScreens",
+                            Screen_Name = "كتالوج شاشات النظام",
+                            Sort_Order = 80
+                        },
+                        new
+                        {
+                            Screen_ID = 14,
+                            Created_At = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Is_Active = true,
+                            Module_Name = "التهيئة والإعدادات",
+                            Screen_Code = "NumberingSettings",
+                            Screen_Name = "إعدادات الترقيم",
+                            Sort_Order = 90
+                        },
+                        new
+                        {
+                            Screen_ID = 15,
+                            Created_At = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Is_Active = true,
+                            Module_Name = "التهيئة والإعدادات",
+                            Screen_Code = "FiscalYears",
+                            Screen_Name = "السنوات المالية",
+                            Sort_Order = 95
+                        },
+                        new
+                        {
+                            Screen_ID = 16,
+                            Created_At = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Is_Active = true,
+                            Module_Name = "التهيئة والإعدادات",
+                            Screen_Code = "FiscalPeriods",
+                            Screen_Name = "الفترات المالية",
+                            Sort_Order = 100
+                        },
+                        new
+                        {
+                            Screen_ID = 17,
+                            Created_At = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Is_Active = true,
+                            Module_Name = "التهيئة والإعدادات",
+                            Screen_Code = "ExchangeRates",
+                            Screen_Name = "أسعار الصرف",
+                            Sort_Order = 110
+                        },
+                        new
+                        {
+                            Screen_ID = 18,
+                            Created_At = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Is_Active = true,
+                            Module_Name = "التهيئة والإعدادات",
+                            Screen_Code = "PaymentMethods",
+                            Screen_Name = "طرق السداد",
+                            Sort_Order = 120
+                        },
+                        new
+                        {
+                            Screen_ID = 19,
+                            Created_At = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Is_Active = true,
+                            Module_Name = "التهيئة والإعدادات",
+                            Screen_Code = "VoucherTypes",
+                            Screen_Name = "أنواع السندات",
+                            Sort_Order = 130
+                        },
+                        new
+                        {
+                            Screen_ID = 20,
+                            Created_At = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Is_Active = true,
+                            Module_Name = "التهيئة والإعدادات",
+                            Screen_Code = "VoucherStatuses",
+                            Screen_Name = "حالات السندات",
+                            Sort_Order = 140
+                        },
+                        new
+                        {
+                            Screen_ID = 21,
+                            Created_At = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Is_Active = true,
+                            Module_Name = "التهيئة والإعدادات",
+                            Screen_Code = "ApprovalPolicies",
+                            Screen_Name = "سياسات الاعتماد والسقوف",
+                            Sort_Order = 150
+                        },
+                        new
+                        {
+                            Screen_ID = 22,
+                            Created_At = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Is_Active = true,
+                            Module_Name = "الحسابات",
+                            Screen_Code = "ChartOfAccounts",
+                            Screen_Name = "الدليل المحاسبي",
+                            Sort_Order = 160
+                        },
+                        new
+                        {
+                            Screen_ID = 23,
+                            Created_At = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Is_Active = true,
+                            Module_Name = "الحسابات",
+                            Screen_Code = "Currencies",
+                            Screen_Name = "العملات",
+                            Sort_Order = 170
+                        },
+                        new
+                        {
+                            Screen_ID = 24,
+                            Created_At = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Is_Active = true,
+                            Module_Name = "الحسابات",
+                            Screen_Code = "CostCenters",
+                            Screen_Name = "مراكز التكلفة",
+                            Sort_Order = 180
+                        },
+                        new
+                        {
+                            Screen_ID = 25,
+                            Created_At = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Is_Active = true,
+                            Module_Name = "الحسابات",
+                            Screen_Code = "CashBoxes",
+                            Screen_Name = "الصناديق",
+                            Sort_Order = 190
+                        },
+                        new
+                        {
+                            Screen_ID = 26,
+                            Created_At = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Is_Active = true,
+                            Module_Name = "الحسابات",
+                            Screen_Code = "Banks",
+                            Screen_Name = "البنوك والحسابات البنكية",
+                            Sort_Order = 200
+                        },
+                        new
+                        {
+                            Screen_ID = 27,
+                            Created_At = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Is_Active = true,
+                            Module_Name = "الحسابات",
+                            Screen_Code = "Parties",
+                            Screen_Name = "الأطراف المالية",
+                            Sort_Order = 210
+                        },
+                        new
+                        {
+                            Screen_ID = 28,
+                            Created_At = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Is_Active = true,
+                            Module_Name = "الحسابات",
+                            Screen_Code = "ReceiptVoucher",
+                            Screen_Name = "سند القبض",
+                            Sort_Order = 220
+                        },
+                        new
+                        {
+                            Screen_ID = 29,
+                            Created_At = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Is_Active = true,
+                            Module_Name = "الحسابات",
+                            Screen_Code = "PaymentVoucher",
+                            Screen_Name = "سند الصرف",
+                            Sort_Order = 230
+                        },
+                        new
+                        {
+                            Screen_ID = 30,
+                            Created_At = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Is_Active = true,
+                            Module_Name = "الحسابات",
+                            Screen_Code = "PaymentRequest",
+                            Screen_Name = "طلب الصرف",
+                            Sort_Order = 235
+                        },
+                        new
+                        {
+                            Screen_ID = 31,
+                            Created_At = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Is_Active = true,
+                            Module_Name = "الحسابات",
+                            Screen_Code = "JournalVoucher",
+                            Screen_Name = "القيد اليومي",
+                            Sort_Order = 240
+                        },
+                        new
+                        {
+                            Screen_ID = 32,
+                            Created_At = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Is_Active = true,
+                            Module_Name = "الحسابات",
+                            Screen_Code = "DocumentSearch",
+                            Screen_Name = "البحث عن المستندات",
+                            Sort_Order = 250
+                        },
+                        new
+                        {
+                            Screen_ID = 33,
+                            Created_At = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Is_Active = true,
+                            Module_Name = "الحسابات",
+                            Screen_Code = "ApprovalRequests",
+                            Screen_Name = "طلبات الاعتماد",
+                            Sort_Order = 260
+                        },
+                        new
+                        {
+                            Screen_ID = 34,
+                            Created_At = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Is_Active = true,
+                            Module_Name = "الحسابات",
+                            Screen_Code = "FinancialLimits",
+                            Screen_Name = "السقوف المالية وحركات الاستخدام",
+                            Sort_Order = 270
+                        },
+                        new
+                        {
+                            Screen_ID = 35,
+                            Created_At = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Is_Active = true,
+                            Module_Name = "التقارير المالية",
+                            Screen_Code = "TrialBalance",
+                            Screen_Name = "ميزان المراجعة",
+                            Sort_Order = 280
+                        },
+                        new
+                        {
+                            Screen_ID = 36,
+                            Created_At = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Is_Active = true,
+                            Module_Name = "التقارير المالية",
+                            Screen_Code = "GeneralLedger",
+                            Screen_Name = "الأستاذ العام",
+                            Sort_Order = 290
+                        });
+                });
+
+            modelBuilder.Entity("AlTayerERP.Core.Entities.SystemSetting", b =>
+                {
+                    b.Property<int>("Setting_ID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasColumnName("setting_id");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Setting_ID"));
+
+                    b.Property<int>("Branch_ID")
+                        .HasColumnType("int")
+                        .HasColumnName("branch_id");
+
+                    b.Property<string>("Company_ID")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)")
+                        .HasColumnName("company_id")
+                        .UseCollation("utf8mb4_unicode_ci");
+
+                    b.Property<DateTime>("Created_At")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)")
+                        .HasColumnName("description")
+                        .UseCollation("utf8mb4_unicode_ci");
+
+                    b.Property<DateTime?>("Effective_Date")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("effective_date");
+
+                    b.Property<int>("Fiscal_Year_ID")
+                        .HasColumnType("int")
+                        .HasColumnName("fiscal_year_id");
+
+                    b.Property<bool>("Is_Active")
+                        .HasColumnType("tinyint(1)")
+                        .HasColumnName("is_active");
+
+                    b.Property<string>("Scope")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("varchar(20)")
+                        .HasColumnName("scope")
+                        .UseCollation("utf8mb4_unicode_ci");
+
+                    b.Property<string>("Setting_Key")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)")
+                        .HasColumnName("setting_key")
+                        .UseCollation("utf8mb4_unicode_ci");
+
+                    b.Property<string>("Setting_Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)")
+                        .HasColumnName("setting_name")
+                        .UseCollation("utf8mb4_unicode_ci");
+
+                    b.Property<string>("Setting_Value")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("varchar(255)")
+                        .HasColumnName("setting_value")
+                        .UseCollation("utf8mb4_unicode_ci");
+
+                    b.Property<DateTime?>("Updated_At")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Setting_ID");
+
+                    b.HasIndex("Setting_Key", "Scope", "Company_ID", "Branch_ID", "Fiscal_Year_ID")
+                        .IsUnique();
+
+                    b.ToTable("system_settings", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_system_settings_scope", "`scope` IN ('SYSTEM','COMPANY','BRANCH','FISCAL_YEAR')");
+                        });
                 });
 
             modelBuilder.Entity("AlTayerERP.Core.Entities.TenantBranch", b =>
@@ -2271,92 +4887,189 @@ namespace AlTayerERP.Infrastructure.Migrations
                     b.Property<int>("Branch_ID")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int")
-                        .HasColumnName("Branch_ID");
+                        .HasColumnName("branch_id");
 
                     MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Branch_ID"));
 
                     b.Property<string>("Address")
-                        .HasColumnType("longtext")
-                        .HasColumnName("Address");
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)")
+                        .HasColumnName("address")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<bool>("Allow_Credit")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("Allow_Credit");
+                        .HasColumnName("allow_credit");
 
                     b.Property<bool>("Allow_Percentage")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("Allow_Percentage");
+                        .HasColumnName("allow_percentage");
 
                     b.Property<string>("Branch_Code")
                         .IsRequired()
-                        .HasColumnType("longtext")
-                        .HasColumnName("Branch_Code");
+                        .HasMaxLength(30)
+                        .HasColumnType("varchar(30)")
+                        .HasColumnName("branch_code")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<string>("Branch_Name")
                         .IsRequired()
-                        .HasColumnType("longtext")
-                        .HasColumnName("Branch_Name");
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)")
+                        .HasColumnName("branch_name")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<string>("Branch_Name_EN")
-                        .HasColumnType("longtext")
-                        .HasColumnName("Branch_Name_EN");
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)")
+                        .HasColumnName("branch_name_en")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<string>("Branch_Type")
-                        .HasColumnType("longtext")
-                        .HasColumnName("Branch_Type");
+                        .HasMaxLength(30)
+                        .HasColumnType("varchar(30)")
+                        .HasColumnName("branch_type")
+                        .UseCollation("utf8mb4_unicode_ci");
+
+                    b.Property<int?>("Branch_Type_ID")
+                        .HasColumnType("int")
+                        .HasColumnName("branch_type_id");
+
+                    b.Property<int?>("City_ID")
+                        .HasColumnType("int")
+                        .HasColumnName("city_id");
 
                     b.Property<string>("Company_ID")
                         .IsRequired()
-                        .HasColumnType("longtext")
-                        .HasColumnName("Company_ID");
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)")
+                        .HasColumnName("company_id")
+                        .UseCollation("utf8mb4_unicode_ci");
+
+                    b.Property<int?>("Country_ID")
+                        .HasColumnType("int")
+                        .HasColumnName("country_id");
+
+                    b.Property<int?>("Created_By")
+                        .HasColumnType("int")
+                        .HasColumnName("created_by");
 
                     b.Property<DateTime>("Created_Date")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("Created_Date");
+                        .HasColumnName("created_date");
 
                     b.Property<int>("Currency_ID")
                         .HasColumnType("int")
-                        .HasColumnName("Currency_ID");
+                        .HasColumnName("currency_id");
+
+                    b.Property<int>("Edit_Count")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0)
+                        .HasColumnName("edit_count");
 
                     b.Property<string>("Email")
-                        .HasColumnType("longtext")
-                        .HasColumnName("Email");
+                        .HasMaxLength(150)
+                        .HasColumnType("varchar(150)")
+                        .HasColumnName("email")
+                        .UseCollation("utf8mb4_unicode_ci");
+
+                    b.Property<int?>("Governorate_ID")
+                        .HasColumnType("int")
+                        .HasColumnName("governorate_id");
 
                     b.Property<bool>("Is_Active")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("Is_Active");
+                        .HasDefaultValue(true)
+                        .HasColumnName("is_active");
 
                     b.Property<string>("Manager_Name")
-                        .HasColumnType("longtext")
-                        .HasColumnName("Manager_Name");
+                        .HasMaxLength(150)
+                        .HasColumnType("varchar(150)")
+                        .HasColumnName("manager_name")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<string>("Mobile")
-                        .HasColumnType("longtext")
-                        .HasColumnName("Mobile");
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)")
+                        .HasColumnName("mobile")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<string>("Notes")
-                        .HasColumnType("longtext")
-                        .HasColumnName("Notes");
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)")
+                        .HasColumnName("notes")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<int?>("Parent_Branch_ID")
                         .HasColumnType("int")
-                        .HasColumnName("Parent_Branch_ID");
+                        .HasColumnName("parent_branch_id");
 
                     b.Property<string>("Phone")
-                        .HasColumnType("longtext")
-                        .HasColumnName("Phone");
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)")
+                        .HasColumnName("phone")
+                        .UseCollation("utf8mb4_unicode_ci");
+
+                    b.Property<string>("Reactivate_Reason")
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)")
+                        .HasColumnName("reactivate_reason")
+                        .UseCollation("utf8mb4_unicode_ci");
+
+                    b.Property<DateTime?>("Reactivated_At")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("reactivated_at");
+
+                    b.Property<int?>("Reactivated_By")
+                        .HasColumnType("int")
+                        .HasColumnName("reactivated_by");
+
+                    b.Property<DateTime?>("Stopped_At")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("stopped_at");
+
+                    b.Property<int?>("Stopped_By")
+                        .HasColumnType("int")
+                        .HasColumnName("stopped_by");
+
+                    b.Property<string>("Stopped_Reason")
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)")
+                        .HasColumnName("stopped_reason")
+                        .UseCollation("utf8mb4_unicode_ci");
+
+                    b.Property<int?>("Updated_By")
+                        .HasColumnType("int")
+                        .HasColumnName("updated_by");
 
                     b.Property<DateTime?>("Updated_Date")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("Updated_Date");
+                        .HasColumnName("updated_date");
 
                     b.Property<string>("Website")
-                        .HasColumnType("longtext")
-                        .HasColumnName("Website");
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)")
+                        .HasColumnName("website")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.HasKey("Branch_ID");
 
+                    b.HasIndex("Branch_Type_ID");
+
+                    b.HasIndex("City_ID");
+
+                    b.HasIndex("Country_ID");
+
+                    b.HasIndex("Currency_ID");
+
+                    b.HasIndex("Governorate_ID");
+
                     b.HasIndex("Parent_Branch_ID");
+
+                    b.HasIndex("Company_ID", "Branch_Code")
+                        .IsUnique();
 
                     b.ToTable("tenant_branches", (string)null);
                 });
@@ -2364,23 +5077,180 @@ namespace AlTayerERP.Infrastructure.Migrations
             modelBuilder.Entity("AlTayerERP.Core.Entities.TenantGroup", b =>
                 {
                     b.Property<string>("Group_ID")
-                        .HasColumnType("varchar(255)");
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)")
+                        .HasColumnName("group_id")
+                        .UseCollation("utf8mb4_unicode_ci");
+
+                    b.Property<string>("City_Name")
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)")
+                        .HasColumnName("city_name")
+                        .UseCollation("utf8mb4_unicode_ci");
+
+                    b.Property<string>("Country_Name")
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)")
+                        .HasColumnName("country_name")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<DateTime>("Created_At")
-                        .HasColumnType("datetime(6)");
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("created_at");
+
+                    b.Property<int?>("Created_By")
+                        .HasColumnType("int")
+                        .HasColumnName("created_by");
+
+                    b.Property<string>("Default_Currency_Code")
+                        .HasMaxLength(10)
+                        .HasColumnType("varchar(10)")
+                        .HasColumnName("default_currency_code")
+                        .UseCollation("utf8mb4_unicode_ci");
+
+                    b.Property<int>("Edit_Count")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0)
+                        .HasColumnName("edit_count");
+
+                    b.Property<string>("Email")
+                        .HasMaxLength(150)
+                        .HasColumnType("varchar(150)")
+                        .HasColumnName("email")
+                        .UseCollation("utf8mb4_unicode_ci");
+
+                    b.Property<string>("Group_Code")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("varchar(30)")
+                        .HasColumnName("group_code")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<string>("Group_Name_AR")
                         .IsRequired()
-                        .HasColumnType("longtext");
+                        .HasMaxLength(150)
+                        .HasColumnType("varchar(150)")
+                        .HasColumnName("group_name_ar")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<string>("Group_Name_EN")
-                        .IsRequired()
-                        .HasColumnType("longtext");
+                        .HasMaxLength(150)
+                        .HasColumnType("varchar(150)")
+                        .HasColumnName("group_name_en")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<bool>("Is_Active")
-                        .HasColumnType("tinyint(1)");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("tinyint(1)")
+                        .HasDefaultValue(true)
+                        .HasColumnName("is_active");
+
+                    b.Property<bool>("Is_Default")
+                        .HasColumnType("tinyint(1)")
+                        .HasColumnName("is_default");
+
+                    b.Property<string>("Main_Company_ID")
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)")
+                        .HasColumnName("main_company_id")
+                        .UseCollation("utf8mb4_unicode_ci");
+
+                    b.Property<string>("Manager_Name")
+                        .HasMaxLength(150)
+                        .HasColumnType("varchar(150)")
+                        .HasColumnName("manager_name")
+                        .UseCollation("utf8mb4_unicode_ci");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)")
+                        .HasColumnName("notes")
+                        .UseCollation("utf8mb4_unicode_ci");
+
+                    b.Property<string>("Parent_Group_ID")
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)")
+                        .HasColumnName("parent_group_id")
+                        .UseCollation("utf8mb4_unicode_ci");
+
+                    b.Property<string>("Phone")
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)")
+                        .HasColumnName("phone")
+                        .UseCollation("utf8mb4_unicode_ci");
+
+                    b.Property<string>("Reactivate_Reason")
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)")
+                        .HasColumnName("reactivate_reason")
+                        .UseCollation("utf8mb4_unicode_ci");
+
+                    b.Property<DateTime?>("Reactivated_At")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("reactivated_at");
+
+                    b.Property<int?>("Reactivated_By")
+                        .HasColumnType("int")
+                        .HasColumnName("reactivated_by");
+
+                    b.Property<string>("Short_Address")
+                        .HasMaxLength(300)
+                        .HasColumnType("varchar(300)")
+                        .HasColumnName("short_address")
+                        .UseCollation("utf8mb4_unicode_ci");
+
+                    b.Property<string>("Short_Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)")
+                        .HasColumnName("short_name")
+                        .UseCollation("utf8mb4_unicode_ci");
+
+                    b.Property<bool>("Show_In_Login")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("tinyint(1)")
+                        .HasDefaultValue(true)
+                        .HasColumnName("show_in_login");
+
+                    b.Property<bool>("Show_In_Tree")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("tinyint(1)")
+                        .HasDefaultValue(true)
+                        .HasColumnName("show_in_tree");
+
+                    b.Property<int>("Sort_Order")
+                        .HasColumnType("int")
+                        .HasColumnName("sort_order");
+
+                    b.Property<DateTime?>("Stopped_At")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("stopped_at");
+
+                    b.Property<int?>("Stopped_By")
+                        .HasColumnType("int")
+                        .HasColumnName("stopped_by");
+
+                    b.Property<string>("Stopped_Reason")
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)")
+                        .HasColumnName("stopped_reason")
+                        .UseCollation("utf8mb4_unicode_ci");
+
+                    b.Property<DateTime?>("Updated_At")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("updated_at");
+
+                    b.Property<int?>("Updated_By")
+                        .HasColumnType("int")
+                        .HasColumnName("updated_by");
 
                     b.HasKey("Group_ID");
+
+                    b.HasIndex("Group_Code")
+                        .IsUnique();
+
+                    b.HasIndex("Show_In_Login", "Is_Active", "Sort_Order");
 
                     b.ToTable("tenant_groups", (string)null);
                 });
@@ -2390,72 +5260,120 @@ namespace AlTayerERP.Infrastructure.Migrations
                     b.Property<int>("User_ID")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int")
-                        .HasColumnName("User_ID");
+                        .HasColumnName("user_id");
 
                     MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("User_ID"));
 
                     b.Property<int>("Branch_ID")
                         .HasColumnType("int")
-                        .HasColumnName("Branch_ID");
+                        .HasColumnName("branch_id");
 
                     b.Property<string>("Company_ID")
                         .IsRequired()
-                        .HasColumnType("longtext")
-                        .HasColumnName("Company_ID");
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)")
+                        .HasColumnName("company_id")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<DateTime>("Created_At")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("Created_At");
+                        .HasColumnName("created_at");
 
                     b.Property<string>("Email")
-                        .HasColumnType("longtext")
-                        .HasColumnName("Email");
+                        .HasMaxLength(255)
+                        .HasColumnType("varchar(255)")
+                        .HasColumnName("email")
+                        .UseCollation("utf8mb4_unicode_ci");
+
+                    b.Property<int>("Failed_Login_Count")
+                        .HasColumnType("int")
+                        .HasColumnName("failed_login_count");
 
                     b.Property<string>("Full_Name")
                         .IsRequired()
-                        .HasColumnType("longtext")
-                        .HasColumnName("Full_Name");
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)")
+                        .HasColumnName("full_name")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<bool>("Is_Active")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("Is_Active");
+                        .HasColumnName("is_active");
+
+                    b.Property<DateTime?>("Last_Failed_Login_At")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("last_failed_login_at");
+
+                    b.Property<DateTime?>("Last_Login_At")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("last_login_at");
+
+                    b.Property<string>("Last_Login_IP")
+                        .HasMaxLength(255)
+                        .HasColumnType("varchar(255)")
+                        .HasColumnName("last_login_ip")
+                        .UseCollation("utf8mb4_unicode_ci");
+
+                    b.Property<DateTime?>("Locked_Until")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("locked_until");
 
                     b.Property<string>("Login_Name")
                         .IsRequired()
-                        .HasColumnType("longtext")
-                        .HasColumnName("Login_Name");
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)")
+                        .HasColumnName("login_name")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<bool>("Must_Change_Password")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("Must_Change_Password");
+                        .HasColumnName("must_change_password");
 
                     b.Property<string>("Notes")
-                        .HasColumnType("longtext")
-                        .HasColumnName("Notes");
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)")
+                        .HasColumnName("notes")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<string>("Password_Hash")
                         .IsRequired()
-                        .HasColumnType("longtext")
-                        .HasColumnName("Password_Hash");
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)")
+                        .HasColumnName("password_hash")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<string>("Phone")
-                        .HasColumnType("longtext")
-                        .HasColumnName("Phone");
+                        .HasMaxLength(255)
+                        .HasColumnType("varchar(255)")
+                        .HasColumnName("phone")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<int>("Role_ID")
                         .HasColumnType("int")
-                        .HasColumnName("Role_ID");
+                        .HasColumnName("role_id");
 
                     b.Property<DateTime?>("Updated_At")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("Updated_At");
+                        .HasColumnName("updated_at");
 
                     b.Property<string>("User_Code")
                         .IsRequired()
-                        .HasColumnType("longtext")
-                        .HasColumnName("User_Code");
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)")
+                        .HasColumnName("user_code")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.HasKey("User_ID");
+
+                    b.HasIndex("Branch_ID");
+
+                    b.HasIndex("Login_Name")
+                        .IsUnique();
+
+                    b.HasIndex("Role_ID");
+
+                    b.HasIndex("Company_ID", "User_Code")
+                        .IsUnique();
 
                     b.ToTable("users", (string)null);
                 });
@@ -2465,71 +5383,124 @@ namespace AlTayerERP.Infrastructure.Migrations
                     b.Property<int>("Permission_ID")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int")
-                        .HasColumnName("Permission_ID");
+                        .HasColumnName("permission_id");
 
                     MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Permission_ID"));
 
                     b.Property<bool>("Can_Add")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("Can_Add");
+                        .HasColumnName("can_add");
 
                     b.Property<bool>("Can_Approve")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("Can_Approve");
+                        .HasColumnName("can_approve");
 
                     b.Property<bool>("Can_Delete")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("Can_Delete");
+                        .HasColumnName("can_delete");
 
                     b.Property<bool>("Can_Edit")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("Can_Edit");
+                        .HasColumnName("can_edit");
 
                     b.Property<bool>("Can_Export")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("Can_Export");
+                        .HasColumnName("can_export");
 
                     b.Property<bool>("Can_Import")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("Can_Import");
+                        .HasColumnName("can_import");
 
                     b.Property<bool>("Can_Preview")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("Can_Preview");
+                        .HasColumnName("can_preview");
 
                     b.Property<bool>("Can_Print")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("Can_Print");
+                        .HasColumnName("can_print");
 
                     b.Property<bool>("Can_UnApprove")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("Can_UnApprove");
+                        .HasColumnName("can_un_approve");
 
                     b.Property<bool>("Can_View")
                         .HasColumnType("tinyint(1)")
-                        .HasColumnName("Can_View");
+                        .HasColumnName("can_view");
 
                     b.Property<string>("Permission_Category")
                         .IsRequired()
-                        .HasColumnType("longtext")
-                        .HasColumnName("Permission_Category");
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)")
+                        .HasColumnName("permission_category")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<string>("Permission_Name")
                         .IsRequired()
-                        .HasColumnType("longtext")
-                        .HasColumnName("Permission_Name");
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)")
+                        .HasColumnName("permission_name")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<int>("User_ID")
                         .HasColumnType("int")
-                        .HasColumnName("User_ID");
+                        .HasColumnName("user_id");
 
                     b.HasKey("Permission_ID");
+
+                    b.HasIndex("User_ID", "Permission_Category", "Permission_Name")
+                        .IsUnique();
 
                     b.ToTable("user_permissions", (string)null);
                 });
 
+            modelBuilder.Entity("AlTayerERP.Core.Entities.AccountCategory", b =>
+                {
+                    b.HasOne("AlTayerERP.Core.Entities.Company", null)
+                        .WithMany()
+                        .HasForeignKey("Company_ID")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("AlTayerERP.Core.Entities.AccountCodeSetting", b =>
+                {
+                    b.HasOne("AlTayerERP.Core.Entities.Company", null)
+                        .WithMany()
+                        .HasForeignKey("Company_ID")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("AlTayerERP.Core.Entities.Accounting.AuditLog", b =>
+                {
+                    b.HasOne("AlTayerERP.Core.Entities.TenantBranch", null)
+                        .WithMany()
+                        .HasForeignKey("Branch_ID")
+                        .OnDelete(DeleteBehavior.SetNull);
+                });
+
+            modelBuilder.Entity("AlTayerERP.Core.Entities.Accounting.BankAccount", b =>
+                {
+                    b.HasOne("AlTayerERP.Core.Entities.Company", null)
+                        .WithMany()
+                        .HasForeignKey("Company_ID")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("AlTayerERP.Core.Entities.Accounting.DocumentAllocation", b =>
                 {
+                    b.HasOne("AlTayerERP.Core.Entities.Currency", null)
+                        .WithMany()
+                        .HasForeignKey("Currency_ID")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("AlTayerERP.Core.Entities.Accounting.Party", null)
+                        .WithMany()
+                        .HasForeignKey("Party_ID")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.HasOne("AlTayerERP.Core.Entities.Accounting.FinancialVoucherHeader", "Voucher")
                         .WithMany("DocumentAllocations")
                         .HasForeignKey("Voucher_ID")
@@ -2541,6 +5512,23 @@ namespace AlTayerERP.Infrastructure.Migrations
 
             modelBuilder.Entity("AlTayerERP.Core.Entities.Accounting.FinancialVoucherDetail", b =>
                 {
+                    b.HasOne("AlTayerERP.Core.Entities.ChartOfAccount", null)
+                        .WithMany()
+                        .HasForeignKey("Account_ID")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("AlTayerERP.Core.Entities.CostCenter", null)
+                        .WithMany()
+                        .HasForeignKey("Cost_Center_ID")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("AlTayerERP.Core.Entities.Currency", null)
+                        .WithMany()
+                        .HasForeignKey("Currency_ID")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.HasOne("AlTayerERP.Core.Entities.Accounting.FinancialVoucherHeader", "Voucher")
                         .WithMany("Details")
                         .HasForeignKey("Voucher_ID")
@@ -2550,8 +5538,73 @@ namespace AlTayerERP.Infrastructure.Migrations
                     b.Navigation("Voucher");
                 });
 
+            modelBuilder.Entity("AlTayerERP.Core.Entities.Accounting.FinancialVoucherHeader", b =>
+                {
+                    b.HasOne("AlTayerERP.Core.Entities.TenantBranch", null)
+                        .WithMany()
+                        .HasForeignKey("Branch_ID")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("AlTayerERP.Core.Entities.ChartOfAccount", null)
+                        .WithMany()
+                        .HasForeignKey("Cash_Account_ID")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("AlTayerERP.Core.Entities.Currency", null)
+                        .WithMany()
+                        .HasForeignKey("Currency_ID")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("AlTayerERP.Core.Entities.FiscalYear", null)
+                        .WithMany()
+                        .HasForeignKey("Fiscal_Year_ID")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("AlTayerERP.Core.Entities.Accounting.Party", null)
+                        .WithMany()
+                        .HasForeignKey("Party_ID")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("AlTayerERP.Core.Entities.Accounting.PaymentMethod", null)
+                        .WithMany()
+                        .HasForeignKey("Payment_Method_ID")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("AlTayerERP.Core.Entities.Accounting.VoucherStatus", null)
+                        .WithMany()
+                        .HasForeignKey("Voucher_Status_ID")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("AlTayerERP.Core.Entities.Accounting.VoucherType", null)
+                        .WithMany()
+                        .HasForeignKey("Voucher_Type_ID")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("AlTayerERP.Core.Entities.Accounting.JournalEntryDetail", b =>
                 {
+                    b.HasOne("AlTayerERP.Core.Entities.ChartOfAccount", null)
+                        .WithMany()
+                        .HasForeignKey("Account_ID")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("AlTayerERP.Core.Entities.CostCenter", null)
+                        .WithMany()
+                        .HasForeignKey("Cost_Center_ID")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("AlTayerERP.Core.Entities.Currency", null)
+                        .WithMany()
+                        .HasForeignKey("Currency_ID")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.HasOne("AlTayerERP.Core.Entities.Accounting.JournalEntryHeader", "JournalEntry")
                         .WithMany("Details")
                         .HasForeignKey("Journal_Entry_ID")
@@ -2559,6 +5612,130 @@ namespace AlTayerERP.Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("JournalEntry");
+                });
+
+            modelBuilder.Entity("AlTayerERP.Core.Entities.Accounting.JournalEntryHeader", b =>
+                {
+                    b.HasOne("AlTayerERP.Core.Entities.TenantBranch", null)
+                        .WithMany()
+                        .HasForeignKey("Branch_ID")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("AlTayerERP.Core.Entities.FiscalYear", null)
+                        .WithMany()
+                        .HasForeignKey("Fiscal_Year_ID")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("AlTayerERP.Core.Entities.Accounting.FinancialVoucherHeader", null)
+                        .WithMany()
+                        .HasForeignKey("Source_Voucher_ID")
+                        .OnDelete(DeleteBehavior.Restrict);
+                });
+
+            modelBuilder.Entity("AlTayerERP.Core.Entities.Accounting.Party", b =>
+                {
+                    b.HasOne("AlTayerERP.Core.Entities.ChartOfAccount", null)
+                        .WithMany()
+                        .HasForeignKey("Account_ID")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("AlTayerERP.Core.Entities.Company", null)
+                        .WithMany()
+                        .HasForeignKey("Company_ID")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("AlTayerERP.Core.Entities.Accounting.PaymentRequest", b =>
+                {
+                    b.HasOne("AlTayerERP.Core.Entities.TenantBranch", null)
+                        .WithMany()
+                        .HasForeignKey("Branch_ID")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("AlTayerERP.Core.Entities.Company", null)
+                        .WithMany()
+                        .HasForeignKey("Company_ID")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("AlTayerERP.Core.Entities.FiscalYear", null)
+                        .WithMany()
+                        .HasForeignKey("Fiscal_Year_ID")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("AlTayerERP.Core.Entities.Accounting.Party", null)
+                        .WithMany()
+                        .HasForeignKey("Party_ID")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("AlTayerERP.Core.Entities.Accounting.PaymentMethod", null)
+                        .WithMany()
+                        .HasForeignKey("Payment_Method_ID")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("AlTayerERP.Core.Entities.Accounting.FinancialVoucherHeader", null)
+                        .WithMany()
+                        .HasForeignKey("Payment_Voucher_ID")
+                        .OnDelete(DeleteBehavior.Restrict);
+                });
+
+            modelBuilder.Entity("AlTayerERP.Core.Entities.Accounting.PaymentRequestAttachment", b =>
+                {
+                    b.HasOne("AlTayerERP.Core.Entities.TenantBranch", null)
+                        .WithMany()
+                        .HasForeignKey("Branch_ID")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("AlTayerERP.Core.Entities.Company", null)
+                        .WithMany()
+                        .HasForeignKey("Company_ID")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("AlTayerERP.Core.Entities.FiscalYear", null)
+                        .WithMany()
+                        .HasForeignKey("Fiscal_Year_ID")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("AlTayerERP.Core.Entities.Accounting.PaymentRequest", null)
+                        .WithMany()
+                        .HasForeignKey("Payment_Request_ID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("AlTayerERP.Core.Entities.Accounting.PaymentRequestLine", b =>
+                {
+                    b.HasOne("AlTayerERP.Core.Entities.ChartOfAccount", null)
+                        .WithMany()
+                        .HasForeignKey("Account_ID")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("AlTayerERP.Core.Entities.CostCenter", null)
+                        .WithMany()
+                        .HasForeignKey("Cost_Center_ID")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("AlTayerERP.Core.Entities.Currency", null)
+                        .WithMany()
+                        .HasForeignKey("Currency_ID")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("AlTayerERP.Core.Entities.Accounting.PaymentRequest", "PaymentRequest")
+                        .WithMany("Details")
+                        .HasForeignKey("Payment_Request_ID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("PaymentRequest");
                 });
 
             modelBuilder.Entity("AlTayerERP.Core.Entities.Accounting.VoucherActionLog", b =>
@@ -2572,13 +5749,289 @@ namespace AlTayerERP.Infrastructure.Migrations
                     b.Navigation("Voucher");
                 });
 
+            modelBuilder.Entity("AlTayerERP.Core.Entities.ApprovalRequest", b =>
+                {
+                    b.HasOne("AlTayerERP.Core.Entities.Company", null)
+                        .WithMany()
+                        .HasForeignKey("Company_ID")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("AlTayerERP.Core.Entities.CashBox", b =>
+                {
+                    b.HasOne("AlTayerERP.Core.Entities.ChartOfAccount", null)
+                        .WithMany()
+                        .HasForeignKey("Account_ID")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("AlTayerERP.Core.Entities.TenantBranch", null)
+                        .WithMany()
+                        .HasForeignKey("Branch_ID")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("AlTayerERP.Core.Entities.Company", null)
+                        .WithMany()
+                        .HasForeignKey("Company_ID")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("AlTayerERP.Core.Entities.ChartOfAccount", b =>
+                {
+                    b.HasOne("AlTayerERP.Core.Entities.Company", null)
+                        .WithMany()
+                        .HasForeignKey("Company_ID")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("AlTayerERP.Core.Entities.ChartOfAccount", null)
+                        .WithMany()
+                        .HasForeignKey("Parent_Account_ID")
+                        .OnDelete(DeleteBehavior.Restrict);
+                });
+
+            modelBuilder.Entity("AlTayerERP.Core.Entities.City", b =>
+                {
+                    b.HasOne("AlTayerERP.Core.Entities.Country", "Country")
+                        .WithMany()
+                        .HasForeignKey("Country_ID")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("AlTayerERP.Core.Entities.Governorate", "Governorate")
+                        .WithMany("Cities")
+                        .HasForeignKey("Governorate_ID")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Country");
+
+                    b.Navigation("Governorate");
+                });
+
+            modelBuilder.Entity("AlTayerERP.Core.Entities.Company", b =>
+                {
+                    b.HasOne("AlTayerERP.Core.Entities.TenantGroup", null)
+                        .WithMany()
+                        .HasForeignKey("Group_ID")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("AlTayerERP.Core.Entities.CostCenter", b =>
+                {
+                    b.HasOne("AlTayerERP.Core.Entities.Company", null)
+                        .WithMany()
+                        .HasForeignKey("Company_ID")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("AlTayerERP.Core.Entities.CostCenter", null)
+                        .WithMany()
+                        .HasForeignKey("Parent_Cost_Center_ID")
+                        .OnDelete(DeleteBehavior.Restrict);
+                });
+
+            modelBuilder.Entity("AlTayerERP.Core.Entities.Currency", b =>
+                {
+                    b.HasOne("AlTayerERP.Core.Entities.Company", null)
+                        .WithMany()
+                        .HasForeignKey("Company_ID")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("AlTayerERP.Core.Entities.ExchangeRate", b =>
+                {
+                    b.HasOne("AlTayerERP.Core.Entities.Company", null)
+                        .WithMany()
+                        .HasForeignKey("Company_ID")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("AlTayerERP.Core.Entities.FinancialPolicy", b =>
+                {
+                    b.HasOne("AlTayerERP.Core.Entities.Company", null)
+                        .WithMany()
+                        .HasForeignKey("Company_ID")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("AlTayerERP.Core.Entities.FinancialPolicyMovement", b =>
+                {
+                    b.HasOne("AlTayerERP.Core.Entities.FinancialPolicy", null)
+                        .WithMany()
+                        .HasForeignKey("Limit_ID")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("AlTayerERP.Core.Entities.FiscalPeriod", b =>
+                {
+                    b.HasOne("AlTayerERP.Core.Entities.TenantBranch", null)
+                        .WithMany()
+                        .HasForeignKey("Branch_ID")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("AlTayerERP.Core.Entities.Company", null)
+                        .WithMany()
+                        .HasForeignKey("Company_ID")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("AlTayerERP.Core.Entities.FiscalYear", null)
+                        .WithMany()
+                        .HasForeignKey("Fiscal_Year_ID")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("AlTayerERP.Core.Entities.FiscalYear", b =>
+                {
+                    b.HasOne("AlTayerERP.Core.Entities.Company", null)
+                        .WithMany()
+                        .HasForeignKey("Company_ID")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("AlTayerERP.Core.Entities.Governorate", b =>
+                {
+                    b.HasOne("AlTayerERP.Core.Entities.Country", "Country")
+                        .WithMany("Governorates")
+                        .HasForeignKey("Country_ID")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Country");
+                });
+
+            modelBuilder.Entity("AlTayerERP.Core.Entities.LoginAttempt", b =>
+                {
+                    b.HasOne("AlTayerERP.Core.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("User_ID")
+                        .OnDelete(DeleteBehavior.SetNull);
+                });
+
+            modelBuilder.Entity("AlTayerERP.Core.Entities.RefreshToken", b =>
+                {
+                    b.HasOne("AlTayerERP.Core.Entities.TenantBranch", null)
+                        .WithMany()
+                        .HasForeignKey("Branch_ID")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("AlTayerERP.Core.Entities.Company", null)
+                        .WithMany()
+                        .HasForeignKey("Company_ID")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("AlTayerERP.Core.Entities.FiscalYear", null)
+                        .WithMany()
+                        .HasForeignKey("Fiscal_Year_ID")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("AlTayerERP.Core.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("User_ID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("AlTayerERP.Core.Entities.RolePermission", b =>
+                {
+                    b.HasOne("AlTayerERP.Core.Entities.Role", null)
+                        .WithMany()
+                        .HasForeignKey("Role_ID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("AlTayerERP.Core.Entities.SystemScreen", null)
+                        .WithMany()
+                        .HasForeignKey("Screen_ID")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("AlTayerERP.Core.Entities.TenantBranch", b =>
                 {
+                    b.HasOne("AlTayerERP.Core.Entities.BranchType", null)
+                        .WithMany()
+                        .HasForeignKey("Branch_Type_ID")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("AlTayerERP.Core.Entities.City", null)
+                        .WithMany()
+                        .HasForeignKey("City_ID")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("AlTayerERP.Core.Entities.Company", null)
+                        .WithMany()
+                        .HasForeignKey("Company_ID")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("AlTayerERP.Core.Entities.Country", null)
+                        .WithMany()
+                        .HasForeignKey("Country_ID")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("AlTayerERP.Core.Entities.Currency", null)
+                        .WithMany()
+                        .HasForeignKey("Currency_ID")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("AlTayerERP.Core.Entities.Governorate", null)
+                        .WithMany()
+                        .HasForeignKey("Governorate_ID")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("AlTayerERP.Core.Entities.TenantBranch", "ParentBranch")
                         .WithMany()
-                        .HasForeignKey("Parent_Branch_ID");
+                        .HasForeignKey("Parent_Branch_ID")
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("ParentBranch");
+                });
+
+            modelBuilder.Entity("AlTayerERP.Core.Entities.User", b =>
+                {
+                    b.HasOne("AlTayerERP.Core.Entities.TenantBranch", null)
+                        .WithMany()
+                        .HasForeignKey("Branch_ID")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("AlTayerERP.Core.Entities.Company", null)
+                        .WithMany()
+                        .HasForeignKey("Company_ID")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("AlTayerERP.Core.Entities.Role", null)
+                        .WithMany()
+                        .HasForeignKey("Role_ID")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("AlTayerERP.Core.Entities.UserPermission", b =>
+                {
+                    b.HasOne("AlTayerERP.Core.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("User_ID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("AlTayerERP.Core.Entities.Accounting.FinancialVoucherHeader", b =>
@@ -2593,6 +6046,21 @@ namespace AlTayerERP.Infrastructure.Migrations
             modelBuilder.Entity("AlTayerERP.Core.Entities.Accounting.JournalEntryHeader", b =>
                 {
                     b.Navigation("Details");
+                });
+
+            modelBuilder.Entity("AlTayerERP.Core.Entities.Accounting.PaymentRequest", b =>
+                {
+                    b.Navigation("Details");
+                });
+
+            modelBuilder.Entity("AlTayerERP.Core.Entities.Country", b =>
+                {
+                    b.Navigation("Governorates");
+                });
+
+            modelBuilder.Entity("AlTayerERP.Core.Entities.Governorate", b =>
+                {
+                    b.Navigation("Cities");
                 });
 #pragma warning restore 612, 618
         }

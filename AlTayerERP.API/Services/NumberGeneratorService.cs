@@ -127,6 +127,7 @@ namespace AlTayerERP.API.Services
                 throw new NumberingException("إعداد الترقيم يتطلب سنة مالية من سياق الجلسة.");
 
             string companyPrefix = string.Empty;
+            string branchCode = string.Empty;
             if (setting.Use_Company)
             {
                 var company = await _context.Companies.AsNoTracking()
@@ -138,7 +139,21 @@ namespace AlTayerERP.API.Services
                     : company.Company_Prefix.Trim().ToUpperInvariant();
             }
 
-            return new NumberingScope(normalizedCompany, normalizedBranch, normalizedYear, companyPrefix);
+            if (setting.Use_Branch)
+            {
+                branchCode = await _context.Tenant_Branches.AsNoTracking()
+                    .Where(x => x.Branch_ID == normalizedBranch && x.Is_Active)
+                    .Select(x => x.Branch_Code)
+                    .SingleOrDefaultAsync(cancellationToken)
+                    ?? string.Empty;
+
+                if (string.IsNullOrWhiteSpace(branchCode))
+                    throw new NumberingException("كود فرع سياق الترقيم غير موجود أو موقوف.");
+
+                branchCode = branchCode.Trim().ToUpperInvariant();
+            }
+
+            return new NumberingScope(normalizedCompany, normalizedBranch, normalizedYear, companyPrefix, branchCode);
         }
 
         private static void ValidateSetting(NumberingSetting setting)
@@ -154,7 +169,7 @@ namespace AlTayerERP.API.Services
             // تدعم البادئة قوالب اختيارية: {COMPANY} و{BRANCH} و{YEAR}.
             var prefix = setting.Prefix.Trim().ToUpperInvariant()
                 .Replace("{COMPANY}", scope.Company_Prefix, StringComparison.OrdinalIgnoreCase)
-                .Replace("{BRANCH}", scope.Branch_ID == 0 ? string.Empty : scope.Branch_ID.ToString(), StringComparison.OrdinalIgnoreCase)
+                .Replace("{BRANCH}", scope.Branch_Code, StringComparison.OrdinalIgnoreCase)
                 .Replace("{YEAR}", scope.Fiscal_Year_ID == 0 ? string.Empty : scope.Fiscal_Year_ID.ToString(), StringComparison.OrdinalIgnoreCase)
                 .Trim('-');
 
@@ -162,7 +177,7 @@ namespace AlTayerERP.API.Services
             if (setting.Use_Company && !setting.Prefix.Contains("{COMPANY}", StringComparison.OrdinalIgnoreCase))
                 parts.Add(scope.Company_Prefix);
             if (setting.Use_Branch && !setting.Prefix.Contains("{BRANCH}", StringComparison.OrdinalIgnoreCase))
-                parts.Add(scope.Branch_ID.ToString());
+                parts.Add(scope.Branch_Code);
             if (setting.Use_Year && !setting.Prefix.Contains("{YEAR}", StringComparison.OrdinalIgnoreCase))
                 parts.Add(scope.Fiscal_Year_ID.ToString());
 
@@ -174,7 +189,8 @@ namespace AlTayerERP.API.Services
             string Company_ID,
             int Branch_ID,
             int Fiscal_Year_ID,
-            string Company_Prefix);
+            string Company_Prefix,
+            string Branch_Code);
     }
 
     /// <summary>نتيجة الحجز: الرقم النهائي والنطاق الذي منع تكراره.</summary>

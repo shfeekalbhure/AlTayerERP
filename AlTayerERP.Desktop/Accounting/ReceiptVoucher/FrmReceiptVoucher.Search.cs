@@ -29,7 +29,7 @@ namespace AlTayerERP.Desktop
             public string Voucher_No { get; set; } = string.Empty;
             public int Voucher_Type_ID { get; set; }
             public int Voucher_Status_ID { get; set; }
-            public string Branch_ID { get; set; } = string.Empty;
+            public int Branch_ID { get; set; }
             public int? Fiscal_Year_ID { get; set; }
             public DateTime Voucher_Date { get; set; }
             public string Cash_Account_ID { get; set; } = string.Empty;
@@ -263,12 +263,12 @@ namespace AlTayerERP.Desktop
         private void LoadHeaderData(FinancialVoucherResponseModel voucher)
         {
             _selectedVoucherId = voucher.Voucher_ID;
-            _loadedVoucherBranchId = voucher.Branch_ID ?? string.Empty;
+            _loadedVoucherBranchId = voucher.Branch_ID;
             _loadedFiscalYearId = voucher.Fiscal_Year_ID ?? 0;
             _loadedPartyId = voucher.Party_ID;
             _loadedReceivedFromName = voucher.Received_From_Name?.Trim() ?? string.Empty;
             _isCrossContextVoucher =
-                !string.Equals(_loadedVoucherBranchId, CurrentSession.Branch_ID.ToString(), StringComparison.Ordinal) ||
+                _loadedVoucherBranchId != CurrentSession.Branch_ID ||
                 (_loadedFiscalYearId > 0 && _loadedFiscalYearId != CurrentSession.Year_ID);
             _currentApprovalStatus = voucher.Approval_Status;
             _currentReviewStatus = voucher.Review_Status;
@@ -276,10 +276,10 @@ namespace AlTayerERP.Desktop
             SetDatePickerValue(dtVoucherDate, voucher.Voucher_Date);
             SetComboBoxValue(cmbVoucherType, voucher.Voucher_Type_ID);
             SetComboBoxValue(cmbStatus, voucher.Voucher_Status_ID);
-            if (int.TryParse(voucher.Branch_ID, out int branchId))
+            if (voucher.Branch_ID > 0)
             {
-                SetComboBoxValue(cmbBranch, branchId);
-                if (!string.Equals(cmbBranch.SelectedValue?.ToString(), voucher.Branch_ID, StringComparison.Ordinal))
+                SetComboBoxValue(cmbBranch, voucher.Branch_ID);
+                if (!Equals(cmbBranch.SelectedValue, voucher.Branch_ID))
                 {
                     cmbBranch.Text = $"الفرع رقم {voucher.Branch_ID}";
                 }

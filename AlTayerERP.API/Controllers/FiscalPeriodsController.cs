@@ -105,7 +105,7 @@ namespace AlTayerERP.API.Controllers
             if(string.IsNullOrWhiteSpace(r?.Reason))return BadRequest(new {message="سبب الإقفال مطلوب."});
             var row=await FindAsync(id);if(row==null)return NotFound(new {message="الفترة غير موجودة."});
             if(row.Is_Closed)return Conflict(new {message="الفترة مقفلة بالفعل."});
-            if(await _context.Financial_Voucher_Headers.AnyAsync(x=>x.Fiscal_Year_ID==Session.Year_ID&&x.Branch_ID==Session.Branch_ID.ToString()&&x.Is_Active&&!x.Is_Posted&&x.Voucher_Date>=row.Start_Date&&x.Voucher_Date<=row.End_Date))return Conflict(new {message="يوجد مستندات معلقة غير مرحلة ضمن الفترة."});
+            if(await _context.Financial_Voucher_Headers.AnyAsync(x=>x.Fiscal_Year_ID==Session.Year_ID&&x.Branch_ID==Session.Branch_ID&&x.Is_Active&&!x.Is_Posted&&x.Voucher_Date>=row.Start_Date&&x.Voucher_Date<=row.End_Date))return Conflict(new {message="يوجد مستندات معلقة غير مرحلة ضمن الفترة."});
             row.Is_Closed=true;row.Close_Date=DateTime.UtcNow.Date;row.Close_Reason=r.Reason.Trim();row.Updated_At=DateTime.UtcNow;
             _audit.Add(Session,HttpContext,"fiscal_periods",id.ToString(),"CLOSE",new {Is_Closed=false},new {Is_Closed=true},r.Reason);await _context.SaveChangesAsync();return Ok(new {message="تم إقفال الفترة."});
         }

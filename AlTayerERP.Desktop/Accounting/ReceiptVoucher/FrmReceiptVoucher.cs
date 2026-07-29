@@ -34,7 +34,7 @@ namespace AlTayerERP.Desktop
         // حالة السند المحملة للتحكم الصحيح في دورة المراجعة والاعتماد والترحيل.
         private byte _currentReviewStatus = 0;
         private byte _currentApprovalStatus = 0;
-        private string _loadedVoucherBranchId = string.Empty;
+        private int _loadedVoucherBranchId;
         private int _loadedFiscalYearId = 0;
         private string? _loadedPartyId;
         private string _loadedReceivedFromName = string.Empty;

@@ -53,7 +53,7 @@ namespace AlTayerERP.API.Services.Accounting
 
             public string Voucher_Status_Name { get; set; } = string.Empty;
 
-            public string Branch_ID { get; set; } = string.Empty;
+            public int Branch_ID { get; set; }
 
             public int? Fiscal_Year_ID { get; set; }
 
@@ -194,7 +194,7 @@ namespace AlTayerERP.API.Services.Accounting
 
             public DateTime Voucher_Date { get; set; }
 
-            public string Branch_ID { get; set; } = string.Empty;
+            public int Branch_ID { get; set; }
 
             public string? Description { get; set; }
 
@@ -214,7 +214,7 @@ namespace AlTayerERP.API.Services.Accounting
         /// </summary>
         public async Task<JournalEntryInquiryResult?> GetByVoucherNoAsync(
             string voucherNo,
-            string? branchId = null,
+            int? branchId = null,
             int? voucherTypeId = null,
             int? fiscalYearId = null)
         {
@@ -231,10 +231,10 @@ namespace AlTayerERP.API.Services.Accounting
                     x.Voucher_No == voucherNo &&
                     x.Is_Active);
 
-            if (!string.IsNullOrWhiteSpace(branchId))
+            if (branchId.HasValue)
             {
                 headerQuery = headerQuery.Where(
-                    x => x.Branch_ID == branchId);
+                    x => x.Branch_ID == branchId.Value);
             }
 
             if (voucherTypeId.HasValue)
@@ -322,7 +322,7 @@ namespace AlTayerERP.API.Services.Accounting
             string? voucherNo = null,
             DateTime? fromDate = null,
             DateTime? toDate = null,
-            string? branchId = null,
+            int? branchId = null,
             int? voucherTypeId = null,
             bool postedOnly = false)
         {
@@ -354,10 +354,10 @@ namespace AlTayerERP.API.Services.Accounting
                     x => x.Voucher_Date < endDate);
             }
 
-            if (!string.IsNullOrWhiteSpace(branchId))
+            if (branchId.HasValue)
             {
                 query = query.Where(
-                    x => x.Branch_ID == branchId);
+                    x => x.Branch_ID == branchId.Value);
             }
 
             if (voucherTypeId.HasValue)
