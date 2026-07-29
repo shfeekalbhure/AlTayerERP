@@ -10,12 +10,12 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<!-- موفر MySQL المعتمد لـ EF Core 8 -->
+		<!-- توحيد جميع حزم EF Core مع موفر MySQL على الإصدار نفسه لمنع تعارض التجميع. -->
 		<PackageReference Include="Pomelo.EntityFrameworkCore.MySql" Version="8.0.2" />
-		<!-- أدوات أوامر Migrations -->
-		<PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="8.0.12" />
-		<!-- خدمات التصميم المطلوبة لمصنع AppDbContext وتوليد Baseline دون تشغيل قاعدة فعلية -->
-		<PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.12">
+		<!-- أدوات أوامر Migrations، تستخدم في التصميم فقط ولا تطبق قاعدة عند البناء. -->
+		<PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="8.0.2" />
+		<!-- خدمات التصميم المطلوبة لتوليد Baseline دون تشغيل قاعدة فعلية. -->
+		<PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.2">
 			<PrivateAssets>all</PrivateAssets>
 			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 		</PackageReference>
