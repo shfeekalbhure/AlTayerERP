@@ -125,7 +125,12 @@ public partial class HomePage : ContentPage
         {
             if (Application.Current?.Windows.FirstOrDefault() is Window window)
             {
-                window.Page = new NavigationPage(new MainPage(_authenticationService, _mobileHomeService))
+
+
+                window.Page = new NavigationPage(new MainPage(
+                    _authenticationService,
+                    _mobileHomeService,
+                    IPlatformApplication.Current.Services.GetRequiredService<ApiConnectionDiagnosticsService>()))
                 {
                     FlowDirection = FlowDirection.RightToLeft,
                     BarBackgroundColor = Color.FromArgb("#17324D"),

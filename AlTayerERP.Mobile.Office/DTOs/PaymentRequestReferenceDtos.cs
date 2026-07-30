@@ -18,8 +18,8 @@ public sealed class PaymentRequestReferenceResult
 
     public string UserMessage => ErrorType switch
     {
-        _ => ApiDiagnosticResult.GetMessage(ErrorType);
-
+        _ => ApiDiagnosticResult.GetMessage(ErrorType),
+    };
     public static PaymentRequestReferenceResult Success(PaymentRequestReferencesDto references, int statusCode) => new()
     {
         IsSuccess = true,

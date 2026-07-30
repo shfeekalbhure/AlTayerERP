@@ -38,14 +38,36 @@ public sealed class ApiConnectionDiagnosticsService(HttpClient httpClient)
         var error = exception switch
         {
             TaskCanceledException => ApiErrorType.Timeout,
-            HttpRequestException request when request.HttpRequestError == HttpRequestError.NameResolutionError => ApiErrorType.Dns,
-            HttpRequestException request when request.HttpRequestError == HttpRequestError.ConnectionError => ApiErrorType.ConnectionRefused,
-            HttpRequestException request when FindSocketException(request)?.SocketErrorCode == SocketError.ConnectionRefused => ApiErrorType.ConnectionRefused,
-            HttpRequestException request when FindSocketException(request)?.SocketErrorCode is SocketError.HostNotFound or SocketError.NoData or SocketError.TryAgain => ApiErrorType.Dns,
+            HttpRequestException dnsRequest
+                when dnsRequest.HttpRequestError == HttpRequestError.NameResolutionError
+                => ApiErrorType.Dns,
+
+            HttpRequestException connectionRequest
+                when connectionRequest.HttpRequestError == HttpRequestError.ConnectionError
+                => ApiErrorType.ConnectionRefused,
+
+            HttpRequestException refusedRequest
+                when FindSocketException(refusedRequest)?.SocketErrorCode == SocketError.ConnectionRefused
+                => ApiErrorType.ConnectionRefused,
+
+            HttpRequestException hostRequest
+                when FindSocketException(hostRequest)?.SocketErrorCode is
+                    SocketError.HostNotFound or
+                    SocketError.NoData or
+                    SocketError.TryAgain
+                => ApiErrorType.Dns,
             System.Text.Json.JsonException or NotSupportedException => ApiErrorType.DeserializeFailure,
             _ => ApiErrorType.Unknown
         };
-        return Create(endpoint, false, exception is HttpRequestException request ? (int?)request.StatusCode : null, error, session);
+      //  return Create(endpoint, false, exception is HttpRequestException request ? (int?)request.StatusCode : null, error, session);
+        return Create(
+    endpoint,
+    false,
+    exception is HttpRequestException httpRequest
+        ? (int?)httpRequest.StatusCode
+        : null,
+    error,
+    session);
     }
 
     public ApiDiagnosticResult Create(string endpoint, bool serverReached, int? statusCode, ApiErrorType errorType,
