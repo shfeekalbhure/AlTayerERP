@@ -1,4 +1,5 @@
 using AlTayerERP.Desktop.Services;
+using System.ComponentModel;
 using System.Drawing;
 using System.Windows.Forms;
 
@@ -8,7 +9,7 @@ namespace AlTayerERP.Desktop.Common;
 /// القالب المركزي لشاشات المرحلة الأولى. يطبق هوية نظام الطائر السعيد،
 /// والتنسيق المتجاوب، وبطاقة التدقيق وسياق الجلسة دون التدخل في منطق الأعمال.
 /// </summary>
-public abstract class BaseForm : Form
+public class BaseForm : Form
 {
     private readonly Label _lblAuditSummary = new();
     private readonly Panel _pnlAuditBody = new();
@@ -22,8 +23,14 @@ public abstract class BaseForm : Form
 
     private RequiredFieldStyleService? _requiredFieldStyle;
 
+    private static bool IsDesignTime =>
+        LicenseManager.UsageMode == LicenseUsageMode.Designtime;
+
     protected void ApplyBaseFormStyle()
     {
+        if (IsDesignTime)
+            return;
+
         RightToLeft = RightToLeft.Yes;
         RightToLeftLayout = true;
         Font = new Font("Segoe UI", 9.5F);
@@ -43,6 +50,9 @@ public abstract class BaseForm : Form
     protected override void OnShown(EventArgs e)
     {
         base.OnShown(e);
+        if (IsDesignTime)
+            return;
+
         ScheduleResponsiveRefresh();
     }
 
