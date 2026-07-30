@@ -1,3 +1,5 @@
+using AlTayerERP.Mobile.Office.Services;
+
 namespace AlTayerERP.Mobile.Office.DTOs;
 
 public enum ApiErrorType

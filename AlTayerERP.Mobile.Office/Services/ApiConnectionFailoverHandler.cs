@@ -1,5 +1,5 @@
+using AlTayerERP.Mobile.Office.DTOs;
 using System.Diagnostics;
-
 namespace AlTayerERP.Mobile.Office.Services;
 
 /// <summary>بعد فشل اتصال شبكي يعيد اختيار العنوان مرة واحدة، من دون إعادة إرسال طلب قد يغيّر بيانات.</summary>
