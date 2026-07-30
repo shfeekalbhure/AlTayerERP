@@ -127,21 +127,21 @@
                            TextColor="#17324D" />
                     <Picker x:Name="ConnectionModePicker"
                             Title="طريقة الاتصال"
-                            SelectedIndexChanged="OnConnectionSettingsChanged">
+                            SelectedIndexChanged="OnConnectionModeChanged">
                         <Picker.Items>
                             <x:String>تلقائي</x:String>
                             <x:String>USB</x:String>
                             <x:String>Wi-Fi</x:String>
                         </Picker.Items>
                     </Picker>
-                    <Entry x:Name="WifiBaseAddressEntry"
-                           Placeholder="عنوان Wi-Fi، مثال: 192.168.1.10"
-                           Keyboard="Url"
-                           TextChanged="OnConnectionSettingsChanged" />
-                    <Entry x:Name="WifiPortEntry"
-                           Placeholder="المنفذ"
-                           Keyboard="Numeric"
-                           TextChanged="OnConnectionSettingsChanged" />
+                    <VerticalStackLayout x:Name="WifiConnectionFields" Spacing="10">
+                        <Entry x:Name="WifiBaseAddressEntry"
+                               Placeholder="عنوان Wi-Fi، مثال: 192.168.1.10"
+                               Keyboard="Url" />
+                        <Entry x:Name="WifiPortEntry"
+                               Placeholder="المنفذ"
+                               Keyboard="Numeric" />
+                    </VerticalStackLayout>
                     <Button Text="اختبار الاتصال"
                             BackgroundColor="#0B6B87"
                             TextColor="White"

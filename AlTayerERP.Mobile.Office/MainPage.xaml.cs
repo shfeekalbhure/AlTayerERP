@@ -13,7 +13,7 @@ public partial class MainPage : ContentPage
     private bool _companiesLoaded;
     private bool _sessionChecked;
     private bool _isBusy;
-    private bool _initializingConnectionSettings;
+    private bool _isLoadingConnectionSettings;
     private string? _optionsCompanyId;
     private string? _optionsLoginName;
 
@@ -129,13 +129,16 @@ public partial class MainPage : ContentPage
 
     private void OnContextChanged(object? sender, EventArgs e) => UpdateContextButton();
 
-    private void OnConnectionSettingsChanged(object? sender, EventArgs e)
+    private void OnConnectionModeChanged(object? sender, EventArgs e)
     {
 #if DEBUG
-        if (_initializingConnectionSettings || ConnectionModePicker.SelectedIndex < 0)
+        // لا نغيّر أي إعداد أو عنصر مرئي أثناء تعبئة القيم الأولية للواجهة.
+        if (_isLoadingConnectionSettings || ConnectionModePicker.SelectedIndex < 0)
             return;
 
+        // الحدث لا يعيد إنشاء عناصر الـPicker، ولا يختبر الاتصال تلقائياً.
         SaveDevelopmentConnectionSettings();
+        RefreshWifiConnectionFields();
 #endif
     }
 
@@ -388,7 +391,7 @@ public partial class MainPage : ContentPage
     {
 #if DEBUG
         DevelopmentConnectionPanel.IsVisible = true;
-        _initializingConnectionSettings = true;
+        _isLoadingConnectionSettings = true;
         try
         {
             ConnectionModePicker.SelectedIndex = (int)_connectionConfiguration.ConnectionMode;
@@ -397,8 +400,9 @@ public partial class MainPage : ContentPage
         }
         finally
         {
-            _initializingConnectionSettings = false;
+            _isLoadingConnectionSettings = false;
         }
+        RefreshWifiConnectionFields();
         ConnectionStatusLabel.Text = "لم يتم اختبار الاتصال بعد.";
 #endif
     }
@@ -411,6 +415,14 @@ public partial class MainPage : ContentPage
         _connectionConfiguration.SaveSettings(mode, WifiBaseAddressEntry.Text, port);
         DevelopmentDatabaseLabel.Text = string.Empty;
         _companiesLoaded = false;
+#endif
+    }
+
+    private void RefreshWifiConnectionFields()
+    {
+#if DEBUG
+        // تبقى الحاوية والـPicker ثابتين؛ يتغير فقط ما يلزم لطريقة USB.
+        WifiConnectionFields.IsVisible = ConnectionModePicker.SelectedIndex != (int)ApiConnectionMode.USB;
 #endif
     }
 }
