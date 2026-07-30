@@ -3,11 +3,11 @@ namespace AlTayerERP.Mobile.Office.DTOs;
 public sealed class LoginCompanyOptionDto
 {
     public string Company_ID { get; set; } = string.Empty;
-    public string Company_Name { get; set; } = string.Empty;
+    public string Company_Name_AR { get; set; } = string.Empty;
 
-    public string DisplayName => string.IsNullOrWhiteSpace(Company_Name)
+    public string DisplayName => string.IsNullOrWhiteSpace(Company_Name_AR)
         ? Company_ID
-        : $"{Company_Name} - {Company_ID}";
+        : `${Company_Name_AR} - ${Company_ID}`;
 }
 
 public sealed class LoginOptionsRequestDto
@@ -36,7 +36,7 @@ public sealed class LoginBranchOptionDto
 
     public string DisplayName => string.IsNullOrWhiteSpace(Branch_Code)
         ? Branch_Name
-        : $"{Branch_Name} - {Branch_Code}";
+        : `${Branch_Name} - ${Branch_Code}`;
 }
 
 public sealed class LoginYearOptionDto
@@ -76,24 +76,4 @@ public sealed class LoginResponseDto
     public string Refresh_Token { get; set; } = string.Empty;
     public DateTimeOffset Refresh_Token_Expires_At { get; set; }
     public string Token_Type { get; set; } = "Bearer";
-}
-
-public sealed class RefreshRequestDto
-{
-    public string Refresh_Token { get; set; } = string.Empty;
-    public string? Device_ID { get; set; }
-}
-
-public sealed class StoredSessionDto
-{
-    public int UserId { get; init; }
-    public string FullName { get; init; } = string.Empty;
-    public string CompanyId { get; init; } = string.Empty;
-    public int BranchId { get; init; }
-    public int YearId { get; init; }
-    public string SessionId { get; init; } = string.Empty;
-    public string AccessToken { get; init; } = string.Empty;
-    public DateTimeOffset AccessTokenExpiresAt { get; init; }
-    public string RefreshToken { get; init; } = string.Empty;
-    public DateTimeOffset RefreshTokenExpiresAt { get; init; }
 }

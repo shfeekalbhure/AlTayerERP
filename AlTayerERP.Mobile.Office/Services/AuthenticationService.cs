@@ -7,7 +7,7 @@ namespace AlTayerERP.Mobile.Office.Services;
 public sealed class AuthenticationService(HttpClient httpClient, SessionStorageService sessionStorage, ApiConnectionDiagnosticsService diagnostics)
 {
     public async Task<List<LoginCompanyOptionDto>> GetLoginCompaniesAsync(CancellationToken cancellationToken = default) =>
-        await GetJsonAsync<List<LoginCompanyOptionDto>>(HttpMethod.Get, "api/Auth/LoginCompanies", null, null, cancellationToken) ?? [];
+        await GetJsonAsync<List<LoginCompanyOptionDto>>(HttpMethod.Get, "api/Branches/GetCompaniesLookup", null, null, cancellationToken) ?? [];
 
     public Task<LoginOptionsResponseDto> GetLoginOptionsAsync(LoginOptionsRequestDto request, CancellationToken cancellationToken = default) =>
         GetJsonAsync<LoginOptionsResponseDto>(HttpMethod.Post, "api/Auth/LoginOptions", request, null, cancellationToken);
