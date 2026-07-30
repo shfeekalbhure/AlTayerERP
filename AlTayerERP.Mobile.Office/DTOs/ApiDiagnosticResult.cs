@@ -32,12 +32,11 @@ public sealed class ApiDiagnosticResult
     public static string GetMessage(ApiErrorType errorType) => errorType switch
     {
         ApiErrorType.ConnectionRefused or ApiErrorType.Timeout or ApiErrorType.Dns => "تعذر الاتصال بخدمة النظام. تأكد من تشغيل الخادم واتصال الجهاز.",
-        ApiErrorType.Unauthorized => "انتهت الجلسة. يرجى تسجيل الدخول مرة أخرى.",
+        ApiErrorType.Unauthorized => "انتهت جلسة الدخول. يرجى تسجيل الدخول من جديد.",
         ApiErrorType.Forbidden => "ليس لديك صلاحية لتنفيذ هذه العملية.",
-        ApiErrorType.NotFound => "الخدمة المطلوبة غير متاحة في إصدار الخادم الحالي.",
-        ApiErrorType.Conflict => "تعذر إكمال العملية بسبب تعارض في البيانات. أعد تحميل الحالة ثم حاول مجددًا.",
-        ApiErrorType.ServerError => "تعذر إكمال العملية بسبب خطأ في الخادم.",
-        ApiErrorType.DeserializeFailure => "تعذر قراءة البيانات المستلمة من الخادم.",
-        _ => "تعذر إكمال العملية."
+        ApiErrorType.NotFound => "البيانات المطلوبة غير موجودة أو لا يسمح لك بالوصول إليها.",
+        ApiErrorType.Conflict => "تم تعديل البيانات من مستخدم آخر. سيتم تحميل أحدث نسخة.",
+        ApiErrorType.ServerError or ApiErrorType.DeserializeFailure => "حدث خطأ في خدمة النظام. حاول مرة أخرى أو تواصل مع المسؤول.",
+        _ => "حدث خطأ في خدمة النظام. حاول مرة أخرى أو تواصل مع المسؤول."
     };
 }

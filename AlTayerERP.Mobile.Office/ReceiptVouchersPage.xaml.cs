@@ -30,7 +30,7 @@ public partial class ReceiptVouchersPage : ContentPage
         }
         catch (Exception ex)
         {
-            await DisplayAlert("تعذر التحميل", ex.Message, "موافق");
+            await DisplayAlert("تعذر التحميل", MobileApiErrorHandler.GetUserMessage(ex), "موافق");
         }
         finally
         {

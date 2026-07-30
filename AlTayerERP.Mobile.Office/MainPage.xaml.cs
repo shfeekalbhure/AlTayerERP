@@ -97,7 +97,7 @@ public partial class MainPage : ContentPage
             CompanyPicker.ItemsSource = null;
             CompanyPicker.SelectedItem = null;
             CompaniesStatusLabel.Text = "تعذر تحميل الشركات.";
-            ShowError(ex.Message);
+            ShowError(MobileApiErrorHandler.GetUserMessage(ex));
         }
         finally
         {
@@ -231,7 +231,7 @@ public partial class MainPage : ContentPage
             CredentialsPanel.IsVisible = true;
             ContextPanel.IsVisible = false;
             StepTitleLabel.Text = "أدخل بيانات الحساب أولاً";
-            ShowError(ex.Message);
+            ShowError(MobileApiErrorHandler.GetUserMessage(ex));
         }
         finally
         {
@@ -271,7 +271,7 @@ public partial class MainPage : ContentPage
         }
         catch (Exception ex)
         {
-            ShowError(ex.Message);
+            ShowError(MobileApiErrorHandler.GetUserMessage(ex));
         }
         finally
         {

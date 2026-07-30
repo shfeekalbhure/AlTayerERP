@@ -14,18 +14,7 @@ public sealed class TrialBalanceService(HttpClient httpClient, SessionStorageSer
         using var request = new HttpRequestMessage(HttpMethod.Get, url);
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", session.AccessToken);
         using var response = await httpClient.SendAsync(request, cancellationToken);
-        if (!response.IsSuccessStatusCode)
-        {
-            var raw = await response.Content.ReadAsStringAsync(cancellationToken);
-            try
-            {
-                using var json = JsonDocument.Parse(raw);
-                if (json.RootElement.TryGetProperty("message", out var message))
-                    throw new InvalidOperationException(message.GetString() ?? "تعذر تحميل ميزان المراجعة.");
-            }
-            catch (JsonException) { }
-            throw new InvalidOperationException("تعذر تحميل ميزان المراجعة.");
-        }
+        MobileApiErrorHandler.EnsureSuccess(response);
 
         return await response.Content.ReadFromJsonAsync<TrialBalanceResponseDto>(cancellationToken: cancellationToken)
                ?? throw new InvalidOperationException("استجابة ميزان المراجعة غير صالحة.");

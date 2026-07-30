@@ -71,7 +71,7 @@ public partial class NewVoucherPage : ContentPage
         }
         catch (Exception ex)
         {
-            ShowStatus(ex.Message);
+            ShowStatus(MobileApiErrorHandler.GetUserMessage(ex));
         }
         finally
         {
@@ -282,7 +282,7 @@ public partial class NewVoucherPage : ContentPage
         }
         catch (Exception ex)
         {
-            ShowStatus(ex.Message);
+            ShowStatus(MobileApiErrorHandler.GetUserMessage(ex));
         }
         finally
         {

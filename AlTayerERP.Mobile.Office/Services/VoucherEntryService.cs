@@ -27,13 +27,13 @@ public sealed class VoucherEntryService(HttpClient httpClient, SessionStorageSer
         {
             response = await httpClient.SendAsync(request, cancellationToken);
         }
-        catch (HttpRequestException ex)
+        catch (HttpRequestException)
         {
-            throw new InvalidOperationException($"تعذر الاتصال بخادم القوائم: {ex.Message}", ex);
+            throw;
         }
-        catch (TaskCanceledException ex) when (!cancellationToken.IsCancellationRequested)
+        catch (TaskCanceledException) when (!cancellationToken.IsCancellationRequested)
         {
-            throw new InvalidOperationException("انتهت مهلة الاتصال بخادم القوائم.", ex);
+            throw;
         }
 
         using (response)
@@ -49,9 +49,9 @@ public sealed class VoucherEntryService(HttpClient httpClient, SessionStorageSer
             {
                 result = JsonSerializer.Deserialize<VoucherEntryReferencesDto>(raw, JsonOptions);
             }
-            catch (JsonException ex)
+            catch (JsonException)
             {
-                throw new InvalidOperationException($"تعذر قراءة بيانات منسدلات السند: {ex.Message}");
+                throw;
             }
 
             if (result == null)
@@ -74,11 +74,7 @@ public sealed class VoucherEntryService(HttpClient httpClient, SessionStorageSer
 
             if (allCoreListsEmpty)
             {
-                throw new InvalidOperationException(
-                    $"لم تصل أي بيانات للمنسدلات. الشركة: {session.CompanyId}، الفرع: {session.BranchId}، السنة: {session.YearId}. " +
-                    $"الصناديق/البنوك: {result.Sources.Count}، الحسابات: {result.Accounts.Count}، العملات: {result.Currencies.Count}، " +
-                    $"الأطراف: {result.Parties.Count}، طرق السداد: {result.PaymentMethods.Count}. " +
-                    "تأكد أن الـAPI الذي يعمل هو آخر نسخة وأنه متصل بقاعدة altayer_erp_db.");
+                throw new InvalidOperationException("لا توجد بيانات مرجعية متاحة للسند في السياق الحالي.");
             }
 
             return result;
@@ -128,41 +124,7 @@ public sealed class VoucherEntryService(HttpClient httpClient, SessionStorageSer
 
     private static async Task EnsureSuccessAsync(HttpResponseMessage response, string fallback, CancellationToken cancellationToken)
     {
-        if (response.IsSuccessStatusCode) return;
-
-        var raw = await response.Content.ReadAsStringAsync(cancellationToken);
-        string? serverMessage = null;
-        if (!string.IsNullOrWhiteSpace(raw))
-        {
-            try
-            {
-                using var json = JsonDocument.Parse(raw);
-                if (json.RootElement.TryGetProperty("message", out var message))
-                    serverMessage = message.GetString();
-                else if (json.RootElement.TryGetProperty("detail", out var detail))
-                    serverMessage = detail.GetString();
-                else if (json.RootElement.TryGetProperty("title", out var title))
-                    serverMessage = title.GetString();
-
-                if (json.RootElement.TryGetProperty("permissionDiagnostics", out var diagnostics) &&
-                    diagnostics.ValueKind == JsonValueKind.Array)
-                {
-                    var passed = diagnostics.EnumerateArray()
-                        .Select(x => x.GetString())
-                        .Where(x => !string.IsNullOrWhiteSpace(x));
-                    serverMessage = string.Join(Environment.NewLine, passed.Append(serverMessage).Where(x => !string.IsNullOrWhiteSpace(x)));
-                }
-            }
-            catch (JsonException)
-            {
-                serverMessage = raw.Length > 250 ? raw[..250] : raw;
-            }
-        }
-
-        var status = $"HTTP {(int)response.StatusCode} ({response.ReasonPhrase})";
-        throw new InvalidOperationException(
-            string.IsNullOrWhiteSpace(serverMessage)
-                ? $"{fallback} {status}."
-                : $"{serverMessage} — {status}.");
+        MobileApiErrorHandler.EnsureSuccess(response);
+        await Task.CompletedTask;
     }
 }

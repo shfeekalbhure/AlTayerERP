@@ -375,7 +375,7 @@ public partial class NewPaymentRequestPage : ContentPage
         }
         catch (Exception ex)
         {
-            ShowStatus(ex.Message);
+            ShowStatus(MobileApiErrorHandler.GetUserMessage(ex));
         }
         finally
         {

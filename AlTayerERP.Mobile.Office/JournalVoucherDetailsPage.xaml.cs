@@ -44,7 +44,7 @@ public partial class JournalVoucherDetailsPage : ContentPage
         }
         catch (Exception ex)
         {
-            MessageLabel.Text = ex.Message;
+            MessageLabel.Text = MobileApiErrorHandler.GetUserMessage(ex);
             MessageLabel.IsVisible = true;
         }
         finally
