@@ -125,15 +125,26 @@
                     <Label Text="إعداد اتصال التطوير"
                            FontAttributes="Bold"
                            TextColor="#17324D" />
-                    <Picker x:Name="ConnectionModePicker"
-                            Title="طريقة الاتصال"
-                            SelectedIndexChanged="OnConnectionModeChanged">
-                        <Picker.Items>
-                            <x:String>تلقائي</x:String>
-                            <x:String>USB</x:String>
-                            <x:String>Wi-Fi</x:String>
-                        </Picker.Items>
-                    </Picker>
+                    <Label Text="طريقة الاتصال" TextColor="#35566F" />
+                    <Border Stroke="#D9E2EC"
+                            BackgroundColor="White"
+                            Padding="4"
+                            StrokeShape="RoundRectangle 10">
+                        <Picker x:Name="ConnectionModePicker"
+                                Title="اختر طريقة الاتصال"
+                                TextColor="#17324D"
+                                TitleColor="#7A8896"
+                                BackgroundColor="White"
+                                HeightRequest="56"
+                                HorizontalOptions="Fill"
+                                SelectedIndexChanged="OnConnectionModeChanged">
+                            <Picker.Items>
+                                <x:String>تلقائي</x:String>
+                                <x:String>USB</x:String>
+                                <x:String>Wi-Fi</x:String>
+                            </Picker.Items>
+                        </Picker>
+                    </Border>
                     <VerticalStackLayout x:Name="WifiConnectionFields" Spacing="10">
                         <Entry x:Name="WifiBaseAddressEntry"
                                Placeholder="عنوان Wi-Fi، مثال: 192.168.1.10"
