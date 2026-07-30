@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.ComponentModel;
 using System.Drawing;
 using System.Windows.Forms;
@@ -97,9 +97,9 @@ namespace AlTayerERP.Desktop
             pnlTopBar.SuspendLayout();
             ((ISupportInitialize)picCompanyLogo).BeginInit();
             SuspendLayout();
-            // 
+            //
             // cmbCompanies
-            // 
+            //
             cmbCompanies.BackColor = Color.White;
             cmbCompanies.FlatStyle = FlatStyle.Flat;
             cmbCompanies.FormattingEnabled = true;
@@ -108,9 +108,9 @@ namespace AlTayerERP.Desktop
             cmbCompanies.Name = "cmbCompanies";
             cmbCompanies.Size = new Size(151, 33);
             cmbCompanies.TabIndex = 0;
-            // 
+            //
             // txtBranchNameAr
-            // 
+            //
             txtBranchNameAr.BackColor = Color.White;
             txtBranchNameAr.BorderStyle = BorderStyle.FixedSingle;
             txtBranchNameAr.Location = new Point(227, 170);
@@ -118,9 +118,9 @@ namespace AlTayerERP.Desktop
             txtBranchNameAr.Name = "txtBranchNameAr";
             txtBranchNameAr.Size = new Size(125, 31);
             txtBranchNameAr.TabIndex = 1;
-            // 
+            //
             // label1
-            // 
+            //
             label1.AutoEllipsis = true;
             label1.AutoSize = true;
             label1.Location = new Point(71, 99);
@@ -128,9 +128,9 @@ namespace AlTayerERP.Desktop
             label1.Size = new Size(150, 25);
             label1.TabIndex = 2;
             label1.Text = "اسم الشركة التابعة";
-            // 
+            //
             // label2
-            // 
+            //
             label2.AutoEllipsis = true;
             label2.AutoSize = true;
             label2.Location = new Point(134, 173);
@@ -138,9 +138,9 @@ namespace AlTayerERP.Desktop
             label2.Size = new Size(87, 25);
             label2.TabIndex = 2;
             label2.Text = "اسم الفرع";
-            // 
+            //
             // btnSaveBranch
-            // 
+            //
             btnSaveBranch.BackColor = Color.FromArgb(15, 103, 208);
             btnSaveBranch.FlatAppearance.BorderColor = Color.FromArgb(15, 103, 208);
             btnSaveBranch.FlatStyle = FlatStyle.Flat;
@@ -154,9 +154,9 @@ namespace AlTayerERP.Desktop
             btnSaveBranch.Text = "حفظ";
             btnSaveBranch.UseVisualStyleBackColor = false;
             btnSaveBranch.Click += btnSaveBranch_Click;
-            // 
+            //
             // txtBranchNameEn
-            // 
+            //
             txtBranchNameEn.BackColor = Color.White;
             txtBranchNameEn.BorderStyle = BorderStyle.FixedSingle;
             txtBranchNameEn.Location = new Point(228, 204);
@@ -164,9 +164,9 @@ namespace AlTayerERP.Desktop
             txtBranchNameEn.Name = "txtBranchNameEn";
             txtBranchNameEn.Size = new Size(125, 31);
             txtBranchNameEn.TabIndex = 1;
-            // 
+            //
             // label3
-            // 
+            //
             label3.AutoEllipsis = true;
             label3.AutoSize = true;
             label3.Location = new Point(82, 204);
@@ -174,9 +174,9 @@ namespace AlTayerERP.Desktop
             label3.Size = new Size(140, 25);
             label3.TabIndex = 2;
             label3.Text = "اسم الفرع انجلزي";
-            // 
+            //
             // cmbBranchType
-            // 
+            //
             cmbBranchType.BackColor = Color.White;
             cmbBranchType.FlatStyle = FlatStyle.Flat;
             cmbBranchType.FormattingEnabled = true;
@@ -185,9 +185,9 @@ namespace AlTayerERP.Desktop
             cmbBranchType.Name = "cmbBranchType";
             cmbBranchType.Size = new Size(151, 33);
             cmbBranchType.TabIndex = 0;
-            // 
+            //
             // label4
-            // 
+            //
             label4.AutoEllipsis = true;
             label4.AutoSize = true;
             label4.Location = new Point(135, 275);
@@ -195,9 +195,9 @@ namespace AlTayerERP.Desktop
             label4.Size = new Size(82, 25);
             label4.TabIndex = 2;
             label4.Text = "نوع الفرع";
-            // 
+            //
             // txtLocation
-            // 
+            //
             txtLocation.BackColor = Color.White;
             txtLocation.BorderStyle = BorderStyle.FixedSingle;
             txtLocation.Location = new Point(228, 240);
@@ -205,9 +205,9 @@ namespace AlTayerERP.Desktop
             txtLocation.Name = "txtLocation";
             txtLocation.Size = new Size(125, 31);
             txtLocation.TabIndex = 1;
-            // 
+            //
             // label5
-            // 
+            //
             label5.AutoEllipsis = true;
             label5.AutoSize = true;
             label5.Location = new Point(71, 243);
@@ -215,9 +215,9 @@ namespace AlTayerERP.Desktop
             label5.Size = new Size(156, 25);
             label5.TabIndex = 2;
             label5.Text = "موقع / عنوان الفرع";
-            // 
+            //
             // chkAllowCredit
-            // 
+            //
             chkAllowCredit.AutoSize = true;
             chkAllowCredit.Location = new Point(749, 157);
             chkAllowCredit.Name = "chkAllowCredit";
@@ -226,9 +226,9 @@ namespace AlTayerERP.Desktop
             chkAllowCredit.Text = "السماح بالاجل";
             chkAllowCredit.UseVisualStyleBackColor = true;
             chkAllowCredit.CheckedChanged += chkAllowCredit_CheckedChanged;
-            // 
+            //
             // cmbParentBranch
-            // 
+            //
             cmbParentBranch.BackColor = Color.White;
             cmbParentBranch.FlatStyle = FlatStyle.Flat;
             cmbParentBranch.FormattingEnabled = true;
@@ -237,9 +237,9 @@ namespace AlTayerERP.Desktop
             cmbParentBranch.Name = "cmbParentBranch";
             cmbParentBranch.Size = new Size(151, 33);
             cmbParentBranch.TabIndex = 0;
-            // 
+            //
             // label6
-            // 
+            //
             label6.AutoEllipsis = true;
             label6.AutoSize = true;
             label6.Location = new Point(140, 309);
@@ -247,9 +247,9 @@ namespace AlTayerERP.Desktop
             label6.Size = new Size(73, 25);
             label6.TabIndex = 2;
             label6.Text = "تابع فرع";
-            // 
+            //
             // chkAllowPercentage
-            // 
+            //
             chkAllowPercentage.AutoSize = true;
             chkAllowPercentage.Location = new Point(749, 186);
             chkAllowPercentage.Name = "chkAllowPercentage";
@@ -257,9 +257,9 @@ namespace AlTayerERP.Desktop
             chkAllowPercentage.TabIndex = 4;
             chkAllowPercentage.Text = "السماح بالنسبة";
             chkAllowPercentage.UseVisualStyleBackColor = true;
-            // 
+            //
             // label7
-            // 
+            //
             label7.AutoEllipsis = true;
             label7.AutoSize = true;
             label7.Location = new Point(646, 362);
@@ -267,9 +267,9 @@ namespace AlTayerERP.Desktop
             label7.Size = new Size(132, 25);
             label7.TabIndex = 6;
             label7.Text = "البريد الالكتروني";
-            // 
+            //
             // txtMobile
-            // 
+            //
             txtMobile.BackColor = Color.White;
             txtMobile.BorderStyle = BorderStyle.FixedSingle;
             txtMobile.Location = new Point(784, 286);
@@ -277,9 +277,9 @@ namespace AlTayerERP.Desktop
             txtMobile.Name = "txtMobile";
             txtMobile.Size = new Size(125, 31);
             txtMobile.TabIndex = 5;
-            // 
+            //
             // cmbManager
-            // 
+            //
             cmbManager.BackColor = Color.White;
             cmbManager.FlatStyle = FlatStyle.Flat;
             cmbManager.FormattingEnabled = true;
@@ -288,9 +288,9 @@ namespace AlTayerERP.Desktop
             cmbManager.Name = "cmbManager";
             cmbManager.Size = new Size(151, 33);
             cmbManager.TabIndex = 0;
-            // 
+            //
             // label8
-            // 
+            //
             label8.AutoEllipsis = true;
             label8.AutoSize = true;
             label8.Location = new Point(574, 218);
@@ -298,9 +298,9 @@ namespace AlTayerERP.Desktop
             label8.Size = new Size(176, 25);
             label8.TabIndex = 2;
             label8.Text = "الشخص المسؤول عنه";
-            // 
+            //
             // btnUnApprove
-            // 
+            //
             btnUnApprove.BackColor = Color.White;
             btnUnApprove.FlatAppearance.BorderColor = Color.FromArgb(205, 216, 230);
             btnUnApprove.FlatStyle = FlatStyle.Flat;
@@ -314,9 +314,9 @@ namespace AlTayerERP.Desktop
             btnUnApprove.Text = "الغاء الاعتماد";
             btnUnApprove.UseVisualStyleBackColor = false;
             btnUnApprove.Click += btnUnApprove_Click;
-            // 
+            //
             // btnApprove
-            // 
+            //
             btnApprove.BackColor = Color.White;
             btnApprove.FlatAppearance.BorderColor = Color.FromArgb(205, 216, 230);
             btnApprove.FlatStyle = FlatStyle.Flat;
@@ -330,9 +330,9 @@ namespace AlTayerERP.Desktop
             btnApprove.Text = "اعتماد";
             btnApprove.UseVisualStyleBackColor = false;
             btnApprove.Click += btnApprove_Click;
-            // 
+            //
             // btnRefresh
-            // 
+            //
             btnRefresh.BackColor = Color.White;
             btnRefresh.FlatAppearance.BorderColor = Color.FromArgb(205, 216, 230);
             btnRefresh.FlatStyle = FlatStyle.Flat;
@@ -346,9 +346,9 @@ namespace AlTayerERP.Desktop
             btnRefresh.Text = "تحديث";
             btnRefresh.UseVisualStyleBackColor = false;
             btnRefresh.Click += btnRefresh_Click;
-            // 
+            //
             // btnPreview
-            // 
+            //
             btnPreview.BackColor = Color.White;
             btnPreview.FlatAppearance.BorderColor = Color.FromArgb(205, 216, 230);
             btnPreview.FlatStyle = FlatStyle.Flat;
@@ -362,9 +362,9 @@ namespace AlTayerERP.Desktop
             btnPreview.Text = "معاينة";
             btnPreview.UseVisualStyleBackColor = false;
             btnPreview.Click += btnPreview_Click;
-            // 
+            //
             // btnSearch
-            // 
+            //
             btnSearch.BackColor = Color.White;
             btnSearch.FlatAppearance.BorderColor = Color.FromArgb(205, 216, 230);
             btnSearch.FlatStyle = FlatStyle.Flat;
@@ -378,9 +378,9 @@ namespace AlTayerERP.Desktop
             btnSearch.Text = "بحث";
             btnSearch.UseVisualStyleBackColor = false;
             btnSearch.Click += btnSearch_Click;
-            // 
+            //
             // btnImport
-            // 
+            //
             btnImport.BackColor = Color.White;
             btnImport.FlatAppearance.BorderColor = Color.FromArgb(205, 216, 230);
             btnImport.FlatStyle = FlatStyle.Flat;
@@ -394,9 +394,9 @@ namespace AlTayerERP.Desktop
             btnImport.Text = "استيراد";
             btnImport.UseVisualStyleBackColor = false;
             btnImport.Click += btnImport_Click;
-            // 
+            //
             // btnExport
-            // 
+            //
             btnExport.BackColor = Color.White;
             btnExport.FlatAppearance.BorderColor = Color.FromArgb(205, 216, 230);
             btnExport.FlatStyle = FlatStyle.Flat;
@@ -410,9 +410,9 @@ namespace AlTayerERP.Desktop
             btnExport.Text = "تصدير";
             btnExport.UseVisualStyleBackColor = false;
             btnExport.Click += btnExport_Click;
-            // 
+            //
             // btnDelete
-            // 
+            //
             btnDelete.BackColor = Color.White;
             btnDelete.FlatAppearance.BorderColor = Color.FromArgb(205, 216, 230);
             btnDelete.FlatStyle = FlatStyle.Flat;
@@ -426,9 +426,9 @@ namespace AlTayerERP.Desktop
             btnDelete.Text = "حذف";
             btnDelete.UseVisualStyleBackColor = false;
             btnDelete.Click += btnDelete_Click;
-            // 
+            //
             // btnClose
-            // 
+            //
             btnClose.BackColor = Color.White;
             btnClose.FlatAppearance.BorderColor = Color.FromArgb(205, 216, 230);
             btnClose.FlatStyle = FlatStyle.Flat;
@@ -442,9 +442,9 @@ namespace AlTayerERP.Desktop
             btnClose.Text = "اغلاق";
             btnClose.UseVisualStyleBackColor = false;
             btnClose.Click += btnClose_Click;
-            // 
+            //
             // btnEdit
-            // 
+            //
             btnEdit.BackColor = Color.White;
             btnEdit.FlatAppearance.BorderColor = Color.FromArgb(205, 216, 230);
             btnEdit.FlatStyle = FlatStyle.Flat;
@@ -458,9 +458,9 @@ namespace AlTayerERP.Desktop
             btnEdit.Text = "تعديل";
             btnEdit.UseVisualStyleBackColor = false;
             btnEdit.Click += btnEdit_Click;
-            // 
+            //
             // btnPrint
-            // 
+            //
             btnPrint.BackColor = Color.White;
             btnPrint.FlatAppearance.BorderColor = Color.FromArgb(205, 216, 230);
             btnPrint.FlatStyle = FlatStyle.Flat;
@@ -474,9 +474,9 @@ namespace AlTayerERP.Desktop
             btnPrint.Text = "طباعة";
             btnPrint.UseVisualStyleBackColor = false;
             btnPrint.Click += btnPrint_Click;
-            // 
+            //
             // btnNew
-            // 
+            //
             btnNew.BackColor = Color.White;
             btnNew.FlatAppearance.BorderColor = Color.FromArgb(205, 216, 230);
             btnNew.FlatStyle = FlatStyle.Flat;
@@ -490,9 +490,9 @@ namespace AlTayerERP.Desktop
             btnNew.Text = "جديد";
             btnNew.UseVisualStyleBackColor = false;
             btnNew.Click += btnNew_Click;
-            // 
+            //
             // dgvBranches
-            // 
+            //
             dgvBranches.AllowUserToResizeRows = false;
             dataGridViewCellStyle1.BackColor = Color.FromArgb(248, 250, 253);
             dgvBranches.AlternatingRowsDefaultCellStyle = dataGridViewCellStyle1;
@@ -529,9 +529,9 @@ namespace AlTayerERP.Desktop
             dgvBranches.Size = new Size(2045, 723);
             dgvBranches.TabIndex = 19;
             dgvBranches.CellClick += dgvBranches_CellClick;
-            // 
+            //
             // cmbStatus
-            // 
+            //
             cmbStatus.BackColor = Color.White;
             cmbStatus.FlatStyle = FlatStyle.Flat;
             cmbStatus.FormattingEnabled = true;
@@ -540,9 +540,9 @@ namespace AlTayerERP.Desktop
             cmbStatus.Name = "cmbStatus";
             cmbStatus.Size = new Size(151, 33);
             cmbStatus.TabIndex = 0;
-            // 
+            //
             // label9
-            // 
+            //
             label9.AutoEllipsis = true;
             label9.AutoSize = true;
             label9.Location = new Point(139, 352);
@@ -550,9 +550,9 @@ namespace AlTayerERP.Desktop
             label9.Size = new Size(54, 25);
             label9.TabIndex = 2;
             label9.Text = "الحالة";
-            // 
+            //
             // txtPhone
-            // 
+            //
             txtPhone.BackColor = Color.White;
             txtPhone.BorderStyle = BorderStyle.FixedSingle;
             txtPhone.Location = new Point(784, 253);
@@ -560,9 +560,9 @@ namespace AlTayerERP.Desktop
             txtPhone.Name = "txtPhone";
             txtPhone.Size = new Size(125, 31);
             txtPhone.TabIndex = 5;
-            // 
+            //
             // label10
-            // 
+            //
             label10.AutoEllipsis = true;
             label10.AutoSize = true;
             label10.Location = new Point(718, 259);
@@ -570,9 +570,9 @@ namespace AlTayerERP.Desktop
             label10.Size = new Size(61, 25);
             label10.TabIndex = 6;
             label10.Text = "الهاتف";
-            // 
+            //
             // txtWebsite
-            // 
+            //
             txtWebsite.BackColor = Color.White;
             txtWebsite.BorderStyle = BorderStyle.FixedSingle;
             txtWebsite.Location = new Point(784, 320);
@@ -580,9 +580,9 @@ namespace AlTayerERP.Desktop
             txtWebsite.Name = "txtWebsite";
             txtWebsite.Size = new Size(125, 31);
             txtWebsite.TabIndex = 5;
-            // 
+            //
             // label11
-            // 
+            //
             label11.AutoEllipsis = true;
             label11.AutoSize = true;
             label11.Location = new Point(638, 326);
@@ -590,9 +590,9 @@ namespace AlTayerERP.Desktop
             label11.Size = new Size(141, 25);
             label11.TabIndex = 6;
             label11.Text = "الموقع الالكتروني";
-            // 
+            //
             // txtEmail
-            // 
+            //
             txtEmail.BackColor = Color.White;
             txtEmail.BorderStyle = BorderStyle.FixedSingle;
             txtEmail.Location = new Point(784, 356);
@@ -600,9 +600,9 @@ namespace AlTayerERP.Desktop
             txtEmail.Name = "txtEmail";
             txtEmail.Size = new Size(125, 31);
             txtEmail.TabIndex = 5;
-            // 
+            //
             // label12
-            // 
+            //
             label12.AutoEllipsis = true;
             label12.AutoSize = true;
             label12.Location = new Point(718, 292);
@@ -610,9 +610,9 @@ namespace AlTayerERP.Desktop
             label12.Size = new Size(60, 25);
             label12.TabIndex = 6;
             label12.Text = "الجوال";
-            // 
+            //
             // txtNotes
-            // 
+            //
             txtNotes.BackColor = Color.White;
             txtNotes.BorderStyle = BorderStyle.FixedSingle;
             txtNotes.Location = new Point(223, 390);
@@ -621,9 +621,9 @@ namespace AlTayerERP.Desktop
             txtNotes.Name = "txtNotes";
             txtNotes.Size = new Size(686, 57);
             txtNotes.TabIndex = 5;
-            // 
+            //
             // label13
-            // 
+            //
             label13.AutoEllipsis = true;
             label13.AutoSize = true;
             label13.Location = new Point(124, 393);
@@ -632,9 +632,9 @@ namespace AlTayerERP.Desktop
             label13.TabIndex = 6;
             label13.Text = "ملاحظات";
             label13.Click += label13_Click;
-            // 
+            //
             // txtBranchCode
-            // 
+            //
             txtBranchCode.BackColor = Color.White;
             txtBranchCode.BorderStyle = BorderStyle.FixedSingle;
             txtBranchCode.Location = new Point(230, 135);
@@ -642,9 +642,9 @@ namespace AlTayerERP.Desktop
             txtBranchCode.Name = "txtBranchCode";
             txtBranchCode.Size = new Size(125, 31);
             txtBranchCode.TabIndex = 1;
-            // 
+            //
             // label14
-            // 
+            //
             label14.AutoEllipsis = true;
             label14.AutoSize = true;
             label14.Location = new Point(137, 138);
@@ -652,9 +652,9 @@ namespace AlTayerERP.Desktop
             label14.Size = new Size(83, 25);
             label14.TabIndex = 2;
             label14.Text = "كود الفرع";
-            // 
+            //
             // cmbCity
-            // 
+            //
             cmbCity.BackColor = Color.White;
             cmbCity.DropDownStyle = ComboBoxStyle.DropDownList;
             cmbCity.FlatStyle = FlatStyle.Flat;
@@ -664,9 +664,9 @@ namespace AlTayerERP.Desktop
             cmbCity.Name = "cmbCity";
             cmbCity.Size = new Size(151, 33);
             cmbCity.TabIndex = 21;
-            // 
+            //
             // label15
-            // 
+            //
             label15.AutoEllipsis = true;
             label15.AutoSize = true;
             label15.Location = new Point(405, 355);
@@ -674,9 +674,9 @@ namespace AlTayerERP.Desktop
             label15.Size = new Size(64, 25);
             label15.TabIndex = 22;
             label15.Text = "المدينة";
-            // 
+            //
             // pnlTopBar
-            // 
+            //
             pnlTopBar.BackColor = Color.White;
             pnlTopBar.Controls.Add(btnLogout);
             pnlTopBar.Controls.Add(btnAboutSystem);
@@ -693,9 +693,9 @@ namespace AlTayerERP.Desktop
             pnlTopBar.Name = "pnlTopBar";
             pnlTopBar.Size = new Size(1193, 58);
             pnlTopBar.TabIndex = 20;
-            // 
+            //
             // btnLogout
-            // 
+            //
             btnLogout.BackColor = Color.White;
             btnLogout.FlatAppearance.BorderColor = Color.FromArgb(205, 216, 230);
             btnLogout.FlatStyle = FlatStyle.Flat;
@@ -708,9 +708,9 @@ namespace AlTayerERP.Desktop
             btnLogout.TabIndex = 4;
             btnLogout.Text = "تسجيل الخروج";
             btnLogout.UseVisualStyleBackColor = false;
-            // 
+            //
             // btnAboutSystem
-            // 
+            //
             btnAboutSystem.BackColor = Color.White;
             btnAboutSystem.FlatAppearance.BorderColor = Color.FromArgb(205, 216, 230);
             btnAboutSystem.FlatStyle = FlatStyle.Flat;
@@ -723,9 +723,9 @@ namespace AlTayerERP.Desktop
             btnAboutSystem.TabIndex = 3;
             btnAboutSystem.Text = "حول\r\nالنظام";
             btnAboutSystem.UseVisualStyleBackColor = false;
-            // 
+            //
             // btnSettings
-            // 
+            //
             btnSettings.BackColor = Color.White;
             btnSettings.FlatAppearance.BorderColor = Color.FromArgb(205, 216, 230);
             btnSettings.FlatStyle = FlatStyle.Flat;
@@ -738,9 +738,9 @@ namespace AlTayerERP.Desktop
             btnSettings.TabIndex = 3;
             btnSettings.Text = "الاعدادات";
             btnSettings.UseVisualStyleBackColor = false;
-            // 
+            //
             // btnNotifications
-            // 
+            //
             btnNotifications.BackColor = Color.White;
             btnNotifications.FlatAppearance.BorderColor = Color.FromArgb(205, 216, 230);
             btnNotifications.FlatStyle = FlatStyle.Flat;
@@ -753,17 +753,17 @@ namespace AlTayerERP.Desktop
             btnNotifications.TabIndex = 2;
             btnNotifications.Text = "الاشعارات";
             btnNotifications.UseVisualStyleBackColor = false;
-            // 
+            //
             // picCompanyLogo
-            // 
+            //
             picCompanyLogo.Location = new Point(999, 6);
             picCompanyLogo.Name = "picCompanyLogo";
             picCompanyLogo.Size = new Size(125, 62);
             picCompanyLogo.TabIndex = 1;
             picCompanyLogo.TabStop = false;
-            // 
+            //
             // lblCurrentUser
-            // 
+            //
             lblCurrentUser.AutoEllipsis = true;
             lblCurrentUser.AutoSize = true;
             lblCurrentUser.Location = new Point(462, 8);
@@ -771,9 +771,9 @@ namespace AlTayerERP.Desktop
             lblCurrentUser.Size = new Size(104, 50);
             lblCurrentUser.TabIndex = 0;
             lblCurrentUser.Text = "المستخدم:\r\n مدير النظام";
-            // 
+            //
             // lblCompanyName
-            // 
+            //
             lblCompanyName.AutoEllipsis = true;
             lblCompanyName.AutoSize = true;
             lblCompanyName.Location = new Point(844, 4);
@@ -781,9 +781,9 @@ namespace AlTayerERP.Desktop
             lblCompanyName.Size = new Size(148, 50);
             lblCompanyName.TabIndex = 0;
             lblCompanyName.Text = "شركة\r\n الطائر للنقل البري";
-            // 
+            //
             // lblFiscalYear
-            // 
+            //
             lblFiscalYear.AutoEllipsis = true;
             lblFiscalYear.AutoSize = true;
             lblFiscalYear.Location = new Point(566, 8);
@@ -791,9 +791,9 @@ namespace AlTayerERP.Desktop
             lblFiscalYear.Size = new Size(115, 50);
             lblFiscalYear.TabIndex = 0;
             lblFiscalYear.Text = "السنة المالية :\r\n 2026";
-            // 
+            //
             // lblCurrentBranch
-            // 
+            //
             lblCurrentBranch.AutoEllipsis = true;
             lblCurrentBranch.AutoSize = true;
             lblCurrentBranch.Location = new Point(696, 3);
@@ -801,9 +801,9 @@ namespace AlTayerERP.Desktop
             lblCurrentBranch.Size = new Size(121, 50);
             lblCurrentBranch.TabIndex = 0;
             lblCurrentBranch.Text = "الفرع \r\nعدن_المنصورة";
-            // 
+            //
             // BranchForm
-            // 
+            //
             AutoScaleDimensions = new SizeF(10F, 25F);
             AutoScaleMode = AutoScaleMode.Font;
             ClientSize = new Size(1193, 539);

@@ -1,9 +1,9 @@
 # تقرير P0 النهائي المصحح — تحقق الـCommits والعقود قبل التنفيذ
 
-**التاريخ:** 30-07-2026  
-**المستودع:** `shfeekalbhure/AlTayerERP`  
-**فرع التكامل:** `agent/mobile-payment-request-clean-db-integration`  
-**رأس التقرير السابق/قاعدة التحليل:** `02332fbc0ef4952f7066db1e6ac4c8c5d8c4e2fa`  
+**التاريخ:** 30-07-2026
+**المستودع:** `shfeekalbhure/AlTayerERP`
+**فرع التكامل:** `agent/mobile-payment-request-clean-db-integration`
+**رأس التقرير السابق/قاعدة التحليل:** `02332fbc0ef4952f7066db1e6ac4c8c5d8c4e2fa`
 **طبيعة العمل:** تقرير Markdown فقط. لم يُنفذ Cherry-pick أو Merge أو SQL أو Migration أو تعديل قاعدة بيانات.
 
 ## 1. القيود والملفات المحمية
