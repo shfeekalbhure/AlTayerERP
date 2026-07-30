@@ -526,7 +526,7 @@ namespace AlTayerERP.Desktop
             dgvBranches.RowHeadersVisible = false;
             dgvBranches.RowHeadersWidth = 51;
             dgvBranches.RowTemplate.Height = 34;
-            dgvBranches.Size = new Size(2375, 1006);
+            dgvBranches.Size = new Size(2045, 723);
             dgvBranches.TabIndex = 19;
             dgvBranches.CellClick += dgvBranches_CellClick;
             // 
@@ -691,7 +691,7 @@ namespace AlTayerERP.Desktop
             pnlTopBar.Location = new Point(0, 0);
             pnlTopBar.Margin = new Padding(0);
             pnlTopBar.Name = "pnlTopBar";
-            pnlTopBar.Size = new Size(1523, 58);
+            pnlTopBar.Size = new Size(1193, 58);
             pnlTopBar.TabIndex = 20;
             // 
             // btnLogout
@@ -806,7 +806,7 @@ namespace AlTayerERP.Desktop
             // 
             AutoScaleDimensions = new SizeF(10F, 25F);
             AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(1523, 822);
+            ClientSize = new Size(1193, 539);
             Controls.Add(pnlTopBar);
             Controls.Add(label15);
             Controls.Add(cmbCity);
