@@ -7,6 +7,7 @@ public partial class MainPage : ContentPage
 {
     private readonly AuthenticationService _authentication;
     private readonly MobileHomeService _mobileHomeService;
+    private readonly ApiConnectionDiagnosticsService _diagnostics;
     private LoginOptionsResponseDto? _loginOptions;
     private bool _companiesLoaded;
     private bool _sessionChecked;
@@ -14,11 +15,12 @@ public partial class MainPage : ContentPage
     private string? _optionsCompanyId;
     private string? _optionsLoginName;
 
-    public MainPage(AuthenticationService authentication, MobileHomeService mobileHomeService)
+    public MainPage(AuthenticationService authentication, MobileHomeService mobileHomeService, ApiConnectionDiagnosticsService diagnostics)
     {
         InitializeComponent();
         _authentication = authentication;
         _mobileHomeService = mobileHomeService;
+        _diagnostics = diagnostics;
     }
 
     protected override async void OnAppearing()
@@ -65,6 +67,10 @@ public partial class MainPage : ContentPage
 
         try
         {
+            var health = await _diagnostics.CheckHealthAsync();
+            if (health.ErrorType != ApiErrorType.None)
+                throw new ApiDiagnosticException(health);
+
             var companies = await _authentication.GetLoginCompaniesAsync();
             CompanyPicker.ItemsSource = companies;
             CompanyPicker.SelectedItem = companies.Count == 1 ? companies[0] : null;

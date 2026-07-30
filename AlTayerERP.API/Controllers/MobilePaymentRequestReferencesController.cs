@@ -61,14 +61,14 @@ public sealed class MobilePaymentRequestReferencesController : ControllerBase
 
         return Ok(new
         {
-            AccountsCount = accountsCount,
-            CostCentersCount = costCentersCount,
-            CurrenciesCount = currenciesCount,
-            PaymentMethodsCount = paymentMethodsCount,
-            OpenPeriodsCount = openPeriodsCount,
-            session.Company_ID,
-            session.Branch_ID,
-            Fiscal_Year_ID = session.Year_ID
+            accountsCount,
+            costCentersCount,
+            currenciesCount,
+            paymentMethodsCount,
+            openPeriodsCount,
+            companyId = session.Company_ID,
+            branchId = session.Branch_ID,
+            fiscalYearId = session.Year_ID
         });
     }
 

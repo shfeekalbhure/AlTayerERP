@@ -1,19 +1,5 @@
 namespace AlTayerERP.Mobile.Office.DTOs;
 
-public enum PaymentRequestReferenceErrorType
-{
-    None,
-    ConnectionRefused,
-    Timeout,
-    Dns,
-    Unauthorized,
-    Forbidden,
-    NotFound,
-    ServerError,
-    DeserializeFailure,
-    Unknown
-}
-
 /// <summary>
 /// نتيجة تحميل مراجع طلب الصرف. لا تتضمن رمز الدخول أو نص الاستجابة الخام.
 /// </summary>
@@ -22,7 +8,7 @@ public sealed class PaymentRequestReferenceResult
     public bool IsSuccess { get; init; }
     public int? HttpStatusCode { get; init; }
     public bool ServerReached { get; init; }
-    public PaymentRequestReferenceErrorType ErrorType { get; init; }
+    public ApiErrorType ErrorType { get; init; }
     public PaymentRequestReferencesDto? References { get; init; }
     public int AccountsCount { get; init; }
     public int CostCentersCount { get; init; }
@@ -32,23 +18,14 @@ public sealed class PaymentRequestReferenceResult
 
     public string UserMessage => ErrorType switch
     {
-        PaymentRequestReferenceErrorType.ConnectionRefused or
-        PaymentRequestReferenceErrorType.Timeout or
-        PaymentRequestReferenceErrorType.Dns => "تعذر الاتصال بخدمة النظام. تأكد من تشغيل الخادم واتصال الجهاز.",
-        PaymentRequestReferenceErrorType.Unauthorized => "انتهت الجلسة. يرجى تسجيل الدخول مرة أخرى.",
-        PaymentRequestReferenceErrorType.Forbidden => "ليس لديك صلاحية لتحميل بيانات طلب الصرف.",
-        PaymentRequestReferenceErrorType.NotFound => "خدمة بيانات طلب الصرف غير متاحة في إصدار الخادم الحالي.",
-        PaymentRequestReferenceErrorType.ServerError => "تعذر تحميل بيانات طلب الصرف بسبب خطأ في الخادم.",
-        PaymentRequestReferenceErrorType.DeserializeFailure => "تعذر قراءة بيانات طلب الصرف المستلمة من الخادم.",
-        _ => "تعذر تحميل بيانات طلب الصرف."
-    };
+        _ => ApiDiagnosticResult.GetMessage(ErrorType);
 
     public static PaymentRequestReferenceResult Success(PaymentRequestReferencesDto references, int statusCode) => new()
     {
         IsSuccess = true,
         HttpStatusCode = statusCode,
         ServerReached = true,
-        ErrorType = PaymentRequestReferenceErrorType.None,
+        ErrorType = ApiErrorType.None,
         References = references,
         AccountsCount = references.Accounts.Count,
         CostCentersCount = references.CostCenters.Count,

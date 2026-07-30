@@ -22,10 +22,11 @@ public static class MauiProgram
         // اتصال USB: ينقل adb reverse منفذ 5021 من الهاتف إلى الكمبيوتر.
         builder.Services.AddSingleton(new HttpClient
         {
-            BaseAddress = new Uri("http://127.0.0.1:5021/"),
+            BaseAddress = ApiClientConfiguration.BaseAddress,
             Timeout = TimeSpan.FromSeconds(30)
         });
         builder.Services.AddSingleton<SessionStorageService>();
+        builder.Services.AddSingleton<ApiConnectionDiagnosticsService>();
         builder.Services.AddSingleton<AuthenticationService>();
         builder.Services.AddSingleton<MobileHomeService>();
         builder.Services.AddSingleton<PaymentRequestService>();
