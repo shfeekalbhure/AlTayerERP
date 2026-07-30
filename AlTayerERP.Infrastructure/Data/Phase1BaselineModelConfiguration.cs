@@ -436,7 +436,15 @@ public static class Phase1BaselineModelConfiguration
             entity.Property(x => x.Company_ID).HasMaxLength(50).IsRequired();
             entity.Property(x => x.Account_ID).HasMaxLength(50).IsRequired();
             entity.Property(x => x.Currency_Code).HasMaxLength(20).IsRequired();
-            entity.Property(x => x.CashBox_Code).HasMaxLength(50).IsRequired();
+
+            // الجدول القائم يستخدم الاسم التاريخي CashBox_Code بلا شرطة سفلية.
+            // نثبّت الاسم صراحةً لتعمل قوائم سندات الجوال والديسكتوب على القاعدة الحالية
+            // دون أي Migration أو تعديل للبيانات.
+            entity.Property(x => x.CashBox_Code)
+                .HasColumnName("CashBox_Code")
+                .HasMaxLength(50)
+                .IsRequired();
+
             entity.Property(x => x.Box_Name_AR).HasMaxLength(200).IsRequired();
             entity.Property(x => x.Opening_Balance).HasPrecision(19, 4);
             entity.Property(x => x.Max_Limit).HasPrecision(19, 4);
