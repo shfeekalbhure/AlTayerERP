@@ -19,11 +19,20 @@ public static class MauiProgram
                 fonts.AddFont("OpenSans-Semibold.ttf", "OpenSansSemibold");
             });
 
-        // اتصال USB: ينقل adb reverse منفذ 5021 من الهاتف إلى الكمبيوتر.
-        builder.Services.AddSingleton(new HttpClient
+        builder.Services.AddSingleton<ApiClientConfiguration>();
+        builder.Services.AddSingleton<HttpClient>(services =>
         {
-            BaseAddress = ApiClientConfiguration.BaseAddress,
-            Timeout = TimeSpan.FromSeconds(30)
+            var configuration = services.GetRequiredService<ApiClientConfiguration>();
+            var client = new HttpClient(new ApiConnectionFailoverHandler(configuration)
+            {
+                InnerHandler = new HttpClientHandler()
+            })
+            {
+                BaseAddress = configuration.UsbBaseAddress,
+                Timeout = TimeSpan.FromSeconds(30)
+            };
+            configuration.Attach(client);
+            return client;
         });
         builder.Services.AddSingleton<SessionStorageService>();
         builder.Services.AddSingleton<ApiConnectionDiagnosticsService>();

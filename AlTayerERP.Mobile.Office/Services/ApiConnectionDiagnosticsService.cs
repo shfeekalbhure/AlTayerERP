@@ -4,26 +4,10 @@ using AlTayerERP.Mobile.Office.DTOs;
 
 namespace AlTayerERP.Mobile.Office.Services;
 
-public sealed class ApiConnectionDiagnosticsService(HttpClient httpClient)
+public sealed class ApiConnectionDiagnosticsService(HttpClient httpClient, ApiClientConfiguration configuration)
 {
-    public async Task<ApiDiagnosticResult> CheckHealthAsync(CancellationToken cancellationToken = default)
-    {
-        const string endpoint = "api/health";
-        try
-        {
-            using var response = await httpClient.GetAsync(endpoint, cancellationToken);
-            if (!response.IsSuccessStatusCode)
-                return FromStatus(endpoint, (int)response.StatusCode);
-
-            using var document = await System.Text.Json.JsonDocument.ParseAsync(await response.Content.ReadAsStreamAsync(cancellationToken), cancellationToken: cancellationToken);
-            var root = document.RootElement;
-            var ready = root.TryGetProperty("api", out var api) && api.GetString() == "ready" &&
-                        root.TryGetProperty("database", out var database) && database.GetString() == "ready";
-            return Create(endpoint, true, (int)response.StatusCode, ready ? ApiErrorType.None : ApiErrorType.ServerError);
-        }
-        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { throw; }
-        catch (Exception ex) { return FromException(endpoint, ex); }
-    }
+    public Task<ApiDiagnosticResult> CheckHealthAsync(bool forceRetry = false, CancellationToken cancellationToken = default) =>
+        configuration.EnsureConnectionAsync(forceRetry, cancellationToken);
 
     public ApiDiagnosticResult FromStatus(string endpoint, int statusCode, StoredSessionDto? session = null,
         int accountsCount = 0, int costCentersCount = 0, int currenciesCount = 0, int paymentMethodsCount = 0, int openPeriodsCount = 0) =>
@@ -35,30 +19,7 @@ public sealed class ApiConnectionDiagnosticsService(HttpClient httpClient)
 
     public ApiDiagnosticResult FromException(string endpoint, Exception exception, StoredSessionDto? session = null)
     {
-        var error = exception switch
-        {
-            TaskCanceledException => ApiErrorType.Timeout,
-            HttpRequestException dnsRequest
-                when dnsRequest.HttpRequestError == HttpRequestError.NameResolutionError
-                => ApiErrorType.Dns,
-
-            HttpRequestException connectionRequest
-                when connectionRequest.HttpRequestError == HttpRequestError.ConnectionError
-                => ApiErrorType.ConnectionRefused,
-
-            HttpRequestException refusedRequest
-                when FindSocketException(refusedRequest)?.SocketErrorCode == SocketError.ConnectionRefused
-                => ApiErrorType.ConnectionRefused,
-
-            HttpRequestException hostRequest
-                when FindSocketException(hostRequest)?.SocketErrorCode is
-                    SocketError.HostNotFound or
-                    SocketError.NoData or
-                    SocketError.TryAgain
-                => ApiErrorType.Dns,
-            System.Text.Json.JsonException or NotSupportedException => ApiErrorType.DeserializeFailure,
-            _ => ApiErrorType.Unknown
-        };
+        var error = ApiClientConfiguration.Classify(exception);
       //  return Create(endpoint, false, exception is HttpRequestException request ? (int?)request.StatusCode : null, error, session);
         return Create(
     endpoint,
@@ -93,10 +54,4 @@ public sealed class ApiConnectionDiagnosticsService(HttpClient httpClient)
         $"CompanyId={result.CompanyId ?? "none"}\nBranchId={result.BranchId?.ToString() ?? "none"}\nFiscalYearId={result.FiscalYearId?.ToString() ?? "none"}\n" +
         $"AccountsCount={result.AccountsCount}\nCostCentersCount={result.CostCentersCount}\nCurrenciesCount={result.CurrenciesCount}\nPaymentMethodsCount={result.PaymentMethodsCount}\nOpenPeriodsCount={result.OpenPeriodsCount}");
 
-    private static SocketException? FindSocketException(Exception exception)
-    {
-        for (Exception? current = exception; current != null; current = current.InnerException)
-            if (current is SocketException socket) return socket;
-        return null;
-    }
 }

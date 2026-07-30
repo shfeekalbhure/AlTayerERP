@@ -115,6 +115,46 @@
                 </VerticalStackLayout>
             </Border>
 
+            <Border x:Name="DevelopmentConnectionPanel"
+                    IsVisible="False"
+                    Stroke="#D9E2EC"
+                    BackgroundColor="White"
+                    Padding="16"
+                    StrokeShape="RoundRectangle 14">
+                <VerticalStackLayout Spacing="10">
+                    <Label Text="إعداد اتصال التطوير"
+                           FontAttributes="Bold"
+                           TextColor="#17324D" />
+                    <Picker x:Name="ConnectionModePicker"
+                            Title="طريقة الاتصال"
+                            SelectedIndexChanged="OnConnectionSettingsChanged">
+                        <Picker.Items>
+                            <x:String>تلقائي</x:String>
+                            <x:String>USB</x:String>
+                            <x:String>Wi-Fi</x:String>
+                        </Picker.Items>
+                    </Picker>
+                    <Entry x:Name="WifiBaseAddressEntry"
+                           Placeholder="عنوان Wi-Fi، مثال: 192.168.1.10"
+                           Keyboard="Url"
+                           TextChanged="OnConnectionSettingsChanged" />
+                    <Entry x:Name="WifiPortEntry"
+                           Placeholder="المنفذ"
+                           Keyboard="Numeric"
+                           TextChanged="OnConnectionSettingsChanged" />
+                    <Button Text="اختبار الاتصال"
+                            BackgroundColor="#0B6B87"
+                            TextColor="White"
+                            Clicked="OnTestConnectionClicked" />
+                    <Label x:Name="ConnectionStatusLabel"
+                           FontSize="12"
+                           TextColor="#35566F" />
+                    <Label x:Name="DevelopmentDatabaseLabel"
+                           FontSize="11"
+                           TextColor="#7A8896" />
+                </VerticalStackLayout>
+            </Border>
+
             <Label Text="يتصل التطبيق بخدمات النظام عبر API فقط"
                    FontSize="12"
                    HorizontalTextAlignment="Center"

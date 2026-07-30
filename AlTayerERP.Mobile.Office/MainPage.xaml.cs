@@ -8,19 +8,27 @@ public partial class MainPage : ContentPage
     private readonly AuthenticationService _authentication;
     private readonly MobileHomeService _mobileHomeService;
     private readonly ApiConnectionDiagnosticsService _diagnostics;
+    private readonly ApiClientConfiguration _connectionConfiguration;
     private LoginOptionsResponseDto? _loginOptions;
     private bool _companiesLoaded;
     private bool _sessionChecked;
     private bool _isBusy;
+    private bool _initializingConnectionSettings;
     private string? _optionsCompanyId;
     private string? _optionsLoginName;
 
-    public MainPage(AuthenticationService authentication, MobileHomeService mobileHomeService, ApiConnectionDiagnosticsService diagnostics)
+    public MainPage(
+        AuthenticationService authentication,
+        MobileHomeService mobileHomeService,
+        ApiConnectionDiagnosticsService diagnostics,
+        ApiClientConfiguration connectionConfiguration)
     {
         InitializeComponent();
         _authentication = authentication;
         _mobileHomeService = mobileHomeService;
         _diagnostics = diagnostics;
+        _connectionConfiguration = connectionConfiguration;
+        InitializeDevelopmentConnectionSettings();
     }
 
     protected override async void OnAppearing()
@@ -120,6 +128,43 @@ public partial class MainPage : ContentPage
     }
 
     private void OnContextChanged(object? sender, EventArgs e) => UpdateContextButton();
+
+    private void OnConnectionSettingsChanged(object? sender, EventArgs e)
+    {
+#if DEBUG
+        if (_initializingConnectionSettings || ConnectionModePicker.SelectedIndex < 0)
+            return;
+
+        SaveDevelopmentConnectionSettings();
+#endif
+    }
+
+    private async void OnTestConnectionClicked(object? sender, EventArgs e)
+    {
+#if DEBUG
+        SaveDevelopmentConnectionSettings();
+        SetBusy(true);
+        try
+        {
+            var result = await _diagnostics.CheckHealthAsync(forceRetry: true);
+            ConnectionStatusLabel.Text = result.ErrorType == ApiErrorType.None
+                ? result.ConnectionKind == ApiConnectionKind.USB
+                    ? "تم الاتصال بالخادم عبر USB."
+                    : "تم الاتصال بالخادم عبر شبكة Wi-Fi."
+                : "تعذر الاتصال بالخادم عبر USB أو شبكة Wi-Fi.";
+            DevelopmentDatabaseLabel.Text = result.ErrorType == ApiErrorType.None && !string.IsNullOrWhiteSpace(result.DatabaseName)
+                ? $"قاعدة التطوير: {result.DatabaseName}"
+                : string.Empty;
+
+            if (result.ErrorType == ApiErrorType.None && !_companiesLoaded)
+                await LoadCompaniesAsync();
+        }
+        finally
+        {
+            SetBusy(false);
+        }
+#endif
+    }
 
     private async void OnLoadOptionsClicked(object? sender, EventArgs e)
     {
@@ -338,4 +383,34 @@ public partial class MainPage : ContentPage
 
     private static string GetDeviceId() =>
         $"{DeviceInfo.Current.Platform}-{DeviceInfo.Current.Model}";
+
+    private void InitializeDevelopmentConnectionSettings()
+    {
+#if DEBUG
+        DevelopmentConnectionPanel.IsVisible = true;
+        _initializingConnectionSettings = true;
+        try
+        {
+            ConnectionModePicker.SelectedIndex = (int)_connectionConfiguration.ConnectionMode;
+            WifiBaseAddressEntry.Text = _connectionConfiguration.WifiBaseAddress;
+            WifiPortEntry.Text = _connectionConfiguration.Port.ToString();
+        }
+        finally
+        {
+            _initializingConnectionSettings = false;
+        }
+        ConnectionStatusLabel.Text = "لم يتم اختبار الاتصال بعد.";
+#endif
+    }
+
+    private void SaveDevelopmentConnectionSettings()
+    {
+#if DEBUG
+        var port = int.TryParse(WifiPortEntry.Text, out var parsedPort) ? parsedPort : 5021;
+        var mode = (ApiConnectionMode)Math.Clamp(ConnectionModePicker.SelectedIndex, 0, 2);
+        _connectionConfiguration.SaveSettings(mode, WifiBaseAddressEntry.Text, port);
+        DevelopmentDatabaseLabel.Text = string.Empty;
+        _companiesLoaded = false;
+#endif
+    }
 }

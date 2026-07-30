@@ -23,6 +23,8 @@ public sealed class ApiDiagnosticResult
     public int CurrenciesCount { get; init; }
     public int PaymentMethodsCount { get; init; }
     public int OpenPeriodsCount { get; init; }
+    public ApiConnectionKind ConnectionKind { get; init; }
+    public string? DatabaseName { get; init; }
     public string Message => GetMessage(ErrorType);
 
     public static string GetMessage(ApiErrorType errorType) => errorType switch
