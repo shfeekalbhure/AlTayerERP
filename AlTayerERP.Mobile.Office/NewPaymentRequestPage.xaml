@@ -9,6 +9,15 @@
         <VerticalStackLayout Padding="16" Spacing="12">
             <Label Text="بيانات الطلب" FontSize="20" FontAttributes="Bold" TextColor="#17324D" />
 
+            <Border Padding="10" Stroke="#D9E2EC" BackgroundColor="White" StrokeShape="RoundRectangle 10">
+                <VerticalStackLayout Spacing="3">
+                    <Label Text="سياق العمل الحالي" FontAttributes="Bold" TextColor="#17324D" />
+                    <Label x:Name="CompanyContextLabel" FontSize="12" TextColor="#5B6B7A" />
+                    <Label x:Name="BranchContextLabel" FontSize="12" TextColor="#5B6B7A" />
+                    <Label x:Name="FiscalYearContextLabel" FontSize="12" TextColor="#5B6B7A" />
+                </VerticalStackLayout>
+            </Border>
+
             <Label x:Name="OpenPeriodLabel"
                    Text="جاري التحقق من الفترة المالية المفتوحة..."
                    FontSize="12"
