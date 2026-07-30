@@ -133,14 +133,23 @@ app.UseMiddleware<VoucherPostingGuardMiddleware>();
 app.UseAuthorization();
 app.MapControllers();
 
-app.MapGet("/api/health", async (AppDbContext db) =>
+app.MapGet("/api/health", async (AppDbContext db, IWebHostEnvironment environment) =>
 {
     try
     {
         var databaseReady = await db.Database.CanConnectAsync();
-        return databaseReady
-            ? Results.Ok(new { api = "ready", database = "ready" })
-            : Results.StatusCode(StatusCodes.Status503ServiceUnavailable);
+        if (!databaseReady)
+            return Results.StatusCode(StatusCodes.Status503ServiceUnavailable);
+
+        // اسم القاعدة وحده مسموح في Development لتأكيد بيئة UAT؛ لا يكشف بيانات اتصال.
+        return environment.IsDevelopment()
+            ? Results.Ok(new
+            {
+                api = "ready",
+                database = "ready",
+                databaseName = db.Database.GetDbConnection().Database
+            })
+            : Results.Ok(new { api = "ready", database = "ready" });
     }
     catch
     {
