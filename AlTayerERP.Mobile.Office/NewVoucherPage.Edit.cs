@@ -127,7 +127,7 @@ public partial class NewVoucherPage
         }
         catch (Exception ex)
         {
-            ShowStatus(ex.Message);
+            ShowStatus(MobileApiErrorHandler.GetUserMessage(ex));
             SaveButton.IsEnabled = false;
             AddLineButton.IsEnabled = false;
         }
@@ -177,7 +177,7 @@ public partial class NewVoucherPage
         }
         catch (Exception ex)
         {
-            ShowStatus(ex.Message);
+            ShowStatus(MobileApiErrorHandler.GetUserMessage(ex));
             SaveButton.IsEnabled = AddLineButton.IsEnabled = false;
         }
         finally { SetBusy(false); }
@@ -312,7 +312,7 @@ public partial class NewVoucherPage
         }
         catch (Exception ex)
         {
-            ShowStatus(ex.Message);
+            ShowStatus(MobileApiErrorHandler.GetUserMessage(ex));
         }
         finally
         {

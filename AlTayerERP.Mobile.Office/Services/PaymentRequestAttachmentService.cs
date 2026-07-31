@@ -74,8 +74,7 @@ public sealed class PaymentRequestAttachmentService(HttpClient httpClient, Sessi
 
     private static async Task EnsureSuccessAsync(HttpResponseMessage response, string fallback, CancellationToken cancellationToken)
     {
-        if (response.IsSuccessStatusCode) return;
-        var message = await response.Content.ReadAsStringAsync(cancellationToken);
-        throw new InvalidOperationException(string.IsNullOrWhiteSpace(message) ? fallback : message.Trim().Trim('"'));
+        MobileApiErrorHandler.EnsureSuccess(response);
+        await Task.CompletedTask;
     }
 }

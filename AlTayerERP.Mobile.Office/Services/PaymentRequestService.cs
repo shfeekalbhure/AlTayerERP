@@ -99,10 +99,8 @@ public sealed class PaymentRequestService(HttpClient httpClient, SessionStorageS
 
     private static async Task EnsureSuccessAsync(HttpResponseMessage response, string fallback, CancellationToken cancellationToken)
     {
-        if (response.IsSuccessStatusCode) return;
-
-        var raw = await response.Content.ReadAsStringAsync(cancellationToken);
-        throw new InvalidOperationException(ExtractMessage(raw, fallback));
+        MobileApiErrorHandler.EnsureSuccess(response);
+        await Task.CompletedTask;
     }
 
     private static string ExtractMessage(string? raw, string fallback)

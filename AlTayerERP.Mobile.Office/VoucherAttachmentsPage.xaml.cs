@@ -33,7 +33,7 @@ public partial class VoucherAttachmentsPage : ContentPage
         }
         catch (Exception ex)
         {
-            await DisplayAlert("تعذر التحميل", ex.Message, "موافق");
+            await DisplayAlert("تعذر التحميل", MobileApiErrorHandler.GetUserMessage(ex), "موافق");
         }
         finally
         {
@@ -68,7 +68,7 @@ public partial class VoucherAttachmentsPage : ContentPage
         }
         catch (Exception ex)
         {
-            await DisplayAlert("تعذر الرفع", ex.Message, "موافق");
+            await DisplayAlert("تعذر الرفع", MobileApiErrorHandler.GetUserMessage(ex), "موافق");
         }
         finally
         {
@@ -92,7 +92,7 @@ public partial class VoucherAttachmentsPage : ContentPage
         }
         catch (Exception ex)
         {
-            await DisplayAlert("تعذر الفتح", ex.Message, "موافق");
+            await DisplayAlert("تعذر الفتح", MobileApiErrorHandler.GetUserMessage(ex), "موافق");
         }
         finally
         {
@@ -117,7 +117,7 @@ public partial class VoucherAttachmentsPage : ContentPage
         }
         catch (Exception ex)
         {
-            await DisplayAlert("تعذر الحذف", ex.Message, "موافق");
+            await DisplayAlert("تعذر الحذف", MobileApiErrorHandler.GetUserMessage(ex), "موافق");
         }
         finally
         {

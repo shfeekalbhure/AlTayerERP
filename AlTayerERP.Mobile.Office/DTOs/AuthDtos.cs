@@ -3,11 +3,11 @@ namespace AlTayerERP.Mobile.Office.DTOs;
 public sealed class LoginCompanyOptionDto
 {
     public string Company_ID { get; set; } = string.Empty;
-    public string Company_Name { get; set; } = string.Empty;
+    public string Company_Name_AR { get; set; } = string.Empty;
 
-    public string DisplayName => string.IsNullOrWhiteSpace(Company_Name)
+    public string DisplayName => string.IsNullOrWhiteSpace(Company_Name_AR)
         ? Company_ID
-        : $"{Company_Name} - {Company_ID}";
+        : $"{Company_Name_AR} - {Company_ID}";
 }
 
 public sealed class LoginOptionsRequestDto

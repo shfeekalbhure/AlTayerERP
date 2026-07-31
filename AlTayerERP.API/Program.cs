@@ -5,6 +5,7 @@ using AlTayerERP.Infrastructure.Data;
 using Microsoft.AspNetCore.Authentication;
 using AlTayerERP.API.Security;
 using Microsoft.EntityFrameworkCore;
+using MySqlConnector;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -21,6 +22,14 @@ var connectionString =
         "لم يتم ضبط DefaultConnection. عيّنه محلياً عبر User Secrets أو المتغير ConnectionStrings__DefaultConnection؛ لا تضع كلمة المرور داخل ملفات الإعداد المتتبعة."
     );
 
+// توحيد ترميز جلسة MySQL مع نموذج EF Core حتى لا يحمل المعامل النصي
+// Collation مختلفة عن أعمدة سندات القبض والحسابات.
+var mysqlConnection = new MySqlConnectionStringBuilder(connectionString)
+{
+    CharacterSet = Phase1BaselineModelConfiguration.CharacterSet
+};
+connectionString = mysqlConnection.ConnectionString;
+
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseMySql(
         connectionString,
@@ -36,8 +45,7 @@ builder.Services.AddCors(options =>
                 "https://localhost:7021",
                 "http://localhost:5021",
                 "https://localhost:7022",
-                "http://localhost:5022",
-                "http://172.16.4.250:5021")
+                "http://localhost:5022")
             .AllowAnyMethod()
             .AllowAnyHeader();
     });
@@ -133,14 +141,23 @@ app.UseMiddleware<VoucherPostingGuardMiddleware>();
 app.UseAuthorization();
 app.MapControllers();
 
-app.MapGet("/api/health", async (AppDbContext db) =>
+app.MapGet("/api/health", async (AppDbContext db, IWebHostEnvironment environment) =>
 {
     try
     {
         var databaseReady = await db.Database.CanConnectAsync();
-        return databaseReady
-            ? Results.Ok(new { api = "ready", database = "ready" })
-            : Results.StatusCode(StatusCodes.Status503ServiceUnavailable);
+        if (!databaseReady)
+            return Results.StatusCode(StatusCodes.Status503ServiceUnavailable);
+
+        // اسم القاعدة وحده مسموح في Development لتأكيد بيئة UAT؛ لا يكشف بيانات اتصال.
+        return environment.IsDevelopment()
+            ? Results.Ok(new
+            {
+                api = "ready",
+                database = "ready",
+                databaseName = db.Database.GetDbConnection().Database
+            })
+            : Results.Ok(new { api = "ready", database = "ready" });
     }
     catch
     {

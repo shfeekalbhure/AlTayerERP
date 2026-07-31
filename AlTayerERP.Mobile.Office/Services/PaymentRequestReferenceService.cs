@@ -4,26 +4,70 @@ using AlTayerERP.Mobile.Office.DTOs;
 
 namespace AlTayerERP.Mobile.Office.Services;
 
-public sealed class PaymentRequestReferenceService(HttpClient httpClient, SessionStorageService sessionStorage)
+public sealed class PaymentRequestReferenceService(
+    HttpClient httpClient,
+    SessionStorageService sessionStorage,
+    ApiConnectionDiagnosticsService diagnostics)
 {
-    public async Task<PaymentRequestReferencesDto> GetAsync(CancellationToken cancellationToken = default)
+    private const string Endpoint = "api/mobile/payment-request-references";
+
+    public async Task<PaymentRequestReferenceResult> GetAsync(CancellationToken cancellationToken = default)
     {
-        var session = await sessionStorage.GetAsync()
-            ?? throw new InvalidOperationException("لا توجد جلسة دخول محفوظة.");
+        var session = await sessionStorage.GetAsync();
+        if (session == null)
+            return Failure(diagnostics.Create(Endpoint, false, null, ApiErrorType.Unauthorized));
 
-        using var request = new HttpRequestMessage(HttpMethod.Get, "api/mobile/payment-request-references");
+        using var request = new HttpRequestMessage(HttpMethod.Get, Endpoint);
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", session.AccessToken);
-        using var response = await httpClient.SendAsync(request, cancellationToken);
-
-        if (!response.IsSuccessStatusCode)
+        try
         {
-            var message = await response.Content.ReadAsStringAsync(cancellationToken);
-            throw new InvalidOperationException(string.IsNullOrWhiteSpace(message)
-                ? "تعذر تحميل الحسابات والعملات ومراكز التكلفة."
-                : message.Trim().Trim('"'));
-        }
+            using var response = await httpClient.SendAsync(request, cancellationToken);
+            var statusCode = (int)response.StatusCode;
+            if (!response.IsSuccessStatusCode)
+                return Failure(diagnostics.FromStatus(Endpoint, statusCode, session));
 
-        return await response.Content.ReadFromJsonAsync<PaymentRequestReferencesDto>(cancellationToken: cancellationToken)
-               ?? throw new InvalidOperationException("استجابة البيانات المرجعية غير صالحة.");
+            PaymentRequestReferencesDto? references;
+            try
+            {
+                references = await response.Content.ReadFromJsonAsync<PaymentRequestReferencesDto>(cancellationToken: cancellationToken);
+            }
+            catch (Exception ex) when (ex is System.Text.Json.JsonException or NotSupportedException)
+            {
+                return Failure(diagnostics.Create(Endpoint, true, statusCode, ApiErrorType.DeserializeFailure, session));
+            }
+
+            if (references == null)
+                return Failure(diagnostics.Create(Endpoint, true, statusCode, ApiErrorType.DeserializeFailure, session));
+
+            references.Accounts ??= [];
+            references.CostCenters ??= [];
+            references.Currencies ??= [];
+            references.PaymentMethods ??= [];
+            references.OpenPeriods ??= [];
+            diagnostics.Create(Endpoint, true, statusCode, ApiErrorType.None, session,
+                references.Accounts.Count, references.CostCenters.Count, references.Currencies.Count,
+                references.PaymentMethods.Count, references.OpenPeriods.Count);
+            return PaymentRequestReferenceResult.Success(references, statusCode);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            return Failure(diagnostics.FromException(Endpoint, ex, session));
+        }
     }
+
+    private static PaymentRequestReferenceResult Failure(ApiDiagnosticResult diagnostic) => new()
+    {
+        HttpStatusCode = diagnostic.StatusCode,
+        ServerReached = diagnostic.ServerReached,
+        ErrorType = diagnostic.ErrorType,
+        AccountsCount = diagnostic.AccountsCount,
+        CostCentersCount = diagnostic.CostCentersCount,
+        CurrenciesCount = diagnostic.CurrenciesCount,
+        PaymentMethodsCount = diagnostic.PaymentMethodsCount,
+        OpenPeriodsCount = diagnostic.OpenPeriodsCount
+    };
 }

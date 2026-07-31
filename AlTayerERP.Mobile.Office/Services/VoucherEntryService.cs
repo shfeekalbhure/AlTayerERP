@@ -16,73 +16,101 @@ public sealed class VoucherEntryService(HttpClient httpClient, SessionStorageSer
     {
         var session = await GetSessionAsync();
         var normalized = type.Trim().ToUpperInvariant();
-        // لسندات القبض والصرف نستخدم نقطة النهاية الخاصة بالسندات، لا قوائم طلب الصرف.
-        // هذه النقطة تعتمد الشركة الفعلية للفرع وتتحقق من ارتباط الصندوق أو البنك بحساب مالي صالح.
-        var url = $"api/mobile/voucher-entry-references?type={Uri.EscapeDataString(normalized)}";
 
-        using var request = CreateRequest(HttpMethod.Get, url, session.AccessToken);
+        // سند القبض يستهلك نفس Endpoint وDTO المرجعيين المستخدمين في Desktop.
+        // لا نستخدم قوائم Endpoint الجوال القديم للصناديق أو الحسابات أو العملات.
+        var desktopUrl = $"api/FinancialVoucherLookups?companyId={Uri.EscapeDataString(session.CompanyId)}&branchId={session.BranchId}";
+        using var desktopRequest = CreateRequest(HttpMethod.Get, desktopUrl, session.AccessToken);
+        using var desktopResponse = await httpClient.SendAsync(desktopRequest, cancellationToken);
+        await EnsureSuccessAsync(desktopResponse, "تعذر تحميل بيانات السند.", cancellationToken);
 
-        HttpResponseMessage response;
-        try
+        var lookups = await desktopResponse.Content.ReadFromJsonAsync<DesktopFinancialVoucherLookupsDto>(JsonOptions, cancellationToken)
+                      ?? throw new InvalidOperationException("استجابة منسدلات سند القبض غير صالحة.");
+
+        var voucherType = lookups.VoucherTypes.FirstOrDefault(x =>
+            string.Equals(x.Voucher_Type_Code?.Trim(), normalized, StringComparison.OrdinalIgnoreCase))
+            ?? throw new InvalidOperationException("نوع سند القبض غير مهيأ.");
+
+        var draftStatus = lookups.VoucherStatuses.FirstOrDefault(x =>
+            string.Equals(x.Voucher_Status_Code?.Trim(), "DRAFT", StringComparison.OrdinalIgnoreCase))
+            ?? throw new InvalidOperationException("حالة المسودة غير مهيأة.");
+
+        // Endpoint الديسكتوب لا يعيد الفترات المالية. نبقي الاستدعاء القديم مؤقتاً
+        // للفترات المفتوحة فقط حتى لا نغير تصميم الشاشة أو قواعد تاريخ السند.
+        var openPeriods = new List<VoucherEntryPeriodDto>();
+        using (var periodRequest = CreateRequest(HttpMethod.Get,
+                   $"api/mobile/voucher-entry-references?type={Uri.EscapeDataString(normalized)}",
+                   session.AccessToken))
+        using (var periodResponse = await httpClient.SendAsync(periodRequest, cancellationToken))
         {
-            response = await httpClient.SendAsync(request, cancellationToken);
+            await EnsureSuccessAsync(periodResponse, "تعذر تحميل الفترة المالية المفتوحة.", cancellationToken);
+            var periodResult = await periodResponse.Content.ReadFromJsonAsync<VoucherEntryReferencesDto>(JsonOptions, cancellationToken);
+            openPeriods = periodResult?.OpenPeriods ?? [];
         }
-        catch (HttpRequestException ex)
-        {
-            throw new InvalidOperationException($"تعذر الاتصال بخادم القوائم: {ex.Message}", ex);
-        }
-        catch (TaskCanceledException ex) when (!cancellationToken.IsCancellationRequested)
-        {
-            throw new InvalidOperationException("انتهت مهلة الاتصال بخادم القوائم.", ex);
-        }
 
-        using (response)
+        var result = new VoucherEntryReferencesDto
         {
-            await EnsureSuccessAsync(response, "تعذر تحميل بيانات السند.", cancellationToken);
-
-            var raw = await response.Content.ReadAsStringAsync(cancellationToken);
-            if (string.IsNullOrWhiteSpace(raw))
-                throw new InvalidOperationException("استجابة منسدلات السند فارغة من الخادم.");
-
-            VoucherEntryReferencesDto? result;
-            try
+            VoucherType = new VoucherEntryTypeDto
             {
-                result = JsonSerializer.Deserialize<VoucherEntryReferencesDto>(raw, JsonOptions);
-            }
-            catch (JsonException ex)
+                Id = voucherType.Voucher_Type_ID,
+                Code = voucherType.Voucher_Type_Code,
+                Name = voucherType.Voucher_Type_Name_AR
+            },
+            DraftStatus = new VoucherEntryStatusDto
             {
-                throw new InvalidOperationException($"تعذر قراءة بيانات منسدلات السند: {ex.Message}");
-            }
-
-            if (result == null)
-                throw new InvalidOperationException("استجابة بيانات السند غير صالحة.");
-
-            result.Sources ??= [];
-            result.Accounts ??= [];
-            result.CostCenters ??= [];
-            result.Currencies ??= [];
-            result.Parties ??= [];
-            result.PaymentMethods ??= [];
-            result.OpenPeriods ??= [];
-            result.PermissionDiagnostics ??= [];
-
-            var allCoreListsEmpty = result.Sources.Count == 0 &&
-                                    result.Accounts.Count == 0 &&
-                                    result.Currencies.Count == 0 &&
-                                    result.Parties.Count == 0 &&
-                                    result.PaymentMethods.Count == 0;
-
-            if (allCoreListsEmpty)
+                Id = draftStatus.Voucher_Status_ID,
+                Code = draftStatus.Voucher_Status_Code,
+                Name = draftStatus.Voucher_Status_Name_AR
+            },
+            Sources = lookups.CashBoxes.Select(x => new VoucherEntrySourceDto
             {
-                throw new InvalidOperationException(
-                    $"لم تصل أي بيانات للمنسدلات. الشركة: {session.CompanyId}، الفرع: {session.BranchId}، السنة: {session.YearId}. " +
-                    $"الصناديق/البنوك: {result.Sources.Count}، الحسابات: {result.Accounts.Count}، العملات: {result.Currencies.Count}، " +
-                    $"الأطراف: {result.Parties.Count}، طرق السداد: {result.PaymentMethods.Count}. " +
-                    "تأكد أن الـAPI الذي يعمل هو آخر نسخة وأنه متصل بقاعدة altayer_erp_db.");
-            }
+                CashBoxId = x.Cash_Box_ID,
+                AccountId = x.Account_ID,
+                SourceType = "CASH",
+                DisplayName = $"{x.Cash_Box_Code} - {x.Cash_Box_Name}"
+            }).ToList(),
+            Accounts = lookups.Accounts.Select(x => new VoucherEntryLookupDto
+            {
+                Id = x.Account_ID,
+                DisplayName = $"{x.Account_Code} - {x.Account_Name_AR}"
+            }).ToList(),
+            CostCenters = lookups.CostCenters.Select(x => new VoucherEntryLookupDto
+            {
+                Id = x.Cost_Center_ID,
+                DisplayName = $"{x.Cost_Center_Code} - {x.Cost_Center_Name_AR}"
+            }).ToList(),
+            Currencies = lookups.Currencies.Select(x => new VoucherEntryCurrencyDto
+            {
+                Id = x.Currency_ID,
+                DisplayName = $"{x.Currency_Code} - {x.Currency_Name_AR}",
+                ExchangeRate = x.Is_Local ? 1m : x.Exchange_Rate,
+                IsLocal = x.Is_Local,
+                IsDefault = x.Is_Default
+            }).ToList(),
+            Parties = lookups.Parties.Select(x => new VoucherEntryPartyDto
+            {
+                Id = x.Party_ID,
+                Name = x.Party_Name_AR,
+                DisplayName = $"{x.Party_Code} - {x.Party_Name_AR}"
+            }).ToList(),
+            PaymentMethods = lookups.PaymentMethods.Select(x => new VoucherEntryPaymentMethodDto
+            {
+                Id = x.Payment_Method_ID,
+                Code = x.Payment_Method_Code,
+                DisplayName = x.Payment_Method_Name_AR
+            }).ToList(),
+            OpenPeriods = openPeriods
+        };
 
-            return result;
-        }
+        result.SourceCount = result.Sources.Count;
+        result.SourceMessage = result.SourceCount == 0
+            ? "لا توجد صناديق نشطة ضمن الشركة والفرع الحاليين."
+            : null;
+
+        if (result.Sources.Count == 0 && result.Accounts.Count == 0 && result.Currencies.Count == 0)
+            throw new InvalidOperationException("لا توجد بيانات مرجعية متاحة للسند في السياق الحالي.");
+
+        return result;
     }
 
     public async Task<CreateMobileVoucherResultDto> CreateAsync(CreateMobileVoucherDto dto, CancellationToken cancellationToken = default)
@@ -128,41 +156,79 @@ public sealed class VoucherEntryService(HttpClient httpClient, SessionStorageSer
 
     private static async Task EnsureSuccessAsync(HttpResponseMessage response, string fallback, CancellationToken cancellationToken)
     {
-        if (response.IsSuccessStatusCode) return;
+        MobileApiErrorHandler.EnsureSuccess(response);
+        await Task.CompletedTask;
+    }
 
-        var raw = await response.Content.ReadAsStringAsync(cancellationToken);
-        string? serverMessage = null;
-        if (!string.IsNullOrWhiteSpace(raw))
-        {
-            try
-            {
-                using var json = JsonDocument.Parse(raw);
-                if (json.RootElement.TryGetProperty("message", out var message))
-                    serverMessage = message.GetString();
-                else if (json.RootElement.TryGetProperty("detail", out var detail))
-                    serverMessage = detail.GetString();
-                else if (json.RootElement.TryGetProperty("title", out var title))
-                    serverMessage = title.GetString();
+    private sealed class DesktopFinancialVoucherLookupsDto
+    {
+        public List<DesktopVoucherTypeDto> VoucherTypes { get; set; } = [];
+        public List<DesktopVoucherStatusDto> VoucherStatuses { get; set; } = [];
+        public List<DesktopCashBoxDto> CashBoxes { get; set; } = [];
+        public List<DesktopCurrencyDto> Currencies { get; set; } = [];
+        public List<DesktopCostCenterDto> CostCenters { get; set; } = [];
+        public List<DesktopPaymentMethodDto> PaymentMethods { get; set; } = [];
+        public List<DesktopPartyDto> Parties { get; set; } = [];
+        public List<DesktopAccountDto> Accounts { get; set; } = [];
+    }
 
-                if (json.RootElement.TryGetProperty("permissionDiagnostics", out var diagnostics) &&
-                    diagnostics.ValueKind == JsonValueKind.Array)
-                {
-                    var passed = diagnostics.EnumerateArray()
-                        .Select(x => x.GetString())
-                        .Where(x => !string.IsNullOrWhiteSpace(x));
-                    serverMessage = string.Join(Environment.NewLine, passed.Append(serverMessage).Where(x => !string.IsNullOrWhiteSpace(x)));
-                }
-            }
-            catch (JsonException)
-            {
-                serverMessage = raw.Length > 250 ? raw[..250] : raw;
-            }
-        }
+    private sealed class DesktopVoucherTypeDto
+    {
+        public int Voucher_Type_ID { get; set; }
+        public string Voucher_Type_Code { get; set; } = string.Empty;
+        public string Voucher_Type_Name_AR { get; set; } = string.Empty;
+    }
 
-        var status = $"HTTP {(int)response.StatusCode} ({response.ReasonPhrase})";
-        throw new InvalidOperationException(
-            string.IsNullOrWhiteSpace(serverMessage)
-                ? $"{fallback} {status}."
-                : $"{serverMessage} — {status}.");
+    private sealed class DesktopVoucherStatusDto
+    {
+        public int Voucher_Status_ID { get; set; }
+        public string Voucher_Status_Code { get; set; } = string.Empty;
+        public string Voucher_Status_Name_AR { get; set; } = string.Empty;
+    }
+
+    private sealed class DesktopCashBoxDto
+    {
+        public int Cash_Box_ID { get; set; }
+        public string Cash_Box_Code { get; set; } = string.Empty;
+        public string Cash_Box_Name { get; set; } = string.Empty;
+        public string Account_ID { get; set; } = string.Empty;
+    }
+
+    private sealed class DesktopCurrencyDto
+    {
+        public int Currency_ID { get; set; }
+        public string Currency_Code { get; set; } = string.Empty;
+        public string Currency_Name_AR { get; set; } = string.Empty;
+        public decimal Exchange_Rate { get; set; }
+        public bool Is_Default { get; set; }
+        public bool Is_Local { get; set; }
+    }
+
+    private sealed class DesktopCostCenterDto
+    {
+        public string Cost_Center_ID { get; set; } = string.Empty;
+        public string Cost_Center_Code { get; set; } = string.Empty;
+        public string Cost_Center_Name_AR { get; set; } = string.Empty;
+    }
+
+    private sealed class DesktopPaymentMethodDto
+    {
+        public int Payment_Method_ID { get; set; }
+        public string Payment_Method_Code { get; set; } = string.Empty;
+        public string Payment_Method_Name_AR { get; set; } = string.Empty;
+    }
+
+    private sealed class DesktopPartyDto
+    {
+        public string Party_ID { get; set; } = string.Empty;
+        public string Party_Code { get; set; } = string.Empty;
+        public string Party_Name_AR { get; set; } = string.Empty;
+    }
+
+    private sealed class DesktopAccountDto
+    {
+        public string Account_ID { get; set; } = string.Empty;
+        public string Account_Code { get; set; } = string.Empty;
+        public string Account_Name_AR { get; set; } = string.Empty;
     }
 }

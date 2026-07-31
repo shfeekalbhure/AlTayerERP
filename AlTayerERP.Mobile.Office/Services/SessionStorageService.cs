@@ -34,5 +34,19 @@ public sealed class SessionStorageService
             : JsonSerializer.Deserialize<StoredSessionDto>(json);
     }
 
+    /// <summary>سياق عرض آمن؛ الأسماء غير محفوظة حالياً، لذلك تستخدم المعرفات مؤقتاً.</summary>
+    public async Task<PaymentRequestSessionContext?> GetPaymentRequestContextAsync()
+    {
+        var session = await GetAsync();
+        return session == null
+            ? null
+            : new PaymentRequestSessionContext(
+                $"الشركة: {session.CompanyId}",
+                $"الفرع: {session.BranchId}",
+                $"السنة المالية: {session.YearId}");
+    }
+
     public void Clear() => SecureStorage.Default.Remove(SessionKey);
 }
+
+public sealed record PaymentRequestSessionContext(string Company, string Branch, string FiscalYear);

@@ -7,18 +7,28 @@ public partial class MainPage : ContentPage
 {
     private readonly AuthenticationService _authentication;
     private readonly MobileHomeService _mobileHomeService;
+    private readonly ApiConnectionDiagnosticsService _diagnostics;
+    private readonly ApiClientConfiguration _connectionConfiguration;
     private LoginOptionsResponseDto? _loginOptions;
     private bool _companiesLoaded;
     private bool _sessionChecked;
     private bool _isBusy;
+    private bool _isLoadingConnectionSettings;
     private string? _optionsCompanyId;
     private string? _optionsLoginName;
 
-    public MainPage(AuthenticationService authentication, MobileHomeService mobileHomeService)
+    public MainPage(
+        AuthenticationService authentication,
+        MobileHomeService mobileHomeService,
+        ApiConnectionDiagnosticsService diagnostics,
+        ApiClientConfiguration connectionConfiguration)
     {
         InitializeComponent();
         _authentication = authentication;
         _mobileHomeService = mobileHomeService;
+        _diagnostics = diagnostics;
+        _connectionConfiguration = connectionConfiguration;
+        InitializeDevelopmentConnectionSettings();
     }
 
     protected override async void OnAppearing()
@@ -65,6 +75,10 @@ public partial class MainPage : ContentPage
 
         try
         {
+            var health = await _diagnostics.CheckHealthAsync();
+            if (health.ErrorType != ApiErrorType.None)
+                throw new ApiDiagnosticException(health);
+
             var companies = await _authentication.GetLoginCompaniesAsync();
             CompanyPicker.ItemsSource = companies;
             CompanyPicker.SelectedItem = companies.Count == 1 ? companies[0] : null;
@@ -83,7 +97,7 @@ public partial class MainPage : ContentPage
             CompanyPicker.ItemsSource = null;
             CompanyPicker.SelectedItem = null;
             CompaniesStatusLabel.Text = "تعذر تحميل الشركات.";
-            ShowError(ex.Message);
+            ShowError(MobileApiErrorHandler.GetUserMessage(ex));
         }
         finally
         {
@@ -114,6 +128,46 @@ public partial class MainPage : ContentPage
     }
 
     private void OnContextChanged(object? sender, EventArgs e) => UpdateContextButton();
+
+    private void OnConnectionModeChanged(object? sender, EventArgs e)
+    {
+#if DEBUG
+        // لا نغيّر أي إعداد أو عنصر مرئي أثناء تعبئة القيم الأولية للواجهة.
+        if (_isLoadingConnectionSettings || ConnectionModePicker.SelectedIndex < 0)
+            return;
+
+        // الحدث لا يعيد إنشاء عناصر الـPicker، ولا يختبر الاتصال تلقائياً.
+        SaveDevelopmentConnectionSettings();
+        RefreshWifiConnectionFields();
+#endif
+    }
+
+    private async void OnTestConnectionClicked(object? sender, EventArgs e)
+    {
+#if DEBUG
+        SaveDevelopmentConnectionSettings();
+        SetBusy(true);
+        try
+        {
+            var result = await _diagnostics.CheckHealthAsync(forceRetry: true);
+            ConnectionStatusLabel.Text = result.ErrorType == ApiErrorType.None
+                ? result.ConnectionKind == ApiConnectionKind.USB
+                    ? "تم الاتصال بالخادم عبر USB."
+                    : "تم الاتصال بالخادم عبر شبكة Wi-Fi."
+                : "تعذر الاتصال بالخادم عبر USB أو شبكة Wi-Fi.";
+            DevelopmentDatabaseLabel.Text = result.ErrorType == ApiErrorType.None && !string.IsNullOrWhiteSpace(result.DatabaseName)
+                ? $"قاعدة التطوير: {result.DatabaseName}"
+                : string.Empty;
+
+            if (result.ErrorType == ApiErrorType.None && !_companiesLoaded)
+                await LoadCompaniesAsync();
+        }
+        finally
+        {
+            SetBusy(false);
+        }
+#endif
+    }
 
     private async void OnLoadOptionsClicked(object? sender, EventArgs e)
     {
@@ -177,7 +231,7 @@ public partial class MainPage : ContentPage
             CredentialsPanel.IsVisible = true;
             ContextPanel.IsVisible = false;
             StepTitleLabel.Text = "أدخل بيانات الحساب أولاً";
-            ShowError(ex.Message);
+            ShowError(MobileApiErrorHandler.GetUserMessage(ex));
         }
         finally
         {
@@ -217,7 +271,7 @@ public partial class MainPage : ContentPage
         }
         catch (Exception ex)
         {
-            ShowError(ex.Message);
+            ShowError(MobileApiErrorHandler.GetUserMessage(ex));
         }
         finally
         {
@@ -332,4 +386,43 @@ public partial class MainPage : ContentPage
 
     private static string GetDeviceId() =>
         $"{DeviceInfo.Current.Platform}-{DeviceInfo.Current.Model}";
+
+    private void InitializeDevelopmentConnectionSettings()
+    {
+#if DEBUG
+        DevelopmentConnectionPanel.IsVisible = true;
+        _isLoadingConnectionSettings = true;
+        try
+        {
+            ConnectionModePicker.SelectedIndex = (int)_connectionConfiguration.ConnectionMode;
+            WifiBaseAddressEntry.Text = _connectionConfiguration.WifiBaseAddress;
+            WifiPortEntry.Text = _connectionConfiguration.Port.ToString();
+        }
+        finally
+        {
+            _isLoadingConnectionSettings = false;
+        }
+        RefreshWifiConnectionFields();
+        ConnectionStatusLabel.Text = "لم يتم اختبار الاتصال بعد.";
+#endif
+    }
+
+    private void SaveDevelopmentConnectionSettings()
+    {
+#if DEBUG
+        var port = int.TryParse(WifiPortEntry.Text, out var parsedPort) ? parsedPort : 5021;
+        var mode = (ApiConnectionMode)Math.Clamp(ConnectionModePicker.SelectedIndex, 0, 2);
+        _connectionConfiguration.SaveSettings(mode, WifiBaseAddressEntry.Text, port);
+        DevelopmentDatabaseLabel.Text = string.Empty;
+        _companiesLoaded = false;
+#endif
+    }
+
+    private void RefreshWifiConnectionFields()
+    {
+#if DEBUG
+        // تبقى الحاوية والـPicker ثابتين؛ يتغير فقط ما يلزم لطريقة USB.
+        WifiConnectionFields.IsVisible = ConnectionModePicker.SelectedIndex != (int)ApiConnectionMode.USB;
+#endif
+    }
 }

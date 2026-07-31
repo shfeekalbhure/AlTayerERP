@@ -19,11 +19,11 @@ public sealed class VoucherEntryReferencesDto
 
 public sealed class VoucherEntryTypeDto { public int Id { get; set; } public string Code { get; set; } = string.Empty; public string Name { get; set; } = string.Empty; }
 public sealed class VoucherEntryStatusDto { public int Id { get; set; } public string Code { get; set; } = string.Empty; public string Name { get; set; } = string.Empty; }
-public sealed class VoucherEntrySourceDto { public string AccountId { get; set; } = string.Empty; public string SourceType { get; set; } = string.Empty; public string DisplayName { get; set; } = string.Empty; }
+public sealed class VoucherEntrySourceDto { public int CashBoxId { get; set; } public string AccountId { get; set; } = string.Empty; public string SourceType { get; set; } = string.Empty; public string DisplayName { get; set; } = string.Empty; }
 public sealed class VoucherEntryLookupDto { public string Id { get; set; } = string.Empty; public string DisplayName { get; set; } = string.Empty; }
 public sealed class VoucherEntryCurrencyDto { public int Id { get; set; } public string DisplayName { get; set; } = string.Empty; public decimal ExchangeRate { get; set; } public bool IsLocal { get; set; } public bool IsDefault { get; set; } }
 public sealed class VoucherEntryPartyDto { public string Id { get; set; } = string.Empty; public string DisplayName { get; set; } = string.Empty; public string Name { get; set; } = string.Empty; }
-public sealed class VoucherEntryPaymentMethodDto { public int Id { get; set; } public string DisplayName { get; set; } = string.Empty; }
+public sealed class VoucherEntryPaymentMethodDto { public int Id { get; set; } public string Code { get; set; } = string.Empty; public string DisplayName { get; set; } = string.Empty; }
 public sealed class VoucherEntryPeriodDto { public DateTime StartDate { get; set; } public DateTime EndDate { get; set; } }
 
 public sealed class CreateMobileVoucherDto

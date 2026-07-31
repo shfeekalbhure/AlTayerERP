@@ -16,13 +16,7 @@ public sealed class MobileHomeService(HttpClient httpClient, SessionStorageServi
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", session.AccessToken);
 
         using var response = await httpClient.SendAsync(request, cancellationToken);
-        if (!response.IsSuccessStatusCode)
-        {
-            var raw = await response.Content.ReadAsStringAsync(cancellationToken);
-            throw new InvalidOperationException(string.IsNullOrWhiteSpace(raw)
-                ? "تعذر تحميل صلاحيات الشاشة الرئيسية."
-                : raw.Trim('"'));
-        }
+        MobileApiErrorHandler.EnsureSuccess(response);
 
         return await response.Content.ReadFromJsonAsync<MobileHomePermissionsResponseDto>(cancellationToken: cancellationToken)
                ?? throw new InvalidOperationException("استجابة صلاحيات الشاشة الرئيسية غير صالحة.");

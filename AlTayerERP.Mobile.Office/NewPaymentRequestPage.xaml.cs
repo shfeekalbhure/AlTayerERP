@@ -10,6 +10,7 @@ public partial class NewPaymentRequestPage : ContentPage
 {
     private readonly PaymentRequestService _service;
     private readonly PaymentRequestReferenceService _referenceService;
+    private readonly SessionStorageService _sessionStorage;
     private readonly ObservableCollection<PaymentRequestDraftLine> _lines = [];
     private readonly PaymentRequestListItemDto? _editingRequest;
     private PaymentRequestReferencesDto? _references;
@@ -25,6 +26,8 @@ public partial class NewPaymentRequestPage : ContentPage
         _editingRequest = editingRequest;
         _referenceService = IPlatformApplication.Current.Services
             .GetRequiredService<PaymentRequestReferenceService>();
+        _sessionStorage = IPlatformApplication.Current.Services
+            .GetRequiredService<SessionStorageService>();
 
         RequestDatePicker.Date = editingRequest?.Request_Date ?? DateTime.Today;
         LinesList.ItemsSource = _lines;
@@ -40,8 +43,17 @@ public partial class NewPaymentRequestPage : ContentPage
     protected override async void OnAppearing()
     {
         base.OnAppearing();
+        await LoadSessionContextAsync();
         if (!_referencesLoaded)
             await LoadReferencesAsync();
+    }
+
+    private async Task LoadSessionContextAsync()
+    {
+        var context = await _sessionStorage.GetPaymentRequestContextAsync();
+        CompanyContextLabel.Text = context?.Company ?? "الشركة: غير محددة";
+        BranchContextLabel.Text = context?.Branch ?? "الفرع: غير محدد";
+        FiscalYearContextLabel.Text = context?.FiscalYear ?? "السنة المالية: غير محددة";
     }
 
     private async Task LoadReferencesAsync()
@@ -50,7 +62,17 @@ public partial class NewPaymentRequestPage : ContentPage
         HideStatus();
         try
         {
-            _references = await _referenceService.GetAsync();
+            var result = await _referenceService.GetAsync();
+            if (!result.IsSuccess || result.References == null)
+            {
+                _hasOpenPeriod = false;
+                OpenPeriodLabel.Text = "تعذر التحقق من الفترة المالية المفتوحة.";
+                OpenPeriodLabel.TextColor = Color.FromArgb("#B42318");
+                ShowStatus(result.UserMessage);
+                return;
+            }
+
+            _references = result.References;
             AccountPicker.ItemsSource = _references.Accounts;
             CostCenterPicker.ItemsSource = _references.CostCenters;
             CurrencyPicker.ItemsSource = _references.Currencies;
@@ -64,17 +86,20 @@ public partial class NewPaymentRequestPage : ContentPage
                 PaymentMethodPicker.SelectedItem = _references.PaymentMethods[0];
 
             ApplyOpenPeriods();
+            if (_references.Accounts.Count == 0)
+                ShowStatus("لا توجد حسابات نشطة قابلة للترحيل متاحة لطلب الصرف.");
+
             if (_editingRequest != null)
                 PopulateForEdit();
 
             _referencesLoaded = true;
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             _hasOpenPeriod = false;
-            OpenPeriodLabel.Text = "تعذر تحميل الفترات المالية المفتوحة.";
+            OpenPeriodLabel.Text = "تعذر التحقق من الفترة المالية المفتوحة.";
             OpenPeriodLabel.TextColor = Color.FromArgb("#B42318");
-            ShowStatus(ex.Message);
+            ShowStatus("تعذر تحميل بيانات طلب الصرف.");
         }
         finally
         {
@@ -90,7 +115,7 @@ public partial class NewPaymentRequestPage : ContentPage
 
         if (!_hasOpenPeriod)
         {
-            OpenPeriodLabel.Text = "لا توجد فترة مالية مفتوحة للفرع والسنة الحالية.";
+            OpenPeriodLabel.Text = "لا توجد فترة مالية مفتوحة للفرع والسنة المالية المحددين.";
             OpenPeriodLabel.TextColor = Color.FromArgb("#B42318");
             return;
         }
@@ -350,7 +375,7 @@ public partial class NewPaymentRequestPage : ContentPage
         }
         catch (Exception ex)
         {
-            ShowStatus(ex.Message);
+            ShowStatus(MobileApiErrorHandler.GetUserMessage(ex));
         }
         finally
         {

@@ -59,24 +59,7 @@ public sealed class ReceiptVoucherService(HttpClient httpClient, SessionStorageS
 
     private static async Task EnsureSuccessAsync(HttpResponseMessage response, string fallback, CancellationToken cancellationToken)
     {
-        if (response.IsSuccessStatusCode) return;
-        var raw = await response.Content.ReadAsStringAsync(cancellationToken);
-        if (!string.IsNullOrWhiteSpace(raw))
-        {
-            try
-            {
-                using var json = JsonDocument.Parse(raw);
-                if (json.RootElement.TryGetProperty("message", out var message))
-                    throw new InvalidOperationException(message.GetString() ?? fallback);
-                if (json.RootElement.TryGetProperty("detail", out var detail))
-                    throw new InvalidOperationException(detail.GetString() ?? fallback);
-                if (json.RootElement.TryGetProperty("title", out var title))
-                    throw new InvalidOperationException(title.GetString() ?? fallback);
-            }
-            catch (JsonException)
-            {
-            }
-        }
-        throw new InvalidOperationException(fallback);
+        MobileApiErrorHandler.EnsureSuccess(response);
+        await Task.CompletedTask;
     }
 }

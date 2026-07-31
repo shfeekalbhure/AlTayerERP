@@ -14,15 +14,62 @@ public sealed class MobilePaymentRequestReferencesController : ControllerBase
     private readonly AppDbContext _db;
     private readonly ScreenAuthorizationService _authorization;
     private readonly ILogger<MobilePaymentRequestReferencesController> _logger;
+    private readonly IWebHostEnvironment _environment;
 
     public MobilePaymentRequestReferencesController(
         AppDbContext db,
         ScreenAuthorizationService authorization,
-        ILogger<MobilePaymentRequestReferencesController> logger)
+        ILogger<MobilePaymentRequestReferencesController> logger,
+        IWebHostEnvironment environment)
     {
         _db = db;
         _authorization = authorization;
         _logger = logger;
+        _environment = environment;
+    }
+
+    /// <summary>
+    /// تشخيص Development آمن: يعيد أعداد قوائم طلب الصرف وسياق الجلسة فقط.
+    /// لا يعرض محتوى الجداول أو بيانات الاتصال أو الرموز.
+    /// </summary>
+    [HttpGet("diagnostics")]
+    public async Task<IActionResult> GetDiagnostics(CancellationToken cancellationToken)
+    {
+        if (!_environment.IsDevelopment())
+            return NotFound();
+
+        if (HttpContext.Items["ServerSession"] is not ServerSession session)
+            return Unauthorized(new { message = "انتهت الجلسة أو أنها غير صالحة." });
+
+        var allowed = await _authorization.IsExplicitlyAllowedAsync(
+            session, "PaymentRequest", ScreenOperation.View, cancellationToken);
+        if (!allowed)
+            return Forbid();
+
+        var accountsCount = await _db.Chart_Of_Accounts.AsNoTracking()
+            .CountAsync(x => x.Company_ID == session.Company_ID && x.Is_Active && x.Is_Postable && !x.Is_Summary_Account, cancellationToken);
+        var costCentersCount = await _db.Cost_Centers.AsNoTracking()
+            .CountAsync(x => x.Company_ID == session.Company_ID && x.Is_Active && x.Is_Postable, cancellationToken);
+        var currenciesCount = await _db.Currencies.AsNoTracking()
+            .CountAsync(x => x.Company_ID == session.Company_ID && x.Is_Active, cancellationToken);
+        var paymentMethodsCount = await _db.Payment_Methods.AsNoTracking()
+            .CountAsync(x => x.Is_Active, cancellationToken);
+        var openPeriodsCount = await _db.Fiscal_Periods.AsNoTracking()
+            .CountAsync(x => x.Branch_ID == session.Branch_ID &&
+                             x.Fiscal_Year_ID == session.Year_ID &&
+                             x.Is_Active && !x.Is_Closed, cancellationToken);
+
+        return Ok(new
+        {
+            accountsCount,
+            costCentersCount,
+            currenciesCount,
+            paymentMethodsCount,
+            openPeriodsCount,
+            companyId = session.Company_ID,
+            branchId = session.Branch_ID,
+            fiscalYearId = session.Year_ID
+        });
     }
 
     [HttpGet]

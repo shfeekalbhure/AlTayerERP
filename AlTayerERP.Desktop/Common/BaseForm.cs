@@ -1,4 +1,5 @@
 using AlTayerERP.Desktop.Services;
+using System.ComponentModel;
 using System.Drawing;
 using System.Windows.Forms;
 
@@ -8,7 +9,7 @@ namespace AlTayerERP.Desktop.Common;
 /// القالب المركزي لشاشات المرحلة الأولى. يطبق هوية نظام الطائر السعيد،
 /// والتنسيق المتجاوب، وبطاقة التدقيق وسياق الجلسة دون التدخل في منطق الأعمال.
 /// </summary>
-public abstract class BaseForm : Form
+public class BaseForm : Form
 {
     private readonly Label _lblAuditSummary = new();
     private readonly Panel _pnlAuditBody = new();
@@ -20,8 +21,16 @@ public abstract class BaseForm : Form
     private bool _responsiveRefreshQueued;
     private bool _applyingResponsiveLayout;
 
+    private RequiredFieldStyleService? _requiredFieldStyle;
+
+    private static bool IsDesignTime =>
+        LicenseManager.UsageMode == LicenseUsageMode.Designtime;
+
     protected void ApplyBaseFormStyle()
     {
+        if (IsDesignTime)
+            return;
+
         RightToLeft = RightToLeft.Yes;
         RightToLeftLayout = true;
         Font = new Font("Segoe UI", 9.5F);
@@ -41,6 +50,9 @@ public abstract class BaseForm : Form
     protected override void OnShown(EventArgs e)
     {
         base.OnShown(e);
+        if (IsDesignTime)
+            return;
+
         ScheduleResponsiveRefresh();
     }
 
@@ -86,6 +98,7 @@ public abstract class BaseForm : Form
     {
         ReplaceLegacyHeader(root);
         StyleControlTree(root);
+        _requiredFieldStyle?.RefreshAppearance();
     }
 
     private void ReplaceLegacyHeader(Control root)
@@ -268,12 +281,15 @@ public abstract class BaseForm : Form
                     break;
                 case ComboBox combo:
                     combo.FlatStyle = FlatStyle.Flat;
-                    combo.BackColor = Color.White;
+                    combo.BackColor = combo.Enabled ? Color.White : Color.FromArgb(246, 248, 251);
                     combo.Margin = new Padding(4, 6, 4, 6);
+                    break;
+                case DateTimePicker dateTimePicker:
+                    dateTimePicker.CalendarMonthBackground = dateTimePicker.Enabled ? Color.White : Color.FromArgb(246, 248, 251);
                     break;
                 case NumericUpDown numeric:
                     numeric.BorderStyle = BorderStyle.FixedSingle;
-                    numeric.BackColor = Color.White;
+                    numeric.BackColor = numeric.Enabled ? Color.White : Color.FromArgb(246, 248, 251);
                     break;
                 case DataGridView grid:
                     StyleGrid(grid);
@@ -435,6 +451,23 @@ public abstract class BaseForm : Form
         SetAuditLabel("auditUpdatedBy", values.UpdatedBy);
         SetAuditLabel("auditUpdatedAt", FormatDate(values.UpdatedAt));
     }
+
+    /// <summary>تطبيق قاعدة الحقول الإلزامية الموحدة دون تلوين يدوي داخل الشاشة.</summary>
+    protected void ApplyRequiredFieldStyle(params Control[] requiredFields)
+    {
+        _requiredFieldStyle ??= new RequiredFieldStyleService(this);
+        _requiredFieldStyle.ApplyRequiredFieldStyle(requiredFields);
+    }
+
+    /// <summary>يعرض حدًا أحمر ورسالة عربية عند غياب قيمة إلزامية، ويعيد الحد تلقائياً بعد الإدخال.</summary>
+    protected bool ValidateRequiredField(Control field, string message, Func<bool>? hasValue = null)
+    {
+        _requiredFieldStyle ??= new RequiredFieldStyleService(this);
+        return _requiredFieldStyle.ValidateRequiredField(field, message, hasValue);
+    }
+
+    protected void ClearRequiredFieldValidation(Control field) =>
+        _requiredFieldStyle?.ClearValidation(field);
 
     protected void EnablePrintAudit() => _showPrintAudit = true;
 

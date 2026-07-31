@@ -23,9 +23,19 @@ namespace AlTayerERP.Desktop
         private List<BranchListModel> _branchesList = new List<BranchListModel>();
         private List<BranchTypeLookupModel> _branchTypes = new List<BranchTypeLookupModel>();
         private List<CityLookupModel> _cities = new List<CityLookupModel>();
+        private List<CountryLookupModel> _countries = new List<CountryLookupModel>();
+        private List<GovernorateLookupModel> _governorates = new List<GovernorateLookupModel>();
+        private readonly ComboBox cmbCountry = new ComboBox();
+        private readonly ComboBox cmbGovernorate = new ComboBox();
+        private readonly Label lblCountry = new Label();
+        private readonly Label lblGovernorate = new Label();
+        private bool _isLoadingGeography;
         private int _defaultCurrencyId;
         // يمنع إعادة تحميل الجدول أثناء تعبئة قائمة الشركات عند فتح الشاشة.
         private bool _isLoadingCompanies;
+
+        // يمنع تكرار رسالة الفشل نفسها أثناء إعادة التحميل أو تغيير الشركة.
+        private readonly HashSet<string> _shownLookupWarnings = new HashSet<string>();
 
         // كائنات نظام الطباعة والمعاينة
         private System.Drawing.Printing.PrintDocument printDocument = new System.Drawing.Printing.PrintDocument();
@@ -37,6 +47,10 @@ namespace AlTayerERP.Desktop
             InitializeComponent();
             // يرث القالب المرئي الموحد من BaseForm دون نقل قواعد الحفظ أو التدقيق إلى الواجهة.
             ApplyBaseFormStyle();
+            CreateGeographySelectors();
+            // تعريف الحقول الإلزامية مرة واحدة؛ الخدمة الموحدة تتولى اللون والتحقق والرسالة.
+            ApplyRequiredFieldStyle(cmbCompanies, txtBranchNameAr, cmbBranchType, cmbCountry, cmbGovernorate, cmbCity);
+            ConfigureBranchEditorLayout();
 
             // توحيد شكل الشاشة القديمة والاختصارات العربية دون تغيير منطقها.
             this.Load -= BranchForm_Load;
@@ -47,13 +61,70 @@ namespace AlTayerERP.Desktop
             printDocument.PrintPage += PrintDocument_PrintPage;
         }
 
+        /// <summary>يضبط حقول الاتصال والإدارة دون تلوين أو منطق مكرر داخل الشاشة.</summary>
+        private void ConfigureBranchEditorLayout()
+        {
+            cmbManager.FlatStyle = FlatStyle.Flat;
+            cmbManager.Width = 138;
+            txtPhone.Width = 112;
+            txtMobile.Width = 112;
+            txtEmail.Width = 112;
+            txtWebsite.Width = 112;
+            cmbCity.Location = new Point(756, 171);
+            label15.Location = new Point(670, 174);
+        }
+
+        /// <summary>إنشاء سلاسل الموقع: الدولة ثم المحافظة ثم المدينة.</summary>
+        private void CreateGeographySelectors()
+        {
+            ConfigureGeographyCombo(cmbCountry, "cmbCountry", new Point(756, 99));
+            ConfigureGeographyCombo(cmbGovernorate, "cmbGovernorate", new Point(756, 135));
+            ConfigureGeographyLabel(lblCountry, "lblCountry", "الدولة", new Point(680, 102));
+            ConfigureGeographyLabel(lblGovernorate, "lblGovernorate", "المحافظة", new Point(660, 138));
+
+            Controls.Add(cmbCountry);
+            Controls.Add(cmbGovernorate);
+            Controls.Add(lblCountry);
+            Controls.Add(lblGovernorate);
+            cmbCountry.BringToFront();
+            cmbGovernorate.BringToFront();
+            lblCountry.BringToFront();
+            lblGovernorate.BringToFront();
+
+            cmbCountry.SelectedValueChanged += cmbCountry_SelectedValueChanged;
+            cmbGovernorate.SelectedValueChanged += cmbGovernorate_SelectedValueChanged;
+        }
+
+        private static void ConfigureGeographyCombo(ComboBox combo, string name, Point location)
+        {
+            combo.Name = name;
+            combo.DropDownStyle = ComboBoxStyle.DropDownList;
+            combo.FlatStyle = FlatStyle.Flat;
+            combo.Location = location;
+            combo.Size = new Size(152, 33);
+        }
+
+        private static void ConfigureGeographyLabel(Label label, string name, string text, Point location)
+        {
+            label.Name = name;
+            label.Text = text;
+            label.AutoSize = true;
+            label.Location = location;
+        }
+
+        private void ShowLookupWarningOnce(string key, string message, string title, MessageBoxIcon icon = MessageBoxIcon.Warning)
+        {
+            if (_shownLookupWarnings.Add(key))
+                MessageBox.Show(message, title, MessageBoxButtons.OK, icon);
+        }
+
         private async void BranchForm_Load(object sender, EventArgs e)
         {
             SetupBranchesGrid();
             ClearBranchTypes();
             InitializeStatusComboBox();
             await LoadCompaniesAsync();
-            await LoadCitiesAsync();
+            await LoadCountriesAsync();
             await LoadBranchesAsync();
         }
 
@@ -99,15 +170,15 @@ namespace AlTayerERP.Desktop
                 cmbBranchType.ValueMember = nameof(BranchTypeLookupModel.Branch_Type_Code);
                 cmbBranchType.SelectedIndex = -1;
                 if (_branchTypes.Count == 0)
-                    MessageBox.Show("لا توجد أنواع فروع نشطة. أضف نوع فرع أو فعّله ثم أعد المحاولة.", "قائمة أنواع الفروع", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    ShowLookupWarningOnce("branch-types-empty", "لا توجد أنواع فروع نشطة. أضف نوع فرع أو فعّله ثم أعد المحاولة.", "قائمة أنواع الفروع");
             }
             catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
             {
-                MessageBox.Show("تعذر تحميل قائمة أنواع الفروع لأن خدمة أنواع الفروع غير موجودة في API المشغّل. حدّث API ثم أعد تشغيله.", "قائمة أنواع الفروع", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                ShowLookupWarningOnce("branch-types-not-found", "تعذر تحميل قائمة أنواع الفروع لأن خدمة أنواع الفروع غير موجودة في API المشغّل. حدّث API ثم أعد تشغيله.", "قائمة أنواع الفروع");
             }
             catch (Exception ex)
             {
-                MessageBox.Show("تعذر تحميل قائمة أنواع الفروع:\n" + ex.Message, "قائمة أنواع الفروع", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                ShowLookupWarningOnce("branch-types-error", "تعذر تحميل قائمة أنواع الفروع. تحقق من اتصال API ثم أعد المحاولة.", "قائمة أنواع الفروع");
             }
         }
 
@@ -123,15 +194,15 @@ namespace AlTayerERP.Desktop
                     ?? currencies.FirstOrDefault();
                 _defaultCurrencyId = currency?.Currency_ID ?? 0;
                 if (_defaultCurrencyId <= 0)
-                    MessageBox.Show("لا توجد عملة نشطة للشركة المختارة. أضف عملة افتراضية للشركة ثم أعد المحاولة.", "قائمة عملات الشركة", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    ShowLookupWarningOnce("currencies-empty", "لا توجد عملة نشطة للشركة المختارة. أضف عملة افتراضية للشركة ثم أعد المحاولة.", "قائمة عملات الشركة");
             }
             catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
             {
-                MessageBox.Show("تعذر تحميل قائمة عملات الشركة لأن الشركة أو خدمة العملات غير موجودة في API المشغّل.", "قائمة عملات الشركة", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                ShowLookupWarningOnce("currencies-not-found", "تعذر تحميل قائمة عملات الشركة لأن الشركة أو خدمة العملات غير موجودة في API المشغّل.", "قائمة عملات الشركة");
             }
             catch (Exception ex)
             {
-                MessageBox.Show("تعذر تحميل قائمة عملات الشركة:\n" + ex.Message, "قائمة عملات الشركة", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                ShowLookupWarningOnce("currencies-error", "تعذر تحميل قائمة عملات الشركة. تحقق من اتصال API ثم أعد المحاولة.", "قائمة عملات الشركة");
             }
         }
 
@@ -144,7 +215,7 @@ namespace AlTayerERP.Desktop
                 if (companies is null || companies.Count == 0)
                 {
                     cmbCompanies.DataSource = null;
-                    MessageBox.Show("لا توجد شركات نشطة متاحة. فعّل شركة أولاً ثم أعد فتح شاشة الفروع.", "قائمة الشركات", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    ShowLookupWarningOnce("companies-empty", "لا توجد شركات نشطة متاحة. فعّل شركة أولاً ثم أعد فتح شاشة الفروع.", "قائمة الشركات");
                     return;
                 }
 
@@ -158,7 +229,7 @@ namespace AlTayerERP.Desktop
             }
             catch (Exception ex)
             {
-                MessageBox.Show("تعذر تحميل قائمة الشركات:\n" + ex.Message, "قائمة الشركات", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                ShowLookupWarningOnce("companies-error", "تعذر تحميل قائمة الشركات. تحقق من اتصال API ثم أعد المحاولة.", "قائمة الشركات");
             }
             finally
             {
@@ -190,24 +261,93 @@ namespace AlTayerERP.Desktop
             }
         }
 
-        /// <summary>تحميل المدن النشطة من جدول المدن لتكون مرجع موقع الفرع.</summary>
-        private async Task LoadCitiesAsync()
+        /// <summary>تحميل الدول أولاً؛ لا تصبح المحافظة والمدينة متاحتين قبل اختيارها.</summary>
+        private async Task LoadCountriesAsync()
+        {
+            try
+            {
+                _countries = await _client.GetFromJsonAsync<List<CountryLookupModel>>(
+                    $"{_baseUrl}GeographicReferences/countries?activeOnly=true") ?? new List<CountryLookupModel>();
+                cmbCountry.DataSource = _countries;
+                cmbCountry.DisplayMember = nameof(CountryLookupModel.Country_Name_AR);
+                cmbCountry.ValueMember = nameof(CountryLookupModel.Country_ID);
+                cmbCountry.SelectedIndex = -1;
+                ClearGovernoratesAndCities();
+                if (_countries.Count == 0)
+                    ShowLookupWarningOnce("countries-empty", "لا توجد دول نشطة. أضف دولة أو فعّلها ثم أعد المحاولة.", "قائمة الدول");
+            }
+            catch
+            {
+                ShowLookupWarningOnce("countries-error", "تعذر تحميل قائمة الدول. تحقق من اتصال API ثم أعد المحاولة.", "قائمة الدول");
+            }
+        }
+
+        private async void cmbCountry_SelectedValueChanged(object? sender, EventArgs e)
+        {
+            if (_isLoadingGeography || cmbCountry.SelectedValue is not int countryId)
+                return;
+
+            await LoadGovernoratesAsync(countryId);
+        }
+
+        private async Task LoadGovernoratesAsync(int countryId)
+        {
+            try
+            {
+                _governorates = await _client.GetFromJsonAsync<List<GovernorateLookupModel>>(
+                    $"{_baseUrl}GeographicReferences/governorates?countryId={countryId}&activeOnly=true") ?? new List<GovernorateLookupModel>();
+                cmbGovernorate.DataSource = _governorates;
+                cmbGovernorate.DisplayMember = nameof(GovernorateLookupModel.Governorate_Name_AR);
+                cmbGovernorate.ValueMember = nameof(GovernorateLookupModel.Governorate_ID);
+                cmbGovernorate.SelectedIndex = -1;
+                ClearCities();
+                if (_governorates.Count == 0)
+                    ShowLookupWarningOnce("governorates-empty", "لا توجد محافظات نشطة داخل الدولة المختارة.", "قائمة المحافظات");
+            }
+            catch
+            {
+                ShowLookupWarningOnce("governorates-error", "تعذر تحميل قائمة المحافظات. تحقق من اتصال API ثم أعد المحاولة.", "قائمة المحافظات");
+            }
+        }
+
+        private async void cmbGovernorate_SelectedValueChanged(object? sender, EventArgs e)
+        {
+            if (_isLoadingGeography || cmbGovernorate.SelectedValue is not int governorateId)
+                return;
+
+            await LoadCitiesAsync(governorateId);
+        }
+
+        private async Task LoadCitiesAsync(int governorateId)
         {
             try
             {
                 _cities = await _client.GetFromJsonAsync<List<CityLookupModel>>(
-                    $"{_baseUrl}GeographicReferences/cities?activeOnly=true") ?? new List<CityLookupModel>();
+                    $"{_baseUrl}GeographicReferences/cities?governorateId={governorateId}&activeOnly=true") ?? new List<CityLookupModel>();
                 cmbCity.DataSource = _cities;
                 cmbCity.DisplayMember = nameof(CityLookupModel.City_Name_AR);
                 cmbCity.ValueMember = nameof(CityLookupModel.City_ID);
                 cmbCity.SelectedIndex = -1;
                 if (_cities.Count == 0)
-                    MessageBox.Show("لا توجد مدن نشطة في جدول المدن. أضف مدينة أو فعّلها ثم أعد المحاولة.", "قائمة المدن", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    ShowLookupWarningOnce("cities-empty", "لا توجد مدن نشطة داخل المحافظة المختارة.", "قائمة المدن");
             }
-            catch (Exception ex)
+            catch
             {
-                MessageBox.Show("تعذر تحميل المدن من جدول المدن:\n" + ex.Message, "الفروع", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                ShowLookupWarningOnce("cities-error", "تعذر تحميل قائمة المدن. تحقق من اتصال API ثم أعد المحاولة.", "قائمة المدن");
             }
+        }
+
+        private void ClearGovernoratesAndCities()
+        {
+            cmbGovernorate.DataSource = null;
+            cmbGovernorate.Items.Clear();
+            ClearCities();
+        }
+
+        private void ClearCities()
+        {
+            cmbCity.DataSource = null;
+            cmbCity.Items.Clear();
         }
 
         /// <summary>يحمّل فروع الشركة المحددة فقط، ولا يغيّر سياق الجلسة أو صلاحياتها.</summary>
@@ -248,7 +388,7 @@ namespace AlTayerERP.Desktop
         private void cmbParentBranch_DropDown(object? sender, EventArgs e)
         {
             if (cmbParentBranch.Items.Count == 0)
-                MessageBox.Show("لا يوجد فرع أب نشط من نوع «فرع رئيسي» أو «فرع» ضمن الشركة المختارة.", "قائمة الفرع الأب", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                ShowLookupWarningOnce("parent-branch-empty", "لا يوجد فرع أب نشط من نوع «فرع رئيسي» أو «فرع» ضمن الشركة المختارة.", "قائمة الفرع الأب", MessageBoxIcon.Information);
         }
 
         private void SetupBranchesGrid()
@@ -314,7 +454,10 @@ namespace AlTayerERP.Desktop
             cmbCompanies.SelectedValue = CurrentSession.Company_ID;
             cmbBranchType.SelectedIndex = -1;
             cmbParentBranch.SelectedIndex = -1;
-            cmbCity.SelectedIndex = -1;
+            _isLoadingGeography = true;
+            cmbCountry.SelectedIndex = -1;
+            ClearGovernoratesAndCities();
+            _isLoadingGeography = false;
             cmbManager.SelectedIndex = -1;
 
             cmbStatus.SelectedItem = "نشط";
@@ -352,29 +495,23 @@ namespace AlTayerERP.Desktop
 
         private bool ValidateForm()
         {
-            if (cmbCompanies.SelectedValue == null)
-            {
-                MessageBox.Show("يرجى اختيار الشركة التابعة.");
+            if (!ValidateRequiredField(cmbCompanies, "اختر الشركة التابعة."))
                 return false;
-            }
 
-            if (string.IsNullOrWhiteSpace(txtBranchNameAr.Text))
-            {
-                MessageBox.Show("يرجى إدخال اسم الفرع بالعربي.");
+            if (!ValidateRequiredField(txtBranchNameAr, "أدخل اسم الفرع بالعربي."))
                 return false;
-            }
 
-            if (cmbBranchType.SelectedValue is null)
-            {
-                MessageBox.Show("يرجى اختيار نوع الفرع.");
+            if (!ValidateRequiredField(cmbBranchType, "اختر نوع الفرع."))
                 return false;
-            }
 
-            if (cmbCity.SelectedValue is null)
-            {
-                MessageBox.Show("يرجى اختيار المدينة من قائمة المدن.");
+            if (!ValidateRequiredField(cmbCountry, "اختر الدولة."))
                 return false;
-            }
+
+            if (!ValidateRequiredField(cmbGovernorate, "اختر المحافظة."))
+                return false;
+
+            if (!ValidateRequiredField(cmbCity, "اختر المدينة من القائمة."))
+                return false;
 
             if (cmbParentBranch.SelectedValue is not null &&
                 Convert.ToInt32(cmbParentBranch.SelectedValue) == _selectedBranchId)
@@ -497,8 +634,26 @@ namespace AlTayerERP.Desktop
             try
             {
                 var geography = await _client.GetFromJsonAsync<BranchGeographyModel>($"{_baseUrl}branch-geography/{branchId}");
-                cmbCity.SelectedValue = geography?.City_ID ?? -1;
-                if (cmbCity.SelectedIndex < 0) cmbCity.SelectedIndex = -1;
+                if (geography?.Country_ID is not int countryId || geography.Governorate_ID is not int governorateId)
+                {
+                    ClearGovernoratesAndCities();
+                    return;
+                }
+
+                _isLoadingGeography = true;
+                try
+                {
+                    cmbCountry.SelectedValue = countryId;
+                    await LoadGovernoratesAsync(countryId);
+                    cmbGovernorate.SelectedValue = governorateId;
+                    await LoadCitiesAsync(governorateId);
+                    cmbCity.SelectedValue = geography.City_ID ?? -1;
+                    if (cmbCity.SelectedIndex < 0) cmbCity.SelectedIndex = -1;
+                }
+                finally
+                {
+                    _isLoadingGeography = false;
+                }
             }
             catch (Exception ex)
             {
@@ -985,6 +1140,19 @@ namespace AlTayerERP.Desktop
         public int Currency_ID { get; set; }
         public bool Is_Local_Currency { get; set; }
         public bool Is_Default { get; set; }
+    }
+
+    internal sealed class CountryLookupModel
+    {
+        public int Country_ID { get; set; }
+        public string Country_Name_AR { get; set; } = string.Empty;
+    }
+
+    internal sealed class GovernorateLookupModel
+    {
+        public int Governorate_ID { get; set; }
+        public int Country_ID { get; set; }
+        public string Governorate_Name_AR { get; set; } = string.Empty;
     }
 
     internal sealed class CityLookupModel
