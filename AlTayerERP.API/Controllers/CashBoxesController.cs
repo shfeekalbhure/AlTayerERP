@@ -19,6 +19,8 @@ namespace AlTayerERP.API.Controllers
         private readonly CashBoxNumberService _numbers;
         private readonly ScreenAuthorizationService _authorization;
         private readonly AuditTrailService _audit;
+        // يمنع تعارض الترقيم داخل نسخة الـ API الواحدة إلى أن تُضاف حماية فريدة على مستوى قاعدة البيانات في حزمة مستقلة.
+        private static readonly System.Threading.SemaphoreSlim CashBoxCreationGate = new(1, 1);
 
         public CashBoxesController(AppDbContext context, AccountNumberService accounts, CashBoxNumberService numbers, ScreenAuthorizationService authorization, AuditTrailService audit)
         {
@@ -139,61 +141,70 @@ namespace AlTayerERP.API.Controllers
         {
             var error = await RequireAsync(ScreenOperation.Add);
             if (error != null || Session == null) return error!;
-            var validation = await ValidateAsync(dto, null);
-            if (validation != null) return BadRequest(new { message = validation });
-
             if (dto.Opening_Balance != 0)
                 return BadRequest(new { message = "لا يسمح بإدخال رصيد افتتاحي من شاشة تعريف الصندوق. استخدم مستند الأرصدة الافتتاحية." });
 
-            var parent = await _context.Chart_Of_Accounts.FirstAsync(x => x.Account_ID == dto.Account_ID && x.Company_ID == Session.Company_ID);
-            await using var tx = await _context.Database.BeginTransactionAsync();
-
-            var account = new ChartOfAccount
+            await CashBoxCreationGate.WaitAsync(HttpContext.RequestAborted);
+            try
             {
-                Account_ID = Guid.NewGuid().ToString(),
-                Company_ID = Session.Company_ID,
-                Parent_Account_ID = parent.Account_ID,
-                Account_Code = await _accounts.GenerateAccountCodeAsync(Session.Company_ID, parent.Account_ID),
-                Account_Name_AR = dto.Box_Name_AR.Trim(),
-                Account_Name_EN = Text(dto.Box_Name_EN),
-                Account_Type = "Asset",
-                Account_Category = "Cash",
-                Normal_Balance = "Debit",
-                Account_Level = parent.Account_Level + 1,
-                Is_Postable = true,
-                Is_Summary_Account = false,
-                Currency_Code = dto.Currency_Code.Trim().ToUpperInvariant(),
-                Is_Active = true,
-                Allow_ManualEntry = false,
-                System_Account = true,
-                Created_By = Session.User_ID.ToString(),
-                Created_At = DateTime.UtcNow
-            };
-            _context.Chart_Of_Accounts.Add(account);
+                // يعاد التحقق بعد دخول البوابة حتى لا يمر اسم أو كود متكرر بسبب طلب متزامن.
+                var validation = await ValidateAsync(dto, null);
+                if (validation != null) return BadRequest(new { message = validation });
 
-            var row = new CashBox
+                var parent = await _context.Chart_Of_Accounts.FirstAsync(x => x.Account_ID == dto.Account_ID && x.Company_ID == Session.Company_ID);
+                await using var tx = await _context.Database.BeginTransactionAsync();
+
+                var account = new ChartOfAccount
+                {
+                    Account_ID = Guid.NewGuid().ToString(),
+                    Company_ID = Session.Company_ID,
+                    Parent_Account_ID = parent.Account_ID,
+                    Account_Code = await _accounts.GenerateAccountCodeAsync(Session.Company_ID, parent.Account_ID),
+                    Account_Name_AR = dto.Box_Name_AR.Trim(),
+                    Account_Name_EN = Text(dto.Box_Name_EN),
+                    Account_Type = "Asset",
+                    Account_Category = "Cash",
+                    Normal_Balance = "Debit",
+                    Account_Level = parent.Account_Level + 1,
+                    Is_Postable = true,
+                    Is_Summary_Account = false,
+                    Currency_Code = dto.Currency_Code.Trim().ToUpperInvariant(),
+                    Is_Active = true,
+                    Allow_ManualEntry = false,
+                    System_Account = true,
+                    Created_By = Session.User_ID.ToString(),
+                    Created_At = DateTime.UtcNow
+                };
+                _context.Chart_Of_Accounts.Add(account);
+
+                var row = new CashBox
+                {
+                    Cash_Box_ID = Guid.NewGuid().ToString(),
+                    Company_ID = Session.Company_ID,
+                    Branch_ID = Session.Branch_ID,
+                    Account_ID = account.Account_ID,
+                    Currency_Code = account.Currency_Code!,
+                    CashBox_Code = await _numbers.GenerateCashBoxCodeAsync(Session.Company_ID),
+                    Box_Name_AR = dto.Box_Name_AR.Trim(),
+                    Box_Name_EN = Text(dto.Box_Name_EN),
+                    Opening_Balance = 0,
+                    Max_Limit = dto.Max_Limit,
+                    Min_Limit = dto.Min_Limit,
+                    Is_Active = true,
+                    Notes = Text(dto.Notes),
+                    Created_By = Session.User_ID.ToString(),
+                    Created_At = DateTime.UtcNow
+                };
+                _context.Cash_Boxes.Add(row);
+                _audit.Add(Session, HttpContext, "cash_boxes", row.Cash_Box_ID, "CREATE", null, new { row.CashBox_Code, row.Box_Name_AR, row.Account_ID, row.Currency_Code, row.Branch_ID });
+                await _context.SaveChangesAsync();
+                await tx.CommitAsync();
+                return CreatedAtAction(nameof(GetCashBox), new { id = row.Cash_Box_ID }, row);
+            }
+            finally
             {
-                Cash_Box_ID = Guid.NewGuid().ToString(),
-                Company_ID = Session.Company_ID,
-                Branch_ID = Session.Branch_ID,
-                Account_ID = account.Account_ID,
-                Currency_Code = account.Currency_Code!,
-                CashBox_Code = await _numbers.GenerateCashBoxCodeAsync(Session.Company_ID),
-                Box_Name_AR = dto.Box_Name_AR.Trim(),
-                Box_Name_EN = Text(dto.Box_Name_EN),
-                Opening_Balance = 0,
-                Max_Limit = dto.Max_Limit,
-                Min_Limit = dto.Min_Limit,
-                Is_Active = true,
-                Notes = Text(dto.Notes),
-                Created_By = Session.User_ID.ToString(),
-                Created_At = DateTime.UtcNow
-            };
-            _context.Cash_Boxes.Add(row);
-            _audit.Add(Session, HttpContext, "cash_boxes", row.Cash_Box_ID, "CREATE", null, new { row.CashBox_Code, row.Box_Name_AR, row.Account_ID, row.Currency_Code, row.Branch_ID });
-            await _context.SaveChangesAsync();
-            await tx.CommitAsync();
-            return CreatedAtAction(nameof(GetCashBox), new { id = row.Cash_Box_ID }, row);
+                CashBoxCreationGate.Release();
+            }
         }
 
         [HttpPut("{id}")]
@@ -244,10 +255,14 @@ namespace AlTayerERP.API.Controllers
         }
 
         [HttpDelete("{id}")]
-        public async Task<IActionResult> Deactivate(string id, [FromQuery] string? reason)
+        public async Task<IActionResult> Deactivate(string id, [FromBody] CashBoxStatusReasonDto? dto)
         {
             var error = await RequireAsync(ScreenOperation.Delete);
             if (error != null || Session == null) return error!;
+            var reason = NormalizeReason(dto?.Reason);
+            if (reason == null)
+                return BadRequest(new { message = "سبب إيقاف الصندوق مطلوب، وبحد أقصى 500 حرف." });
+
             var row = await _context.Cash_Boxes.FirstOrDefaultAsync(x => x.Cash_Box_ID == id && x.Company_ID == Session.Company_ID && x.Branch_ID == Session.Branch_ID);
             if (row == null) return NotFound(new { message = "الصندوق غير موجود في نطاق الفرع الحالي." });
             if (!row.Is_Active) return BadRequest(new { message = "الصندوق موقوف مسبقاً." });
@@ -261,6 +276,7 @@ namespace AlTayerERP.API.Controllers
             if (Math.Abs(currentBalance) > 0.009m)
                 return BadRequest(new { message = $"لا يمكن إيقاف الصندوق لأن رصيده الدفتري الحالي {currentBalance:N2}. يجب تصفير الرصيد وإقفال العهدة أولاً." });
 
+            await using var transaction = await _context.Database.BeginTransactionAsync();
             row.Is_Active = false;
             row.Updated_By = Session.User_ID.ToString();
             row.Updated_At = DateTime.UtcNow;
@@ -273,6 +289,7 @@ namespace AlTayerERP.API.Controllers
             }
             _audit.Add(Session, HttpContext, "cash_boxes", row.Cash_Box_ID, "DEACTIVATE", new { Is_Active = true }, new { Is_Active = false }, reason);
             await _context.SaveChangesAsync();
+            await transaction.CommitAsync();
             return Ok(new { message = "تم إيقاف الصندوق وحسابه المرتبط بعد التحقق من أن رصيده صفر ولا توجد حركات معلقة." });
         }
 
@@ -292,7 +309,7 @@ namespace AlTayerERP.API.Controllers
                 x.Normal_Balance == "Debit" &&
                 x.Is_Active);
             if (!cashCategoryExists)
-                return "تصنيف النقدية Cash غير موجود أو غير فعال للشركة الحالية. نفذ سكربت تصنيفات الحسابات أولاً.";
+                return "تصنيف النقدية Cash غير موجود أو غير فعال للشركة الحالية. تواصل مع مسؤول النظام لاستكمال إعداد دليل الحسابات.";
 
             var parent = await _context.Chart_Of_Accounts.AsNoTracking().FirstOrDefaultAsync(x => x.Account_ID == dto.Account_ID && x.Company_ID == Session.Company_ID);
             if (parent == null || !parent.Is_Active || parent.Is_Postable || !parent.Is_Summary_Account)
@@ -329,6 +346,12 @@ namespace AlTayerERP.API.Controllers
                             && !x.JournalEntry.Is_Cancelled
                             && !x.JournalEntry.Is_Reversed)
                 .SumAsync(x => (decimal?)(x.Debit_Amount - x.Credit_Amount)) ?? 0m;
+
+        private static string? NormalizeReason(string? reason)
+        {
+            var value = reason?.Trim();
+            return string.IsNullOrWhiteSpace(value) || value.Length > 500 ? null : value;
+        }
 
         private static string? Text(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
     }

@@ -38,8 +38,9 @@ namespace AlTayerERP.API.Controllers
             if (!await _authorization.IsAllowedAsync(Session, "CashBoxes", ScreenOperation.Reactivate))
                 return Forbid();
 
-            if (dto == null || string.IsNullOrWhiteSpace(dto.Reason))
-                return BadRequest(new { message = "سبب إعادة تفعيل الصندوق مطلوب." });
+            var reason = NormalizeReason(dto?.Reason);
+            if (reason == null)
+                return BadRequest(new { message = "سبب إعادة تفعيل الصندوق مطلوب، وبحد أقصى 500 حرف." });
 
             var row = await _context.Cash_Boxes.FirstOrDefaultAsync(x =>
                 x.Cash_Box_ID == id &&
@@ -65,9 +66,9 @@ namespace AlTayerERP.API.Controllers
                 x.Is_Active &&
                 x.Is_Summary_Account &&
                 !x.Is_Postable &&
-                (x.Account_Category == "Cash" ||
-                 x.Account_Name_AR.Contains("صندوق") ||
-                 x.Account_Name_AR.Contains("نقد")));
+                x.Account_Type == "Asset" &&
+                x.Account_Category == "Cash" &&
+                x.Normal_Balance == "Debit");
 
             if (!parentIsValid)
                 return BadRequest(new { message = "لا يمكن إعادة التفعيل لأن حساب الصناديق الأب موقوف أو غير تجميعي." });
@@ -98,12 +99,18 @@ namespace AlTayerERP.API.Controllers
                 "REACTIVATE",
                 new { Is_Active = false },
                 new { Is_Active = true },
-                dto.Reason.Trim());
+                reason);
 
             await _context.SaveChangesAsync();
             await transaction.CommitAsync();
 
             return Ok(new { message = "تمت إعادة تفعيل الصندوق وحسابه المرتبط بنجاح." });
+        }
+
+        private static string? NormalizeReason(string? reason)
+        {
+            var value = reason?.Trim();
+            return string.IsNullOrWhiteSpace(value) || value.Length > 500 ? null : value;
         }
 
         /// <summary>يسجل معاينة طباعة قائمة الصناديق في التدقيق المركزي دون تعديل أي رصيد.</summary>

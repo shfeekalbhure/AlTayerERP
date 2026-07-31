@@ -490,8 +490,11 @@ namespace AlTayerERP.Desktop
             try
             {
                 SetBusy(true);
-                var response = await _client.DeleteAsync(
-                    $"{_baseUrl}CashBoxes/{_selectedCashBoxId}?reason={Uri.EscapeDataString(reason)}");
+                using var request = new HttpRequestMessage(HttpMethod.Delete, $"{_baseUrl}CashBoxes/{_selectedCashBoxId}")
+                {
+                    Content = JsonContent.Create(new { Reason = reason })
+                };
+                var response = await _client.SendAsync(request);
                 if (!response.IsSuccessStatusCode)
                 {
                     await ShowApiErrorAsync(response, "تعذر إيقاف الصندوق");
@@ -969,19 +972,37 @@ namespace AlTayerERP.Desktop
         private async Task ShowApiErrorAsync(HttpResponseMessage response, string title)
         {
             var raw = await response.Content.ReadAsStringAsync();
-            var message = raw;
+            var message = DefaultApiMessage(response.StatusCode);
             try
             {
                 using var json = JsonDocument.Parse(raw);
-                if (json.RootElement.TryGetProperty("message", out var value))
-                    message = value.GetString() ?? raw;
+                if (json.RootElement.TryGetProperty("message", out var value) && IsSafeArabicMessage(value.GetString()))
+                    message = value.GetString()!;
             }
             catch (JsonException)
             {
-                // تعرض الاستجابة النصية كما هي عندما لا تكون JSON.
+                // لا تعرض الاستجابة الخام للمستخدم.
             }
             MessageBox.Show(message, title, MessageBoxButtons.OK, MessageBoxIcon.Warning);
         }
+
+        private static string DefaultApiMessage(System.Net.HttpStatusCode statusCode) => statusCode switch
+        {
+            System.Net.HttpStatusCode.Unauthorized => "انتهت جلسة الدخول. يرجى تسجيل الدخول من جديد.",
+            System.Net.HttpStatusCode.Forbidden => "ليس لديك صلاحية لتنفيذ هذه العملية.",
+            System.Net.HttpStatusCode.NotFound => "البيانات المطلوبة غير موجودة أو لا يسمح لك بالوصول إليها.",
+            System.Net.HttpStatusCode.Conflict => "تم تعديل البيانات من مستخدم آخر أو تغيّرت حالتها. حمّل أحدث البيانات ثم أعد المحاولة.",
+            _ => "تعذر تنفيذ العملية. حاول مرة أخرى أو تواصل مع مسؤول النظام."
+        };
+
+        private static bool IsSafeArabicMessage(string? value) =>
+            !string.IsNullOrWhiteSpace(value) &&
+            value!.Any(char.IsLetter) &&
+            value.Any(ch => ch >= '\u0600' && ch <= '\u06FF') &&
+            !value.Contains("http", StringComparison.OrdinalIgnoreCase) &&
+            !value.Contains("json", StringComparison.OrdinalIgnoreCase) &&
+            !value.Contains("exception", StringComparison.OrdinalIgnoreCase) &&
+            !value.Contains("stack", StringComparison.OrdinalIgnoreCase);
 
         private static string? NullIfWhiteSpace(string? value) =>
             string.IsNullOrWhiteSpace(value) ? null : value.Trim();
@@ -993,7 +1014,7 @@ namespace AlTayerERP.Desktop
             control.Value = Math.Min(control.Maximum, Math.Max(control.Minimum, value));
 
         private static void ShowError(string title, Exception ex) =>
-            MessageBox.Show($"{title}: {ex.Message}", "خطأ", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            MessageBox.Show($"{title}. تعذر الاتصال بخدمة النظام أو إكمال العملية. حاول مرة أخرى.", "خطأ", MessageBoxButtons.OK, MessageBoxIcon.Error);
 
         private static string? PromptReason(string title, string labelText)
         {
