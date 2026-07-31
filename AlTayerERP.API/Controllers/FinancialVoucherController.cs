@@ -28,6 +28,7 @@ namespace AlTayerERP.API.Controllers
         private readonly VoucherPostingService _postingService;
         private readonly ScreenAuthorizationService _screenAuthorization;
         private readonly AppDbContext _context;
+        private readonly ILogger<FinancialVoucherController> _logger;
 
         #endregion
 
@@ -39,7 +40,8 @@ namespace AlTayerERP.API.Controllers
             VoucherApprovalService approvalService,
             VoucherPostingService postingService,
             ScreenAuthorizationService screenAuthorization,
-            AppDbContext context)
+            AppDbContext context,
+            ILogger<FinancialVoucherController> logger)
         {
             _service = service;
             _journalEntryInquiryService = journalEntryInquiryService;
@@ -47,6 +49,7 @@ namespace AlTayerERP.API.Controllers
             _postingService = postingService;
             _screenAuthorization = screenAuthorization;
             _context = context;
+            _logger = logger;
         }
 
         #endregion
@@ -212,6 +215,11 @@ namespace AlTayerERP.API.Controllers
 
             if (!result.Success)
             {
+                _logger.LogWarning(
+                    "Financial voucher creation rejected. VoucherTypeId={VoucherTypeId}; Message={Message}",
+                    dto.Voucher_Type_ID,
+                    result.Message);
+
                 return BadRequest(new
                 {
                     success = false,
