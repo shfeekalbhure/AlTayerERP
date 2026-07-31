@@ -78,6 +78,14 @@ public class BaseForm : Form
         }
     }
 
+    /// <summary>
+    /// اسم توافقي مستخدم في بعض الشاشات القديمة، ويعيد التوجيه إلى التنفيذ الموحد.
+    /// </summary>
+    protected void ApplyRequiredFieldStyle(params Control[] controls)
+    {
+        ApplyRequiredFieldsStyle(controls);
+    }
+
     /// <summary>ينشئ لوحة التدقيق المشتركة التي يمكن إضافتها إلى أي شاشة.</summary>
     protected Panel CreateAuditInfoPanel()
     {
