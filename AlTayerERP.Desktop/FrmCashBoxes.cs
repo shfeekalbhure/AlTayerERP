@@ -430,7 +430,7 @@ namespace AlTayerERP.Desktop
             _errors.SetError(cmbBranch, branchCount == 0 ? "فرع الجلسة غير متاح أو موقوف." : string.Empty);
             _errors.SetError(cmbCurrency, currencyCount == 0 ? "لا توجد عملات فعالة للشركة الحالية." : string.Empty);
             _errors.SetError(cmbAccount, accountCount == 0
-                ? "لا يوجد حساب صناديق أب نشط وتجميعي. عرّف الحساب في دليل الحسابات ثم اضغط تحديث."
+                ? "لا يوجد حساب مالي نقدي نهائي متاح للصناديق. عرّف الحساب في دليل الحسابات ثم اضغط تحديث."
                 : string.Empty);
         }
 
@@ -455,13 +455,6 @@ namespace AlTayerERP.Desktop
 
         private async void btnNew_Click(object? sender, EventArgs e)
         {
-            if (!_masterDataReady)
-            {
-                MessageBox.Show("استكمل الفرع والعملة وحساب الصناديق الأب أولًا.", "بيانات مرجعية ناقصة",
-                    MessageBoxButtons.OK, MessageBoxIcon.Information);
-                return;
-            }
-
             ClearForm();
             _isNewMode = true;
             UpdateActionState();
@@ -471,7 +464,7 @@ namespace AlTayerERP.Desktop
 
         private async void btnSave_Click(object? sender, EventArgs e)
         {
-            if (!_masterDataReady || (!_isNewMode && !_isEditMode) || !ValidateForm())
+            if ((!_isNewMode && !_isEditMode) || !ValidateForm())
                 return;
 
             if (_isNewMode)
@@ -797,7 +790,7 @@ namespace AlTayerERP.Desktop
 
             var isInputMode = _isNewMode || _isEditMode;
             btnNew.Enabled = !_isBusy && _canAdd && !isInputMode;
-            btnSave.Enabled = !_isBusy && _masterDataReady && (_isNewMode ? _canAdd : _isEditMode && _canEdit);
+            btnSave.Enabled = !_isBusy && (_isNewMode ? _canAdd : _isEditMode && _canEdit);
             btnEdit.Enabled = !_isBusy && _canEdit && hasSelection && isActive && !isInputMode;
             btnDelete.Visible = _canDeactivate && hasSelection && isActive && !isInputMode;
             btnDelete.Enabled = !_isBusy && _canDeactivate && hasSelection && isActive && !isInputMode;
