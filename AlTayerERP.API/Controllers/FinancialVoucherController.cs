@@ -208,7 +208,7 @@ namespace AlTayerERP.API.Controllers
 
             if (!ModelState.IsValid)
             {
-                return BadRequest(ModelState);
+                return BadRequest(new { success = false, message = "بيانات سند القيد غير مكتملة أو غير صالحة." });
             }
 
             var result = await _service.CreateAsync(dto);
@@ -233,6 +233,51 @@ namespace AlTayerERP.API.Controllers
                 message = result.Message,
                 voucher_ID = result.VoucherId,
                 voucher_No = result.VoucherNo
+            });
+        }
+
+        /// <summary>
+        /// حسابات قابلة للاختيار في سطور السند. النطاق والصلاحية يفرضان من جلسة
+        /// الخادم، لذلك لا تستطيع الواجهة تمرير شركة أخرى أو اختيار حساب تجميعي.
+        /// </summary>
+        [HttpGet("accounts")]
+        public async Task<IActionResult> GetPostingAccounts([FromQuery] int voucherTypeId)
+        {
+            var permissionFailure = await RequireReceiptVoucherPermissionAsync(
+                ScreenOperation.View, voucherTypeId: voucherTypeId);
+            if (permissionFailure != null)
+                return permissionFailure;
+
+            var session = GetServerSession();
+            var accounts = await _context.Chart_Of_Accounts.AsNoTracking()
+                .Where(x => x.Company_ID == session.Company_ID && x.Is_Active)
+                .OrderBy(x => x.Account_Code)
+                .Select(x => new
+                {
+                    x.Account_ID,
+                    x.Parent_Account_ID,
+                    x.Account_Code,
+                    x.Account_Name_AR,
+                    x.Is_Postable,
+                    x.Is_Summary_Account,
+                    x.Allow_ManualEntry,
+                    x.Is_Control_Account
+                })
+                .ToListAsync();
+
+            return Ok(new
+            {
+                success = true,
+                data = accounts
+                    .Select(x => new
+                    {
+                        x.Account_ID,
+                        x.Parent_Account_ID,
+                        x.Account_Code,
+                        x.Account_Name_AR,
+                        IsSelectable = x.Is_Postable && !x.Is_Summary_Account &&
+                                       x.Allow_ManualEntry && !x.Is_Control_Account
+                    })
             });
         }
 
@@ -378,7 +423,7 @@ namespace AlTayerERP.API.Controllers
 
             if (!ModelState.IsValid)
             {
-                return BadRequest(ModelState);
+                return BadRequest(new { success = false, message = "بيانات تعديل سند القيد غير مكتملة أو غير صالحة." });
             }
 
             var result = await _service.UpdateAsync(dto);

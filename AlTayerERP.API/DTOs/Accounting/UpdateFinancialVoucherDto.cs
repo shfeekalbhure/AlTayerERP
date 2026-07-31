@@ -39,16 +39,14 @@ namespace AlTayerERP.API.DTOs.Accounting
 
         #region بيانات الصندوق أو البنك
 
-        [Required(ErrorMessage = "حساب الصندوق أو البنك مطلوب.")]
         [MaxLength(50)]
         public string Cash_Account_ID { get; set; } = string.Empty;
 
         [MaxLength(50)]
         public string? Party_ID { get; set; }
 
-        [Required(ErrorMessage = "اسم الشخص في حقل استلمت من السيد مطلوب.")]
         [MaxLength(200)]
-        public string Received_From_Name { get; set; } = string.Empty;
+        public string? Received_From_Name { get; set; }
 
         public int? Payment_Method_ID { get; set; }
 
