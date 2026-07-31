@@ -71,7 +71,7 @@ public partial class NewVoucherPage : ContentPage
         }
         catch (Exception ex)
         {
-            ShowStatus(ex.Message);
+            ShowStatus(MobileApiErrorHandler.GetUserMessage(ex));
         }
         finally
         {
@@ -189,26 +189,36 @@ public partial class NewVoucherPage : ContentPage
     private async void OnSaveClicked(object? sender, EventArgs e)
     {
         HideStatus();
+        ReportSaveCheckpoint("بدء التحقق من بيانات الحفظ.");
         if (_references == null) { ShowStatus("لم يتم تحميل بيانات السند."); return; }
+        ReportSaveCheckpoint("تم تجاوز: تحميل البيانات المرجعية.");
         if (SourcePicker.SelectedItem is not VoucherEntrySourceDto source) { ShowStatus("اختر الصندوق أو البنك."); return; }
+        ReportSaveCheckpoint("تم تجاوز: اختيار الصندوق أو البنك.");
         if (string.IsNullOrWhiteSpace(PartyNameEntry.Text)) { ShowStatus(_type == "RECEIPT" ? "اسم المستلم منه مطلوب." : "اسم المستفيد مطلوب."); return; }
+        ReportSaveCheckpoint("تم تجاوز: اسم الطرف.");
         if (PaymentMethodPicker.SelectedItem is not VoucherEntryPaymentMethodDto method) { ShowStatus("اختر طريقة السداد."); return; }
+        ReportSaveCheckpoint("تم تجاوز: طريقة السداد.");
         var accountingText = Clean(DescriptionEditor.Text);
         if (accountingText == null) { ShowStatus("البيان المحاسبي مطلوب."); return; }
+        ReportSaveCheckpoint("تم تجاوز: البيان المحاسبي.");
         if (_lines.Count == 0) { ShowStatus("أضف سطراً محاسبياً واحداً على الأقل."); return; }
+        ReportSaveCheckpoint("تم تجاوز: وجود تفاصيل السند.");
         if (_lines.Any(x => string.Equals(x.AccountId, source.AccountId, StringComparison.Ordinal)))
         {
             ShowStatus("لا يمكن استخدام حساب الصندوق أو البنك نفسه كحساب مقابل.");
             return;
         }
+        ReportSaveCheckpoint("تم تجاوز: فصل حساب الصندوق عن الحساب المقابل.");
         if (!_references.OpenPeriods.Any(x => VoucherDatePicker.Date >= x.StartDate.Date && VoucherDatePicker.Date <= x.EndDate.Date))
         {
             ShowStatus("تاريخ السند لا يقع داخل فترة مالية مفتوحة.");
             return;
         }
+        ReportSaveCheckpoint("تم تجاوز: الفترة المالية المفتوحة.");
 
         var localCurrency = _references.Currencies.FirstOrDefault(x => x.IsLocal);
         if (localCurrency == null) { ShowStatus("العملة المحلية غير مهيأة."); return; }
+        ReportSaveCheckpoint("تم تجاوز: إعداد العملة المحلية.");
 
         var total = _lines.Sum(x => x.LocalAmount);
         var details = new List<CreateMobileVoucherLineDto>
@@ -248,6 +258,7 @@ public partial class NewVoucherPage : ContentPage
             ShowStatus("السند غير متوازن محاسبياً.");
             return;
         }
+        ReportSaveCheckpoint("تم تجاوز: توازن المدين والدائن.");
 
         var party = PartyPicker.SelectedItem as VoucherEntryPartyDto;
         var voucherDate = VoucherDatePicker.Date ?? DateTime.Today;
@@ -273,16 +284,18 @@ public partial class NewVoucherPage : ContentPage
             Details = details
         };
 
+        ReportSaveCheckpoint("تم تجاوز: تكوين طلب الحفظ. جارٍ إرساله إلى الخادم.");
         SetBusy(true);
         try
         {
             var result = await _service.CreateAsync(dto);
+            ReportSaveCheckpoint("تم تجاوز: استجابة الخادم بنجاح.");
             await DisplayAlert("تم الحفظ", $"تم حفظ السند {result.Voucher_No} كمسودة.", "موافق");
             await Navigation.PopAsync();
         }
         catch (Exception ex)
         {
-            ShowStatus(ex.Message);
+            ShowStatus(MobileApiErrorHandler.GetUserMessage(ex));
         }
         finally
         {
@@ -318,7 +331,22 @@ public partial class NewVoucherPage : ContentPage
         AddLineButton.IsEnabled = !busy && (_references?.OpenPeriods.Count > 0);
     }
 
-    private void ShowStatus(string message) { StatusLabel.Text = message; StatusLabel.IsVisible = true; }
+    private void ReportSaveCheckpoint(string message)
+    {
+#if DEBUG
+        StatusLabel.TextColor = Color.FromArgb("#0B6B87");
+        StatusLabel.Text = message;
+        StatusLabel.IsVisible = true;
+        System.Diagnostics.Debug.WriteLine($"[VoucherSaveCheckpoint] {message}");
+#endif
+    }
+
+    private void ShowStatus(string message)
+    {
+        StatusLabel.TextColor = Color.FromArgb("#B42318");
+        StatusLabel.Text = message;
+        StatusLabel.IsVisible = true;
+    }
     private void HideStatus() { StatusLabel.Text = string.Empty; StatusLabel.IsVisible = false; }
 
     private sealed class VoucherDraftLine
