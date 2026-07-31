@@ -65,9 +65,9 @@ namespace AlTayerERP.API.Controllers
                 x.Is_Active &&
                 x.Is_Summary_Account &&
                 !x.Is_Postable &&
-                (x.Account_Category == "Cash" ||
-                 x.Account_Name_AR.Contains("صندوق") ||
-                 x.Account_Name_AR.Contains("نقد")));
+                x.Account_Category == "Cash" &&
+                x.Account_Type == "Asset" &&
+                x.Normal_Balance == "Debit");
 
             if (!parentIsValid)
                 return BadRequest(new { message = "لا يمكن إعادة التفعيل لأن حساب الصناديق الأب موقوف أو غير تجميعي." });

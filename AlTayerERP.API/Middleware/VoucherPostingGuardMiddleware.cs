@@ -134,7 +134,7 @@ public sealed class VoucherPostingGuardMiddleware
                 return;
             }
 
-            bool activeCashBox = await db.Cash_Boxes.AsNoTracking().AnyAsync(x =>
+            var activeCashBox = await db.Cash_Boxes.AsNoTracking().FirstOrDefaultAsync(x =>
                 x.Company_ID == branch.Company_ID &&
                 x.Branch_ID == branchId &&
                 x.Account_ID == cashAccountId &&
@@ -145,7 +145,7 @@ public sealed class VoucherPostingGuardMiddleware
                 x.GL_Account == cashAccountId &&
                 x.Is_Active, context.RequestAborted);
 
-            if (!activeCashBox && !activeBank)
+            if (activeCashBox == null && !activeBank)
             {
                 await RejectAsync(context, "لا يمكن الترحيل: حساب النقدية غير مرتبط بصندوق أو حساب بنكي نشط.");
                 return;
@@ -168,6 +168,35 @@ public sealed class VoucherPostingGuardMiddleware
             {
                 await RejectAsync(context, "اتجاه حساب النقدية في سند الصرف غير صحيح؛ يجب أن يكون دائنًا.");
                 return;
+            }
+
+            // حد الصندوق يتحقق عند الترحيل، لا عند تعريفه أو حفظ سند مسودة.
+            // الصفر في الحد الأعلى يعني غير محدد، والصفر في الحد الأدنى يمنع الرصيد السالب.
+            if (activeCashBox != null)
+            {
+                var currentBalance = await db.Journal_Entry_Details.AsNoTracking()
+                    .Where(x => x.Account_ID == cashAccountId &&
+                                x.JournalEntry.Is_Posted &&
+                                x.JournalEntry.Is_Active &&
+                                !x.JournalEntry.Is_Cancelled &&
+                                !x.JournalEntry.Is_Reversed)
+                    .SumAsync(x => (decimal?)(x.Debit_Amount - x.Credit_Amount), context.RequestAborted) ?? 0m;
+
+                var movement = cashLines[0].Debit_Amount - cashLines[0].Credit_Amount;
+                var projectedBalance = currentBalance + movement;
+                if (projectedBalance < activeCashBox.Min_Limit)
+                {
+                    await RejectAsync(context,
+                        $"لا يمكن الترحيل: الرصيد المتوقع للصندوق {projectedBalance:N2} أقل من الحد الأدنى المعتمد {activeCashBox.Min_Limit:N2}.");
+                    return;
+                }
+
+                if (activeCashBox.Max_Limit > 0m && projectedBalance > activeCashBox.Max_Limit)
+                {
+                    await RejectAsync(context,
+                        $"لا يمكن الترحيل: الرصيد المتوقع للصندوق {projectedBalance:N2} يتجاوز الحد الأعلى المعتمد {activeCashBox.Max_Limit:N2}.");
+                    return;
+                }
             }
         }
 

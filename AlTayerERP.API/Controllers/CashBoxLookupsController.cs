@@ -91,30 +91,10 @@ namespace AlTayerERP.API.Controllers
                     x.Account_ID,
                     x.Account_Code,
                     x.Account_Name_AR,
-                    x.Account_Name_EN
+                    x.Account_Name_EN,
+                    Display_Name = $"{x.Account_Code} - {x.Account_Name_AR}"
                 })
                 .ToListAsync();
-
-            // عند عدم وجود تصنيف Cash قد تكون شجرة الحسابات القديمة بلا تصنيف؛
-            // نرجع الحسابات التجميعية النشطة كحل متوافق بدلاً من ترك المنسدلة فارغة.
-            if (accounts.Count == 0)
-            {
-                accounts = await _context.Chart_Of_Accounts.AsNoTracking()
-                    .Where(x =>
-                        x.Company_ID == Session.Company_ID &&
-                        x.Is_Active &&
-                        !x.Is_Postable &&
-                        x.Is_Summary_Account)
-                    .OrderBy(x => x.Account_Code)
-                    .Select(x => new
-                    {
-                        x.Account_ID,
-                        x.Account_Code,
-                        x.Account_Name_AR,
-                        x.Account_Name_EN
-                    })
-                    .ToListAsync();
-            }
 
             return Ok(new
             {

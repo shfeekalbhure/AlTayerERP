@@ -46,6 +46,8 @@ namespace AlTayerERP.API.Controllers
             var boxes = await (from box in _context.Cash_Boxes.AsNoTracking()
                                join account in _context.Chart_Of_Accounts.AsNoTracking() on box.Account_ID equals account.Account_ID into accounts
                                from account in accounts.DefaultIfEmpty()
+                               join branch in _context.Tenant_Branches.AsNoTracking() on box.Branch_ID equals branch.Branch_ID into branches
+                               from branch in branches.DefaultIfEmpty()
                                where box.Company_ID == Session.Company_ID && box.Branch_ID == Session.Branch_ID
                                orderby box.CashBox_Code
                                select new
@@ -53,6 +55,7 @@ namespace AlTayerERP.API.Controllers
                                    box.Cash_Box_ID,
                                    box.Company_ID,
                                    box.Branch_ID,
+                                   Branch_Name = branch == null ? null : branch.Branch_Name,
                                    Account_ID = account == null ? null : account.Parent_Account_ID,
                                    Linked_Account_ID = box.Account_ID,
                                    Account_Name_AR = account == null ? null : account.Account_Name_AR,
@@ -95,6 +98,7 @@ namespace AlTayerERP.API.Controllers
                     box.Cash_Box_ID,
                     box.Company_ID,
                     box.Branch_ID,
+                    box.Branch_Name,
                     box.Account_ID,
                     box.Linked_Account_ID,
                     box.Account_Name_AR,

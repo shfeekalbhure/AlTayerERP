@@ -10,6 +10,7 @@ namespace AlTayerERP.Desktop.Models
         public string Cash_Box_ID { get; set; } = "";
         public string Company_ID { get; set; } = "";
         public int Branch_ID { get; set; }
+        public string? Branch_Name { get; set; }
 
         public string Account_ID { get; set; } = "";
         public string Linked_Account_ID { get; set; } = "";
@@ -63,5 +64,7 @@ namespace AlTayerERP.Desktop.Models
             get => Is_Active;
             set => Is_Active = value;
         }
+
+        public string Status_Name => Is_Active ? "نشط" : "موقوف";
     }
 }
