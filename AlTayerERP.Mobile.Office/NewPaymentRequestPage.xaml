@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
-             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-             x:Class="AlTayerERP.Mobile.Office.NewPaymentRequestPage"
-             FlowDirection="RightToLeft"
-             BackgroundColor="#F6F8FB"
-             Title="طلب صرف جديد">
+              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+              x:Class="AlTayerERP.Mobile.Office.NewPaymentRequestPage"
+              FlowDirection="RightToLeft"
+              BackgroundColor="#F6F8FB"
+              Title="طلب صرف جديد">
     <ScrollView>
         <VerticalStackLayout Padding="16" Spacing="12">
             <Label Text="بيانات الطلب" FontSize="20" FontAttributes="Bold" TextColor="#17324D" />
@@ -23,7 +23,7 @@
                     TitleColor="#7A8896"
                     BackgroundColor="White"
                     ItemDisplayBinding="{Binding DisplayName}" />
-            <Entry x:Name="ReferenceEntry" Placeholder="رقم المرجع - اختياري" TextColor="#17324D" PlaceholderColor="#7A8896" BackgroundColor="White" />
+            <Entry x:Name="ReferenceEntry" Placeholder="رقم مرجع الطلب - اختياري" TextColor="#17324D" PlaceholderColor="#7A8896" BackgroundColor="White" />
             <Editor x:Name="DescriptionEditor" Placeholder="البيان أو الغرض من طلب الصرف" TextColor="#17324D" PlaceholderColor="#7A8896" BackgroundColor="White" AutoSize="TextChanges" MinimumHeightRequest="90" />
 
             <Label Text="إضافة سطر صرف" FontSize="18" FontAttributes="Bold" TextColor="#17324D" Margin="0,8,0,0" />
@@ -34,6 +34,7 @@
             <Entry x:Name="ExchangeRateEntry" Placeholder="سعر الصرف" Keyboard="Numeric" Text="1" TextColor="#17324D" PlaceholderColor="#7A8896" BackgroundColor="White" />
             <Entry x:Name="ForeignAmountEntry" Placeholder="المبلغ الأجنبي - صفر للعملة المحلية" Keyboard="Numeric" Text="0" TextColor="#17324D" PlaceholderColor="#7A8896" BackgroundColor="White" TextChanged="OnForeignAmountChanged" />
             <Entry x:Name="LocalAmountEntry" Placeholder="المبلغ المحلي" Keyboard="Numeric" TextColor="#17324D" PlaceholderColor="#7A8896" BackgroundColor="White" />
+            <Entry x:Name="LineReferenceEntry" Placeholder="مرجع السطر - اختياري" TextColor="#17324D" PlaceholderColor="#7A8896" BackgroundColor="White" />
             <Editor x:Name="LineDescriptionEditor" Placeholder="وصف السطر" TextColor="#17324D" PlaceholderColor="#7A8896" BackgroundColor="White" AutoSize="TextChanges" MinimumHeightRequest="70" />
 
             <Button x:Name="AddLineButton"
@@ -49,14 +50,14 @@
                 <Label x:Name="TotalLabel" Grid.Column="1" Text="الإجمالي: 0.00" FontAttributes="Bold" TextColor="#17324D" />
             </Grid>
 
-            <CollectionView x:Name="LinesList" SelectionMode="None" HeightRequest="280">
+            <CollectionView x:Name="LinesList" SelectionMode="None" HeightRequest="300">
                 <CollectionView.EmptyView>
                     <Label Text="لم تتم إضافة أي أسطر بعد." HorizontalTextAlignment="Center" TextColor="#7A8896" Padding="12" />
                 </CollectionView.EmptyView>
                 <CollectionView.ItemTemplate>
                     <DataTemplate>
                         <Border Margin="0,0,0,8" Padding="12" Stroke="#D9E2EC" BackgroundColor="White" StrokeShape="RoundRectangle 12">
-                            <Grid RowDefinitions="Auto,Auto,Auto" ColumnDefinitions="*,Auto" RowSpacing="4">
+                            <Grid RowDefinitions="Auto,Auto,Auto,Auto" ColumnDefinitions="*,Auto" RowSpacing="4">
                                 <Label Text="{Binding AccountDisplay}" FontAttributes="Bold" TextColor="#17324D" />
                                 <Button Grid.Column="1" Text="حذف" FontSize="12" BackgroundColor="#B42318" TextColor="White" CornerRadius="8" Padding="10,4" CommandParameter="{Binding}" Clicked="OnRemoveLineClicked" />
                                 <Label Grid.Row="1" Grid.ColumnSpan="2" Text="{Binding CurrencyDisplay}" TextColor="#5B6B7A" FontSize="12" />
@@ -64,6 +65,7 @@
                                     <Label Text="{Binding CostCenterDisplay}" TextColor="#7A8896" FontSize="12" />
                                     <Label Grid.Column="1" Text="{Binding LocalAmount, StringFormat='{0:N2}'}" FontAttributes="Bold" TextColor="#17324D" />
                                 </Grid>
+                                <Label Grid.Row="3" Grid.ColumnSpan="2" Text="{Binding ReferenceDisplay}" TextColor="#7A8896" FontSize="12" />
                             </Grid>
                         </Border>
                     </DataTemplate>

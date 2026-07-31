@@ -149,6 +149,7 @@ public partial class NewPaymentRequestPage : ContentPage
                 ExchangeRate = line.Exchange_Rate,
                 ForeignAmount = line.Foreign_Amount,
                 LocalAmount = line.Local_Amount,
+                ReferenceNo = line.Reference_No,
                 Description = line.Description
             });
         }
@@ -269,6 +270,7 @@ public partial class NewPaymentRequestPage : ContentPage
             ExchangeRate = exchangeRate,
             ForeignAmount = foreignAmount,
             LocalAmount = localAmount,
+            ReferenceNo = Clean(LineReferenceEntry.Text),
             Description = Clean(LineDescriptionEditor.Text)
         };
         return true;
@@ -317,6 +319,7 @@ public partial class NewPaymentRequestPage : ContentPage
             Payment_Method_ID = paymentMethod.Id,
             Header_Reference_No = Clean(ReferenceEntry.Text),
             Description = Clean(DescriptionEditor.Text),
+            Expected_Last_Modified_At = _editingRequest?.LastModifiedAt,
             Lines = _lines.Select(x => new CreatePaymentRequestLineDto
             {
                 Account_ID = x.AccountId,
@@ -325,6 +328,7 @@ public partial class NewPaymentRequestPage : ContentPage
                 Exchange_Rate = x.ExchangeRate,
                 Foreign_Amount = x.ForeignAmount,
                 Local_Amount = x.LocalAmount,
+                Reference_No = x.ReferenceNo,
                 Description = x.Description
             }).ToList()
         };
@@ -348,6 +352,12 @@ public partial class NewPaymentRequestPage : ContentPage
 
             await Navigation.PopAsync();
         }
+        catch (PaymentRequestConflictException ex)
+        {
+            ShowStatus(ex.Message);
+            if (_editingRequest != null)
+                await DisplayAlert("تعارض في البيانات", ex.Message, "موافق");
+        }
         catch (Exception ex)
         {
             ShowStatus(ex.Message);
@@ -367,6 +377,7 @@ public partial class NewPaymentRequestPage : ContentPage
                                       ?? _references?.Currencies.FirstOrDefault();
         ForeignAmountEntry.Text = "0";
         LocalAmountEntry.Text = string.Empty;
+        LineReferenceEntry.Text = string.Empty;
         LineDescriptionEditor.Text = string.Empty;
     }
 
@@ -417,6 +428,8 @@ public partial class NewPaymentRequestPage : ContentPage
         public decimal ExchangeRate { get; init; }
         public decimal ForeignAmount { get; init; }
         public decimal LocalAmount { get; init; }
+        public string? ReferenceNo { get; init; }
+        public string ReferenceDisplay => string.IsNullOrWhiteSpace(ReferenceNo) ? "المرجع: —" : $"المرجع: {ReferenceNo}";
         public string? Description { get; init; }
     }
 }

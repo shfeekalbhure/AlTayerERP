@@ -12,6 +12,10 @@ namespace AlTayerERP.API.Controllers;
 [Route("api/payment-requests")]
 public sealed class PaymentRequestsController : ControllerBase
 {
+    private const string PaymentRequestTable = "payment_requests";
+    private const string ReviewAction = "REVIEW";
+    private const long StoragePrecisionTicks = TimeSpan.TicksPerSecond;
+
     private readonly AppDbContext _db;
     private readonly ScreenAuthorizationService _auth;
     private readonly AuditTrailService _audit;
@@ -36,10 +40,13 @@ public sealed class PaymentRequestsController : ControllerBase
         HttpContext.Items["ServerSession"] as ServerSession
         ?? throw new InvalidOperationException("جلسة الخادم غير متاحة.");
 
-    private async Task<IActionResult?> Allow(ScreenOperation operation) =>
-        await _auth.IsExplicitlyAllowedAsync(Session(), "PaymentRequest", operation)
+    private async Task<IActionResult?> Allow(string screenCode, ScreenOperation operation) =>
+        await _auth.IsExplicitlyAllowedAsync(Session(), screenCode, operation)
             ? null
-            : Forbid();
+            : StatusCode(StatusCodes.Status403Forbidden,
+                new { message = "لا تملك الصلاحية المطلوبة لتنفيذ هذه العملية." });
+
+    private Task<IActionResult?> Allow(ScreenOperation operation) => Allow("PaymentRequest", operation);
 
     private IQueryable<PaymentRequest> Scoped() =>
         _db.Payment_Requests
@@ -47,6 +54,12 @@ public sealed class PaymentRequestsController : ControllerBase
             .Where(x => x.Company_ID == Session().Company_ID &&
                         x.Branch_ID == Session().Branch_ID &&
                         x.Fiscal_Year_ID == Session().Year_ID);
+
+    private bool IsCreator(PaymentRequest row) =>
+        string.Equals(row.Created_By?.Trim(), Session().User_ID.ToString(), StringComparison.Ordinal);
+
+    private IActionResult CreatorSeparationConflict(string operation) =>
+        Conflict(new { message = $"لا يجوز لمنشئ طلب الصرف {operation} طلبه بنفسه وفق فصل الواجبات." });
 
     [HttpGet]
     public async Task<IActionResult> List([FromQuery] string? status, [FromQuery] string? requestNo)
@@ -60,7 +73,9 @@ public sealed class PaymentRequestsController : ControllerBase
         if (!string.IsNullOrWhiteSpace(requestNo))
             query = query.Where(x => x.Request_No.Contains(requestNo.Trim()));
 
-        return Ok(await query.OrderByDescending(x => x.Created_At).Take(500).ToListAsync());
+        var rows = await query.OrderByDescending(x => x.Created_At).Take(500).ToListAsync();
+        rows.ForEach(NormalizeResponseTimestamps);
+        return Ok(rows);
     }
 
     [HttpGet("{id:long}")]
@@ -69,8 +84,12 @@ public sealed class PaymentRequestsController : ControllerBase
         var denial = await Allow(ScreenOperation.View);
         if (denial != null) return denial;
 
-        var request = await Scoped().AsNoTracking().SingleOrDefaultAsync(x => x.Payment_Request_ID == id);
-        return request == null ? NotFound() : Ok(request);
+        var request = await Scoped().AsNoTracking()
+            .SingleOrDefaultAsync(x => x.Payment_Request_ID == id);
+        if (request == null) return NotFound();
+
+        NormalizeResponseTimestamps(request);
+        return Ok(request);
     }
 
     [HttpPost]
@@ -94,6 +113,7 @@ public sealed class PaymentRequestsController : ControllerBase
             return BadRequest(new { message = ex.Message });
         }
 
+        var now = UtcNowAtStoragePrecision();
         var row = new PaymentRequest
         {
             Company_ID = session.Company_ID,
@@ -108,7 +128,7 @@ public sealed class PaymentRequestsController : ControllerBase
             Header_Reference_No = Text(dto.Header_Reference_No),
             Description = Text(dto.Description),
             Created_By = session.User_ID.ToString(),
-            Created_At = DateTime.UtcNow,
+            Created_At = now,
             Details = dto.Lines.Select((x, index) => Line(x, index + 1)).ToList()
         };
 
@@ -123,11 +143,11 @@ public sealed class PaymentRequestsController : ControllerBase
                 reservation.Branch_ID,
                 reservation.Fiscal_Year_ID
             });
-        _audit.Add(session, HttpContext, "payment_requests", "new", "CREATE", null,
+        _audit.Add(session, HttpContext, PaymentRequestTable, "new", "CREATE", null,
             new { row.Request_No, row.Status, row.Beneficiary_Name, Lines = row.Details.Count });
 
         await _db.SaveChangesAsync();
-        return Ok(row);
+        return Ok(await ReloadForResponse(row.Payment_Request_ID));
     }
 
     [HttpPut("{id:long}")]
@@ -139,12 +159,33 @@ public sealed class PaymentRequestsController : ControllerBase
         var row = await Scoped().SingleOrDefaultAsync(x => x.Payment_Request_ID == id);
         if (row == null) return NotFound();
         if (row.Status is not ("DRAFT" or "RETURNED"))
-            return Conflict(new { message = "لا يعدل إلا طلب مسودة أو معاد." });
+            return Conflict(new { message = "لا يعدل إلا طلب صرف مسودة أو معاد." });
+        if (!IsCreator(row))
+            return Conflict(new { message = "لا يسمح بتعديل طلب الصرف إلا لمنشئه بعد إعادته أو أثناء المسودة." });
+
+        var currentModifiedAt = NormalizeUtcAtStoragePrecision(row.Updated_At ?? row.Created_At);
+        var expectedModifiedAt = dto.Expected_Last_Modified_At.HasValue
+            ? NormalizeUtcAtStoragePrecision(dto.Expected_Last_Modified_At.Value)
+            : (DateTime?)null;
+
+        if (!expectedModifiedAt.HasValue || currentModifiedAt != expectedModifiedAt.Value)
+        {
+            return Conflict(new
+            {
+                message = "تم تعديل طلب الصرف بواسطة مستخدم آخر. حدّث البيانات ثم أعد المحاولة."
+            });
+        }
 
         var validation = await Validate(dto);
         if (validation != null) return BadRequest(new { message = validation });
 
-        var before = new { row.Beneficiary_Name, row.Status, row.Approved_Local_Total };
+        var before = new
+        {
+            row.Beneficiary_Name,
+            row.Status,
+            row.Approved_Local_Total,
+            LastModifiedAt = currentModifiedAt
+        };
         row.Beneficiary_Name = dto.Beneficiary_Name.Trim();
         row.Party_ID = Text(dto.Party_ID);
         row.Payment_Method_ID = dto.Payment_Method_ID;
@@ -155,22 +196,47 @@ public sealed class PaymentRequestsController : ControllerBase
         row.Details = dto.Lines.Select((x, index) => Line(x, index + 1)).ToList();
         row.Status = "DRAFT";
         row.Updated_By = Session().User_ID.ToString();
-        row.Updated_At = DateTime.UtcNow;
+        row.Updated_At = UtcNowAtStoragePrecision();
 
-        _audit.Add(Session(), HttpContext, "payment_requests", id.ToString(), "UPDATE", before,
-            new { row.Status, row.Beneficiary_Name, Lines = row.Details.Count });
+        _audit.Add(Session(), HttpContext, PaymentRequestTable, id.ToString(), "UPDATE", before,
+            new { row.Status, row.Beneficiary_Name, Lines = row.Details.Count, row.Updated_At });
         await _db.SaveChangesAsync();
-        return Ok(row);
+        return Ok(await ReloadForResponse(id));
     }
 
     [HttpPost("{id:long}/submit")]
-    public Task<IActionResult> Submit(long id) =>
-        Transition(id, "DRAFT", "PENDING_REVIEW", ScreenOperation.Edit, null, "SUBMIT", false);
+    public async Task<IActionResult> Submit(long id)
+    {
+        var denial = await Allow(ScreenOperation.Edit);
+        if (denial != null) return denial;
+
+        var row = await Scoped().SingleOrDefaultAsync(x => x.Payment_Request_ID == id);
+        if (row == null) return NotFound();
+        if (row.Status is not ("DRAFT" or "RETURNED"))
+            return Conflict(new { message = "الحالة الحالية لا تسمح بإرسال طلب الصرف للمراجعة." });
+        if (!IsCreator(row))
+            return Conflict(new { message = "لا يسمح بإرسال طلب الصرف إلا لمنشئه." });
+
+        return await ApplyTransition(row, "PENDING_REVIEW", "SUBMIT", null);
+    }
 
     [HttpPost("{id:long}/review")]
-    public Task<IActionResult> Review(long id, [FromBody] ReasonDto dto) =>
-        Transition(id, "PENDING_REVIEW", "PENDING_APPROVAL", ScreenOperation.Approve,
-            dto?.Reason, "REVIEW", true);
+    public async Task<IActionResult> Review(long id, [FromBody] ReasonDto dto)
+    {
+        var denial = await Allow(ScreenOperation.Approve);
+        if (denial != null) return denial;
+        if (string.IsNullOrWhiteSpace(dto?.Reason))
+            return BadRequest(new { message = "سبب المراجعة إلزامي." });
+
+        var row = await Scoped().SingleOrDefaultAsync(x => x.Payment_Request_ID == id);
+        if (row == null) return NotFound();
+        if (row.Status != "PENDING_REVIEW")
+            return Conflict(new { message = "الحالة الحالية لا تسمح بمراجعة طلب الصرف." });
+        if (IsCreator(row)) return CreatorSeparationConflict("مراجعة");
+
+        row.Review_Reason = dto.Reason.Trim();
+        return await ApplyTransition(row, "PENDING_APPROVAL", ReviewAction, dto.Reason);
+    }
 
     [HttpPost("{id:long}/approve")]
     public async Task<IActionResult> Approve(long id, [FromBody] ReasonDto dto)
@@ -183,36 +249,87 @@ public sealed class PaymentRequestsController : ControllerBase
         var row = await Scoped().SingleOrDefaultAsync(x => x.Payment_Request_ID == id);
         if (row == null) return NotFound();
         if (row.Status != "PENDING_APPROVAL")
-            return Conflict(new { message = "الحالة الحالية لا تسمح بالاعتماد." });
+            return Conflict(new { message = "الحالة الحالية لا تسمح باعتماد طلب الصرف." });
+        if (IsCreator(row)) return CreatorSeparationConflict("اعتماد");
+
+        var latestReviewerId = await LatestReviewerId(id);
+        if (string.IsNullOrWhiteSpace(latestReviewerId))
+        {
+            _audit.Add(Session(), HttpContext, PaymentRequestTable, id.ToString(),
+                "APPROVE_BLOCKED_NO_REVIEW", null,
+                new { CurrentUserId = Session().User_ID, row.Status },
+                "لا يوجد سجل مراجعة ناجح للدورة الحالية.");
+            await _db.SaveChangesAsync();
+            return Conflict(new
+            {
+                message = "لا يمكن اعتماد طلب الصرف لعدم وجود مراجعة ناجحة موثقة للدورة الحالية."
+            });
+        }
+
+        if (string.Equals(latestReviewerId.Trim(), Session().User_ID.ToString(), StringComparison.Ordinal))
+        {
+            _audit.Add(Session(), HttpContext, PaymentRequestTable, id.ToString(),
+                "APPROVE_BLOCKED_SAME_REVIEWER", null,
+                new { ReviewerUserId = latestReviewerId, CurrentUserId = Session().User_ID, row.Status },
+                "محاولة اعتماد بواسطة المستخدم الذي نفذ أحدث مراجعة ناجحة.");
+            await _db.SaveChangesAsync();
+            return Conflict(new
+            {
+                message = "لا يسمح للمستخدم الذي راجع طلب الصرف باعتماده. يجب أن ينفذ الاعتماد مستخدم آخر مخول."
+            });
+        }
 
         var amount = row.Details.Sum(x => x.Local_Amount);
         var limit = await FindFinancialLimitAsync(row);
         if (limit != null && amount > limit.Limit_Amount - limit.Used_Amount)
             return Conflict(new { message = "المبلغ يتجاوز السقف المالي المتاح." });
 
-        row.Status = "APPROVED";
         row.Approved_Local_Total = amount;
         row.Approval_Reason = dto.Reason.Trim();
-        row.Updated_By = Session().User_ID.ToString();
-        row.Updated_At = DateTime.UtcNow;
-        _audit.Add(Session(), HttpContext, "payment_requests", id.ToString(), "APPROVE", null,
-            new { row.Status, row.Approved_Local_Total }, dto.Reason);
-        await _db.SaveChangesAsync();
-        return Ok(row);
+        return await ApplyTransition(row, "APPROVED", "APPROVE", dto.Reason,
+            new { ApprovedLocalTotal = amount, FinancialLimitId = limit?.Limit_ID, ReviewerUserId = latestReviewerId });
     }
 
     [HttpPost("{id:long}/reject")]
-    public Task<IActionResult> Reject(long id, [FromBody] ReasonDto dto) =>
-        Close(id, "REJECTED", dto, "REJECT");
+    public async Task<IActionResult> Reject(long id, [FromBody] ReasonDto dto)
+    {
+        var denial = await Allow(ScreenOperation.Unapprove);
+        if (denial != null) return denial;
+        if (string.IsNullOrWhiteSpace(dto?.Reason))
+            return BadRequest(new { message = "سبب الرفض إلزامي." });
+
+        var row = await Scoped().SingleOrDefaultAsync(x => x.Payment_Request_ID == id);
+        if (row == null) return NotFound();
+        if (row.Status != "PENDING_APPROVAL")
+            return Conflict(new { message = "لا يرفض طلب الصرف إلا من مرحلة انتظار الاعتماد." });
+        if (IsCreator(row)) return CreatorSeparationConflict("رفض");
+
+        return await ApplyTransition(row, "REJECTED", "REJECT", dto.Reason);
+    }
 
     [HttpPost("{id:long}/return")]
-    public Task<IActionResult> Return(long id, [FromBody] ReasonDto dto) =>
-        Close(id, "RETURNED", dto, "RETURN");
+    public async Task<IActionResult> Return(long id, [FromBody] ReasonDto dto)
+    {
+        var denial = await Allow(ScreenOperation.Unapprove);
+        if (denial != null) return denial;
+        if (string.IsNullOrWhiteSpace(dto?.Reason))
+            return BadRequest(new { message = "سبب الإرجاع إلزامي." });
+
+        var row = await Scoped().SingleOrDefaultAsync(x => x.Payment_Request_ID == id);
+        if (row == null) return NotFound();
+        if (row.Status is not ("PENDING_REVIEW" or "PENDING_APPROVAL"))
+            return Conflict(new { message = "الحالة الحالية لا تسمح بإرجاع طلب الصرف." });
+        if (IsCreator(row)) return CreatorSeparationConflict("إرجاع");
+
+        var action = row.Status == "PENDING_REVIEW" ? "RETURN_FROM_REVIEW" : "RETURN_FROM_APPROVAL";
+        return await ApplyTransition(row, "RETURNED", action, dto.Reason,
+            new { PreviousStage = row.Status });
+    }
 
     [HttpPost("{id:long}/create-payment-voucher")]
     public async Task<IActionResult> CreatePaymentVoucher(long id, [FromBody] CreateVoucherDto dto)
     {
-        var denial = await Allow(ScreenOperation.Add);
+        var denial = await Allow("PaymentVoucher", ScreenOperation.Add);
         if (denial != null) return denial;
         if (string.IsNullOrWhiteSpace(dto.Cash_Account_ID))
             return BadRequest(new { message = "الصندوق/البنك الدائن مطلوب." });
@@ -224,8 +341,12 @@ public sealed class PaymentRequestsController : ControllerBase
             var session = Session();
             var row = await Scoped().SingleOrDefaultAsync(x => x.Payment_Request_ID == id);
             if (row == null) return NotFound();
-            if (row.Status != "APPROVED" || row.Payment_Voucher_ID.HasValue)
-                return Conflict(new { message = "لا ينشأ سند الصرف إلا مرة واحدة من طلب معتمد." });
+            if (IsCreator(row))
+                return CreatorSeparationConflict("إنشاء سند صرف من");
+            if (row.Status != "APPROVED")
+                return Conflict(new { message = "لا ينشأ سند الصرف إلا من طلب معتمد." });
+            if (row.Payment_Voucher_ID.HasValue)
+                return Conflict(new { message = "تم إنشاء سند صرف لهذا الطلب مسبقاً، ولا يسمح بإنشاء سند ثانٍ." });
             if (!row.Payment_Method_ID.HasValue)
                 return Conflict(new { message = "طلب الصرف لا يحتوي طريقة سداد صالحة." });
 
@@ -250,7 +371,7 @@ public sealed class PaymentRequestsController : ControllerBase
                 .Select(x => x.Currency_ID)
                 .SingleAsync();
 
-            var now = DateTime.UtcNow;
+            var now = UtcNowAtStoragePrecision();
             var request = new AlTayerERP.API.DTOs.Accounting.CreateFinancialVoucherDto
             {
                 Voucher_Type_ID = type,
@@ -338,7 +459,7 @@ public sealed class PaymentRequestsController : ControllerBase
                 });
             }
 
-            _audit.Add(session, HttpContext, "payment_requests", id.ToString(),
+            _audit.Add(session, HttpContext, PaymentRequestTable, id.ToString(),
                 "CREATE_PAYMENT_VOUCHER", null,
                 new { result.VoucherId, result.VoucherNo, local, FinancialLimitId = limit?.Limit_ID });
             await _db.SaveChangesAsync();
@@ -353,40 +474,69 @@ public sealed class PaymentRequestsController : ControllerBase
         }
     }
 
-    private async Task<IActionResult> Transition(
-        long id,
-        string from,
+    private async Task<IActionResult> ApplyTransition(
+        PaymentRequest row,
         string to,
-        ScreenOperation operation,
-        string? reason,
         string action,
-        bool reasonRequired)
+        string? reason,
+        object? extra = null)
     {
-        var denial = await Allow(operation);
-        if (denial != null) return denial;
-        if (reasonRequired && string.IsNullOrWhiteSpace(reason))
-            return BadRequest(new { message = "سبب الإجراء إلزامي." });
-
-        var row = await Scoped().SingleOrDefaultAsync(x => x.Payment_Request_ID == id);
-        if (row == null) return NotFound();
-        if (row.Status != from)
-            return Conflict(new { message = "الحالة الحالية لا تسمح بهذه العملية." });
-
+        var before = new { row.Status, row.Updated_By, row.Updated_At };
+        var from = row.Status;
         row.Status = to;
-        row.Review_Reason = Text(reason);
         row.Updated_By = Session().User_ID.ToString();
-        row.Updated_At = DateTime.UtcNow;
-        _audit.Add(Session(), HttpContext, "payment_requests", id.ToString(), action, null,
-            new { row.Status }, reason);
+        row.Updated_At = UtcNowAtStoragePrecision();
+
+        _audit.Add(Session(), HttpContext, PaymentRequestTable, row.Payment_Request_ID.ToString(), action,
+            before,
+            new { From = from, To = to, UserId = Session().User_ID, At = row.Updated_At, Extra = extra },
+            reason);
         await _db.SaveChangesAsync();
-        return Ok(row);
+        return Ok(await ReloadForResponse(row.Payment_Request_ID));
     }
 
-    private Task<IActionResult> Close(long id, string to, ReasonDto dto, string action) =>
-        string.IsNullOrWhiteSpace(dto?.Reason)
-            ? Task.FromResult<IActionResult>(BadRequest(new { message = "السبب إلزامي." }))
-            : Transition(id, "PENDING_APPROVAL", to, ScreenOperation.Unapprove,
-                dto.Reason, action, true);
+    private async Task<string?> LatestReviewerId(long id) =>
+        await _db.Audit_Logs.AsNoTracking()
+            .Where(x => x.Table_Name == PaymentRequestTable &&
+                        x.Record_ID == id.ToString() &&
+                        x.Action_Type == ReviewAction)
+            .OrderByDescending(x => x.Action_At)
+            .ThenByDescending(x => x.Audit_ID)
+            .Select(x => x.User_ID)
+            .FirstOrDefaultAsync();
+
+    private async Task<PaymentRequest> ReloadForResponse(long id)
+    {
+        _db.ChangeTracker.Clear();
+        var stored = await Scoped().AsNoTracking()
+            .SingleAsync(x => x.Payment_Request_ID == id);
+        NormalizeResponseTimestamps(stored);
+        return stored;
+    }
+
+    private static void NormalizeResponseTimestamps(PaymentRequest row)
+    {
+        row.Created_At = NormalizeUtcAtStoragePrecision(row.Created_At);
+        if (row.Updated_At.HasValue)
+            row.Updated_At = NormalizeUtcAtStoragePrecision(row.Updated_At.Value);
+    }
+
+    private static DateTime UtcNowAtStoragePrecision() =>
+        NormalizeUtcAtStoragePrecision(DateTime.UtcNow);
+
+    private static DateTime NormalizeUtcAtStoragePrecision(DateTime value)
+    {
+        var utc = value.Kind switch
+        {
+            DateTimeKind.Utc => value,
+            DateTimeKind.Local => value.ToUniversalTime(),
+            _ => DateTime.SpecifyKind(value, DateTimeKind.Utc)
+        };
+
+        return new DateTime(
+            utc.Ticks - (utc.Ticks % StoragePrecisionTicks),
+            DateTimeKind.Utc);
+    }
 
     private async Task<FinancialPolicy?> FindFinancialLimitAsync(PaymentRequest row) =>
         await _db.Financial_Policies
@@ -484,6 +634,7 @@ public sealed class PaymentRequestsController : ControllerBase
         public int? Payment_Method_ID { get; set; }
         public string? Header_Reference_No { get; set; }
         public string? Description { get; set; }
+        public DateTime? Expected_Last_Modified_At { get; set; }
         public List<PaymentRequestLineDto> Lines { get; set; } = [];
     }
 
