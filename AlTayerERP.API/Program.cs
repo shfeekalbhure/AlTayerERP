@@ -26,7 +26,7 @@ var connectionString =
 // Collation مختلفة عن أعمدة سندات القبض والحسابات.
 var mysqlConnection = new MySqlConnectionStringBuilder(connectionString)
 {
-    CharacterSet = Phase1BaselineModelConfiguration.CharacterSet
+    CharacterSet = "utf8mb4"
 };
 connectionString = mysqlConnection.ConnectionString;
 
