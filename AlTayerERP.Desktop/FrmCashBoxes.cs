@@ -151,7 +151,7 @@ namespace AlTayerERP.Desktop
             txtCashBoxNameEN.AccessibleName = "اسم الصندوق بالإنجليزية";
             cmbBranch.AccessibleName = "الفرع";
             cmbCurrency.AccessibleName = "عملة الصندوق";
-            cmbAccount.AccessibleName = "حساب الصناديق الأب";
+            cmbAccount.AccessibleName = "الحساب المالي للصندوق";
             numOpeningBalance.AccessibleName = "الرصيد الافتتاحي";
             numMinimumLimit.AccessibleName = "الحد الأدنى";
             numMaximumLimit.AccessibleName = "الحد الأعلى";
@@ -170,7 +170,7 @@ namespace AlTayerERP.Desktop
             _toolTip.SetToolTip(numOpeningBalance,
                 "الرصيد الافتتاحي ينشأ من مستند أرصدة افتتاحية أو قيد مرحل، وليس من شاشة تعريف الصندوق.");
             _toolTip.SetToolTip(cmbAccount,
-                "حساب الصناديق الأب يثبت بعد إنشاء الصندوق.");
+                "اختر الحساب المالي النقدي النهائي الذي ستُرحّل عليه حركات الصندوق.");
             _toolTip.SetToolTip(cmbCurrency,
                 "يمكن تغيير العملة فقط قبل وجود أول حركة مالية مرحلة.");
         }
@@ -628,7 +628,7 @@ namespace AlTayerERP.Desktop
                 chkIsActive.Checked = row.IsActive;
                 txtNotes.Text = row.Notes ?? string.Empty;
 
-                cmbAccount.Enabled = false;
+                cmbAccount.Enabled = !row.Has_Posted_Movement;
                 cmbCurrency.Enabled = !row.Has_Posted_Movement;
                 UpdateBalanceLabel(row);
             }
@@ -708,7 +708,7 @@ namespace AlTayerERP.Desktop
             }
             if (cmbAccount.SelectedValue == null)
             {
-                _errors.SetError(cmbAccount, "اختر حساب الصناديق الأب.");
+                _errors.SetError(cmbAccount, "اختر الحساب المالي للصندوق.");
                 valid = false;
             }
             if (cmbCurrency.SelectedValue == null)

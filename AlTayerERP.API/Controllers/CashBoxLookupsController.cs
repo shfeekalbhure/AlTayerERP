@@ -80,11 +80,11 @@ namespace AlTayerERP.API.Controllers
                 .Where(x =>
                     x.Company_ID == Session.Company_ID &&
                     x.Is_Active &&
-                    !x.Is_Postable &&
-                    x.Is_Summary_Account &&
+                    x.Is_Postable &&
+                    !x.Is_Summary_Account &&
                     x.Account_Type == "Asset" &&
                     x.Normal_Balance == "Debit" &&
-                    x.Account_Category == "Cash")
+                    x.Account_Category == "Cash" && x.Allow_ManualEntry)
                 .OrderBy(x => x.Account_Code)
                 .Select(x => new
                 {

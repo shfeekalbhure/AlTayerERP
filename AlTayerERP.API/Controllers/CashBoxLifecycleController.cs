@@ -60,18 +60,20 @@ namespace AlTayerERP.API.Controllers
             if (account == null)
                 return BadRequest(new { message = "الحساب المرتبط بالصندوق غير موجود؛ يلزم تصحيح الربط قبل إعادة التفعيل." });
 
-            var parentIsValid = await _context.Chart_Of_Accounts.AsNoTracking().AnyAsync(x =>
-                x.Account_ID == account.Parent_Account_ID &&
-                x.Company_ID == Session.Company_ID &&
-                x.Is_Active &&
-                x.Is_Summary_Account &&
-                !x.Is_Postable &&
-                x.Account_Type == "Asset" &&
-                x.Normal_Balance == "Debit" &&
-                x.Account_Category == "Cash");
+            var accountIsValid = account.Is_Active && account.Is_Postable && !account.Is_Summary_Account && account.Allow_ManualEntry &&
+                string.Equals(account.Account_Type, "Asset", StringComparison.OrdinalIgnoreCase) &&
+                string.Equals(account.Account_Category, "Cash", StringComparison.OrdinalIgnoreCase) &&
+                string.Equals(account.Normal_Balance, "Debit", StringComparison.OrdinalIgnoreCase);
 
-            if (!parentIsValid)
-                return BadRequest(new { message = "لا يمكن إعادة التفعيل لأن حساب الصناديق الأب موقوف أو غير تجميعي." });
+            if (!accountIsValid)
+                return BadRequest(new { message = "لا يمكن إعادة التفعيل لأن الحساب المالي للصندوق غير نشط أو غير قابل للترحيل." });
+
+            var usedByAnotherCashBox = await _context.Cash_Boxes.AsNoTracking().AnyAsync(x =>
+                x.Cash_Box_ID != row.Cash_Box_ID &&
+                x.Company_ID == Session.Company_ID &&
+                x.Branch_ID == Session.Branch_ID && x.Account_ID == account.Account_ID && x.Is_Active);
+            if (usedByAnotherCashBox)
+                return BadRequest(new { message = "الحساب المالي مرتبط بصندوق نشط آخر في الفرع الحالي." });
 
             var currencyIsActive = await _context.Currencies.AsNoTracking().AnyAsync(x =>
                 x.Company_ID == Session.Company_ID &&
@@ -87,10 +89,6 @@ namespace AlTayerERP.API.Controllers
             row.Updated_By = Session.User_ID.ToString();
             row.Updated_At = DateTime.UtcNow;
 
-            account.Is_Active = true;
-            account.Updated_By = Session.User_ID.ToString();
-            account.Updated_At = DateTime.UtcNow;
-
             _audit.Add(
                 Session,
                 HttpContext,
@@ -104,7 +102,7 @@ namespace AlTayerERP.API.Controllers
             await _context.SaveChangesAsync();
             await transaction.CommitAsync();
 
-            return Ok(new { message = "تمت إعادة تفعيل الصندوق وحسابه المرتبط بنجاح." });
+            return Ok(new { message = "تمت إعادة تفعيل الصندوق بنجاح." });
         }
 
         private static string? NormalizeReason(string? reason)
