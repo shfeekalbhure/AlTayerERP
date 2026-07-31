@@ -5,40 +5,53 @@
              FlowDirection="RightToLeft"
              BackgroundColor="#F6F8FB"
              Title="تسجيل الدخول">
-    <ScrollView>
-        <VerticalStackLayout Padding="24" Spacing="16" VerticalOptions="Center">
-            <Label Text="الطائر للبرمجيات"
-                   FontSize="30"
-                   FontAttributes="Bold"
-                   HorizontalTextAlignment="Center"
-                   TextColor="#17324D" />
-            <Label x:Name="StepTitleLabel"
-                   Text="أدخل بيانات الحساب أولاً"
-                   FontSize="17"
-                   HorizontalTextAlignment="Center"
-                   TextColor="#5B6B7A" />
+    <Grid RowDefinitions="108,*">
+        <Grid Grid.Row="0" BackgroundColor="#17324D" Padding="24,18">
+            <Label Text="تسجيل الدخول"
+                   FontSize="32"
+                   TextColor="White"
+                   VerticalOptions="Center"
+                   HorizontalTextAlignment="End" />
+        </Grid>
 
-            <Border Stroke="#D9E2EC" BackgroundColor="White" Padding="18" StrokeShape="RoundRectangle 18">
-                <VerticalStackLayout Spacing="14">
+        <ScrollView Grid.Row="1">
+            <VerticalStackLayout Padding="28,54,28,28" Spacing="28">
+                <Label Text="الطائر للبرمجيات"
+                       FontSize="38"
+                       FontAttributes="Bold"
+                       HorizontalTextAlignment="Center"
+                       TextColor="#17324D" />
+                <Label x:Name="StepTitleLabel"
+                       Text="أدخل بيانات الحساب أولاً"
+                       FontSize="23"
+                       HorizontalTextAlignment="Center"
+                       TextColor="#6B7887"
+                       Margin="0,0,0,8" />
+
+                <Border Stroke="#D9E2EC" BackgroundColor="White" Padding="34,30" StrokeShape="RoundRectangle 28">
+                    <VerticalStackLayout Spacing="20">
                     <VerticalStackLayout x:Name="CredentialsPanel" Spacing="12">
-                        <Label Text="الشركة" TextColor="#35566F" />
-                        <Border Stroke="#D9E2EC" BackgroundColor="White" Padding="4" StrokeShape="RoundRectangle 10">
+                        <Label Text="الشركة" FontSize="17" TextColor="#35566F" />
+                        <Border Stroke="#D9E2EC" BackgroundColor="White" Padding="10,4" StrokeShape="RoundRectangle 16">
                             <Picker x:Name="CompanyPicker"
                                     Title="اختر الشركة"
+                                    FontSize="18"
                                     TextColor="#17324D"
                                     TitleColor="#7A8896"
                                     BackgroundColor="White"
+                                    HeightRequest="70"
                                     ItemDisplayBinding="{Binding DisplayName}"
                                     SelectedIndexChanged="OnCredentialsChanged" />
                         </Border>
                         <Label x:Name="CompaniesStatusLabel"
                                Text="جاري تحميل الشركات..."
-                               FontSize="12"
+                               FontSize="16"
                                TextColor="#7A8896"
                                HorizontalTextAlignment="Center" />
 
                         <Entry x:Name="LoginNameEntry"
                                Placeholder="اسم المستخدم"
+                               FontSize="18"
                                TextColor="#17324D"
                                PlaceholderColor="#7A8896"
                                BackgroundColor="White"
@@ -47,6 +60,7 @@
                                TextChanged="OnCredentialsChanged" />
                         <Entry x:Name="PasswordEntry"
                                Placeholder="كلمة المرور"
+                               FontSize="18"
                                TextColor="#17324D"
                                PlaceholderColor="#7A8896"
                                BackgroundColor="White"
@@ -57,8 +71,8 @@
                                 Text="متابعة واختيار الفرع والسنة"
                                 TextColor="White"
                                 BackgroundColor="#0B6B87"
-                                HeightRequest="52"
-                                CornerRadius="12"
+                                HeightRequest="68"
+                                CornerRadius="18"
                                 IsEnabled="False"
                                 Clicked="OnLoadOptionsClicked" />
                     </VerticalStackLayout>
@@ -70,21 +84,23 @@
                                HorizontalTextAlignment="Center"
                                TextColor="#17324D" />
 
-                        <Border Stroke="#D9E2EC" BackgroundColor="White" Padding="4" StrokeShape="RoundRectangle 10">
+                        <Border Stroke="#D9E2EC" BackgroundColor="White" Padding="10,4" StrokeShape="RoundRectangle 16">
                             <Picker x:Name="BranchPicker"
                                     Title="اختر الفرع"
                                     TextColor="#17324D"
                                     TitleColor="#7A8896"
+                                    HeightRequest="70"
                                     BackgroundColor="White"
                                     ItemDisplayBinding="{Binding DisplayName}"
                                     SelectedIndexChanged="OnContextChanged" />
                         </Border>
 
-                        <Border Stroke="#D9E2EC" BackgroundColor="White" Padding="4" StrokeShape="RoundRectangle 10">
+                        <Border Stroke="#D9E2EC" BackgroundColor="White" Padding="10,4" StrokeShape="RoundRectangle 16">
                             <Picker x:Name="YearPicker"
                                     Title="اختر السنة المالية"
                                     TextColor="#17324D"
                                     TitleColor="#7A8896"
+                                    HeightRequest="70"
                                     BackgroundColor="White"
                                     ItemDisplayBinding="{Binding DisplayName}"
                                     SelectedIndexChanged="OnContextChanged" />
@@ -94,8 +110,8 @@
                                 Text="دخول"
                                 TextColor="White"
                                 BackgroundColor="#0B6B87"
-                                HeightRequest="52"
-                                CornerRadius="12"
+                                HeightRequest="68"
+                                CornerRadius="18"
                                 IsEnabled="False"
                                 Clicked="OnLoginClicked" />
                         <Button Text="رجوع لتعديل بيانات الحساب"
@@ -113,12 +129,75 @@
                                        IsVisible="False"
                                        IsRunning="False" />
                 </VerticalStackLayout>
-            </Border>
+                </Border>
 
-            <Label Text="يتصل التطبيق بخدمات النظام عبر API فقط"
-                   FontSize="12"
-                   HorizontalTextAlignment="Center"
-                   TextColor="#7A8896" />
-        </VerticalStackLayout>
-    </ScrollView>
+                <Border x:Name="DevelopmentConnectionPanel"
+                    IsVisible="False"
+                    Stroke="#D9E2EC"
+                    BackgroundColor="White"
+                    Padding="28"
+                    StrokeShape="RoundRectangle 24">
+                    <VerticalStackLayout Spacing="14">
+                    <Label Text="إعداد اتصال التطوير"
+                           FontAttributes="Bold"
+                           FontSize="22"
+                           TextColor="#17324D" />
+                    <Label Text="طريقة الاتصال" FontSize="18" TextColor="#35566F" />
+                    <Border Stroke="#D9E2EC"
+                            BackgroundColor="White"
+                            Padding="10,4"
+                            StrokeShape="RoundRectangle 16">
+                        <Picker x:Name="ConnectionModePicker"
+                                Title="اختر طريقة الاتصال"
+                                TextColor="#17324D"
+                                TitleColor="#7A8896"
+                                BackgroundColor="White"
+                                HeightRequest="70"
+                                HorizontalOptions="Fill"
+                                SelectedIndexChanged="OnConnectionModeChanged">
+                            <Picker.Items>
+                                <x:String>تلقائي</x:String>
+                                <x:String>USB</x:String>
+                                <x:String>Wi-Fi</x:String>
+                            </Picker.Items>
+                        </Picker>
+                    </Border>
+                    <VerticalStackLayout x:Name="WifiConnectionFields" Spacing="10">
+                        <Entry x:Name="WifiBaseAddressEntry"
+                               Placeholder="عنوان Wi-Fi، مثال: 192.168.1.10"
+                               FontSize="17"
+                               TextColor="#17324D"
+                               PlaceholderColor="#7A8896"
+                               BackgroundColor="White"
+                               Keyboard="Url" />
+                        <Entry x:Name="WifiPortEntry"
+                               Placeholder="المنفذ"
+                               FontSize="17"
+                               TextColor="#17324D"
+                               PlaceholderColor="#7A8896"
+                               BackgroundColor="White"
+                               Keyboard="Numeric" />
+                    </VerticalStackLayout>
+                    <Button Text="اختبار الاتصال"
+                            BackgroundColor="#0B6B87"
+                            TextColor="White"
+                            HeightRequest="58"
+                            CornerRadius="16"
+                            Clicked="OnTestConnectionClicked" />
+                    <Label x:Name="ConnectionStatusLabel"
+                           FontSize="12"
+                           TextColor="#35566F" />
+                    <Label x:Name="DevelopmentDatabaseLabel"
+                           FontSize="11"
+                           TextColor="#7A8896" />
+                </VerticalStackLayout>
+                </Border>
+
+                <Label Text="يتصل التطبيق بخدمات النظام عبر API فقط"
+                       FontSize="13"
+                       HorizontalTextAlignment="Center"
+                       TextColor="#7A8896" />
+            </VerticalStackLayout>
+        </ScrollView>
+    </Grid>
 </ContentPage>

@@ -4,50 +4,17 @@ using AlTayerERP.Mobile.Office.DTOs;
 
 namespace AlTayerERP.Mobile.Office.Services;
 
-public sealed class AuthenticationService(HttpClient httpClient, SessionStorageService sessionStorage)
+public sealed class AuthenticationService(HttpClient httpClient, SessionStorageService sessionStorage, ApiConnectionDiagnosticsService diagnostics)
 {
-    public async Task<List<LoginCompanyOptionDto>> GetLoginCompaniesAsync(
-        CancellationToken cancellationToken = default)
-    {
-        using var response = await httpClient.GetAsync("api/Auth/LoginCompanies", cancellationToken);
-        if (!response.IsSuccessStatusCode)
-        {
-            var message = await response.Content.ReadAsStringAsync(cancellationToken);
-            throw new InvalidOperationException(NormalizeError(message, "تعذر تحميل الشركات."));
-        }
+    public async Task<List<LoginCompanyOptionDto>> GetLoginCompaniesAsync(CancellationToken cancellationToken = default) =>
+        await GetJsonAsync<List<LoginCompanyOptionDto>>(HttpMethod.Get, "api/Branches/GetCompaniesLookup", null, null, cancellationToken) ?? [];
 
-        return await response.Content.ReadFromJsonAsync<List<LoginCompanyOptionDto>>(
-                   cancellationToken: cancellationToken)
-               ?? [];
-    }
-
-    public async Task<LoginOptionsResponseDto> GetLoginOptionsAsync(
-        LoginOptionsRequestDto request,
-        CancellationToken cancellationToken = default)
-    {
-        using var response = await httpClient.PostAsJsonAsync("api/Auth/LoginOptions", request, cancellationToken);
-        if (!response.IsSuccessStatusCode)
-        {
-            var message = await response.Content.ReadAsStringAsync(cancellationToken);
-            throw new InvalidOperationException(NormalizeError(message, "تعذر تحميل خيارات الدخول."));
-        }
-
-        return await response.Content.ReadFromJsonAsync<LoginOptionsResponseDto>(cancellationToken: cancellationToken)
-               ?? throw new InvalidOperationException("استجابة خيارات الدخول غير صالحة.");
-    }
+    public Task<LoginOptionsResponseDto> GetLoginOptionsAsync(LoginOptionsRequestDto request, CancellationToken cancellationToken = default) =>
+        GetJsonAsync<LoginOptionsResponseDto>(HttpMethod.Post, "api/Auth/LoginOptions", request, null, cancellationToken);
 
     public async Task<LoginResponseDto> LoginAsync(LoginRequestDto request, CancellationToken cancellationToken = default)
     {
-        using var response = await httpClient.PostAsJsonAsync("api/Auth/Login", request, cancellationToken);
-        if (!response.IsSuccessStatusCode)
-        {
-            var message = await response.Content.ReadAsStringAsync(cancellationToken);
-            throw new InvalidOperationException(NormalizeError(message, "تعذر تسجيل الدخول."));
-        }
-
-        var result = await response.Content.ReadFromJsonAsync<LoginResponseDto>(cancellationToken: cancellationToken)
-                     ?? throw new InvalidOperationException("استجابة تسجيل الدخول غير صالحة.");
-
+        var result = await GetJsonAsync<LoginResponseDto>(HttpMethod.Post, "api/Auth/Login", request, null, cancellationToken);
         await sessionStorage.SaveAsync(result);
         return result;
     }
@@ -55,51 +22,53 @@ public sealed class AuthenticationService(HttpClient httpClient, SessionStorageS
     public async Task<StoredSessionDto?> RestoreSessionAsync(CancellationToken cancellationToken = default)
     {
         var stored = await sessionStorage.GetAsync();
-        if (stored == null || stored.AccessTokenExpiresAt <= DateTimeOffset.UtcNow)
-        {
-            sessionStorage.Clear();
-            return null;
-        }
-
-        using var request = new HttpRequestMessage(HttpMethod.Get, "api/Auth/CurrentSession");
-        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", stored.AccessToken);
-        using var response = await httpClient.SendAsync(request, cancellationToken);
-
-        if (!response.IsSuccessStatusCode)
-        {
-            sessionStorage.Clear();
-            return null;
-        }
-
-        return stored;
+        if (stored == null || stored.AccessTokenExpiresAt <= DateTimeOffset.UtcNow) { sessionStorage.Clear(); return null; }
+        try { await GetJsonAsync<object>(HttpMethod.Get, "api/Auth/CurrentSession", null, stored, cancellationToken); return stored; }
+        catch (ApiDiagnosticException) { sessionStorage.Clear(); return null; }
     }
 
     public async Task LogoutAsync(CancellationToken cancellationToken = default)
     {
         var stored = await sessionStorage.GetAsync();
+        try { if (stored != null) await SendAsync(HttpMethod.Post, "api/Auth/Logout", null, stored, cancellationToken); }
+        finally { sessionStorage.Clear(); }
+    }
+
+    private async Task<T> GetJsonAsync<T>(HttpMethod method, string endpoint, object? body, StoredSessionDto? session, CancellationToken cancellationToken)
+    {
+        using var response = await SendAsync(method, endpoint, body, session, cancellationToken);
         try
         {
-            if (stored != null)
-            {
-                using var request = new HttpRequestMessage(HttpMethod.Post, "api/Auth/Logout");
-                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", stored.AccessToken);
-                using var _ = await httpClient.SendAsync(request, cancellationToken);
-            }
+            return await response.Content.ReadFromJsonAsync<T>(cancellationToken: cancellationToken)
+                   ?? throw new ApiDiagnosticException(diagnostics.Create(endpoint, true, (int)response.StatusCode, ApiErrorType.DeserializeFailure, session));
         }
-        finally
+        catch (ApiDiagnosticException) { throw; }
+        catch (Exception ex) when (ex is System.Text.Json.JsonException or NotSupportedException)
         {
-            sessionStorage.Clear();
+            throw new ApiDiagnosticException(diagnostics.Create(endpoint, true, (int)response.StatusCode, ApiErrorType.DeserializeFailure, session));
         }
     }
 
-    private static string NormalizeError(string? raw, string fallback)
+    private async Task<HttpResponseMessage> SendAsync(HttpMethod method, string endpoint, object? body, StoredSessionDto? session, CancellationToken cancellationToken)
     {
-        if (string.IsNullOrWhiteSpace(raw)) return fallback;
-
-        var message = raw.Trim();
-        if (message.Length >= 2 && message.StartsWith('"') && message.EndsWith('"'))
-            message = message[1..^1];
-
-        return message.Replace("\\u0022", "\"");
+        using var request = new HttpRequestMessage(method, endpoint);
+        if (body != null) request.Content = JsonContent.Create(body);
+        if (session != null) request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", session.AccessToken);
+        try
+        {
+            var response = await httpClient.SendAsync(request, cancellationToken);
+            if (response.IsSuccessStatusCode) return response;
+            var diagnostic = diagnostics.FromStatus(endpoint, (int)response.StatusCode, session);
+            response.Dispose();
+            throw new ApiDiagnosticException(diagnostic);
+        }
+        catch (ApiDiagnosticException) { throw; }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { throw; }
+        catch (Exception ex) { throw new ApiDiagnosticException(diagnostics.FromException(endpoint, ex, session)); }
     }
+}
+
+public sealed class ApiDiagnosticException(ApiDiagnosticResult diagnostic) : Exception(diagnostic.Message)
+{
+    public ApiDiagnosticResult Diagnostic { get; } = diagnostic;
 }
