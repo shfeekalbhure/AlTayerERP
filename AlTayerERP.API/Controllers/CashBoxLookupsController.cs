@@ -84,9 +84,7 @@ namespace AlTayerERP.API.Controllers
                     x.Is_Summary_Account &&
                     x.Account_Type == "Asset" &&
                     x.Normal_Balance == "Debit" &&
-                    (x.Account_Category == "Cash" ||
-                     x.Account_Name_AR.Contains("صندوق") ||
-                     x.Account_Name_AR.Contains("نقد")))
+                    x.Account_Category == "Cash")
                 .OrderBy(x => x.Account_Code)
                 .Select(x => new
                 {

@@ -61,6 +61,9 @@ namespace AlTayerERP.Desktop
         {
             public string Currency_Code { get; set; } = string.Empty;
             public string Currency_Name_AR { get; set; } = string.Empty;
+            public string Display_Name => string.IsNullOrWhiteSpace(Currency_Name_AR)
+                ? Currency_Code
+                : $"{Currency_Code} - {Currency_Name_AR}";
         }
 
         public sealed class AccountCashLookup
@@ -118,6 +121,7 @@ namespace AlTayerERP.Desktop
             ConfigureDropdown(cmbBranch, 180, 8);
             ConfigureDropdown(cmbCurrency, 220, 10);
             ConfigureDropdown(cmbAccount, 260, 12);
+            cmbBranch.Enabled = false;
 
             txtCashBoxCode.ReadOnly = true;
             txtCashBoxCode.TabStop = false;
@@ -131,6 +135,7 @@ namespace AlTayerERP.Desktop
             ConfigureMoney(numMaximumLimit);
             numOpeningBalance.Enabled = false;
             chkIsActive.Enabled = false;
+            dgvCashBoxCurrencies.Visible = false;
 
             txtCashBoxNameAR.TabIndex = 0;
             txtCashBoxNameEN.TabIndex = 1;
@@ -384,7 +389,7 @@ namespace AlTayerERP.Desktop
                 cmbBranch.SelectedValue = CurrentSession.Branch_ID;
 
                 cmbCurrency.DataSource = currencies;
-                cmbCurrency.DisplayMember = nameof(CurrencyCashLookup.Currency_Name_AR);
+                cmbCurrency.DisplayMember = nameof(CurrencyCashLookup.Display_Name);
                 cmbCurrency.ValueMember = nameof(CurrencyCashLookup.Currency_Code);
                 cmbCurrency.SelectedIndex = -1;
 
@@ -614,7 +619,7 @@ namespace AlTayerERP.Desktop
                 txtCashBoxCode.Text = row.Code;
                 txtCashBoxNameAR.Text = row.NameAR;
                 txtCashBoxNameEN.Text = row.NameEN ?? string.Empty;
-                cmbBranch.SelectedValue = CurrentSession.Branch_ID;
+                cmbBranch.SelectedValue = row.Branch_ID;
                 cmbCurrency.SelectedValue = row.Currency_Code;
                 cmbAccount.SelectedValue = row.Account_ID;
                 SetNumericValue(numOpeningBalance, row.Opening_Balance);
@@ -659,6 +664,11 @@ namespace AlTayerERP.Desktop
             style.BackColor = row.IsActive ? Color.White : Color.FromArgb(245, 245, 245);
 
             var property = dgvCashBoxes.Columns[e.ColumnIndex].DataPropertyName;
+            if (property == nameof(CashBoxModel.Is_Active))
+            {
+                e.Value = row.Status_Name;
+                e.FormattingApplied = true;
+            }
             if (property is "Opening_Balance" or "Current_Balance" or "Max_Limit" or "Min_Limit" && e.Value is decimal amount)
             {
                 e.Value = amount.ToString("N2");
@@ -777,7 +787,7 @@ namespace AlTayerERP.Desktop
             btnNew.Enabled = !_isBusy && _canAdd;
             btnSave.Enabled = !_isBusy && _canAdd && _masterDataReady && !hasSelection;
             btnEdit.Enabled = !_isBusy && _canEdit && hasSelection && isActive;
-            btnDelete.Visible = _canDeactivate && (!hasSelection || isActive);
+            btnDelete.Visible = _canDeactivate && hasSelection && isActive;
             btnDelete.Enabled = !_isBusy && _canDeactivate && hasSelection && isActive;
             btnSearch.Enabled = !_isBusy;
             btnRefresh.Enabled = !_isBusy;
