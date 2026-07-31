@@ -220,25 +220,25 @@ namespace AlTayerERP.Desktop.Forms
             // -------------------------------------------------------------------------
             this.RightToLeft = System.Windows.Forms.RightToLeft.Yes; // ضبط اتجاه الواجهة بالكامل من اليمين إلى اليسار (عربي)
             this.RightToLeftLayout = true;
-            this.ClientSize = new System.Drawing.Size(1080, 720);    // مساحة كافية للحقول والجدول وبطاقات التدقيق
-            this.MinimumSize = new System.Drawing.Size(920, 650);    // يمنع قص حقول الإدخال والتذييل
+            this.ClientSize = new System.Drawing.Size(1080, 760);    // مساحة كافية للتخطيط الرأسي المحدد للشاشة
+            this.MinimumSize = new System.Drawing.Size(920, 760);    // يمنع قص الحقول والجدول وبطاقات التذييل
             this.Text = "نظام الطائر السعيد - إدارة الدول";       // عنوان النافذة في الشريط العلوي
             this.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(248)))), ((int)(((byte)(250)))), ((int)(((byte)(252))))); // خلفية رمادي فاتح مريح
             this.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
 
             // -------------------------------------------------------------------------
             // [إعدادات الهيكل الرئيسي للنافذة - Main Table Layout]
-            // تقسيم الشاشة رأسياً إلى 5 صفوف (أزرار، بيانات +1سم، بحث +1سم، جدول -2سم، تذييل)
+            // تقسيم الشاشة رأسياً: أزرار، بحث (1.5 سم)، بيانات أساسية موسعة، جدول (3 سم)، تذييل (1.4 سم).
             // -------------------------------------------------------------------------
             this.mainTableLayout.Dock = System.Windows.Forms.DockStyle.Fill;
             this.mainTableLayout.ColumnCount = 1;
             this.mainTableLayout.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 100F));
             this.mainTableLayout.RowCount = 5;
             this.mainTableLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 48F));  // الصف 0: شريط الأزرار العلوية
-            this.mainTableLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 285F)); // الصف 1: بطاقة البيانات الأساسية بما فيها الجنسية
-            this.mainTableLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 85F));  // الصف 2: 🟢 إطار البحث والتصفية (+1 سم توسعة)
-            this.mainTableLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 100F)); // الصف 3: 🔴 جدول عرض الدول (تم تقليصه تلقائياً 2 سم)
-            this.mainTableLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 75F));  // الصف 4: بطاقات التدقيق والتذييل السفلي
+            this.mainTableLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 57F));  // الصف 1: البحث والتصفية (1.5 سم)
+            this.mainTableLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 436F)); // الصف 2: بيانات الدولة الأساسية (+4 سم)
+            this.mainTableLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 114F)); // الصف 3: جدول الدول (3 سم)
+            this.mainTableLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 53F));  // الصف 4: بطاقات التدقيق (1.4 سم)
 
             // -------------------------------------------------------------------------
             // [إعدادات وتنسيق لوحة الأزرار العلوية - Top Toolbar Panel]
@@ -495,8 +495,8 @@ namespace AlTayerERP.Desktop.Forms
             // [التجميع النهائي لجميع أجزاء الواجهة - Assembly Controls]
             // -------------------------------------------------------------------------
             this.mainTableLayout.Controls.Add(this.panelButtons, 0, 0);        // السطر 0: إدراج لوحة الأزرار العلوية
-            this.mainTableLayout.Controls.Add(this.grpDataCard, 0, 1);         // السطر 1: إدراج بطاقة البيانات الأساسية
-            this.mainTableLayout.Controls.Add(this.grpSearchContainer, 0, 2); // السطر 2: إدراج إطار البحث والتصفية
+            this.mainTableLayout.Controls.Add(this.grpSearchContainer, 0, 1); // السطر 1: إدراج إطار البحث والتصفية
+            this.mainTableLayout.Controls.Add(this.grpDataCard, 0, 2);         // السطر 2: إدراج بطاقة البيانات الأساسية
             this.mainTableLayout.Controls.Add(this.dgvCountries, 0, 3);        // السطر 3: إدراج جدول العرض المتمدد
             this.mainTableLayout.Controls.Add(this.tblAuditSummary, 0, 4);    // السطر 4: إدراج بطاقات التدقيق والتذييل
 
