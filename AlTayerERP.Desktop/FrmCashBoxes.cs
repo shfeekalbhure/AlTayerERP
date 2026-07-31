@@ -31,6 +31,7 @@ namespace AlTayerERP.Desktop
         private bool _masterDataReady;
         private bool _isNewMode;
         private bool _isEditMode;
+        private string? _sharedAccountAcknowledgedId;
         private bool _canAdd;
         private bool _canEdit;
         private bool _canDeactivate;
@@ -622,6 +623,7 @@ namespace AlTayerERP.Desktop
                 _selectedCashBoxId = row.ID;
                 _isNewMode = false;
                 _isEditMode = false;
+                _sharedAccountAcknowledgedId = null;
                 txtCashBoxCode.Text = row.Code;
                 txtCashBoxNameAR.Text = row.NameAR;
                 txtCashBoxNameEN.Text = row.NameEN ?? string.Empty;
@@ -759,6 +761,7 @@ namespace AlTayerERP.Desktop
             {
                 _isNewMode = false;
                 _isEditMode = false;
+                _sharedAccountAcknowledgedId = null;
                 _selectedCashBoxId = string.Empty;
                 txtCashBoxCode.Clear();
                 txtCashBoxNameAR.Clear();
@@ -879,6 +882,23 @@ namespace AlTayerERP.Desktop
             _errors.SetError(cmbAccount, string.Empty);
             if (_isBinding || cmbAccount.SelectedValue == null || !string.IsNullOrWhiteSpace(_selectedCashBoxId))
                 return;
+
+            var accountId = cmbAccount.SelectedValue.ToString();
+            var linkedBox = _cashBoxes.FirstOrDefault(x => x.IsActive && x.Account_ID == accountId);
+            if (linkedBox != null && _sharedAccountAcknowledgedId != accountId)
+            {
+                var addAnother = MessageBox.Show(
+                    $"الحساب المالي مختار في صندوق قائم: {linkedBox.NameAR}. هل تريد ربطه بصندوق آخر؟",
+                    "تنبيه ربط الحساب", MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
+                if (addAnother != DialogResult.Yes)
+                {
+                    _isBinding = true;
+                    cmbAccount.SelectedIndex = -1;
+                    _isBinding = false;
+                    return;
+                }
+                _sharedAccountAcknowledgedId = accountId;
+            }
             if (string.IsNullOrWhiteSpace(txtCashBoxCode.Text))
                 await GenerateNextCodeAsync();
         }

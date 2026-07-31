@@ -68,13 +68,6 @@ namespace AlTayerERP.API.Controllers
             if (!accountIsValid)
                 return BadRequest(new { message = "لا يمكن إعادة التفعيل لأن الحساب المالي للصندوق غير نشط أو غير قابل للترحيل." });
 
-            var usedByAnotherCashBox = await _context.Cash_Boxes.AsNoTracking().AnyAsync(x =>
-                x.Cash_Box_ID != row.Cash_Box_ID &&
-                x.Company_ID == Session.Company_ID &&
-                x.Branch_ID == Session.Branch_ID && x.Account_ID == account.Account_ID && x.Is_Active);
-            if (usedByAnotherCashBox)
-                return BadRequest(new { message = "الحساب المالي مرتبط بصندوق نشط آخر في الفرع الحالي." });
-
             var currencyIsActive = await _context.Currencies.AsNoTracking().AnyAsync(x =>
                 x.Company_ID == Session.Company_ID &&
                 x.Currency_Code == row.Currency_Code &&

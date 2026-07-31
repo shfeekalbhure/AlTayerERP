@@ -279,9 +279,6 @@ namespace AlTayerERP.API.Controllers
                 return "العملة المختارة غير فعالة في الشركة الحالية.";
             if (!string.IsNullOrWhiteSpace(account.Currency_Code) && !string.Equals(account.Currency_Code, currency, StringComparison.OrdinalIgnoreCase))
                 return "عملة الصندوق يجب أن تطابق عملة الحساب المالي المختار.";
-            if (await _context.Cash_Boxes.AsNoTracking().AnyAsync(x => x.Company_ID == Session.Company_ID && x.Branch_ID == Session.Branch_ID && x.Cash_Box_ID != currentId && x.Account_ID == account.Account_ID))
-                return "الحساب المالي المختار مرتبط بصندوق آخر في الفرع الحالي.";
-
             var name = dto.Box_Name_AR.Trim();
             if (await _context.Cash_Boxes.AsNoTracking().AnyAsync(x => x.Company_ID == Session.Company_ID && x.Branch_ID == Session.Branch_ID && x.Cash_Box_ID != currentId && x.Box_Name_AR == name))
                 return "يوجد صندوق آخر بالاسم نفسه في الفرع الحالي.";
