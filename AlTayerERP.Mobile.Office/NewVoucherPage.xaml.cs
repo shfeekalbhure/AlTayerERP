@@ -190,6 +190,7 @@ public partial class NewVoucherPage : ContentPage
     {
         HideStatus();
         ReportSaveCheckpoint("بدء التحقق من بيانات الحفظ.");
+        await Task.Yield();
         if (_references == null) { ShowStatus("لم يتم تحميل بيانات السند."); return; }
         ReportSaveCheckpoint("تم تجاوز: تحميل البيانات المرجعية.");
         if (SourcePicker.SelectedItem is not VoucherEntrySourceDto source) { ShowStatus("اختر الصندوق أو البنك."); return; }
@@ -333,18 +334,20 @@ public partial class NewVoucherPage : ContentPage
 
     private void ReportSaveCheckpoint(string message)
     {
-#if DEBUG
         StatusLabel.TextColor = Color.FromArgb("#0B6B87");
-        StatusLabel.Text = message;
+        StatusLabel.Text = string.IsNullOrWhiteSpace(StatusLabel.Text)
+            ? message
+            : $"{StatusLabel.Text}{Environment.NewLine}{message}";
         StatusLabel.IsVisible = true;
         System.Diagnostics.Debug.WriteLine($"[VoucherSaveCheckpoint] {message}");
-#endif
     }
 
     private void ShowStatus(string message)
     {
         StatusLabel.TextColor = Color.FromArgb("#B42318");
-        StatusLabel.Text = message;
+        StatusLabel.Text = string.IsNullOrWhiteSpace(StatusLabel.Text)
+            ? message
+            : $"{StatusLabel.Text}{Environment.NewLine}توقف: {message}";
         StatusLabel.IsVisible = true;
     }
     private void HideStatus() { StatusLabel.Text = string.Empty; StatusLabel.IsVisible = false; }
