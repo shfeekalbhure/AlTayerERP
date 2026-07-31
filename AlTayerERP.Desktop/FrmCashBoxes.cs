@@ -29,6 +29,8 @@ namespace AlTayerERP.Desktop
         private bool _isBinding;
         private bool _isBusy;
         private bool _masterDataReady;
+        private bool _isNewMode;
+        private bool _isEditMode;
         private bool _canAdd;
         private bool _canEdit;
         private bool _canDeactivate;
@@ -452,7 +454,6 @@ namespace AlTayerERP.Desktop
 
         private async void btnNew_Click(object? sender, EventArgs e)
         {
-            ClearForm();
             if (!_masterDataReady)
             {
                 MessageBox.Show("استكمل الفرع والعملة وحساب الصناديق الأب أولًا.", "بيانات مرجعية ناقصة",
@@ -460,19 +461,26 @@ namespace AlTayerERP.Desktop
                 return;
             }
 
+            ClearForm();
+            _isNewMode = true;
+            UpdateActionState();
             await GenerateNextCodeAsync();
             txtCashBoxNameAR.Focus();
         }
 
         private async void btnSave_Click(object? sender, EventArgs e)
         {
-            if (!_masterDataReady || !ValidateForm())
+            if (!_masterDataReady || (!_isNewMode && !_isEditMode) || !ValidateForm())
                 return;
 
-            await ExecuteWriteAsync(
-                () => _client.PostAsJsonAsync($"{_baseUrl}CashBoxes", BuildRequest()),
-                "تم حفظ الصندوق بنجاح.",
-                "تعذر حفظ الصندوق");
+            if (_isNewMode)
+                await ExecuteWriteAsync(
+                    () => _client.PostAsJsonAsync($"{_baseUrl}CashBoxes", BuildRequest()),
+                    "تم حفظ الصندوق بنجاح.", "تعذر حفظ الصندوق");
+            else
+                await ExecuteWriteAsync(
+                    () => _client.PutAsJsonAsync($"{_baseUrl}CashBoxes/{_selectedCashBoxId}", BuildRequest()),
+                    "تم تعديل الصندوق بنجاح.", "تعذر تعديل الصندوق");
         }
 
         private async void btnEdit_Click(object? sender, EventArgs e)
@@ -482,13 +490,9 @@ namespace AlTayerERP.Desktop
                 MessageBox.Show("اختر صندوقًا من الجدول أولًا.", "تنبيه", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
-            if (!ValidateForm())
-                return;
-
-            await ExecuteWriteAsync(
-                () => _client.PutAsJsonAsync($"{_baseUrl}CashBoxes/{_selectedCashBoxId}", BuildRequest()),
-                "تم تعديل الصندوق بنجاح.",
-                "تعذر تعديل الصندوق");
+            _isEditMode = true;
+            UpdateActionState();
+            txtCashBoxNameAR.Focus();
         }
 
         private async void btnDelete_Click(object? sender, EventArgs e)
@@ -616,6 +620,8 @@ namespace AlTayerERP.Desktop
             try
             {
                 _selectedCashBoxId = row.ID;
+                _isNewMode = false;
+                _isEditMode = false;
                 txtCashBoxCode.Text = row.Code;
                 txtCashBoxNameAR.Text = row.NameAR;
                 txtCashBoxNameEN.Text = row.NameEN ?? string.Empty;
@@ -751,6 +757,8 @@ namespace AlTayerERP.Desktop
             _isBinding = true;
             try
             {
+                _isNewMode = false;
+                _isEditMode = false;
                 _selectedCashBoxId = string.Empty;
                 txtCashBoxCode.Clear();
                 txtCashBoxNameAR.Clear();
@@ -784,19 +792,20 @@ namespace AlTayerERP.Desktop
             var hasSelection = selected != null && !string.IsNullOrWhiteSpace(selected.ID);
             var isActive = selected?.IsActive ?? true;
 
-            btnNew.Enabled = !_isBusy && _canAdd;
-            btnSave.Enabled = !_isBusy && _canAdd && _masterDataReady && !hasSelection;
-            btnEdit.Enabled = !_isBusy && _canEdit && hasSelection && isActive;
-            btnDelete.Visible = _canDeactivate && hasSelection && isActive;
-            btnDelete.Enabled = !_isBusy && _canDeactivate && hasSelection && isActive;
+            var isInputMode = _isNewMode || _isEditMode;
+            btnNew.Enabled = !_isBusy && _canAdd && !isInputMode;
+            btnSave.Enabled = !_isBusy && _masterDataReady && (_isNewMode ? _canAdd : _isEditMode && _canEdit);
+            btnEdit.Enabled = !_isBusy && _canEdit && hasSelection && isActive && !isInputMode;
+            btnDelete.Visible = _canDeactivate && hasSelection && isActive && !isInputMode;
+            btnDelete.Enabled = !_isBusy && _canDeactivate && hasSelection && isActive && !isInputMode;
             btnSearch.Enabled = !_isBusy;
             btnRefresh.Enabled = !_isBusy;
             btnPrint.Enabled = !_isBusy && _canPrint;
 
             if (_btnReactivate != null)
             {
-                _btnReactivate.Visible = _canReactivate && hasSelection && !isActive;
-                _btnReactivate.Enabled = !_isBusy && _canReactivate && hasSelection && !isActive;
+                _btnReactivate.Visible = _canReactivate && hasSelection && !isActive && !isInputMode;
+                _btnReactivate.Enabled = !_isBusy && _canReactivate && hasSelection && !isActive && !isInputMode;
             }
         }
 
