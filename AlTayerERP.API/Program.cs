@@ -5,6 +5,7 @@ using AlTayerERP.Infrastructure.Data;
 using Microsoft.AspNetCore.Authentication;
 using AlTayerERP.API.Security;
 using Microsoft.EntityFrameworkCore;
+using MySqlConnector;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -20,6 +21,14 @@ var connectionString =
     ?? throw new InvalidOperationException(
         "لم يتم ضبط DefaultConnection. عيّنه محلياً عبر User Secrets أو المتغير ConnectionStrings__DefaultConnection؛ لا تضع كلمة المرور داخل ملفات الإعداد المتتبعة."
     );
+
+// توحيد ترميز جلسة MySQL مع نموذج EF Core حتى لا يحمل المعامل النصي
+// Collation مختلفة عن أعمدة سندات القبض والحسابات.
+var mysqlConnection = new MySqlConnectionStringBuilder(connectionString)
+{
+    CharacterSet = Phase1BaselineModelConfiguration.CharacterSet
+};
+connectionString = mysqlConnection.ConnectionString;
 
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseMySql(
