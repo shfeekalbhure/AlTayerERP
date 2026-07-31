@@ -83,23 +83,36 @@ namespace AlTayerERP.API.Controllers
                     !x.Is_Postable &&
                     x.Is_Summary_Account &&
                     x.Account_Type == "Asset" &&
-                    x.Account_Category == "Cash" &&
-                    x.Normal_Balance == "Debit")
+                    x.Normal_Balance == "Debit" &&
+                    (x.Account_Category == "Cash" ||
+                     x.Account_Name_AR.Contains("صندوق") ||
+                     x.Account_Name_AR.Contains("نقد")))
                 .OrderBy(x => x.Account_Code)
                 .Select(x => new
                 {
                     x.Account_ID,
                     x.Account_Code,
                     x.Account_Name_AR,
-                    x.Account_Name_EN
+                    x.Account_Name_EN,
+                    Display_Name = x.Account_Code + " - " + x.Account_Name_AR
                 })
                 .ToListAsync();
+
+            var permissions = new
+            {
+                Can_Add = await _authorization.IsAllowedAsync(Session, "CashBoxes", ScreenOperation.Add),
+                Can_Edit = await _authorization.IsAllowedAsync(Session, "CashBoxes", ScreenOperation.Edit),
+                Can_Deactivate = await _authorization.IsAllowedAsync(Session, "CashBoxes", ScreenOperation.Delete),
+                Can_Reactivate = await _authorization.IsAllowedAsync(Session, "CashBoxes", ScreenOperation.Reactivate),
+                Can_Print = await _authorization.IsAllowedAsync(Session, "CashBoxes", ScreenOperation.Print)
+            };
 
             return Ok(new
             {
                 Branches = new[] { branch },
                 Currencies = currencies,
-                Accounts = accounts
+                Accounts = accounts,
+                Permissions = permissions
             });
         }
     }

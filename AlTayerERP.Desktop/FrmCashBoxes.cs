@@ -29,6 +29,11 @@ namespace AlTayerERP.Desktop
         private bool _isBinding;
         private bool _isBusy;
         private bool _masterDataReady;
+        private bool _canAdd;
+        private bool _canEdit;
+        private bool _canDeactivate;
+        private bool _canReactivate;
+        private bool _canPrint;
         private int _printRowIndex;
         private Button? _btnReactivate;
         private Label? _lblCurrentBalance;
@@ -61,7 +66,18 @@ namespace AlTayerERP.Desktop
         public sealed class AccountCashLookup
         {
             public string Account_ID { get; set; } = string.Empty;
+            public string Account_Code { get; set; } = string.Empty;
             public string Account_Name_AR { get; set; } = string.Empty;
+            public string Display_Name { get; set; } = string.Empty;
+        }
+
+        public sealed class CashBoxPermissions
+        {
+            public bool Can_Add { get; set; }
+            public bool Can_Edit { get; set; }
+            public bool Can_Deactivate { get; set; }
+            public bool Can_Reactivate { get; set; }
+            public bool Can_Print { get; set; }
         }
 
         private sealed class CashBoxLookupsResponse
@@ -69,6 +85,7 @@ namespace AlTayerERP.Desktop
             public List<BranchCashLookup>? Branches { get; set; }
             public List<CurrencyCashLookup>? Currencies { get; set; }
             public List<AccountCashLookup>? Accounts { get; set; }
+            public CashBoxPermissions? Permissions { get; set; }
         }
 
         private sealed class CashBoxAuditSummary
@@ -313,15 +330,15 @@ namespace AlTayerERP.Desktop
 
         private async void FrmCashBoxes_Load(object? sender, EventArgs e)
         {
-            await ReloadScreenAsync(showReferenceWarning: true);
+            await ReloadScreenAsync();
         }
 
-        private async Task ReloadScreenAsync(bool showReferenceWarning)
+        private async Task ReloadScreenAsync()
         {
             try
             {
                 SetBusy(true);
-                await LoadUnifiedLookupsAsync(showReferenceWarning);
+                await LoadUnifiedLookupsAsync();
                 await LoadCashBoxesAsync();
                 ClearForm();
             }
@@ -336,7 +353,7 @@ namespace AlTayerERP.Desktop
             }
         }
 
-        private async Task LoadUnifiedLookupsAsync(bool showReferenceWarning)
+        private async Task LoadUnifiedLookupsAsync()
         {
             var response = await _client.GetAsync($"{_baseUrl}CashBoxes/Lookups");
             if (!response.IsSuccessStatusCode)
@@ -356,6 +373,7 @@ namespace AlTayerERP.Desktop
             var branches = lookups.Branches ?? new List<BranchCashLookup>();
             var currencies = lookups.Currencies ?? new List<CurrencyCashLookup>();
             var accounts = lookups.Accounts ?? new List<AccountCashLookup>();
+            var permissions = lookups.Permissions ?? new CashBoxPermissions();
 
             _isBinding = true;
             try
@@ -371,7 +389,7 @@ namespace AlTayerERP.Desktop
                 cmbCurrency.SelectedIndex = -1;
 
                 cmbAccount.DataSource = accounts;
-                cmbAccount.DisplayMember = nameof(AccountCashLookup.Account_Name_AR);
+                cmbAccount.DisplayMember = nameof(AccountCashLookup.Display_Name);
                 cmbAccount.ValueMember = nameof(AccountCashLookup.Account_ID);
                 cmbAccount.SelectedIndex = -1;
             }
@@ -381,16 +399,12 @@ namespace AlTayerERP.Desktop
             }
 
             _masterDataReady = branches.Count > 0 && currencies.Count > 0 && accounts.Count > 0;
+            _canAdd = permissions.Can_Add;
+            _canEdit = permissions.Can_Edit;
+            _canDeactivate = permissions.Can_Deactivate;
+            _canReactivate = permissions.Can_Reactivate;
+            _canPrint = permissions.Can_Print;
             SetReferenceErrors(branches.Count, currencies.Count, accounts.Count);
-
-            if (!_masterDataReady && showReferenceWarning)
-            {
-                MessageBox.Show(
-                    "فتحت شاشة الصناديق، لكن إنشاء صندوق جديد يتطلب فرعًا فعالًا، وعملة فعالة، وحساب صناديق أب نشطًا وتجميعيًا. بعد استكمالها اضغط تحديث.",
-                    "بيانات مرجعية ناقصة",
-                    MessageBoxButtons.OK,
-                    MessageBoxIcon.Information);
-            }
         }
 
         private void BindEmptyLookups()
@@ -399,6 +413,7 @@ namespace AlTayerERP.Desktop
             cmbCurrency.DataSource = new List<CurrencyCashLookup>();
             cmbAccount.DataSource = new List<AccountCashLookup>();
             _masterDataReady = false;
+            _canAdd = _canEdit = _canDeactivate = _canReactivate = _canPrint = false;
             SetReferenceErrors(0, 0, 0);
         }
 
@@ -554,7 +569,7 @@ namespace AlTayerERP.Desktop
         }
 
         private async void btnRefresh_Click(object? sender, EventArgs e) =>
-            await ReloadScreenAsync(showReferenceWarning: false);
+            await ReloadScreenAsync();
 
         private async Task ExecuteWriteAsync(Func<Task<HttpResponseMessage>> operation, string successMessage, string errorTitle)
         {
@@ -759,19 +774,19 @@ namespace AlTayerERP.Desktop
             var hasSelection = selected != null && !string.IsNullOrWhiteSpace(selected.ID);
             var isActive = selected?.IsActive ?? true;
 
-            btnNew.Enabled = !_isBusy;
-            btnSave.Enabled = !_isBusy && _masterDataReady && !hasSelection;
-            btnEdit.Enabled = !_isBusy && hasSelection && isActive;
-            btnDelete.Visible = !hasSelection || isActive;
-            btnDelete.Enabled = !_isBusy && hasSelection && isActive;
+            btnNew.Enabled = !_isBusy && _canAdd;
+            btnSave.Enabled = !_isBusy && _canAdd && _masterDataReady && !hasSelection;
+            btnEdit.Enabled = !_isBusy && _canEdit && hasSelection && isActive;
+            btnDelete.Visible = _canDeactivate && (!hasSelection || isActive);
+            btnDelete.Enabled = !_isBusy && _canDeactivate && hasSelection && isActive;
             btnSearch.Enabled = !_isBusy;
             btnRefresh.Enabled = !_isBusy;
-            btnPrint.Enabled = !_isBusy;
+            btnPrint.Enabled = !_isBusy && _canPrint;
 
             if (_btnReactivate != null)
             {
-                _btnReactivate.Visible = hasSelection && !isActive;
-                _btnReactivate.Enabled = !_isBusy && hasSelection && !isActive;
+                _btnReactivate.Visible = _canReactivate && hasSelection && !isActive;
+                _btnReactivate.Enabled = !_isBusy && _canReactivate && hasSelection && !isActive;
             }
         }
 

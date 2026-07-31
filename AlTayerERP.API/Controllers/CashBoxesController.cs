@@ -302,21 +302,15 @@ namespace AlTayerERP.API.Controllers
             if (dto.Min_Limit < 0 || dto.Max_Limit < 0 || dto.Min_Limit > dto.Max_Limit)
                 return "حدود الصندوق غير صحيحة؛ يجب أن يكون الحد الأدنى أقل من أو يساوي الحد الأعلى.";
 
-            var cashCategoryExists = await _context.Set<AccountCategory>().AsNoTracking().AnyAsync(x =>
-                x.Company_ID == Session.Company_ID &&
-                x.Category_Code == "Cash" &&
-                x.Account_Type == "Asset" &&
-                x.Normal_Balance == "Debit" &&
-                x.Is_Active);
-            if (!cashCategoryExists)
-                return "تصنيف النقدية Cash غير موجود أو غير فعال للشركة الحالية. تواصل مع مسؤول النظام لاستكمال إعداد دليل الحسابات.";
-
             var parent = await _context.Chart_Of_Accounts.AsNoTracking().FirstOrDefaultAsync(x => x.Account_ID == dto.Account_ID && x.Company_ID == Session.Company_ID);
             if (parent == null || !parent.Is_Active || parent.Is_Postable || !parent.Is_Summary_Account)
                 return "حساب الصناديق الأب يجب أن يكون نشطاً وتجميعياً وغير قابل للترحيل.";
+            var isCanonicalCashParent = string.Equals(parent.Account_Category, "Cash", StringComparison.OrdinalIgnoreCase);
+            var isLegacyCashParent = parent.Account_Name_AR.Contains("صندوق", StringComparison.Ordinal) ||
+                                    parent.Account_Name_AR.Contains("نقد", StringComparison.Ordinal);
             if (!string.Equals(parent.Account_Type, "Asset", StringComparison.OrdinalIgnoreCase) ||
-                !string.Equals(parent.Account_Category, "Cash", StringComparison.OrdinalIgnoreCase) ||
-                !string.Equals(parent.Normal_Balance, "Debit", StringComparison.OrdinalIgnoreCase))
+                !string.Equals(parent.Normal_Balance, "Debit", StringComparison.OrdinalIgnoreCase) ||
+                (!isCanonicalCashParent && !isLegacyCashParent))
                 return "الحساب المختار ليس حساب نقدية معتمداً. يجب أن يكون من نوع Asset وتصنيف Cash وطبيعته Debit.";
 
             var currency = dto.Currency_Code.Trim().ToUpperInvariant();
