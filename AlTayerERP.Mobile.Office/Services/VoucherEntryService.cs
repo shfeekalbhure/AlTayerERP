@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
@@ -128,41 +129,15 @@ public sealed class VoucherEntryService(HttpClient httpClient, SessionStorageSer
 
     private static async Task EnsureSuccessAsync(HttpResponseMessage response, string fallback, CancellationToken cancellationToken)
     {
-        if (response.IsSuccessStatusCode) return;
+        if (response.IsSuccessStatusCode)
+            return;
 
-        var raw = await response.Content.ReadAsStringAsync(cancellationToken);
-        string? serverMessage = null;
-        if (!string.IsNullOrWhiteSpace(raw))
-        {
-            try
-            {
-                using var json = JsonDocument.Parse(raw);
-                if (json.RootElement.TryGetProperty("message", out var message))
-                    serverMessage = message.GetString();
-                else if (json.RootElement.TryGetProperty("detail", out var detail))
-                    serverMessage = detail.GetString();
-                else if (json.RootElement.TryGetProperty("title", out var title))
-                    serverMessage = title.GetString();
+        var developerDetails = await response.Content.ReadAsStringAsync(cancellationToken);
+        Debug.WriteLine(
+            $"[MobileVoucherSaveError] Endpoint={response.RequestMessage?.RequestUri?.AbsolutePath} " +
+            $"StatusCode={(int)response.StatusCode} Details={developerDetails}");
 
-                if (json.RootElement.TryGetProperty("permissionDiagnostics", out var diagnostics) &&
-                    diagnostics.ValueKind == JsonValueKind.Array)
-                {
-                    var passed = diagnostics.EnumerateArray()
-                        .Select(x => x.GetString())
-                        .Where(x => !string.IsNullOrWhiteSpace(x));
-                    serverMessage = string.Join(Environment.NewLine, passed.Append(serverMessage).Where(x => !string.IsNullOrWhiteSpace(x)));
-                }
-            }
-            catch (JsonException)
-            {
-                serverMessage = raw.Length > 250 ? raw[..250] : raw;
-            }
-        }
-
-        var status = $"HTTP {(int)response.StatusCode} ({response.ReasonPhrase})";
-        throw new InvalidOperationException(
-            string.IsNullOrWhiteSpace(serverMessage)
-                ? $"{fallback} {status}."
-                : $"{serverMessage} — {status}.");
+        // لا نمرر نص الخادم أو HTTP الخام إلى واجهة Mobile.
+        throw new InvalidOperationException(fallback);
     }
 }
