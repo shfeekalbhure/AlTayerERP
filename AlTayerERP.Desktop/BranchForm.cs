@@ -19,6 +19,7 @@ namespace AlTayerERP.Desktop
 
         private int _selectedBranchId = 0;
         private List<BranchListModel> _branchesList = new List<BranchListModel>();
+        private List<BranchTypeLookupModel> _branchTypes = new List<BranchTypeLookupModel>();
 
         // كائنات نظام الطباعة والمعاينة
         private System.Drawing.Printing.PrintDocument printDocument = new System.Drawing.Printing.PrintDocument();
@@ -30,17 +31,18 @@ namespace AlTayerERP.Desktop
             InitializeComponent();
 
             // توحيد شكل الشاشة القديمة والاختصارات العربية دون تغيير منطقها.
-this.Load -= BranchForm_Load;
+            this.Load -= BranchForm_Load;
             this.Load += BranchForm_Load;
+            cmbCompanies.SelectionChangeCommitted += async (_, _) => await LoadBranchesAsync();
             printDocument.PrintPage += PrintDocument_PrintPage;
         }
 
         private async void BranchForm_Load(object sender, EventArgs e)
         {
             SetupBranchesGrid();
-            FillBranchTypes();
             InitializeStatusComboBox();
             await LoadCompaniesAsync();
+            await LoadBranchTypesAsync();
             await LoadBranchesAsync();
         }
 
@@ -53,11 +55,21 @@ this.Load -= BranchForm_Load;
             cmbStatus.SelectedItem = "نشط";
         }
 
-        private void FillBranchTypes()
+        private async Task LoadBranchTypesAsync()
         {
-            cmbBranchType.Items.Clear();
-            cmbBranchType.Items.AddRange(new string[] { "رئيسي", "فرعي", "نقطة توزيع", "مستودع" });
-            cmbBranchType.SelectedIndex = -1;
+            try
+            {
+                _branchTypes = await _client.GetFromJsonAsync<List<BranchTypeLookupModel>>($"{_baseUrl}BranchTypes/lookup")
+                    ?? new List<BranchTypeLookupModel>();
+                cmbBranchType.DataSource = _branchTypes;
+                cmbBranchType.DisplayMember = "Branch_Type_Name_AR";
+                cmbBranchType.ValueMember = "Branch_Type_Code";
+                cmbBranchType.SelectedIndex = -1;
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("فشل تحميل أنواع الفروع. أضف نوع فرع معتمداً أولاً:\n" + ex.Message);
+            }
         }
 
         private async Task LoadCompaniesAsync()
@@ -81,7 +93,14 @@ this.Load -= BranchForm_Load;
         {
             try
             {
-                var branches = await _client.GetFromJsonAsync<List<BranchListModel>>($"{_baseUrl}Branches?companyId={CurrentSession.Company_ID}");
+                var companyId = cmbCompanies.SelectedValue?.ToString();
+                if (string.IsNullOrWhiteSpace(companyId))
+                {
+                    _branchesList = new List<BranchListModel>();
+                    FillBranchesGrid(_branchesList);
+                    return;
+                }
+                var branches = await _client.GetFromJsonAsync<List<BranchListModel>>($"{_baseUrl}Branches?companyId={Uri.EscapeDataString(companyId)}");
                 _branchesList = branches ?? new List<BranchListModel>();
                 FillBranchesGrid(_branchesList);
                 PopulateParentBranchComboBox();
@@ -94,7 +113,8 @@ this.Load -= BranchForm_Load;
 
         private void PopulateParentBranchComboBox()
         {
-            var parentBranches = _branchesList.Where(b => b.Branch_Type == "رئيسي").ToList();
+            // كل فرع في الشركة يمكن أن يكون أباً؛ لا نربط التسلسل بنص ثابت مثل «رئيسي».
+            var parentBranches = _branchesList.Where(b => b.Branch_ID != _selectedBranchId && b.Is_Active).ToList();
             cmbParentBranch.DataSource = null;
             cmbParentBranch.DataSource = parentBranches;
             cmbParentBranch.DisplayMember = "Branch_Name";
@@ -135,7 +155,7 @@ this.Load -= BranchForm_Load;
                     b.Branch_Code,
                     b.Branch_Name,
                     b.Branch_Name_EN,
-                    b.Branch_Type,
+                    BranchTypeName(b.Branch_Type),
                     b.Address,
                     b.Manager_Name,
                     b.Phone,
@@ -214,6 +234,12 @@ this.Load -= BranchForm_Load;
                 return false;
             }
 
+            if (cmbBranchType.SelectedValue == null || string.IsNullOrWhiteSpace(cmbBranchType.SelectedValue.ToString()))
+            {
+                MessageBox.Show("يرجى اختيار نوع فرع معتمد من شاشة أنواع الفروع.");
+                return false;
+            }
+
             return true;
         }
 
@@ -226,7 +252,7 @@ this.Load -= BranchForm_Load;
                 Branch_Name = txtBranchNameAr.Text.Trim(),
                 Branch_Name_EN = txtBranchNameEn.Text.Trim(),
                 Address = txtLocation.Text.Trim(),
-                Branch_Type = cmbBranchType.Text.Trim(),
+                Branch_Type = cmbBranchType.SelectedValue?.ToString() ?? string.Empty,
                 Parent_Branch_ID = cmbParentBranch.SelectedValue != null ? (int?)Convert.ToInt32(cmbParentBranch.SelectedValue) : null,
                 Manager_Name = cmbManager.Text.Trim(),
                 Phone = txtPhone.Text.Trim(),
@@ -325,7 +351,7 @@ this.Load -= BranchForm_Load;
                 txtBranchNameAr.Text = branch.Branch_Name ?? "";
                 txtBranchNameEn.Text = branch.Branch_Name_EN ?? "";
                 txtLocation.Text = branch.Address ?? "";
-                cmbBranchType.Text = branch.Branch_Type ?? "";
+                cmbBranchType.SelectedValue = branch.Branch_Type ?? "";
 
                 // التثبيت بـ SelectedItem لحماية الحالة
                 cmbStatus.SelectedItem = branch.Is_Active ? "نشط" : "موقوف";
@@ -345,6 +371,12 @@ this.Load -= BranchForm_Load;
                 chkAllowCredit.Checked = branch.Allow_Credit;
                 chkAllowPercentage.Checked = branch.Allow_Percentage;
             }
+        }
+
+        private string BranchTypeName(string? code)
+        {
+            if (string.IsNullOrWhiteSpace(code)) return string.Empty;
+            return _branchTypes.FirstOrDefault(x => x.Branch_Type_Code == code)?.Branch_Type_Name_AR ?? code;
         }
 
 
@@ -547,5 +579,11 @@ this.Load -= BranchForm_Load;
         public bool Allow_Percentage { get; set; }
         public bool Is_Active { get; set; }
         public int Currency_ID { get; set; }
+    }
+
+    public class BranchTypeLookupModel
+    {
+        public string Branch_Type_Code { get; set; } = string.Empty;
+        public string Branch_Type_Name_AR { get; set; } = string.Empty;
     }
 }

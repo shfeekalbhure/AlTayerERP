@@ -20,6 +20,7 @@ namespace AlTayerERP.Desktop
         private Button? _btnTogglePassword;
         private Label? _lblCapsLock;
         private Label? _lblWelcome;
+        private Button? _btnInitialSetup;
         private WinFormsTimer? _clockTimer;
 
         public FrmLogin()
@@ -181,6 +182,23 @@ namespace AlTayerERP.Desktop
             grpLogin.Controls.Add(_lblWelcome);
             _lblWelcome.BringToFront();
 
+            _btnInitialSetup = new Button
+            {
+                Text = "تهيئة أول تشغيل",
+                FlatStyle = FlatStyle.Flat,
+                Font = new Font("Segoe UI", 9F, FontStyle.Bold),
+                BackColor = Color.White, ForeColor = Color.FromArgb(8, 49, 92),
+                Size = new Size(180, 32), Location = new Point(196, 340), Visible = false
+            };
+            _btnInitialSetup.FlatAppearance.BorderColor = Color.FromArgb(190, 205, 220);
+            _btnInitialSetup.Click += async (_, _) =>
+            {
+                using var setup = new FrmInitialSetup();
+                if (setup.ShowDialog(this) == DialogResult.OK) await LoadCompaniesAsync();
+            };
+            grpLogin.Controls.Add(_btnInitialSetup);
+            _btnInitialSetup.BringToFront();
+
             _clockTimer = new WinFormsTimer { Interval = 1000 };
             _clockTimer.Tick += (_, _) => lblDateTime.Text = DateTime.Now.ToString("yyyy/MM/dd  HH:mm:ss");
             _clockTimer.Start();
@@ -261,6 +279,8 @@ namespace AlTayerERP.Desktop
             {
                 var companies = await _client.GetFromJsonAsync<List<CompanyLookupModel>>($"{_baseUrl}Branches/GetCompaniesLookup") ?? new();
                 Bind(cmbCompany, companies, "Company_Name_AR", "Company_ID");
+                if (_btnInitialSetup != null)
+                    _btnInitialSetup.Visible = companies.Count == 0;
                 if (companies.Count == 1)
                     cmbCompany.SelectedIndex = 0;
             }

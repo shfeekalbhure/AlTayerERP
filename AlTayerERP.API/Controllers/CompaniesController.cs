@@ -28,6 +28,13 @@ namespace AlTayerERP.API.Controllers
             _numberGenerator = numberGenerator;
         }
 
+        private IActionResult? RequireSystemAdmin()
+        {
+            var session = HttpContext.Items["ServerSession"] as ServerSession;
+            if (session == null) return Unauthorized("انتهت الجلسة أو أنها غير صالحة.");
+            return session.Is_System_Admin ? null : Forbid();
+        }
+
         // ======================================================
         // 1. جلب قائمة الشركات (المستخدمة لتعبئة الجدول الرئيسي في واجهة سطح المكتب)
         // GET: api/Companies
@@ -35,6 +42,8 @@ namespace AlTayerERP.API.Controllers
         [HttpGet]
         public async Task<IActionResult> GetCompanies()
         {
+            var accessError = RequireSystemAdmin();
+            if (accessError != null) return accessError;
             try
             {
                 // نختار حقولاً محددة فقط لعرضها بالجدول لتقليل حجم البيانات وتسريع الاستجابة
@@ -71,6 +80,8 @@ namespace AlTayerERP.API.Controllers
         [HttpGet("{id}")]
         public async Task<IActionResult> GetCompany(string id)
         {
+            var accessError = RequireSystemAdmin();
+            if (accessError != null) return accessError;
             try
             {
                 // البحث عن الشركة في قاعدة البيانات بواسطة المعرّف الفريد
@@ -98,6 +109,8 @@ namespace AlTayerERP.API.Controllers
         [HttpPost]
         public async Task<IActionResult> CreateCompany([FromBody] CreateCompanyDto dto)
         {
+            var accessError = RequireSystemAdmin();
+            if (accessError != null) return accessError;
             // التحقق الأولي من صحة واكتمال المدخلات الضرورية
             if (dto == null || string.IsNullOrWhiteSpace(dto.Company_Name_AR) || string.IsNullOrWhiteSpace(dto.Group_ID))
             {
@@ -106,6 +119,10 @@ namespace AlTayerERP.API.Controllers
 
             try
             {
+                var groupId = dto.Group_ID.Trim();
+                if (!await _context.Tenant_Groups.AnyAsync(x => x.Group_ID == groupId && x.Is_Active))
+                    return BadRequest("المجموعة التجارية المحددة غير موجودة أو موقوفة.");
+
                 // استدعاء خدمة الترقيم لتوليد المعرف الفريد القادم للشركات تلقائياً
                 string companyNumber = await _numberGenerator.GenerateNextNumberAsync("COMPANY");
 
@@ -113,7 +130,7 @@ namespace AlTayerERP.API.Controllers
                 var newCompany = new Company
                 {
                     Company_ID = companyNumber,
-                    Group_ID = dto.Group_ID,
+                    Group_ID = groupId,
                     Company_Name_AR = dto.Company_Name_AR.Trim(),
                     Company_Name_EN = dto.Company_Name_EN?.Trim() ?? string.Empty,
                     Company_Prefix = dto.Company_Prefix?.Trim().ToUpper() ?? string.Empty,
@@ -149,6 +166,10 @@ namespace AlTayerERP.API.Controllers
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateCompany(string id, [FromBody] Company updatedCompany)
         {
+            var accessError = RequireSystemAdmin();
+            if (accessError != null) return accessError;
+            if (updatedCompany == null || string.IsNullOrWhiteSpace(updatedCompany.Group_ID) || string.IsNullOrWhiteSpace(updatedCompany.Company_Name_AR))
+                return BadRequest("المجموعة التجارية واسم الشركة العربي مطلوبان.");
             // التحقق من أن معرف الرابط يطابق معرف الكائن المرسل في جسم الطلب
             if (id != updatedCompany.Company_ID)
             {
@@ -157,6 +178,8 @@ namespace AlTayerERP.API.Controllers
 
             try
             {
+                if (!await _context.Tenant_Groups.AnyAsync(x => x.Group_ID == updatedCompany.Group_ID.Trim() && x.Is_Active))
+                    return BadRequest("المجموعة التجارية المحددة غير موجودة أو موقوفة.");
                 // جلب السجل الأصلي الحالي المخزن في قاعدة البيانات للتعديل عليه
                 var existingCompany = await _context.Companies.FindAsync(id);
                 if (existingCompany == null)
@@ -165,7 +188,7 @@ namespace AlTayerERP.API.Controllers
                 }
 
                 // تحديث الحقول النصية والمنطقية بالقيم المرفوعة الجديدة من الشاشة
-                existingCompany.Group_ID = updatedCompany.Group_ID;
+                existingCompany.Group_ID = updatedCompany.Group_ID.Trim();
                 existingCompany.Company_Name_AR = updatedCompany.Company_Name_AR.Trim();
                 existingCompany.Company_Name_EN = updatedCompany.Company_Name_EN?.Trim() ?? string.Empty;
                 existingCompany.Company_Prefix = updatedCompany.Company_Prefix?.Trim().ToUpper() ?? string.Empty;
@@ -213,6 +236,8 @@ namespace AlTayerERP.API.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteCompany(string id)
         {
+            var accessError = RequireSystemAdmin();
+            if (accessError != null) return accessError;
             try
             {
                 // جلب السجل المراد حذفه للتأكد من وجوده مسبقاً
@@ -221,6 +246,12 @@ namespace AlTayerERP.API.Controllers
                 {
                     return NotFound(new { message = "الشركة غير موجودة بالفعل أو تم حذفها مسبقاً!" });
                 }
+
+                if (await _context.Tenant_Branches.AnyAsync(x => x.Company_ID == id))
+                    return BadRequest("لا يمكن حذف الشركة لأنها مرتبطة بفروع. أوقفها بدلاً من الحذف.");
+
+                if (await _context.Users.AnyAsync(x => x.Company_ID == id))
+                    return BadRequest("لا يمكن حذف الشركة لأنها مرتبطة بمستخدمين. أوقفها بدلاً من الحذف.");
 
                 // إزالة السجل من حاوية الشركات وحفظ التغييرات
                 _context.Companies.Remove(company);

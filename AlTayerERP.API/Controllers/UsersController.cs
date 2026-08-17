@@ -61,6 +61,10 @@ namespace AlTayerERP.API.Controllers
             if (string.IsNullOrWhiteSpace(dto.Password))
                 return BadRequest("كلمة المرور مطلوبة.");
 
+            var validationError = await ValidateOrganizationAsync(dto.Company_ID, dto.Branch_ID, dto.Role_ID);
+            if (validationError != null)
+                return BadRequest(validationError);
+
             var exists = await _context.Users
                 .AnyAsync(x => x.Login_Name == dto.Login_Name);
 
@@ -103,6 +107,10 @@ namespace AlTayerERP.API.Controllers
             if (string.IsNullOrWhiteSpace(dto.Full_Name) || string.IsNullOrWhiteSpace(dto.Login_Name))
                 return BadRequest("الاسم الكامل واسم الدخول حقول مطلوبة.");
 
+            var validationError = await ValidateOrganizationAsync(dto.Company_ID, dto.Branch_ID, dto.Role_ID);
+            if (validationError != null)
+                return BadRequest(validationError);
+
             // التحقق من أن اسم الدخول الجديد غير محجوز لمستخدم آخر
             var loginExists = await _context.Users
                 .AnyAsync(x => x.Login_Name == dto.Login_Name && x.User_ID != id);
@@ -111,6 +119,7 @@ namespace AlTayerERP.API.Controllers
                 return BadRequest("اسم الدخول هذا مستخدم من قبل موظف آخر.");
 
             // تحديث الحقول
+            user.Company_ID = dto.Company_ID.Trim();
             user.Branch_ID = dto.Branch_ID;
             user.Role_ID = dto.Role_ID;
             user.Full_Name = dto.Full_Name.Trim();
@@ -132,6 +141,26 @@ namespace AlTayerERP.API.Controllers
             await _context.SaveChangesAsync();
 
             return Ok(user);
+        }
+
+        // يمنع إنشاء ربط غير صحيح: الفرع يجب أن يتبع الشركة والدور يجب أن يكون فعالاً.
+        private async Task<string?> ValidateOrganizationAsync(string companyId, int branchId, int roleId)
+        {
+            if (string.IsNullOrWhiteSpace(companyId))
+                return "الشركة مطلوبة.";
+
+            companyId = companyId.Trim();
+            var companyExists = await _context.Companies.AnyAsync(x => x.Company_ID == companyId && x.Is_Active);
+            if (!companyExists)
+                return "الشركة المختارة غير موجودة أو غير فعالة.";
+
+            var branchExists = await _context.Tenant_Branches.AnyAsync(x =>
+                x.Branch_ID == branchId && x.Company_ID == companyId && x.Is_Active);
+            if (!branchExists)
+                return "الفرع المختار لا يتبع الشركة أو غير فعال.";
+
+            var roleExists = await _context.Roles.AnyAsync(x => x.Role_ID == roleId && x.Is_Active);
+            return roleExists ? null : "الدور المختار غير موجود أو غير فعال.";
         }
 
         // ======================================================

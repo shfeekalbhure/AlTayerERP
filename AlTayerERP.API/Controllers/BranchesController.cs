@@ -26,16 +26,26 @@ namespace AlTayerERP.API.Controllers
             _sessions = sessions;
         }
 
+        private IActionResult? RequireSystemAdmin()
+        {
+            var session = HttpContext.Items["ServerSession"] as ServerSession;
+            if (session == null) return Unauthorized("انتهت الجلسة أو أنها غير صالحة.");
+            return session.Is_System_Admin ? null : Forbid();
+        }
+
         /// <summary>
         /// دالة إنشاء فرع جديد في النظام
         /// </summary>
         [HttpPost] // تحديد نوع الطلب كـ POST لإضافة بيانات جديدة
         public async Task<IActionResult> CreateBranch([FromBody] CreateBranchDto dto)
         {
+            var accessError = RequireSystemAdmin();
+            if (accessError != null) return accessError;
             // التحقق من أن البيانات المرسلة ليست فارغة، وأن الحقول الإلزامية (اسم الفرع، معرف الشركة) تحتوي على قيم
             if (dto == null ||
                 string.IsNullOrWhiteSpace(dto.Branch_Name) ||
-                string.IsNullOrWhiteSpace(dto.Company_ID))
+                string.IsNullOrWhiteSpace(dto.Company_ID) ||
+                string.IsNullOrWhiteSpace(dto.Branch_Type))
             {
                 // إرجاع خطأ 400 (Bad Request) إذا كانت البيانات الأساسية ناقصة
                 return BadRequest("بيانات الفرع الأساسية غير مكتملة");
@@ -43,24 +53,33 @@ namespace AlTayerERP.API.Controllers
 
             try
             {
+                var organizationError = await ValidateOrganizationAsync(dto, null);
+                if (organizationError != null) return BadRequest(organizationError);
+
+                var companyId = dto.Company_ID.Trim();
+                var branchCode = string.IsNullOrWhiteSpace(dto.Branch_Code)
+                    ? await _numberGenerator.GenerateNextNumberAsync("BRANCH", companyId)
+                    : dto.Branch_Code.Trim();
+                var duplicateCode = await _context.Tenant_Branches.AnyAsync(x =>
+                    x.Company_ID == companyId && x.Branch_Code == branchCode);
+                if (duplicateCode) return BadRequest("كود الفرع مستخدم مسبقاً داخل الشركة المحددة.");
+
                 // إنشاء كائن جديد من نوع الفرع (TenantBranch) لنقله إلى قاعدة البيانات
                 var newBranch = new TenantBranch
                 {
                     // ربط الفرع بالشركة التابع لها
-                    Company_ID = dto.Company_ID,
+                    Company_ID = companyId,
 
                     // إذا كان كود الفرع فارغاً، يتم توليده تلقائياً عبر الخدمة المخصصة، وإلا يتم تنظيف الفراغات المحيطة بالكود المدخل
-                    Branch_Code = string.IsNullOrWhiteSpace(dto.Branch_Code)
-                        ? await _numberGenerator.GenerateNextNumberAsync("BRANCH", dto.Company_ID)
-                        : dto.Branch_Code.Trim(),
+                    Branch_Code = branchCode,
 
                     // إسناد وتنظيف النصوص (إزالة الفراغات الزائدة من البداية والنهاية عبر Trim)
                     Branch_Name = dto.Branch_Name.Trim(),
                     Branch_Name_EN = dto.Branch_Name_EN?.Trim(),
                     Address = dto.Address?.Trim(),
 
-                    // إذا لم يتم إرسال نوع الفرع، يتم اعتباره "فرعي" بشكل افتراضي
-                    Branch_Type = dto.Branch_Type?.Trim() ?? "فرعي",
+                    // يحفظ رمزاً من شاشة أنواع الفروع، لا نصاً ثابتاً من واجهة الفروع.
+                    Branch_Type = dto.Branch_Type.Trim().ToUpperInvariant(),
                     Parent_Branch_ID = dto.Parent_Branch_ID,
 
                     // إسناد بيانات الاتصال والمعلومات الإضافية مع حمايتها من الفراغات
@@ -105,6 +124,8 @@ namespace AlTayerERP.API.Controllers
         [HttpGet] // تحديد نوع الطلب كـ GET لقراءة البيانات
         public async Task<IActionResult> GetBranches([FromQuery] string companyId)
         {
+            var accessError = RequireSystemAdmin();
+            if (accessError != null) return accessError;
             try
             {
                 // [التعديل المعتمد]: إزالة شرط Is_Active لعرض كافة الفروع لتسهيل التعديل والتحكم من الشاشة الإدارية
@@ -194,8 +215,11 @@ namespace AlTayerERP.API.Controllers
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateBranch(int id, [FromBody] CreateBranchDto dto)
         {
+            var accessError = RequireSystemAdmin();
+            if (accessError != null) return accessError;
             // 1. التحقق من صحة واكتمال كائن البيانات القادم من الشاشة
-            if (dto == null || string.IsNullOrWhiteSpace(dto.Branch_Name))
+            if (dto == null || string.IsNullOrWhiteSpace(dto.Branch_Name) ||
+                string.IsNullOrWhiteSpace(dto.Company_ID) || string.IsNullOrWhiteSpace(dto.Branch_Type))
             {
                 return BadRequest("البيانات المرسلة للتعديل غير مكتملة أو خاطئة.");
             }
@@ -210,12 +234,23 @@ namespace AlTayerERP.API.Controllers
                     return NotFound($"الفرع المطلوب ذو الرقم {id} غير موجود في قاعدة البيانات.");
                 }
 
+                var organizationError = await ValidateOrganizationAsync(dto, id);
+                if (organizationError != null) return BadRequest(organizationError);
+                var companyId = dto.Company_ID.Trim();
+                var branchCode = string.IsNullOrWhiteSpace(dto.Branch_Code)
+                    ? existingBranch.Branch_Code
+                    : dto.Branch_Code.Trim();
+                var duplicateCode = await _context.Tenant_Branches.AnyAsync(x =>
+                    x.Company_ID == companyId && x.Branch_Code == branchCode && x.Branch_ID != id);
+                if (duplicateCode) return BadRequest("كود الفرع مستخدم مسبقاً داخل الشركة المحددة.");
+
                 // 3. تحديث وإسناد الحقول بالقيم الجديدة القادمة من الواجهة مع تنظيف النصوص عبر Trim
-                existingBranch.Company_ID = dto.Company_ID;
+                existingBranch.Company_ID = companyId;
+                existingBranch.Branch_Code = branchCode;
                 existingBranch.Branch_Name = dto.Branch_Name.Trim();
                 existingBranch.Branch_Name_EN = dto.Branch_Name_EN?.Trim();
                 existingBranch.Address = dto.Address?.Trim();
-                existingBranch.Branch_Type = dto.Branch_Type?.Trim() ?? "فرعي";
+                existingBranch.Branch_Type = dto.Branch_Type.Trim().ToUpperInvariant();
                 existingBranch.Parent_Branch_ID = dto.Parent_Branch_ID; // تحديث معرف الفرع الأب شجرياً
 
                 existingBranch.Phone = dto.Phone?.Trim();
@@ -255,6 +290,8 @@ namespace AlTayerERP.API.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteBranch(int id)
         {
+            var accessError = RequireSystemAdmin();
+            if (accessError != null) return accessError;
             var branch = await _context.Tenant_Branches
                 .FirstOrDefaultAsync(x => x.Branch_ID == id);
 
@@ -278,6 +315,40 @@ namespace AlTayerERP.API.Controllers
             await _context.SaveChangesAsync();
 
             return Ok("تم حذف الفرع بنجاح.");
+        }
+
+        /// <summary>يتحقق من التسلسل: شركة نشطة → نوع فرع نشط → فرع أب من نفس الشركة.</summary>
+        private async Task<string?> ValidateOrganizationAsync(CreateBranchDto dto, int? branchId)
+        {
+            var companyId = dto.Company_ID.Trim();
+            if (!await _context.Companies.AnyAsync(x => x.Company_ID == companyId && x.Is_Active))
+                return "الشركة المحددة غير موجودة أو موقوفة.";
+
+            var typeCode = dto.Branch_Type.Trim().ToUpperInvariant();
+            if (!await _context.Branch_Types.AnyAsync(x => x.Branch_Type_Code == typeCode && x.Is_Active))
+                return "نوع الفرع المحدد غير موجود أو موقوف. أضفه أو فعّله من شاشة أنواع الفروع.";
+
+            if (!dto.Parent_Branch_ID.HasValue) return null;
+            if (branchId == dto.Parent_Branch_ID.Value) return "لا يمكن أن يكون الفرع تابعاً لنفسه.";
+            var parent = await _context.Tenant_Branches.AsNoTracking().FirstOrDefaultAsync(x => x.Branch_ID == dto.Parent_Branch_ID.Value);
+            if (parent == null || parent.Company_ID != companyId)
+                return "الفرع الأب يجب أن يكون فرعاً موجوداً ضمن الشركة نفسها.";
+
+            // يمنع الحلقة غير المباشرة: أ ← ب ثم اختيار أ كأب لـ ب عبر سلسلة أخرى.
+            // هذا يحافظ على شجرة فروع قابلة للعرض في الصلاحيات والتقارير.
+            var visited = new HashSet<int>();
+            while (parent.Parent_Branch_ID.HasValue)
+            {
+                if (!visited.Add(parent.Branch_ID))
+                    return "توجد حلقة في تسلسل الفروع؛ صحح الفرع الأب أولاً.";
+                if (branchId.HasValue && parent.Parent_Branch_ID.Value == branchId.Value)
+                    return "لا يمكن اختيار فرع تابع كفرع أب لأنه سينشئ حلقة في التسلسل.";
+                parent = await _context.Tenant_Branches.AsNoTracking()
+                    .FirstOrDefaultAsync(x => x.Branch_ID == parent.Parent_Branch_ID.Value);
+                if (parent == null)
+                    return "الفرع الأب المرتبط غير موجود.";
+            }
+            return null;
         }
 
 
