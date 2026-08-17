@@ -361,3 +361,14 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+
+# Local configuration and secrets
+AlTayerERP.API/appsettings.Local.json
+AlTayerERP.API/appsettings.*.Local.json
+AlTayerERP.API/.secrets/
+.env
+.env.*
+!.env.example
+
+# Local verification artifacts
+.artifacts/

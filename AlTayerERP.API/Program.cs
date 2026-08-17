@@ -4,43 +4,46 @@ using AlTayerERP.API.Services.Accounting.VoucherWorkflow;
 using AlTayerERP.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 
-
-
 var builder = WebApplication.CreateBuilder(args);
 
-// ====================================================================
-// [1] قراءة نص الاتصال وتسجيل قاعدة البيانات بمحرك Pomelo MySQL
-// ====================================================================
-var connectionString =
-    builder.Configuration.GetConnectionString("DefaultConnection")
-    ?? throw new InvalidOperationException(
-        "لم يتم العثور على نص الاتصال DefaultConnection داخل appsettings.json."
-    );
+// لا تُحفظ بيانات الاعتماد داخل Git. يمكن تمريرها عبر:
+// ConnectionStrings__DefaultConnection أو User Secrets أو مدير أسرار البيئة.
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+if (string.IsNullOrWhiteSpace(connectionString))
+{
+    throw new InvalidOperationException(
+        "لم يتم العثور على نص الاتصال DefaultConnection. أضفه عبر User Secrets أو متغير البيئة ConnectionStrings__DefaultConnection.");
+}
 
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseMySql(
         connectionString,
-        ServerVersion.AutoDetect(connectionString)
-    )
-);
+        ServerVersion.AutoDetect(connectionString)));
 
-// ====================================================================
-// [2] تسجيل سياسة CORS لربط تطبيق WinForms بالـ API
-// ====================================================================
+// تقييد CORS حسب البيئة. تطبيق WinForms لا يحتاج CORS، لكن إبقاء السياسة
+// قابلة للضبط يتيح دعم عميل ويب موثوق عند الحاجة دون فتح API للعالم.
+var allowedOrigins = builder.Configuration
+    .GetSection("Cors:AllowedOrigins")
+    .Get<string[]>() ?? Array.Empty<string>();
+
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowAll", policy =>
+    options.AddPolicy("ConfiguredOrigins", policy =>
     {
+        if (allowedOrigins.Length == 0)
+        {
+            policy.SetIsOriginAllowed(_ => false);
+            return;
+        }
+
         policy
-            .AllowAnyOrigin()
+            .WithOrigins(allowedOrigins)
             .AllowAnyMethod()
             .AllowAnyHeader();
     });
 });
 
-// ====================================================================
-// [3] تسجيل خدمات النظام الحالية
-// ====================================================================
+// خدمات النظام الحالية.
 builder.Services.AddScoped<NumberGeneratorService>();
 builder.Services.AddScoped<CostCenterNumberService>();
 builder.Services.AddScoped<CashBoxNumberService>();
@@ -49,59 +52,44 @@ builder.Services.AddScoped<FinancialPolicyService>();
 builder.Services.AddScoped<AccountNumberService>();
 builder.Services.AddScoped<SystemScreenCatalogSeeder>();
 builder.Services.AddScoped<VoucherReferenceDataSeeder>();
+
 // جلسات الخادم تحفظ هوية الدخول بعد التحقق ولا تعتمد على بيانات مرسلة من الواجهة.
 builder.Services.AddSingleton<ServerSessionService>();
 // تفويض الشاشات والعمليات من جهة الخادم.
 builder.Services.AddScoped<ScreenAuthorizationService>();
 
-
-// ====================================================================
-// [4] تسجيل خدمات المحرك المالي الجديد
-// ====================================================================
+// خدمات المحرك المالي.
 builder.Services.AddScoped<VoucherValidationService>();
 builder.Services.AddScoped<VoucherAuditService>();
 builder.Services.AddScoped<VoucherApprovalService>();
 builder.Services.AddScoped<FinancialVoucherService>();
 builder.Services.AddScoped<JournalEntryInquiryService>();
-
-
-
 builder.Services.AddScoped<VoucherPostingService>();
 
-// ====================================================================
-// [5] تسجيل Controllers وSwagger
-// ====================================================================
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
-// تجهيز كتالوج الشاشات مرة عند بدء الخدمة حتى تعمل صلاحيات الأدوار مع شجرة النظام.
+// تجهيز كتالوج الشاشات والبيانات المرجعية عند بدء الخدمة.
 using (var scope = app.Services.CreateScope())
 {
     var screenCatalogSeeder = scope.ServiceProvider.GetRequiredService<SystemScreenCatalogSeeder>();
     await screenCatalogSeeder.EnsureSeededAsync();
+
     var voucherReferenceSeeder = scope.ServiceProvider.GetRequiredService<VoucherReferenceDataSeeder>();
     await voucherReferenceSeeder.EnsureSeededAsync();
 }
 
-// ====================================================================
-// [6] تفعيل Swagger في بيئة التطوير
-// ====================================================================
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
 }
 
-// ====================================================================
-// [7] خط معالجة الطلبات
-// ====================================================================
 app.UseHttpsRedirection();
-
-app.UseCors("AllowAll");
-
+app.UseCors("ConfiguredOrigins");
 
 // حماية عامة: بعد الدخول لا يمكن استدعاء واجهات العمل دون رمز جلسة صادر من الخادم.
 // تستثنى فقط نقاط الدخول وحالة الخدمة وقوائم شاشة الدخول المحدودة.
@@ -125,7 +113,10 @@ app.Use(async (context, next) =>
     if (!sessions.TryGet(context.Request.Headers["X-Session-Token"].ToString(), out var session))
     {
         context.Response.StatusCode = StatusCodes.Status401Unauthorized;
-        await context.Response.WriteAsJsonAsync(new { message = "انتهت الجلسة أو أنها غير صالحة. سجل الدخول من جديد." });
+        await context.Response.WriteAsJsonAsync(new
+        {
+            message = "انتهت الجلسة أو أنها غير صالحة. سجل الدخول من جديد."
+        });
         return;
     }
 
@@ -134,10 +125,9 @@ app.Use(async (context, next) =>
 });
 
 app.UseAuthorization();
-
 app.MapControllers();
 
-// نقطة حالة خفيفة لتفصل بين وصول تطبيق سطح المكتب للـ API وبين جاهزية قاعدة البيانات.
+// نقطة حالة تفصل بين وصول العميل للـ API وجاهزية قاعدة البيانات.
 app.MapGet("/api/health", async (AppDbContext db) =>
 {
     try
@@ -154,3 +144,5 @@ app.MapGet("/api/health", async (AppDbContext db) =>
 });
 
 app.Run();
+
+public partial class Program;

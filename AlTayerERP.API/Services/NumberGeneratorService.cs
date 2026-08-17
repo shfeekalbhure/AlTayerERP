@@ -1,7 +1,5 @@
 ﻿using AlTayerERP.Core.Entities;
 using AlTayerERP.Infrastructure.Data;
-using AlTayerERP.Core.Entities;
-using AlTayerERP.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 
 namespace AlTayerERP.API.Services

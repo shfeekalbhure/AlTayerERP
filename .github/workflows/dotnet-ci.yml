@@ -1,0 +1,50 @@
+name: .NET CI
+
+on:
+  push:
+    branches: [ master, develop ]
+  pull_request:
+    branches: [ master, develop ]
+
+permissions:
+  contents: read
+
+jobs:
+  api-and-tests:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Restore API and test projects
+        run: dotnet restore AlTayerERP.Tests/AlTayerERP.Tests.csproj
+
+      - name: Build API
+        run: dotnet build AlTayerERP.API/AlTayerERP.API.csproj --no-restore --configuration Release --verbosity minimal
+
+      - name: Run unit tests
+        run: dotnet test AlTayerERP.Tests/AlTayerERP.Tests.csproj --no-restore --configuration Release --verbosity normal --collect:"XPlat Code Coverage"
+
+  desktop-build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Restore solution
+        run: dotnet restore AlTayerERP.slnx
+
+      - name: Build Windows Desktop
+        run: dotnet build AlTayerERP.Desktop/AlTayerERP.Desktop.csproj --no-restore --configuration Release --verbosity minimal
