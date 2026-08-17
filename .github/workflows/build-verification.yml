@@ -1,0 +1,58 @@
+name: Build verification
+
+on:
+  push:
+    branches:
+      - agent/unified-phase1-screens
+      - agent/phase1-clean-database-implementation
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  build:
+    name: Build API and Desktop
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Install .NET 8 SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Restore API packages
+        run: dotnet restore AlTayerERP.API/AlTayerERP.API.csproj
+
+      - name: Build API
+        run: dotnet build AlTayerERP.API/AlTayerERP.API.csproj --configuration Release --no-restore
+
+      - name: Restore Desktop packages
+        run: dotnet restore AlTayerERP.Desktop/AlTayerERP.Desktop.csproj
+
+      - name: Build Desktop
+        run: dotnet build AlTayerERP.Desktop/AlTayerERP.Desktop.csproj --configuration Release --no-restore
+
+  build-mobile-android:
+    name: Build Mobile Android
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Install .NET 10 SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Install MAUI Android workload
+        run: dotnet workload install maui-android
+
+      - name: Restore Mobile Android packages
+        run: dotnet restore AlTayerERP.Mobile.Office/AlTayerERP.Mobile.Office.csproj
+
+      - name: Build Mobile Android
+        run: dotnet build AlTayerERP.Mobile.Office/AlTayerERP.Mobile.Office.csproj -f net10.0-android --configuration Release --no-restore

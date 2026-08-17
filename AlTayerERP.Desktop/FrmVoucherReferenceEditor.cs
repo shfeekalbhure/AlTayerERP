@@ -1,3 +1,4 @@
+using AlTayerERP.Desktop.Common;
 using AlTayerERP.Desktop.Services;
 using System;
 using System.Collections.Generic;
@@ -26,6 +27,12 @@ namespace AlTayerERP.Desktop
         private readonly TextBox _searchBox = new();
         private readonly Label _recordCount = new();
         private readonly Label _emptyState = new();
+        private readonly Dictionary<string, Label> _auditValues = new();
+        private DateTime? _fiscalYearStart;
+        private DateTime? _fiscalYearEnd;
+        // شاشة الفترات تحتاج مساحة إضافية لحقول التواريخ والإقفال، بخلاف القوائم المرجعية الأخرى.
+        private bool IsFiscalPeriods => string.Equals(_endpoint, "FiscalPeriods", StringComparison.OrdinalIgnoreCase);
+        private bool IsParties => string.Equals(_endpoint, "Parties", StringComparison.OrdinalIgnoreCase);
         private readonly DataGridView _grid = new()
         {
             Dock = DockStyle.Fill,
@@ -39,6 +46,11 @@ namespace AlTayerERP.Desktop
 
         // قد يكون المفتاح رقمياً في القوائم المرجعية أو نصياً في الأطراف المالية.
         private object? _selectedId;
+        private Button? _saveButton;
+        private Button? _closePeriodButton;
+        private Button? _reopenPeriodButton;
+        // زر الإيقاف لا يحذف الطرف؛ يحافظ على تاريخه ومستنداته.
+        private Button? _deactivateButton;
 
         protected FrmVoucherReferenceEditor(
             string title,
@@ -75,10 +87,15 @@ namespace AlTayerERP.Desktop
             shell.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
             shell.RowStyles.Add(new RowStyle(SizeType.Absolute, 0));
             shell.RowStyles.Add(new RowStyle(SizeType.Absolute, 54));
-            shell.RowStyles.Add(new RowStyle(SizeType.Absolute, 40));
+            // تكبير حاوية البحث في الفترات بمقدار نصف سنتيمتر تقريباً (19px).
+            shell.RowStyles.Add(new RowStyle(SizeType.Absolute, IsFiscalPeriods ? 59 : 40));
             shell.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-            shell.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
-            shell.RowStyles.Add(new RowStyle(SizeType.Absolute, 28));
+            // جدول الفترات أصغر بمقدار 2 سم تقريباً (76px) من المساحة المعتادة.
+            // نخفض جدول الفترات 2 سم إضافية لإظهار حاوية التدقيق أسفله.
+            shell.RowStyles.Add(IsFiscalPeriods
+                ? new RowStyle(SizeType.Absolute, 289)
+                : new RowStyle(SizeType.Percent, 100));
+            shell.RowStyles.Add(new RowStyle(SizeType.Absolute, IsFiscalPeriods ? 96 : 28));
 
             shell.Controls.Add(CreateHeader(title), 0, 0);
             shell.Controls.Add(CreateToolbar(), 0, 1);
@@ -101,7 +118,7 @@ namespace AlTayerERP.Desktop
                 BackColor = SystemColors.Control,
                 Height = 0,
                 Visible = false,
-                Padding = Padding.Empty,
+                Padding = System.Windows.Forms.Padding.Empty,
                 Margin = new Padding(0, 0, 0, 8)
             };
 
@@ -144,22 +161,56 @@ namespace AlTayerERP.Desktop
 
         private Control CreateToolbar()
         {
-            var toolbar = new FlowLayoutPanel
+            // الحاوية تثبت شريط الأزرار في أقصى اليمين حتى داخل نافذة MDI.
+            var host = new Panel
             {
                 Dock = DockStyle.Fill,
-                BackColor = SystemColors.Control,
-                BorderStyle = BorderStyle.None,
-                Padding = new Padding(8),
-                FlowDirection = FlowDirection.RightToLeft,
-                WrapContents = false,
+                BackColor = BackColor,
                 Margin = new Padding(0, 0, 0, 6)
             };
+            var toolbar = new FlowLayoutPanel
+            {
+                // عرض ثابت يمنع ظهور شريط تمرير عند وجود أزرار الفترات كلها.
+                AutoSize = false,
+                Width = IsFiscalPeriods ? 980 : IsParties ? 820 : 670,
+                Height = 42,
+                Dock = DockStyle.Right,
+                BackColor = BackColor,
+                BorderStyle = BorderStyle.None,
+                Padding = new Padding(0, 4, 0, 4),
+                FlowDirection = FlowDirection.RightToLeft,
+                WrapContents = false,
+                AutoScroll = false
+            };
 
-            toolbar.Controls.Add(CreateButton("إغلاق  Esc", Color.FromArgb(107, 114, 128), (_, _) => Close()));
-            toolbar.Controls.Add(CreateButton("تحديث  F5", Color.FromArgb(36, 99, 168), async (_, _) => await LoadAsync()));
-            toolbar.Controls.Add(CreateButton("حفظ  Ctrl+S", Color.FromArgb(22, 125, 84), async (_, _) => await SaveAsync()));
+            // أول زر مضاف يظهر في أقصى يمين الشريط.
             toolbar.Controls.Add(CreateButton("جديد  F2", Color.FromArgb(28, 125, 184), (_, _) => ClearEditor()));
-            return toolbar;
+            _saveButton = CreateButton("حفظ  Ctrl+S", Color.FromArgb(22, 125, 84), async (_, _) => await SaveAsync());
+            toolbar.Controls.Add(_saveButton);
+            toolbar.Controls.Add(CreateButton("تعديل", Color.FromArgb(37, 99, 235), (_, _) => BeginEdit()));
+
+            if (IsFiscalPeriods)
+            {
+                _closePeriodButton = CreateButton("إقفال الفترة", Color.FromArgb(185, 28, 28),
+                    async (_, _) => await RunFiscalPeriodLifecycleAsync("Close", "إقفال"));
+                _reopenPeriodButton = CreateButton("إعادة الفتح", Color.FromArgb(180, 83, 9),
+                    async (_, _) => await RunFiscalPeriodLifecycleAsync("Reopen", "إعادة فتح"));
+                toolbar.Controls.Add(_closePeriodButton);
+                toolbar.Controls.Add(_reopenPeriodButton);
+            }
+
+            if (IsParties)
+            {
+                _deactivateButton = CreateButton("إيقاف الطرف", Color.FromArgb(185, 28, 28),
+                    async (_, _) => await DeactivatePartyAsync());
+                toolbar.Controls.Add(_deactivateButton);
+            }
+
+            toolbar.Controls.Add(CreateButton("تحديث  F5", Color.FromArgb(36, 99, 168), async (_, _) => await LoadAsync()));
+            toolbar.Controls.Add(CreateButton("إغلاق  Esc", Color.FromArgb(107, 114, 128), (_, _) => Close()));
+            host.Controls.Add(toolbar);
+            UpdateFiscalPeriodActions();
+            return host;
         }
 
         private Control CreateSearchCard()
@@ -202,7 +253,14 @@ namespace AlTayerERP.Desktop
                 AutoSize = true,
                 BackColor = Color.White,
                 BorderStyle = BorderStyle.FixedSingle,
-                Padding = new Padding(14, 10, 14, 10),
+                // يبقى ارتفاع الحاوية ثابتاً؛ نعوض تقليل البطاقات من المساحة السفلية.
+                Padding = IsFiscalPeriods
+                    ? new Padding(14, 10, 14, 124)
+                    : IsParties
+                        // تكبير حاوية بيانات الأطراف المالية 4 سم تقريباً (152px)
+                        // يخفض مساحة الجدول بنفس المقدار مع الحفاظ على ترتيب الحقول.
+                        ? new Padding(14, 10, 14, 10)
+                        : new Padding(14, 10, 14, 10),
                 Margin = new Padding(0, 0, 0, 8)
             };
 
@@ -225,13 +283,16 @@ namespace AlTayerERP.Desktop
                 Padding = new Padding(0, 4, 0, 0)
             };
 
-            foreach (var field in _fields)
+            // في RTL آخر بطاقة مضافة تظهر في أقصى اليمين؛ نعكسها ليبدأ بكود الفترة.
+            var editorFields = IsFiscalPeriods ? _fields.Reverse() : _fields;
+            foreach (var field in editorFields)
             {
                 // إطار مستقل لكل حقل حتى لا تختفي حدود الإدخال في الشاشات العربية.
                 var panel = new Panel
                 {
                     Width = 250,
-                    Height = 86,
+                    // بطاقات الفترات أقل نصف سم (19px)؛ فيرتفع حقلها والصف الثاني تلقائياً.
+                    Height = IsFiscalPeriods ? 96 : 86,
                     Margin = new Padding(6),
                     Padding = new Padding(8, 4, 8, 6),
                     BackColor = Color.White,
@@ -285,10 +346,46 @@ namespace AlTayerERP.Desktop
 
                 ConfigureEditorInput(input);
 
-                _inputs[field.Code] = input;
-                panel.Controls.Add(input);
-                editor.Controls.Add(panel);
+                // الحقول التشغيلية لا تعدل يدوياً؛ تنفذ عبر الإقفال وإعادة الفتح المدقّقين.
+                if (IsFiscalPeriods &&
+                    (field.Code == "Is_Closed" || field.Code == "Close_Date" || field.Code == "Close_Reason"))
+                    input.Enabled = false;
 
+                _inputs[field.Code] = input;
+
+                if (IsParties && field.Code == "Account_ID" && input is TextBox accountBox)
+                {
+                    // الحساب يحفظ بمعرفه الداخلي؛ زر الاختيار يمنع إدخال رقم غير صالح يرفضه الخادم.
+                    accountBox.ReadOnly = true;
+                    accountBox.Dock = DockStyle.Fill;
+
+                    var lookupHost = new Panel { Dock = DockStyle.Bottom, Height = 34 };
+                    var lookupButton = new Button
+                    {
+                        Text = "اختيار",
+                        Dock = DockStyle.Left,
+                        Width = 66,
+                        FlatStyle = FlatStyle.Flat,
+                        BackColor = Color.FromArgb(37, 99, 235),
+                        ForeColor = Color.White,
+                        Cursor = Cursors.Hand
+                    };
+                    lookupButton.Click += (_, _) => SelectPartyAccount(accountBox);
+                    lookupHost.Controls.Add(accountBox);
+                    lookupHost.Controls.Add(lookupButton);
+                    panel.Controls.Add(lookupHost);
+                }
+                else
+                {
+                    panel.Controls.Add(input);
+                }
+
+                editor.Controls.Add(panel);
+            }
+
+            // ترتيب أعمدة الجدول مستقل عن البطاقات ويبدأ بكود الفترة من اليمين.
+            foreach (var field in _fields)
+            {
                 _grid.Columns.Add(new DataGridViewTextBoxColumn
                 {
                     Name = field.Code,
@@ -297,6 +394,10 @@ namespace AlTayerERP.Desktop
                     AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill
                 });
             }
+
+            // تستثمر المساحة التي كُبّرت للحاوية في إظهار سجل الإنشاء والتعديل للطرف.
+            if (IsParties)
+                card.Controls.Add(CreatePartiesAuditSection());
 
             card.Controls.Add(editor);
             card.Controls.Add(title);
@@ -339,6 +440,50 @@ namespace AlTayerERP.Desktop
             }
         }
 
+        /// <summary>
+        /// سجل تدقيقي ظاهر للطرف المالي؛ يعرض قيم الخادم فقط ولا يسمح بتعديلها من الواجهة.
+        /// </summary>
+        private Control CreatePartiesAuditSection()
+        {
+            var card = new Panel
+            {
+                Dock = DockStyle.Bottom,
+                Height = 152,
+                BackColor = Color.FromArgb(248, 250, 252),
+                BorderStyle = BorderStyle.FixedSingle,
+                Padding = new Padding(8, 5, 8, 5),
+                Margin = new Padding(0, 8, 0, 0)
+            };
+            var title = new Label
+            {
+                Text = "بيانات الإنشاء والتعديل",
+                Dock = DockStyle.Top,
+                Height = 24,
+                ForeColor = Color.FromArgb(27, 62, 104),
+                Font = new Font("Segoe UI", 9F, FontStyle.Bold),
+                TextAlign = ContentAlignment.MiddleRight
+            };
+            var fields = new FlowLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                FlowDirection = FlowDirection.RightToLeft,
+                WrapContents = true,
+                AutoScroll = false,
+                Padding = Padding.Empty
+            };
+
+            AddAuditField(fields, "Created_By", "أنشئ بواسطة", 175);
+            AddAuditField(fields, "Created_At", "تاريخ الإنشاء", 175);
+            AddAuditField(fields, "Updated_By", "عُدّل بواسطة", 175);
+            AddAuditField(fields, "Updated_At", "تاريخ التعديل", 175);
+            AddAuditField(fields, "Edit_Count", "عدد التعديلات", 175);
+            AddAuditField(fields, "Print_Count", "عدد الطباعة", 175);
+
+            card.Controls.Add(fields);
+            card.Controls.Add(title);
+            return card;
+        }
+
         private Control CreateGridCard()
         {
             var card = new Panel
@@ -365,6 +510,9 @@ namespace AlTayerERP.Desktop
 
         private Control CreateFooter()
         {
+            if (IsFiscalPeriods)
+                return CreateFiscalAuditFooter();
+
             var footer = new Panel { Dock = DockStyle.Fill, Padding = new Padding(4, 4, 4, 0) };
             _recordCount.Dock = DockStyle.Right;
             _recordCount.Width = 170;
@@ -382,6 +530,78 @@ namespace AlTayerERP.Desktop
             });
 
             return footer;
+        }
+
+        private Control CreateFiscalAuditFooter()
+        {
+            var card = new Panel
+            {
+                Dock = DockStyle.Fill,
+                BackColor = Color.White,
+                BorderStyle = BorderStyle.FixedSingle,
+                Padding = new Padding(8, 4, 8, 4)
+            };
+            var title = new Label
+            {
+                Text = "بيانات الإنشاء والتعديل",
+                Dock = DockStyle.Top,
+                Height = 20,
+                ForeColor = Color.FromArgb(27, 62, 104),
+                Font = new Font("Segoe UI", 8.5F, FontStyle.Bold),
+                TextAlign = ContentAlignment.MiddleRight
+            };
+            var fields = new FlowLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                FlowDirection = FlowDirection.RightToLeft,
+                WrapContents = false,
+                AutoScroll = false,
+                Padding = Padding.Empty
+            };
+
+            AddAuditField(fields, "Created_By", "أنشئ بواسطة");
+            AddAuditField(fields, "Created_At", "تاريخ الإنشاء");
+            AddAuditField(fields, "Updated_By", "عُدّل بواسطة");
+            AddAuditField(fields, "Updated_At", "تاريخ التعديل");
+            AddAuditField(fields, "Edit_Count", "عدد التعديلات");
+            AddAuditField(fields, "Print_Count", "عدد الطباعة");
+
+            card.Controls.Add(fields);
+            card.Controls.Add(title);
+            return card;
+        }
+
+        private void AddAuditField(FlowLayoutPanel fields, string key, string caption, int width = 205)
+        {
+            var item = new Panel
+            {
+                Width = width,
+                Height = 55,
+                Margin = new Padding(3, 0, 3, 0),
+                Padding = new Padding(6, 2, 6, 3),
+                BorderStyle = BorderStyle.FixedSingle,
+                BackColor = Color.FromArgb(248, 250, 252)
+            };
+            item.Controls.Add(new Label
+            {
+                Text = caption,
+                Dock = DockStyle.Top,
+                Height = 20,
+                ForeColor = Color.FromArgb(75, 85, 99),
+                TextAlign = ContentAlignment.MiddleRight,
+                Font = new Font("Segoe UI", 8F)
+            });
+            var value = new Label
+            {
+                Text = "—",
+                Dock = DockStyle.Fill,
+                ForeColor = Color.FromArgb(31, 41, 55),
+                TextAlign = ContentAlignment.MiddleRight,
+                Font = new Font("Segoe UI", 8.5F, FontStyle.Bold)
+            };
+            _auditValues[key] = value;
+            item.Controls.Add(value);
+            fields.Controls.Add(item);
         }
 
         private void ConfigureGrid()
@@ -403,11 +623,14 @@ namespace AlTayerERP.Desktop
             };
             _grid.DefaultCellStyle = new DataGridViewCellStyle
             {
+                // لون نص بيانات الجدول: رمادي أسود واضح على الخلفية البيضاء.
+                ForeColor = Color.FromArgb(31, 41, 55),
                 SelectionBackColor = Color.FromArgb(218, 232, 247),
                 SelectionForeColor = Color.FromArgb(20, 44, 75),
                 Alignment = DataGridViewContentAlignment.MiddleRight
             };
             _grid.AlternatingRowsDefaultCellStyle.BackColor = Color.FromArgb(248, 250, 252);
+            _grid.AlternatingRowsDefaultCellStyle.ForeColor = Color.FromArgb(31, 41, 55);
         }
 
         private static Button CreateButton(string caption, Color color, EventHandler handler)
@@ -418,12 +641,12 @@ namespace AlTayerERP.Desktop
                 Width = 122,
                 Height = 32,
                 Margin = new Padding(4, 0, 4, 0),
-                FlatStyle = FlatStyle.Standard,
-                UseVisualStyleBackColor = true,
-                BackColor = SystemColors.Control,
-                ForeColor = SystemColors.ControlText,
-                Cursor = Cursors.Default,
-                Font = new Font("Segoe UI", 9F, FontStyle.Regular)
+                FlatStyle = FlatStyle.Flat,
+                UseVisualStyleBackColor = false,
+                BackColor = color,
+                ForeColor = Color.White,
+                Cursor = Cursors.Hand,
+                Font = new Font("Segoe UI", 9F, FontStyle.Bold)
             };
             button.Click += handler;
             return button;
@@ -434,6 +657,9 @@ namespace AlTayerERP.Desktop
             try
             {
                 UseWaitCursor = true;
+                if (IsFiscalPeriods)
+                    await LoadFiscalYearBoundsAsync();
+
                 using var response = await _client.GetAsync(_endpoint);
                 if (!response.IsSuccessStatusCode)
                 {
@@ -451,7 +677,7 @@ namespace AlTayerERP.Desktop
 
                     foreach (var field in _fields)
                     {
-                        if (row.TryGetValue(field.Code, out var value))
+                        if (TryGetJsonValue(row, field.Code, out var value))
                             gridRow.Cells[field.Code].Value = ReadJsonValue(value);
                     }
                 }
@@ -526,13 +752,13 @@ namespace AlTayerERP.Desktop
             if (_grid.CurrentRow?.Tag is not Dictionary<string, JsonElement> row)
                 return;
 
-            _selectedId = row.TryGetValue(_idProperty, out var id)
+            _selectedId = TryGetJsonValue(row, _idProperty, out var id)
                 ? ReadIdentifier(id)
                 : null;
 
             foreach (var field in _fields)
             {
-                if (!row.TryGetValue(field.Code, out var json) || !_inputs.TryGetValue(field.Code, out var input))
+                if (!TryGetJsonValue(row, field.Code, out var json) || !_inputs.TryGetValue(field.Code, out var input))
                     continue;
 
                 switch (input)
@@ -557,7 +783,7 @@ namespace AlTayerERP.Desktop
                         }
                         break;
                     case ComboBox comboBox:
-                        var selected = ReadJsonValue(json);
+                        var selected = GetChoiceDisplayValue(field, ReadJsonValue(json));
                         var matchingOption = comboBox.Items.Cast<object>()
                             .FirstOrDefault(item =>
                                 string.Equals(item?.ToString(), selected, StringComparison.OrdinalIgnoreCase) ||
@@ -570,11 +796,259 @@ namespace AlTayerERP.Desktop
                         break;
                 }
             }
+
+            UpdateAuditFooter(row);
+            UpdateFiscalPeriodActions();
+        }
+
+        /// <summary>
+        /// يفتح دليل الحسابات ويربط الطرف بحساب قابل للترحيل فقط.
+        /// </summary>
+        private void SelectPartyAccount(TextBox target)
+        {
+            using var dialog = new FrmAccountLookup(target.Text);
+            if (dialog.ShowDialog(this) != DialogResult.OK)
+                return;
+
+            target.Text = dialog.SelectedAccountId;
+            new ToolTip().SetToolTip(target,
+                $"الحساب المختار: {dialog.SelectedAccountCode} - {dialog.SelectedAccountName}");
+        }
+
+        /// <summary>
+        /// يوقف الطرف بصورة آمنة ولا يحذف تاريخه أو قيوده السابقة.
+        /// </summary>
+        private async Task DeactivatePartyAsync()
+        {
+            if (!IsParties || _selectedId is not string id || string.IsNullOrWhiteSpace(id))
+            {
+                MessageBox.Show("اختر طرفاً مالياً من الجدول أولاً.", Text,
+                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            var reason = PromptForPartyDeactivationReason();
+            if (reason == null)
+                return;
+
+            try
+            {
+                UseWaitCursor = true;
+                using var response = await _client.DeleteAsync(
+                    $"{_endpoint}/{Uri.EscapeDataString(id)}?reason={Uri.EscapeDataString(reason)}");
+
+                if (!response.IsSuccessStatusCode)
+                    throw new InvalidOperationException(await response.Content.ReadAsStringAsync());
+
+                MessageBox.Show("تم إيقاف الطرف المالي دون حذف تاريخه.", Text,
+                    MessageBoxButtons.OK, MessageBoxIcon.Information);
+                await LoadAsync();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("تعذر إيقاف الطرف المالي.\n\n" + ExtractApiMessage(ex.Message), Text,
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+            finally
+            {
+                UseWaitCursor = false;
+            }
+        }
+
+        private string? PromptForPartyDeactivationReason()
+        {
+            using var dialog = new Form
+            {
+                Text = "سبب إيقاف الطرف المالي",
+                StartPosition = FormStartPosition.CenterParent,
+                RightToLeft = RightToLeft.Yes,
+                RightToLeftLayout = true,
+                FormBorderStyle = FormBorderStyle.FixedDialog,
+                MinimizeBox = false,
+                MaximizeBox = false,
+                ShowInTaskbar = false,
+                ClientSize = new Size(470, 170)
+            };
+
+            var label = new Label
+            {
+                Text = "اكتب سبب الإيقاف (مطلوب):",
+                Dock = DockStyle.Top,
+                Height = 34,
+                Padding = new Padding(10, 8, 10, 0),
+                TextAlign = ContentAlignment.MiddleRight
+            };
+            var reasonBox = new TextBox
+            {
+                Dock = DockStyle.Fill,
+                Multiline = true,
+                MaxLength = 500,
+                TextAlign = HorizontalAlignment.Right
+            };
+            var actions = new FlowLayoutPanel
+            {
+                Dock = DockStyle.Bottom,
+                Height = 45,
+                FlowDirection = FlowDirection.RightToLeft,
+                Padding = new Padding(8)
+            };
+            var confirm = new Button { Text = "تأكيد", DialogResult = DialogResult.OK, Width = 90 };
+            var cancel = new Button { Text = "إلغاء", DialogResult = DialogResult.Cancel, Width = 90 };
+            actions.Controls.Add(confirm);
+            actions.Controls.Add(cancel);
+            dialog.Controls.Add(reasonBox);
+            dialog.Controls.Add(actions);
+            dialog.Controls.Add(label);
+            dialog.AcceptButton = confirm;
+            dialog.CancelButton = cancel;
+
+            return dialog.ShowDialog(this) == DialogResult.OK && !string.IsNullOrWhiteSpace(reasonBox.Text)
+                ? reasonBox.Text.Trim()
+                : null;
+        }
+
+        private void BeginEdit()
+        {
+            if (_selectedId == null)
+            {
+                MessageBox.Show("اختر سجلاً من الجدول أولاً.", Text,
+                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            if (IsFiscalPeriods &&
+                _closePeriodButton?.Enabled == false &&
+                _reopenPeriodButton?.Enabled == true)
+            {
+                MessageBox.Show("الفترة مقفلة؛ استخدم «إعادة الفتح» أولاً.", Text,
+                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            var firstEditable = _inputs.FirstOrDefault(pair => pair.Value.Enabled).Value;
+            firstEditable?.Focus();
+        }
+
+        private async Task RunFiscalPeriodLifecycleAsync(string operation, string caption)
+        {
+            if (_selectedId is not int id || id <= 0)
+            {
+                MessageBox.Show("اختر فترة مالية من الجدول أولاً.", Text,
+                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            var reason = PromptForReason(caption);
+            if (string.IsNullOrWhiteSpace(reason))
+                return;
+
+            try
+            {
+                UseWaitCursor = true;
+                using var response = await _client.PostAsJsonAsync(
+                    $"{_endpoint}/{id}/{operation}",
+                    new Dictionary<string, string> { ["Reason"] = reason.Trim() });
+
+                if (!response.IsSuccessStatusCode)
+                    throw new InvalidOperationException(await response.Content.ReadAsStringAsync());
+
+                MessageBox.Show($"تم {caption} الفترة المالية بنجاح.", Text,
+                    MessageBoxButtons.OK, MessageBoxIcon.Information);
+                await LoadAsync();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"تعذر {caption} الفترة المالية.\n\n{ex.Message}", Text,
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+            finally
+            {
+                UseWaitCursor = false;
+            }
+        }
+
+        private string? PromptForReason(string actionCaption)
+        {
+            using var dialog = new Form
+            {
+                Text = $"سبب {actionCaption} الفترة",
+                StartPosition = FormStartPosition.CenterParent,
+                RightToLeft = RightToLeft.Yes,
+                RightToLeftLayout = true,
+                FormBorderStyle = FormBorderStyle.FixedDialog,
+                MinimizeBox = false,
+                MaximizeBox = false,
+                ShowInTaskbar = false,
+                ClientSize = new Size(470, 170)
+            };
+            var label = new Label
+            {
+                Text = $"اكتب سبب {actionCaption} الفترة المالية (مطلوب):",
+                Dock = DockStyle.Top,
+                Height = 34,
+                Padding = new Padding(10, 8, 10, 0),
+                TextAlign = ContentAlignment.MiddleRight
+            };
+            var reasonBox = new TextBox
+            {
+                Dock = DockStyle.Fill,
+                Multiline = true,
+                MaxLength = 500,
+                TextAlign = HorizontalAlignment.Right
+            };
+            var actions = new FlowLayoutPanel
+            {
+                Dock = DockStyle.Bottom,
+                Height = 45,
+                FlowDirection = FlowDirection.RightToLeft,
+                Padding = new Padding(8)
+            };
+            var confirm = new Button { Text = "تأكيد", DialogResult = DialogResult.OK, Width = 90 };
+            var cancel = new Button { Text = "إلغاء", DialogResult = DialogResult.Cancel, Width = 90 };
+            actions.Controls.Add(confirm);
+            actions.Controls.Add(cancel);
+            dialog.Controls.Add(reasonBox);
+            dialog.Controls.Add(actions);
+            dialog.Controls.Add(label);
+            dialog.AcceptButton = confirm;
+            dialog.CancelButton = cancel;
+
+            return dialog.ShowDialog(this) == DialogResult.OK && !string.IsNullOrWhiteSpace(reasonBox.Text)
+                ? reasonBox.Text.Trim()
+                : null;
+        }
+
+        private void UpdateFiscalPeriodActions()
+        {
+            if (!IsFiscalPeriods)
+                return;
+
+            var isClosed = false;
+            if (_grid.CurrentRow?.Tag is Dictionary<string, JsonElement> row &&
+                TryGetJsonValue(row, "Is_Closed", out var state))
+            {
+                isClosed = state.ValueKind == JsonValueKind.True ||
+                           (state.ValueKind == JsonValueKind.String &&
+                            bool.TryParse(state.GetString(), out var value) && value);
+            }
+
+            var hasSelection = _selectedId is int id && id > 0;
+            if (_closePeriodButton != null) _closePeriodButton.Enabled = hasSelection && !isClosed;
+            if (_reopenPeriodButton != null) _reopenPeriodButton.Enabled = hasSelection && isClosed;
+            if (_saveButton != null) _saveButton.Enabled = !hasSelection || !isClosed;
+
+            foreach (var pair in _inputs)
+            {
+                if (pair.Key == "Is_Closed" || pair.Key == "Close_Date" || pair.Key == "Close_Reason")
+                    continue;
+                pair.Value.Enabled = !hasSelection || !isClosed;
+            }
         }
 
         private async Task SaveAsync()
         {
-            if (!CurrentSession.Is_System_Admin)
+            // صلاحيات الفترات (إضافة/تعديل/اعتماد) يحسمها API، لا شرط محلي عام.
+            if (!IsFiscalPeriods && !IsParties && !CurrentSession.Is_System_Admin)
             {
                 MessageBox.Show("إدارة هذه القائمة مخصصة لمدير النظام.", Text, MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
@@ -595,6 +1069,13 @@ namespace AlTayerERP.Desktop
                 return;
             }
 
+            // يمنع الإرسال الخاطئ الذي ظهر في الشاشة: تاريخ البداية يجب أن يسبق أو يساوي تاريخ النهاية.
+            if (IsFiscalPeriods && !ValidateFiscalPeriodDates())
+                return;
+
+            if (IsParties && !ValidatePartyInput())
+                return;
+
             var payload = new Dictionary<string, object?> { [_idProperty] = _selectedId ?? _newIdValue };
 
             foreach (var field in _fields)
@@ -608,7 +1089,7 @@ namespace AlTayerERP.Desktop
                         ? Convert.ToInt32(number.Value)
                         : number.Value,
                     DateTimePicker datePicker => datePicker.Checked ? datePicker.Value.Date : null,
-                    ComboBox comboBox => comboBox.SelectedItem?.ToString(),
+                    ComboBox comboBox => GetChoicePayloadValue(field, comboBox.SelectedItem?.ToString()),
                     TextBox textBox => textBox.Text.Trim(),
                     _ => null
                 };
@@ -627,7 +1108,7 @@ namespace AlTayerERP.Desktop
             catch (Exception ex)
             {
                 MessageBox.Show(
-                    "تعذر الحفظ. تحقق من الحقول وصلاحية المستخدم واتصال API.\n\n" + ex.Message,
+                    "تعذر الحفظ.\n\n" + ExtractApiMessage(ex.Message),
                     Text,
                     MessageBoxButtons.OK,
                     MessageBoxIcon.Error);
@@ -636,6 +1117,97 @@ namespace AlTayerERP.Desktop
             {
                 UseWaitCursor = false;
             }
+        }
+
+        /// <summary>
+        /// يحول مسميات أنواع الأطراف العربية إلى الرموز المعتمدة في API.
+        /// </summary>
+        private string? GetChoicePayloadValue(ReferenceEditorField field, string? selected)
+        {
+            if (!IsParties || field.Code != "Party_Type" || string.IsNullOrWhiteSpace(selected))
+                return selected;
+
+            return selected.Trim() switch
+            {
+                "عميل" => "CUSTOMER",
+                "مورد" => "VENDOR",
+                "موظف" => "EMPLOYEE",
+                "سائق" => "DRIVER",
+                "مندوب" => "REPRESENTATIVE",
+                "وكيل" => "AGENT",
+                "جهة حكومية" => "OTHER",
+                "أخرى" => "OTHER",
+                _ => selected.Trim()
+            };
+        }
+
+        private string GetChoiceDisplayValue(ReferenceEditorField field, string value)
+        {
+            if (!IsParties || field.Code != "Party_Type")
+                return value;
+
+            return value.Trim().ToUpperInvariant() switch
+            {
+                "CUSTOMER" => "عميل",
+                "VENDOR" => "مورد",
+                "EMPLOYEE" => "موظف",
+                "DRIVER" => "سائق",
+                "REPRESENTATIVE" => "مندوب",
+                "AGENT" => "وكيل",
+                "OTHER" => "أخرى",
+                _ => value
+            };
+        }
+
+        private bool ValidatePartyInput()
+        {
+            if (_inputs.TryGetValue("Party_Type", out var input) &&
+                input is ComboBox partyType &&
+                partyType.SelectedItem == null)
+            {
+                MessageBox.Show("اختر نوع الطرف المالي.", Text, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                partyType.Focus();
+                return false;
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// يتحقق محلياً من تواريخ الفترة قبل استدعاء API لكي تظهر للمستخدم رسالة مباشرة وواضحة.
+        /// </summary>
+        private bool ValidateFiscalPeriodDates()
+        {
+            var start = (DateTimePicker)_inputs["Start_Date"];
+            var end = (DateTimePicker)_inputs["End_Date"];
+
+            if (!start.Checked || !end.Checked)
+            {
+                MessageBox.Show("تاريخ البداية وتاريخ النهاية مطلوبان للفترة المالية.", Text,
+                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                (!start.Checked ? start : end).Focus();
+                return false;
+            }
+
+            if (end.Value.Date < start.Value.Date)
+            {
+                MessageBox.Show("تاريخ النهاية يجب أن يكون بعد تاريخ البداية أو مساويًا له.", Text,
+                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                end.Focus();
+                return false;
+            }
+
+            if (_fiscalYearStart.HasValue && _fiscalYearEnd.HasValue &&
+                (start.Value.Date < _fiscalYearStart.Value.Date || end.Value.Date > _fiscalYearEnd.Value.Date))
+            {
+                MessageBox.Show(
+                    $"تواريخ الفترة يجب أن تقع داخل السنة المالية الحالية: {_fiscalYearStart:yyyy/MM/dd} إلى {_fiscalYearEnd:yyyy/MM/dd}.",
+                    Text, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                (start.Value.Date < _fiscalYearStart.Value.Date ? start : end).Focus();
+                return false;
+            }
+
+            return true;
         }
 
         private void ClearEditor()
@@ -666,6 +1238,88 @@ namespace AlTayerERP.Desktop
             }
 
             _grid.ClearSelection();
+            ResetAuditFooter();
+            UpdateFiscalPeriodActions();
+        }
+
+        private async Task LoadFiscalYearBoundsAsync()
+        {
+            try
+            {
+                using var response = await _client.GetAsync("FiscalYears?includeClosed=true");
+                if (!response.IsSuccessStatusCode) return;
+
+                var years = await response.Content.ReadFromJsonAsync<List<Dictionary<string, JsonElement>>>() ?? new();
+                var year = years.FirstOrDefault(row =>
+                    TryGetJsonValue(row, "Fiscal_Year_ID", out var id) &&
+                    ReadIdentifier(id) is int yearId &&
+                    yearId == CurrentSession.Year_ID);
+                if (year == null ||
+                    !TryGetJsonValue(year, "Start_Date", out var startJson) ||
+                    !TryGetJsonValue(year, "End_Date", out var endJson) ||
+                    !DateTime.TryParse(ReadJsonValue(startJson), out var start) ||
+                    !DateTime.TryParse(ReadJsonValue(endJson), out var end))
+                    return;
+
+                _fiscalYearStart = start.Date;
+                _fiscalYearEnd = end.Date;
+                ConfigureFiscalDatePicker("Start_Date");
+                ConfigureFiscalDatePicker("End_Date");
+            }
+            catch
+            {
+                // يبقى التحقق الخادمي هو مصدر الحقيقة إذا تعذر جلب حدود السنة للواجهة.
+            }
+        }
+
+        private void ConfigureFiscalDatePicker(string key)
+        {
+            if (!_inputs.TryGetValue(key, out var input) || input is not DateTimePicker picker ||
+                !_fiscalYearStart.HasValue || !_fiscalYearEnd.HasValue)
+                return;
+
+            picker.MinDate = _fiscalYearStart.Value;
+            picker.MaxDate = _fiscalYearEnd.Value;
+            if (picker.Value.Date < picker.MinDate || picker.Value.Date > picker.MaxDate)
+                picker.Value = picker.MinDate;
+        }
+
+        private void UpdateAuditFooter(IReadOnlyDictionary<string, JsonElement> row)
+        {
+            foreach (var pair in _auditValues)
+            {
+                var text = TryGetJsonValue(row, pair.Key, out var value)
+                    ? ReadJsonValue(value)
+                    : "—";
+
+                if ((pair.Key == "Created_At" || pair.Key == "Updated_At") &&
+                    DateTime.TryParse(text, out var date))
+                    text = date.ToString("yyyy/MM/dd HH:mm");
+
+                pair.Value.Text = string.IsNullOrWhiteSpace(text) ? "—" : text;
+            }
+        }
+
+        private void ResetAuditFooter()
+        {
+            foreach (var value in _auditValues.Values)
+                value.Text = "—";
+        }
+
+        private static string ExtractApiMessage(string raw)
+        {
+            try
+            {
+                using var document = JsonDocument.Parse(raw);
+                if (document.RootElement.TryGetProperty("message", out var message))
+                    return message.GetString() ?? "تعذر تنفيذ العملية.";
+            }
+            catch
+            {
+                // الرسالة ليست JSON؛ تعرض كما هي في السطر التالي.
+            }
+
+            return string.IsNullOrWhiteSpace(raw) ? "تحقق من الحقول وصلاحية المستخدم واتصال API." : raw;
         }
 
         private void FrmVoucherReferenceEditor_KeyDown(object? sender, KeyEventArgs e)
@@ -704,6 +1358,31 @@ namespace AlTayerERP.Desktop
             JsonValueKind.String => value.GetString(),
             _ => null
         };
+
+        /// <summary>
+        /// يجلب قيمة JSON دون حساسية لحالة الأحرف. ASP.NET Core يحول أول حرف
+        /// إلى صغير افتراضياً، بينما أسماء حقول ERP تستخدم شرطة سفلية وأحرفاً كبيرة.
+        /// </summary>
+        private static bool TryGetJsonValue(
+            IReadOnlyDictionary<string, JsonElement> row,
+            string propertyName,
+            out JsonElement value)
+        {
+            if (row.TryGetValue(propertyName, out value))
+                return true;
+
+            foreach (var item in row)
+            {
+                if (string.Equals(item.Key, propertyName, StringComparison.OrdinalIgnoreCase))
+                {
+                    value = item.Value;
+                    return true;
+                }
+            }
+
+            value = default;
+            return false;
+        }
 
         private static string ReadJsonValue(JsonElement value) => value.ValueKind switch
         {

@@ -355,7 +355,9 @@ namespace AlTayerERP.Desktop
                     Year_ID = Convert.ToInt32(cmbFiscalYear.SelectedValue),
                     User_ID = 0,
                     Login_Name = cmbUsername.Text.Trim(),
-                    Password = txtPassword.Text
+                    Password = txtPassword.Text,
+                    // معرف الجهاز يربط Refresh Token بهذه المحطة ولا يمثل هوية موثوقة.
+                    Device_ID = CurrentSession.Device_Name
                 };
 
                 var response = await _client.PostAsJsonAsync($"{_baseUrl}Auth/Login", request);
@@ -384,7 +386,12 @@ namespace AlTayerERP.Desktop
                 CurrentSession.Username = result.Login_Name;
                 CurrentSession.Full_Name = result.Full_Name;
                 CurrentSession.Is_System_Admin = result.Is_System_Admin;
+                // لا تحفظ التوكنات في التفضيلات أو الملف؛ تبقى في الذاكرة الحالية فقط.
+                CurrentSession.Session_ID = result.Session_ID;
                 CurrentSession.Access_Token = result.Access_Token;
+                CurrentSession.Access_Token_Expires_At = result.Access_Token_Expires_At;
+                CurrentSession.Refresh_Token = result.Refresh_Token;
+                CurrentSession.Refresh_Token_Expires_At = result.Refresh_Token_Expires_At;
                 CurrentSession.Login_Time = DateTime.Now;
                 ApiService.ApplySessionToken(result.Access_Token);
 
@@ -462,6 +469,7 @@ namespace AlTayerERP.Desktop
         public int User_ID { get; set; }
         public string Login_Name { get; set; } = string.Empty;
         public string Password { get; set; } = string.Empty;
+        public string Device_ID { get; set; } = string.Empty;
     }
 
     public class LoginResultModel
@@ -475,7 +483,12 @@ namespace AlTayerERP.Desktop
         public int Year_ID { get; set; }
         public bool Is_System_Admin { get; set; }
         public bool Must_Change_Password { get; set; }
+        public string Session_ID { get; set; } = string.Empty;
         public string Access_Token { get; set; } = string.Empty;
+        public DateTime Access_Token_Expires_At { get; set; }
+        public string Refresh_Token { get; set; } = string.Empty;
+        public DateTime Refresh_Token_Expires_At { get; set; }
+        public string Token_Type { get; set; } = string.Empty;
     }
 
     public class FiscalYearLookupModel

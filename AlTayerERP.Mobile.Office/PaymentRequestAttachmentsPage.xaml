@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="AlTayerERP.Mobile.Office.PaymentRequestAttachmentsPage"
+             FlowDirection="RightToLeft"
+             BackgroundColor="#F6F8FB"
+             Title="مرفقات طلب الصرف">
+    <Grid RowDefinitions="Auto,Auto,*" Padding="16" RowSpacing="12">
+        <Button Grid.Row="0"
+                x:Name="UploadButton"
+                Text="+ إضافة مرفق"
+                HeightRequest="50"
+                CornerRadius="12"
+                BackgroundColor="#17324D"
+                TextColor="White"
+                Clicked="OnUploadClicked" />
+
+        <Label Grid.Row="1"
+               x:Name="StatusLabel"
+               IsVisible="False"
+               HorizontalTextAlignment="Center"
+               TextColor="#B42318" />
+
+        <RefreshView Grid.Row="2"
+                     x:Name="AttachmentsRefresh"
+                     Refreshing="OnRefreshing">
+            <CollectionView x:Name="AttachmentsList"
+                            SelectionMode="None">
+                <CollectionView.EmptyView>
+                    <Label Text="لا توجد مرفقات لهذا الطلب."
+                           Padding="20"
+                           HorizontalTextAlignment="Center"
+                           TextColor="#7A8896" />
+                </CollectionView.EmptyView>
+                <CollectionView.ItemTemplate>
+                    <DataTemplate>
+                        <Border Margin="0,0,0,10"
+                                Padding="12"
+                                BackgroundColor="White"
+                                Stroke="#D9E2EC"
+                                StrokeShape="RoundRectangle 12">
+                            <Grid RowDefinitions="Auto,Auto,Auto" ColumnDefinitions="*,Auto" RowSpacing="5">
+                                <Label Grid.Row="0" Grid.Column="0"
+                                       Text="{Binding Original_File_Name}"
+                                       FontAttributes="Bold"
+                                       LineBreakMode="TailTruncation"
+                                       TextColor="#17324D" />
+                                <Label Grid.Row="1" Grid.Column="0"
+                                       Text="{Binding FileSizeDisplay}"
+                                       FontSize="12"
+                                       TextColor="#7A8896" />
+                                <Label Grid.Row="2" Grid.Column="0"
+                                       Text="{Binding Created_At, StringFormat='أضيف: {0:yyyy/MM/dd HH:mm}'}"
+                                       FontSize="11"
+                                       TextColor="#7A8896" />
+                                <VerticalStackLayout Grid.RowSpan="3" Grid.Column="1" Spacing="6">
+                                    <Button Text="فتح"
+                                            FontSize="12"
+                                            Padding="12,5"
+                                            BackgroundColor="#0B6B87"
+                                            TextColor="White"
+                                            CornerRadius="8"
+                                            CommandParameter="{Binding}"
+                                            Clicked="OnOpenClicked" />
+                                    <Button Text="حذف"
+                                            FontSize="12"
+                                            Padding="12,5"
+                                            BackgroundColor="#B42318"
+                                            TextColor="White"
+                                            CornerRadius="8"
+                                            CommandParameter="{Binding}"
+                                            Clicked="OnDeleteClicked" />
+                                </VerticalStackLayout>
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+        </RefreshView>
+    </Grid>
+</ContentPage>

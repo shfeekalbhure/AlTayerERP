@@ -41,6 +41,10 @@ namespace AlTayerERP.Desktop
 
             btnRefresh.Click -= btnRefresh_Click;
             btnRefresh.Click += btnRefresh_Click;
+
+            btnAttachments.Click -= btnAttachments_Click;
+            btnAttachments.Click += btnAttachments_Click;
+
             // للتراجع
             btnUndo.Click -= btnUndo_Click;
             btnUndo.Click += btnUndo_Click;
@@ -92,6 +96,24 @@ namespace AlTayerERP.Desktop
         }
 
         #endregion
+
+        #region === المرفقات واستعراض القيد ===
+
+        private void btnAttachments_Click(object? sender, EventArgs e)
+        {
+            if (_selectedVoucherId <= 0)
+            {
+                MessageBox.Show("احفظ أو ابحث عن سند القبض أولاً.", "المرفقات",
+                    MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
+
+            using var form = new FrmVoucherAttachments(_selectedVoucherId);
+            form.ShowDialog(this);
+        }
+
+        #endregion
+
         #region === زر التعديل ===
 
         /// <summary>
@@ -154,7 +176,8 @@ namespace AlTayerERP.Desktop
                 // تأكيد الحذف وتصفير الواجهة لتجهيز سند جديد
                 MessageBox.Show("تم حذف سند القبض بنجاح.", "نجاح", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 NewVoucher();
-                await GenerateVoucherNumberAsync();
+                // بعد الحذف تُفتح مسودة قابلة للإدخال؛ الرقم يصدر من الخادم عند الحفظ فقط.
+                SetNewMode();
             }
             catch (Exception ex)
             {

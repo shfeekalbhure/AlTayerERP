@@ -12,10 +12,11 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 // استدعاء المجلد المركزي لخدمات الـ API
 using AlTayerERP.Desktop.Services;
+using AlTayerERP.Desktop.Common;
 
 namespace AlTayerERP.Desktop
 {
-    public partial class FiscalYearForm : Form
+    public partial class FiscalYearForm : BaseForm
     {
 // إنشاء كائن ثابت لـ HttpClient للتعامل مع اتصالات الشبكة والـ API
 private readonly HttpClient _client = ApiService.Client;
@@ -35,6 +36,13 @@ private readonly HttpClient _client = ApiService.Client;
         public FiscalYearForm()
         {
             InitializeComponent();
+            ApplyBaseFormStyle();
+            // الإقفال والإيقاف لا ينفذان من حقول واجهة عامة؛ الفترة المالية تدار من شاشة الفترات المدققة.
+            chkIsClosed.Enabled = false;
+            chkIsClosed.TabStop = false;
+            cmbStatus.Enabled = false;
+            cmbStatus.TabStop = false;
+            btnDelete.Text = "إيقاف";
 
             // توحيد شكل الشاشة القديمة والاختصارات العربية دون تغيير منطقها.
 // إعداد أعمدة وخصائص جدول عرض البيانات
@@ -209,8 +217,9 @@ private readonly HttpClient _client = ApiService.Client;
                 Start_Date = dtpStartDate.Value,
                 End_Date = dtpEndDate.Value,
                 Is_Default = chkIsDefault.Checked,
-                Is_Closed = chkIsClosed.Checked,
-                Is_Active = cmbStatus.Text == "نشط"
+                // قيم الحالة للعرض فقط؛ الخادم يمنع تغييرها عبر DTO العام.
+                Is_Closed = false,
+                Is_Active = true
             };
 
             try
@@ -306,7 +315,7 @@ private readonly HttpClient _client = ApiService.Client;
 
                 if (response.IsSuccessStatusCode)
                 {
-                    MessageBox.Show("تم حذف السنة المالية بنجاح.", "تم الحذف", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    MessageBox.Show("تم إيقاف السنة المالية مع الاحتفاظ بتاريخها.", "تم الإيقاف", MessageBoxButtons.OK, MessageBoxIcon.Information);
                     ClearFormFields();
                     await LoadFiscalYearsAsync();
                 }

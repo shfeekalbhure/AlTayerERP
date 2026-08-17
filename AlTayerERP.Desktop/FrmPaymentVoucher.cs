@@ -1,38 +1,14 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
-using System.Drawing;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Windows.Forms;
+namespace AlTayerERP.Desktop;
 
-namespace AlTayerERP.Desktop
+/// <summary>
+/// شاشة سند الصرف الموحدة.
+/// تستخدم كامل تصميم وبرمجة شاشة السند المالي المعتمدة،
+/// مع تثبيت نوع السند على PAYMENT وعكس اتجاه القيد محاسبياً.
+/// </summary>
+public sealed class FrmPaymentVoucher : FrmReceiptVoucher
 {
-    // تم تغيير اسم الشاشة هنا إلى FrmPaymentVoucher (سند الصرف)
-    public partial class FrmPaymentVoucher : Form
+    public FrmPaymentVoucher()
+        : base("PAYMENT", "سند الصرف")
     {
-        public FrmPaymentVoucher()
-        {
-            InitializeComponent();
-}
-
-        private void flowLayoutPanel1_Paint(object sender, PaintEventArgs e)
-        {
-
-        }
-
-        // تم تعديل اسم الدالة ليتوافق مع اسم الجدول المعتمد في الـ Designer الخاص بك dgvVoucherDetails
-        private void dgvVoucherDetails_CellContentClick(object sender, DataGridViewCellEventArgs e)
-        {
-
-        }
-
-        // تم تعديل اسم الدالة ليتوافق مع اسم اللوحة المعتمدة في الـ Designer الخاص بك pnlTotals
-        private void pnlTotals_Paint(object sender, PaintEventArgs e)
-        {
-
-        }
     }
 }

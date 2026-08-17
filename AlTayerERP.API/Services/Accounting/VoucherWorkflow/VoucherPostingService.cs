@@ -221,6 +221,46 @@ namespace AlTayerERP.API.Services.Accounting.VoucherWorkflow
 
                 #endregion
 
+                #region التحقق من سياق الفترة والبيانات المرجعية عند الترحيل
+
+                int branchId = voucher.Branch_ID;
+
+                bool periodIsOpen = await _context.Fiscal_Periods.AsNoTracking().AnyAsync(x =>
+                    x.Branch_ID == branchId &&
+                    x.Fiscal_Year_ID == voucher.Fiscal_Year_ID &&
+                    x.Is_Active &&
+                    !x.Is_Closed &&
+                    voucher.Voucher_Date.Date >= x.Start_Date.Date &&
+                    voucher.Voucher_Date.Date <= x.End_Date.Date);
+
+                if (!periodIsOpen)
+                {
+                    await transaction.RollbackAsync();
+                    return PostingResult.Fail("لا يمكن الترحيل خارج فترة مالية مفتوحة.");
+                }
+
+                var accountIds = voucher.Details.Select(x => x.Account_ID).Distinct().ToList();
+                int activeAccounts = await _context.Chart_Of_Accounts.AsNoTracking()
+                    .Where(x => accountIds.Contains(x.Account_ID) && x.Is_Active && x.Is_Postable)
+                    .CountAsync();
+                if (activeAccounts != accountIds.Count)
+                {
+                    await transaction.RollbackAsync();
+                    return PostingResult.Fail("لا يمكن الترحيل: يوجد حساب موقوف أو غير قابل للترحيل.");
+                }
+
+                var currencyIds = voucher.Details.Select(x => x.Currency_ID).Append(voucher.Currency_ID).Distinct().ToList();
+                int activeCurrencies = await _context.Currencies.AsNoTracking()
+                    .Where(x => currencyIds.Contains(x.Currency_ID) && x.Is_Active)
+                    .CountAsync();
+                if (activeCurrencies != currencyIds.Count)
+                {
+                    await transaction.RollbackAsync();
+                    return PostingResult.Fail("لا يمكن الترحيل: توجد عملة موقوفة أو غير صالحة.");
+                }
+
+                #endregion
+
                 #region منع تكرار القيد من نفس السند
 
                 bool journalAlreadyExists =
@@ -255,7 +295,7 @@ namespace AlTayerERP.API.Services.Accounting.VoucherWorkflow
                     DateTime.Now;
 
                 string sourceDocumentType =
-                    GetSourceDocumentType(
+                    await GetSourceDocumentTypeAsync(
                         voucher.Voucher_Type_ID);
 
                 var journalEntry =
@@ -482,6 +522,15 @@ namespace AlTayerERP.API.Services.Accounting.VoucherWorkflow
 
                 voucher.Updated_At =
                     postingDate;
+
+                var postedStatus = await _context.Voucher_Statuses
+                    .FirstOrDefaultAsync(x => x.Voucher_Status_Code == "POSTED" && x.Is_Active);
+                if (postedStatus == null)
+                {
+                    await transaction.RollbackAsync();
+                    return PostingResult.Fail("حالة POSTED المرجعية غير مهيأة.");
+                }
+                voucher.Voucher_Status_ID = postedStatus.Voucher_Status_ID;
 
                 #endregion
 
@@ -752,6 +801,15 @@ namespace AlTayerERP.API.Services.Accounting.VoucherWorkflow
                 voucher.Updated_At =
                     unpostDate;
 
+                var pendingStatus = await _context.Voucher_Statuses
+                    .FirstOrDefaultAsync(x => x.Voucher_Status_Code == "PENDING" && x.Is_Active);
+                if (pendingStatus == null)
+                {
+                    await transaction.RollbackAsync();
+                    return (false, "حالة PENDING المرجعية غير مهيأة.");
+                }
+                voucher.Voucher_Status_ID = pendingStatus.Voucher_Status_ID;
+
                 #endregion
 
                 #region تسجيل إلغاء الترحيل
@@ -958,13 +1016,13 @@ namespace AlTayerERP.API.Services.Accounting.VoucherWorkflow
             if (setting.Use_Company)
             {
                 parts.Add(
-                    GetCurrentCompanyId());
+                    await GetCurrentCompanyIdAsync(voucher.Branch_ID));
             }
 
             if (setting.Use_Branch)
             {
                 parts.Add(
-                    voucher.Branch_ID);
+                    await GetCurrentBranchCodeAsync(voucher.Branch_ID));
             }
 
             if (setting.Use_Year)
@@ -988,40 +1046,23 @@ namespace AlTayerERP.API.Services.Accounting.VoucherWorkflow
         /// تحويل نوع السند الرقمي إلى كود برمجي واضح.
         /// يمكن إضافة أنواع جديدة مستقبلًا.
         /// </summary>
-        private static string GetSourceDocumentType(
+        private async Task<string> GetSourceDocumentTypeAsync(
             int voucherTypeId)
         {
-            return voucherTypeId switch
+            var voucherTypeCode = await _context.Voucher_Types.AsNoTracking()
+                .Where(x => x.Voucher_Type_ID == voucherTypeId && x.Is_Active)
+                .Select(x => x.Voucher_Type_Code)
+                .SingleOrDefaultAsync();
+
+            return voucherTypeCode?.Trim().ToUpperInvariant() switch
             {
-                1 =>
-                    "RECEIPT_VOUCHER",
-
-                2 =>
-                    "PAYMENT_VOUCHER",
-
-                3 =>
-                    "JOURNAL_VOUCHER",
-
-                4 =>
-                    "DEBIT_NOTE",
-
-                5 =>
-                    "CREDIT_NOTE",
-
-                6 =>
-                    "ADJUSTMENT_VOUCHER",
-
-                7 =>
-                    "CUSTODY_VOUCHER",
-
-                8 =>
-                    "COLLECTION_VOUCHER",
-
-                9 =>
-                    "SHIPMENT_COLLECTION",
-
-                _ =>
-                    $"FINANCIAL_VOUCHER_{voucherTypeId}"
+                "RECEIPT" => "RECEIPT_VOUCHER",
+                "PAYMENT" => "PAYMENT_VOUCHER",
+                "JOURNAL" => "JOURNAL_VOUCHER",
+                "ADJUSTMENT" => "ADJUSTMENT_VOUCHER",
+                "OPENING" => "OPENING_VOUCHER",
+                _ => throw new InvalidOperationException(
+                    "نوع السند غير مهيأ أو موقوف ولا يمكن ترحيله.")
             };
         }
 
@@ -1060,9 +1101,29 @@ namespace AlTayerERP.API.Services.Accounting.VoucherWorkflow
         /// معرف الشركة الحالي المستخدم في الترقيم.
         /// يستبدل لاحقًا بقيمة الجلسة الحالية.
         /// </summary>
-        private static string GetCurrentCompanyId()
+        private async Task<string> GetCurrentCompanyIdAsync(int branchId)
         {
-            return "FG-00001";
+            var companyId = await _context.Tenant_Branches.AsNoTracking()
+                .Where(x => x.Branch_ID == branchId && x.Is_Active)
+                .Select(x => x.Company_ID)
+                .FirstOrDefaultAsync();
+
+            return string.IsNullOrWhiteSpace(companyId)
+                ? throw new InvalidOperationException("تعذر تحديد شركة الفرع لتوليد رقم القيد.")
+                : companyId;
+        }
+
+        /// <summary>يستخرج كود الفرع النصي للاستخدام داخل رقم المستند.</summary>
+        private async Task<string> GetCurrentBranchCodeAsync(int branchId)
+        {
+            var branchCode = await _context.Tenant_Branches.AsNoTracking()
+                .Where(x => x.Branch_ID == branchId && x.Is_Active)
+                .Select(x => x.Branch_Code)
+                .FirstOrDefaultAsync();
+
+            return string.IsNullOrWhiteSpace(branchCode)
+                ? throw new InvalidOperationException("تعذر تحديد كود الفرع لتوليد رقم القيد.")
+                : branchCode;
         }
 
         /// <summary>

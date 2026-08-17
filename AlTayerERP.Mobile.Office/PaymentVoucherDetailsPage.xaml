@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="AlTayerERP.Mobile.Office.PaymentVoucherDetailsPage"
+             FlowDirection="RightToLeft"
+             BackgroundColor="#F6F8FB"
+             Title="تفاصيل سند الصرف">
+    <ScrollView>
+        <VerticalStackLayout Padding="16" Spacing="14">
+            <Border BackgroundColor="#17324D" StrokeThickness="0" Padding="16" StrokeShape="RoundRectangle 16">
+                <VerticalStackLayout Spacing="6">
+                    <Label x:Name="VoucherNoLabel" FontSize="21" FontAttributes="Bold" TextColor="White" />
+                    <Label x:Name="StatusLabel" FontSize="14" TextColor="#D9EAF7" />
+                </VerticalStackLayout>
+            </Border>
+            <Border BackgroundColor="White" Stroke="#D9E2EC" Padding="14" StrokeShape="RoundRectangle 14">
+                <VerticalStackLayout Spacing="8">
+                    <Label x:Name="BeneficiaryLabel" FontSize="17" FontAttributes="Bold" TextColor="#17324D" />
+                    <Label x:Name="DateLabel" TextColor="#35566F" />
+                    <Label x:Name="ReferenceLabel" TextColor="#35566F" />
+                    <Label x:Name="CashAccountLabel" TextColor="#35566F" />
+                    <Label x:Name="SourceLabel" TextColor="#35566F" />
+                    <Label x:Name="DescriptionLabel" TextColor="#35566F" />
+                    <Label x:Name="TotalLabel" FontAttributes="Bold" TextColor="#17324D" />
+                    <Label x:Name="AuditLabel" FontSize="12" TextColor="#7A8896" />
+                </VerticalStackLayout>
+            </Border>
+
+            <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto" ColumnSpacing="8" RowSpacing="8">
+                <Button x:Name="EditButton" Grid.Row="0" Grid.ColumnSpan="2" Text="تعديل سند الصرف" BackgroundColor="#0B6B87" TextColor="White" Clicked="OnEditClicked" />
+                <Button x:Name="ReviewButton" Grid.Row="1" Grid.Column="0" Text="مراجعة" BackgroundColor="#0B6B87" TextColor="White" Clicked="OnReviewClicked" />
+                <Button x:Name="ApproveButton" Grid.Row="1" Grid.Column="1" Text="اعتماد" BackgroundColor="#17324D" TextColor="White" Clicked="OnApproveClicked" />
+                <Button x:Name="ReturnButton" Grid.Row="2" Grid.Column="0" Text="إعادة للتصحيح" BackgroundColor="#B7791F" TextColor="White" Clicked="OnReturnClicked" />
+                <Button x:Name="CancelApprovalButton" Grid.Row="2" Grid.Column="1" Text="إلغاء الاعتماد" BackgroundColor="#8B5E34" TextColor="White" IsVisible="False" Clicked="OnCancelApprovalClicked" />
+                <Button x:Name="PostButton" Grid.Row="3" Grid.Column="0" Text="ترحيل" BackgroundColor="#18794E" TextColor="White" Clicked="OnPostClicked" />
+                <Button x:Name="UnpostButton" Grid.Row="3" Grid.Column="1" Text="فك الترحيل" BackgroundColor="#B42318" TextColor="White" IsVisible="False" Clicked="OnUnpostClicked" />
+                <Button x:Name="DeleteButton" Grid.Row="4" Grid.Column="0" Text="حذف المسودة" BackgroundColor="#B42318" TextColor="White" Clicked="OnDeleteClicked" />
+                <Button x:Name="PrintButton" Grid.Row="4" Grid.Column="1" Text="طباعة السند" BackgroundColor="#35566F" TextColor="White" Clicked="OnPrintClicked" />
+                <Button x:Name="ExportPdfButton" Grid.Row="5" Grid.ColumnSpan="2" Text="تصدير PDF إلى ذاكرة الهاتف" BackgroundColor="#18794E" TextColor="White" Clicked="OnExportPdfClicked" />
+                <Button x:Name="AttachmentsButton" Grid.Row="6" Grid.ColumnSpan="2" Text="مرفقات سند الصرف" BackgroundColor="#0B6B87" TextColor="White" Clicked="OnAttachmentsClicked" />
+                <Button x:Name="JournalButton" Grid.Row="7" Grid.ColumnSpan="2" Text="استعراض القيد المحاسبي" BackgroundColor="#35566F" TextColor="White" IsVisible="False" Clicked="OnJournalClicked" />
+            </Grid>
+
+            <Label Text="التوزيع المحاسبي" FontSize="18" FontAttributes="Bold" TextColor="#17324D" />
+            <VerticalStackLayout x:Name="LinesPanel" Spacing="10" />
+            <ActivityIndicator x:Name="BusyIndicator" Color="#0B6B87" IsVisible="False" IsRunning="False" />
+            <Label x:Name="MessageLabel" IsVisible="False" HorizontalTextAlignment="Center" TextColor="#B42318" />
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

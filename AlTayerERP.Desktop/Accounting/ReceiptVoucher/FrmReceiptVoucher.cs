@@ -14,7 +14,7 @@ namespace AlTayerERP.Desktop
     /// شاشة سند القبض - الملف الرئيسي.
     /// يحتوي على: المتغيرات العامة، النماذج المشتركة، الدوال المساعدة، المنطق الأساسي.
     /// </summary>
-    public partial class FrmReceiptVoucher : Form
+    public partial class FrmReceiptVoucher : BaseForm
     {
         #region === المتغيرات العامة ===
 
@@ -34,13 +34,15 @@ namespace AlTayerERP.Desktop
         // حالة السند المحملة للتحكم الصحيح في دورة المراجعة والاعتماد والترحيل.
         private byte _currentReviewStatus = 0;
         private byte _currentApprovalStatus = 0;
-        private string _loadedVoucherBranchId = string.Empty;
+        private int _loadedVoucherBranchId;
         private int _loadedFiscalYearId = 0;
         private string? _loadedPartyId;
         private string _loadedReceivedFromName = string.Empty;
         private bool _isCrossContextVoucher = false;
         private readonly Label _lblReviewStatus = new Label();
         private readonly ToolTip _workflowToolTip = new ToolTip();
+        private readonly string _voucherTypeCode;
+        private readonly string _voucherCaption;
 
         // قوائم لتخزين بيانات العملات والحسابات المسترجعة من قاعدة البيانات
         private List<CurrencyLookupModel> _currencyLookups = new();
@@ -54,12 +56,27 @@ namespace AlTayerERP.Desktop
         #region === المشيد ===
 
         // مشيد الشاشة الرئيسي المسؤول عن تهيئة المكونات وتسجيل الأحداث وإعداد الخصائص
-        public FrmReceiptVoucher()
+        public FrmReceiptVoucher() : this("RECEIPT", "سند القبض")
         {
-            InitializeComponent(); // تهيئة عناصر الواجهة المصممة
+        }
 
-            RegisterEvents();      // تسجيل أحداث العناصر (النقر، التغيير...)
-            ConfigureScreen();     // ضبط إعدادات وخصائص عناصر الشاشة
+        /// <summary>
+        /// قاعدة موحدة لسندات القبض والصرف والقيد اليومي. نوع السند يحدد من الشاشة
+        /// ولا يمكن للمستخدم تغييره يدوياً أثناء الإدخال.
+        /// </summary>
+        protected FrmReceiptVoucher(string voucherTypeCode, string voucherCaption)
+        {
+            _voucherTypeCode = voucherTypeCode?.Trim().ToUpperInvariant()
+                ?? throw new ArgumentNullException(nameof(voucherTypeCode));
+            _voucherCaption = voucherCaption?.Trim()
+                ?? throw new ArgumentNullException(nameof(voucherCaption));
+
+            InitializeComponent();
+            RemoveRedundantMainShellPanels();
+            ApplyBaseFormStyle();
+            Text = _voucherCaption;
+            RegisterEvents();
+            ConfigureScreen();
         }
 
         #endregion
@@ -113,11 +130,31 @@ namespace AlTayerERP.Desktop
 
             // استدعاء دالة لتسجيل أحداث العمليات الإضافية على السند
             RegisterVoucherActionEvents();
+
+            KeyDown -= FrmReceiptVoucher_KeyDown;
+            KeyDown += FrmReceiptVoucher_KeyDown;
         }
 
         #endregion
 
         #region === إعداد الشاشة ===
+
+        /// <summary>
+        /// تحذف لوحات السياق المكررة من السند؛ فالشاشة الرئيسية هي المرجع الوحيد
+        /// لبيانات الشركة والفرع والمستخدم وحالة الاتصال.
+        /// </summary>
+        private void RemoveRedundantMainShellPanels()
+        {
+            // نفصل زر الإغلاق أولاً ثم نعيده إلى شريط أوامر السند.
+            pnlTopBar.Controls.Remove(btnClose);
+            pnlToolbar.Controls.Add(btnClose);
+
+            // لا نعرض نسخة ثانية من رأس الشركة أو شريط اتصال النظام داخل السند.
+            Controls.Remove(pnlTopBar);
+            Controls.Remove(statusSystem);
+            pnlTopBar.Dispose();
+            statusSystem.Dispose();
+        }
 
         // دالة لضبط الخصائص الافتراضية لعناصر الواجهة (مثل القراءة فقط والاتجاه)
         private void ConfigureScreen()
@@ -146,8 +183,11 @@ namespace AlTayerERP.Desktop
             btnExport.Text = "إعادة للتصحيح";
             btnExport.Location = new System.Drawing.Point(443, 12);
             btnExport.Size = new System.Drawing.Size(110, 29);
-            btnAttachments.Visible = false;
+            btnAttachments.Visible = true;
             button1.Visible = false;
+
+            ConfigureReceiptToolbar();
+            ConfigureReceiptVisualLayout();
 
             _lblReviewStatus.AutoSize = true;
             _lblReviewStatus.Location = new System.Drawing.Point(1278, 12);
@@ -159,6 +199,324 @@ namespace AlTayerERP.Desktop
             ConfigureNumericControls();
             ConfigureVoucherGrid();
             ConfigureHeaderAmountFields();
+        }
+
+        /// <summary>
+        /// يضبط شكل الشاشة لتلائم مساحة العمل، ويمنع تمرير نافذة الـ MDI الخارجي.
+        /// </summary>
+        private void ConfigureReceiptVisualLayout()
+        {
+            AutoScroll = false;
+            MinimumSize = new System.Drawing.Size(1100, 680);
+
+            pnlToolbar.Height = 84;
+            grpVoucherInfo.Height = 88;
+            groupBox1.Height = 170;
+            pnlUserInfo.Height = 72;
+            pnlTotals.Height = 50;
+
+            grpVoucherInfo.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Bold);
+            groupBox1.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Bold);
+            grpDistribution.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Bold);
+
+            pnlTotals.BackColor = System.Drawing.Color.FromArgb(248, 250, 252);
+            pnlUserInfo.BackColor = System.Drawing.Color.FromArgb(239, 246, 255);
+            pnlUserInfo.Padding = new Padding(10, 4, 10, 4);
+
+            StyleReadOnlyField(txtVoucherNo);
+            StyleReadOnlyField(txtTotalAmount);
+            StyleReadOnlyField(txtTotalForeignAmount);
+            StyleReadOnlyField(txtDifference);
+            StyleReadOnlyField(txtJournalNo);
+            StyleReadOnlyField(txtCreatedBy);
+            StyleReadOnlyField(txtCreatedDate);
+            StyleReadOnlyField(txtUpdatedBy);
+            StyleReadOnlyField(txtUpdatedDate);
+            StyleReadOnlyField(txtEditCount);
+            StyleReadOnlyField(txtPrintCount);
+            StyleReadOnlyField(txtLastPrintedBy);
+            StyleReadOnlyField(txtLastPrintDate);
+
+            // توحيد شكل حقول رأس السند لتظهر الحقول القابلة للإدخال بوضوح.
+            ConfigureHeaderInputAppearance();
+
+            // تغيير لون حالة السند فور تحميلها أو عند تغيير السجل المعروض.
+            cmbStatus.SelectedIndexChanged -= cmbStatus_SelectedIndexChanged;
+            cmbStatus.SelectedIndexChanged += cmbStatus_SelectedIndexChanged;
+            RefreshVoucherStatusAppearance();
+
+            Resize -= FrmReceiptVoucher_Resize;
+            Resize += FrmReceiptVoucher_Resize;
+            Shown -= FrmReceiptVoucher_Shown;
+            Shown += FrmReceiptVoucher_Shown;
+            ApplyReceiptVisualLayout();
+        }
+
+        private void FrmReceiptVoucher_Resize(object? sender, EventArgs e) =>
+            ApplyReceiptVisualLayout();
+
+        private void FrmReceiptVoucher_Shown(object? sender, EventArgs e)
+        {
+            // داخل مساحة النظام الرئيسية نُكبّر السند داخل مساحة العمل حتى لا يظهر تمرير خارجي.
+            if (MdiParent != null)
+            {
+                WindowState = FormWindowState.Maximized;
+            }
+        }
+
+        private void ApplyReceiptVisualLayout()
+        {
+            LayoutAuditFields();
+        }
+
+        private void LayoutAuditFields()
+        {
+            if (pnlUserInfo.ClientSize.Width < 900)
+            {
+                return;
+            }
+
+            var fields = new[]
+            {
+                (label7, txtCreatedBy), (label1, txtCreatedDate), (label3, txtUpdatedBy),
+                (label2, txtUpdatedDate), (label29, txtEditCount), (label28, txtPrintCount),
+                (label31, txtLastPrintedBy), (label30, txtLastPrintDate)
+            };
+
+            const int rightMargin = 14;
+            const int labelWidth = 86;
+            const int fieldWidth = 132;
+            const int columnWidth = 270;
+            const int firstRowY = 7;
+            const int secondRowY = 39;
+            int right = pnlUserInfo.ClientSize.Width - rightMargin;
+
+            pnlUserInfo.SuspendLayout();
+            try
+            {
+                for (int index = 0; index < fields.Length; index++)
+                {
+                    int row = index / 4;
+                    int column = index % 4;
+                    int x = right - ((column + 1) * columnWidth);
+                    int y = row == 0 ? firstRowY : secondRowY;
+                    Label label = fields[index].Item1;
+                    TextBox field = fields[index].Item2;
+
+                    label.AutoSize = false;
+                    label.Size = new System.Drawing.Size(labelWidth, 24);
+                    label.Location = new System.Drawing.Point(x + fieldWidth, y + 2);
+                    label.TextAlign = System.Drawing.ContentAlignment.MiddleRight;
+                    label.Font = new System.Drawing.Font("Segoe UI", 8F, System.Drawing.FontStyle.Bold);
+
+                    field.Size = new System.Drawing.Size(fieldWidth, 25);
+                    field.Location = new System.Drawing.Point(x, y);
+                    field.Font = new System.Drawing.Font("Segoe UI", 8F);
+                }
+            }
+            finally
+            {
+                pnlUserInfo.ResumeLayout();
+            }
+        }
+
+        private static void StyleReadOnlyField(TextBox field)
+        {
+            field.ReadOnly = true;
+            field.BackColor = System.Drawing.Color.FromArgb(248, 250, 252);
+            field.ForeColor = System.Drawing.Color.FromArgb(51, 65, 85);
+            field.BorderStyle = BorderStyle.FixedSingle;
+        }
+
+        // توحيد الخط والخلفية للحقول التي يدخل فيها المستخدم بيانات رأس السند.
+        private void ConfigureHeaderInputAppearance()
+        {
+            foreach (Control control in new Control[]
+            {
+                cmbVoucherType, cmbBranch, cmbCashAccount, cmbParty, cmbCurrency,
+                cmbPaymentMethod, cmbCostCenter, txtReferenceNo, txtReference,
+                txtAgainst, txtHeaderNotes, numAmount, numForeignAmount,
+                numLocalAmount, numExchangeRate
+            })
+            {
+                control.Font = new System.Drawing.Font("Segoe UI", 9F);
+                control.BackColor = System.Drawing.Color.White;
+            }
+
+            // جعل حدود الحقول النصية متناسقة وسهلة التمييز.
+            txtHeaderNotes.BorderStyle = BorderStyle.FixedSingle;
+            txtReferenceNo.BorderStyle = BorderStyle.FixedSingle;
+            txtReference.BorderStyle = BorderStyle.FixedSingle;
+            txtAgainst.BorderStyle = BorderStyle.FixedSingle;
+
+            // تثبيت الخلفية البيضاء للأقسام الرئيسية ومنع التمرير خارج جدول التوزيع.
+            grpVoucherInfo.BackColor = System.Drawing.Color.White;
+            groupBox1.BackColor = System.Drawing.Color.White;
+            grpDistribution.BackColor = System.Drawing.Color.White;
+            grpDistribution.Padding = new Padding(6, 23, 6, 6);
+        }
+
+        // تحديث شكل شارة الحالة عند اختيار حالة جديدة أو تحميل سند.
+        private void cmbStatus_SelectedIndexChanged(object? sender, EventArgs e) =>
+            RefreshVoucherStatusAppearance();
+
+        // تلوين حالة السند لتمييز المسودة والمراجعة والاعتماد والترحيل والإلغاء بصرياً.
+        private void RefreshVoucherStatusAppearance()
+        {
+            string status = cmbStatus.Text?.Trim() ?? string.Empty;
+            cmbStatus.FlatStyle = FlatStyle.Flat;
+            cmbStatus.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Bold);
+            cmbStatus.ForeColor = System.Drawing.Color.White;
+
+            if (status.Contains("مرحل", StringComparison.OrdinalIgnoreCase))
+            {
+                cmbStatus.BackColor = System.Drawing.Color.FromArgb(5, 120, 87);
+            }
+            else if (status.Contains("معتمد", StringComparison.OrdinalIgnoreCase))
+            {
+                cmbStatus.BackColor = System.Drawing.Color.FromArgb(29, 78, 216);
+            }
+            else if (status.Contains("ملغ", StringComparison.OrdinalIgnoreCase) ||
+                     status.Contains("مرفوض", StringComparison.OrdinalIgnoreCase))
+            {
+                cmbStatus.BackColor = System.Drawing.Color.FromArgb(198, 40, 40);
+            }
+            else if (status.Contains("مراجع", StringComparison.OrdinalIgnoreCase))
+            {
+                cmbStatus.BackColor = System.Drawing.Color.FromArgb(217, 119, 6);
+            }
+            else
+            {
+                // حالة المسودة والحالات الأولية تظهر بلون محايد.
+                cmbStatus.BackColor = System.Drawing.Color.FromArgb(100, 116, 139);
+            }
+        }
+
+        /// <summary>
+        /// يوحد شريط أوامر سند القبض: أزرار مقروءة في صفين ومرتبة من اليمين إلى اليسار.
+        /// </summary>
+        private void ConfigureReceiptToolbar()
+        {
+            pnlToolbar.BackColor = System.Drawing.Color.FromArgb(245, 248, 252);
+            pnlToolbar.Padding = new Padding(12, 6, 12, 6);
+            pnlToolbar.RightToLeft = RightToLeft.Yes;
+            pnlToolbar.Height = 84;
+            pnlToolbar.Resize -= pnlToolbar_Resize;
+            pnlToolbar.Resize += pnlToolbar_Resize;
+
+            ConfigureReceiptToolbarCaptions();
+            ApplyReceiptToolbarLayout();
+        }
+
+        private void ConfigureReceiptToolbarCaptions()
+        {
+            btnNew.Text = "＋ جديد";
+            btnSave.Text = "✓ حفظ";
+            btnEdit.Text = "✎ تعديل";
+            btnDelete.Text = "× حذف";
+            btnPrint.Text = "▣ طباعة";
+            btnSearch.Text = "⌕ بحث";
+            btnRefresh.Text = "↻ تحديث";
+            btnAttachments.Text = "⌁ مرفقات";
+            btnImport.Text = "✓ تمت المراجعة";
+            btnExport.Text = "↩ إعادة للتصحيح";
+            btnApprove.Text = "✓ اعتماد";
+            btnCancelApprove.Text = "↶ إلغاء اعتماد";
+            btnPost.Text = "▲ ترحيل";
+            btnUnPost.Text = "↶ إلغاء ترحيل";
+            btnViewJournalEntry.Text = "☷ استعراض القيد";
+            btnUndo.Text = "↩ تراجع";
+            btnClose.Text = "✕ إغلاق";
+        }
+
+        private void pnlToolbar_Resize(object? sender, EventArgs e) =>
+            ApplyReceiptToolbarLayout();
+
+        private void ApplyReceiptToolbarLayout()
+        {
+            if (pnlToolbar.ClientSize.Width <= 0)
+            {
+                return;
+            }
+
+            Button[][] rows =
+            {
+                new[] { btnNew, btnSave, btnEdit, btnDelete, btnPrint, btnSearch, btnRefresh, btnAttachments },
+                new[] { btnImport, btnExport, btnApprove, btnCancelApprove, btnPost, btnUnPost, btnViewJournalEntry, btnUndo, btnClose }
+            };
+
+            const int margin = 12;
+            const int rowHeight = 32;
+            const int gap = 6;
+            int[] topPositions = { 7, 44 };
+
+            pnlToolbar.SuspendLayout();
+            try
+            {
+                for (int row = 0; row < rows.Length; row++)
+                {
+                    int right = pnlToolbar.ClientSize.Width - margin;
+                    foreach (Button button in rows[row])
+                    {
+                        int width = IsReceiptToolbarWideButton(button) ? 120 : 100;
+                        right -= width;
+                        ConfigureReceiptToolbarButton(button, width, rowHeight);
+                        button.Location = new System.Drawing.Point(right, topPositions[row]);
+                        right -= gap;
+                    }
+                }
+            }
+            finally
+            {
+                pnlToolbar.ResumeLayout();
+            }
+        }
+
+        private bool IsReceiptToolbarWideButton(Button button) =>
+            button == btnImport || button == btnExport || button == btnCancelApprove ||
+            button == btnUnPost || button == btnViewJournalEntry;
+
+        private void ConfigureReceiptToolbarButton(Button button, int width, int height)
+        {
+            System.Drawing.Color color = GetReceiptToolbarColor(button);
+
+            button.Size = new System.Drawing.Size(width, height);
+            button.FlatStyle = FlatStyle.Flat;
+            button.FlatAppearance.BorderSize = 0;
+            button.FlatAppearance.MouseOverBackColor = System.Drawing.Color.FromArgb(
+                Math.Min(color.R + 18, 255),
+                Math.Min(color.G + 18, 255),
+                Math.Min(color.B + 18, 255));
+            button.FlatAppearance.MouseDownBackColor = System.Drawing.Color.FromArgb(
+                Math.Max(color.R - 18, 0),
+                Math.Max(color.G - 18, 0),
+                Math.Max(color.B - 18, 0));
+            button.BackColor = color;
+            button.ForeColor = System.Drawing.Color.White;
+            button.Font = new System.Drawing.Font("Segoe UI", 8.5F, System.Drawing.FontStyle.Bold);
+            button.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
+            button.Padding = new Padding(4, 0, 4, 0);
+            button.Cursor = Cursors.Hand;
+            button.UseVisualStyleBackColor = false;
+            _workflowToolTip.SetToolTip(button, button.Text);
+        }
+
+        private System.Drawing.Color GetReceiptToolbarColor(Button button)
+        {
+            if (button == btnNew) return System.Drawing.Color.FromArgb(37, 99, 235);
+            if (button == btnSave) return System.Drawing.Color.FromArgb(22, 135, 79);
+            if (button == btnEdit) return System.Drawing.Color.FromArgb(217, 119, 6);
+            if (button == btnDelete || button == btnUnPost) return System.Drawing.Color.FromArgb(198, 40, 40);
+            if (button == btnPrint) return System.Drawing.Color.FromArgb(109, 40, 217);
+            if (button == btnSearch) return System.Drawing.Color.FromArgb(14, 116, 144);
+            if (button == btnRefresh) return System.Drawing.Color.FromArgb(71, 85, 105);
+            if (button == btnImport) return System.Drawing.Color.FromArgb(91, 33, 182);
+            if (button == btnExport || button == btnCancelApprove) return System.Drawing.Color.FromArgb(194, 65, 12);
+            if (button == btnApprove || button == btnPost) return System.Drawing.Color.FromArgb(5, 120, 87);
+            if (button == btnViewJournalEntry) return System.Drawing.Color.FromArgb(29, 78, 216);
+            if (button == btnAttachments) return System.Drawing.Color.FromArgb(3, 105, 161);
+            if (button == btnClose) return System.Drawing.Color.FromArgb(71, 85, 105);
+            return System.Drawing.Color.FromArgb(100, 116, 139);
         }
 
         // دالة لضبط حدود وخصائص حقول الإدخال الرقمية الخاصة بالمبالغ وسعر الصرف

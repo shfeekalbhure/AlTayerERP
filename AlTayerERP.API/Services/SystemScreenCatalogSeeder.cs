@@ -16,39 +16,22 @@ namespace AlTayerERP.API.Services
 
         public async Task EnsureSeededAsync()
         {
-            var catalog = new[]
-            {
-                new ScreenSeed("Companies", "الشركات", "الإدارة العامة", 10),
-                new ScreenSeed("Branches", "الفروع", "الإدارة العامة", 20),
-                new ScreenSeed("FiscalYears", "السنوات المالية", "الإدارة العامة", 30),
-                new ScreenSeed("Users", "المستخدمون", "الإدارة العامة", 40),
-                new ScreenSeed("Roles", "الأدوار", "الإدارة العامة", 50),
-                new ScreenSeed("RolePermissions", "صلاحيات الأدوار", "الإدارة العامة", 60),
-                new ScreenSeed("GeneralSettings", "الإعدادات العامة والمالية", "التهيئة والإعدادات", 70),
-                new ScreenSeed("SystemScreens", "كتالوج شاشات النظام", "التهيئة والإعدادات", 80),
-                new ScreenSeed("NumberingSettings", "إعدادات الترقيم", "التهيئة والإعدادات", 90),
-                new ScreenSeed("FiscalPeriods", "الفترات المالية", "التهيئة والإعدادات", 100),
-                new ScreenSeed("ExchangeRates", "أسعار الصرف", "التهيئة والإعدادات", 110),
-                new ScreenSeed("PaymentMethods", "طرق السداد", "التهيئة والإعدادات", 120),
-                new ScreenSeed("VoucherTypes", "أنواع السندات", "التهيئة والإعدادات", 130),
-                new ScreenSeed("VoucherStatuses", "حالات السندات", "التهيئة والإعدادات", 140),
-                new ScreenSeed("ApprovalPolicies", "سياسات الاعتماد والسقوف", "التهيئة والإعدادات", 150),
-                new ScreenSeed("ChartOfAccounts", "الدليل المحاسبي", "الحسابات", 160),
-                new ScreenSeed("Currencies", "العملات", "الحسابات", 170),
-                new ScreenSeed("CostCenters", "مراكز التكلفة", "الحسابات", 180),
-                new ScreenSeed("CashBoxes", "الصناديق", "الحسابات", 190),
-                new ScreenSeed("Banks", "البنوك والحسابات البنكية", "الحسابات", 200),
-                new ScreenSeed("Parties", "الأطراف المالية", "الحسابات", 210),
-                new ScreenSeed("ReceiptVoucher", "سند القبض", "الحسابات", 220)
-            };
+            var catalog = SystemScreenCatalogDefinition.Items;
 
-            var knownCodes = await _context.SystemScreens
-                .AsNoTracking()
-                .Select(x => x.Screen_Code)
-                .ToListAsync();
+            var existingScreens = await _context.SystemScreens.ToListAsync();
+
+            foreach (var item in catalog)
+            {
+                var existing = existingScreens.FirstOrDefault(x =>
+                    string.Equals(x.Screen_Code, item.Code, StringComparison.OrdinalIgnoreCase));
+
+                if (existing != null && !string.Equals(existing.Screen_Code, item.Code, StringComparison.Ordinal))
+                    existing.Screen_Code = item.Code;
+            }
 
             var missingScreens = catalog
-                .Where(item => !knownCodes.Contains(item.Code, StringComparer.OrdinalIgnoreCase))
+                .Where(item => !existingScreens.Any(x =>
+                    string.Equals(x.Screen_Code, item.Code, StringComparison.OrdinalIgnoreCase)))
                 .Select(item => new SystemScreen
                 {
                     Screen_Code = item.Code,
@@ -60,13 +43,60 @@ namespace AlTayerERP.API.Services
                 })
                 .ToList();
 
-            if (missingScreens.Count == 0)
-                return;
+            if (missingScreens.Count > 0)
+                await _context.SystemScreens.AddRangeAsync(missingScreens);
 
-            await _context.SystemScreens.AddRangeAsync(missingScreens);
-            await _context.SaveChangesAsync();
+            // هذان العنصران عمليتان سياقيتان داخل شاشات أخرى وليسا شاشتين مستقلتين.
+            // إيقافهما يمنع ظهورهما في شجرة النظام دون حذف سجلات أو صلاحيات تاريخية.
+            var contextualOnlyCodes = new[] { "PaymentRequestAttachments", "JournalEntryView" };
+            foreach (var contextualScreen in existingScreens.Where(screen =>
+                         contextualOnlyCodes.Contains(screen.Screen_Code, StringComparer.OrdinalIgnoreCase)))
+                contextualScreen.Is_Active = false;
+
+            await EnsureScreenActionCatalogAsync();
+
+            if (missingScreens.Count > 0 || _context.ChangeTracker.HasChanges())
+                await _context.SaveChangesAsync();
         }
 
-        private sealed record ScreenSeed(string Code, string Name, string Module, int SortOrder);
+        /// <summary>
+        /// تعريف إجراءات الشاشة الثابتة. هذه ليست أرقام مستندات ولا تتبع محرك الترقيم،
+        /// بل أكواد صلاحيات تستخدمها الواجهة والـ API والتدقيق.
+        /// </summary>
+        private async Task EnsureScreenActionCatalogAsync()
+        {
+            var actions = new[]
+            {
+                new ActionSeed("SCREEN.VIEW", "عرض الشاشة (View)", 10),
+                new ActionSeed("SCREEN.ADD", "إضافة (Create)", 20),
+                new ActionSeed("SCREEN.EDIT", "تعديل (Edit)", 30),
+                new ActionSeed("SCREEN.DELETE", "إيقاف أو حذف منطقي (Delete)", 40),
+                new ActionSeed("SCREEN.PRINT", "طباعة (Print)", 50),
+                new ActionSeed("SCREEN.EXPORT", "تصدير (Export)", 60),
+                new ActionSeed("SCREEN.IMPORT", "استيراد (Import)", 70),
+                new ActionSeed("SCREEN.APPROVE", "اعتماد (Approve)", 80),
+                new ActionSeed("SCREEN.UNAPPROVE", "فك الاعتماد أو الترحيل (Unapprove)", 90)
+            };
+
+            var known = await _context.System_Permissions.AsNoTracking()
+                .Select(x => x.Permission_Code).ToListAsync();
+
+            var missing = actions.Where(x => !known.Contains(x.Code, StringComparer.OrdinalIgnoreCase))
+                .Select(x => new SystemPermission
+                {
+                    Permission_Code = x.Code,
+                    Permission_Name = x.Name,
+                    Permission_Type = "ACTION",
+                    Module_Name = "Security",
+                    Sort_Order = x.SortOrder,
+                    Is_Active = true,
+                    Created_At = DateTime.UtcNow
+                }).ToList();
+
+            if (missing.Count > 0)
+                await _context.System_Permissions.AddRangeAsync(missing);
+        }
+
+        private sealed record ActionSeed(string Code, string Name, int SortOrder);
     }
 }

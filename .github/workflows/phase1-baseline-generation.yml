@@ -1,0 +1,146 @@
+name: Phase1 Baseline Generation
+
+on:
+  push:
+    branches:
+      - agent/phase1-clean-database-implementation
+    paths:
+      - ".github/workflows/phase1-baseline-generation.yml"
+      - "AlTayerERP.Core/Entities/**"
+      - "AlTayerERP.Infrastructure/Data/AppDbContext.cs"
+      - "AlTayerERP.Infrastructure/Data/AppDbContextDesignTimeFactory.cs"
+      - "AlTayerERP.Infrastructure/Data/Phase1BaselineModelConfiguration.cs"
+      - "tools/analyze_phase1_baseline.py"
+      - "tools/verify_phase1_baseline_collation.py"
+  pull_request:
+    branches:
+      - master
+    paths:
+      - ".github/workflows/phase1-baseline-generation.yml"
+      - "AlTayerERP.Core/Entities/**"
+      - "AlTayerERP.Infrastructure/Data/AppDbContext.cs"
+      - "AlTayerERP.Infrastructure/Data/AppDbContextDesignTimeFactory.cs"
+      - "AlTayerERP.Infrastructure/Data/Phase1BaselineModelConfiguration.cs"
+      - "tools/analyze_phase1_baseline.py"
+      - "tools/verify_phase1_baseline_collation.py"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  generate-and-verify:
+    if: ${{ !contains(github.event.head_commit.message || '', '[baseline-generated]') }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout implementation branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: agent/phase1-clean-database-implementation
+
+      - name: Install .NET 8 SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Install dotnet-ef
+        run: dotnet tool install --global dotnet-ef --version 8.0.2
+
+      - name: Restore API and Infrastructure
+        run: |
+          dotnet restore AlTayerERP.Infrastructure/AlTayerERP.Infrastructure.csproj
+          dotnet restore AlTayerERP.API/AlTayerERP.API.csproj
+
+      - name: Build API before migration generation
+        run: dotnet build AlTayerERP.API/AlTayerERP.API.csproj -c Release --no-restore
+
+      - name: Prepare empty active migration directory
+        run: |
+          mkdir -p AlTayerERP.Infrastructure/Migrations
+          mkdir -p Database/Baseline
+          rm -f AlTayerERP.Infrastructure/Migrations/*.cs
+
+      - name: Rebuild Infrastructure without prior migrations
+        run: dotnet build AlTayerERP.Infrastructure/AlTayerERP.Infrastructure.csproj -c Release --no-restore
+
+      - name: Generate Baseline_Phase1 migration
+        env:
+          # قيمة نموذجية غير قابلة للاتصال: تستخدمها أدوات EF لتوليد SQL فقط.
+          # لا تحتوي خادمًا أو مستخدمًا أو كلمة مرور ولا تنفذ أي اتصال بقاعدة بيانات.
+          ConnectionStrings__DefaultConnection: "Database=altayer_erp_db_clean"
+        run: |
+          dotnet ef migrations add Baseline_Phase1 \
+            --project AlTayerERP.Infrastructure/AlTayerERP.Infrastructure.csproj \
+            --startup-project AlTayerERP.Infrastructure/AlTayerERP.Infrastructure.csproj \
+            --context AppDbContext \
+            --output-dir Migrations \
+            --configuration Release \
+            --no-build
+
+      - name: Build API with generated migration
+        run: dotnet build AlTayerERP.API/AlTayerERP.API.csproj -c Release --no-restore
+
+      - name: Generate review SQL without applying it
+        env:
+          ConnectionStrings__DefaultConnection: "Database=altayer_erp_db_clean"
+        run: |
+          dotnet ef migrations script 0 Baseline_Phase1 \
+            --project AlTayerERP.Infrastructure/AlTayerERP.Infrastructure.csproj \
+            --startup-project AlTayerERP.Infrastructure/AlTayerERP.Infrastructure.csproj \
+            --context AppDbContext \
+            --output Database/Baseline/Baseline_Phase1.sql \
+            --configuration Release \
+            --no-build
+
+      - name: Analyze and secure generated baseline
+        run: |
+          python3 tools/verify_phase1_baseline_collation.py
+          python3 tools/analyze_phase1_baseline.py
+
+      - name: Verify no forbidden runtime DDL or legacy database name
+        shell: bash
+        run: |
+          ! grep -RniE 'Database\.(EnsureCreated|Migrate)|MigrateAsync\(' AlTayerERP.API --include='*.cs'
+          ! grep -RniE 'ExecuteSqlRaw.*(CREATE TABLE|ALTER TABLE)' AlTayerERP.API --include='*.cs'
+          ! grep -RniE 'altayer_erp_db|DROP DATABASE|TRUNCATE TABLE|USE[[:space:]]+altayer_erp_db|Password=' Database/Baseline AlTayerERP.Infrastructure/Migrations
+
+      - name: Build API and Desktop
+        run: |
+          dotnet build AlTayerERP.API/AlTayerERP.API.csproj -c Release
+          dotnet build AlTayerERP.Desktop/AlTayerERP.Desktop.csproj -c Release -p:EnableWindowsTargeting=true
+
+      - name: Install .NET 10 SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Install MAUI Android workload
+        run: dotnet workload install maui-android
+
+      - name: Build Mobile Android
+        run: dotnet build AlTayerERP.Mobile.Office/AlTayerERP.Mobile.Office.csproj -c Release -f net10.0-android
+
+      - name: Commit generated Baseline and reports
+        if: github.event_name == 'push'
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add AlTayerERP.Core AlTayerERP.Infrastructure AlTayerERP.API AlTayerERP.Desktop AlTayerERP.Mobile.Office Database tools
+          if git diff --cached --quiet; then
+            echo "No generated changes to commit."
+          else
+            git commit -m "feat(database): generate Baseline_Phase1 [baseline-generated]"
+            git push origin HEAD:agent/phase1-clean-database-implementation
+          fi
+
+      - name: Upload Baseline review artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: phase1-baseline-review
+          path: |
+            AlTayerERP.Infrastructure/Migrations
+            Database/Baseline/Baseline_Phase1.sql
+            Database/Reviews/Phase2_Baseline_PreApplication_Report.md

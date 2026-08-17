@@ -22,7 +22,7 @@ namespace AlTayerERP.API.DTOs.Accounting
 
         public string Voucher_Status_Name { get; set; } = string.Empty;
 
-        public string Branch_ID { get; set; } = string.Empty;
+        public int Branch_ID { get; set; }
 
         public int? Fiscal_Year_ID { get; set; }
 

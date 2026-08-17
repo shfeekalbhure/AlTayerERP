@@ -4,15 +4,17 @@ using System.ComponentModel;
 using System.Data;
 using System.Drawing;
 using System.IO;
+using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Json;
 using System.Windows.Forms;
 using System.Text;
 // استدعاء المجلد المركزي لخدمات الـ API
 using AlTayerERP.Desktop.Services;
+using AlTayerERP.Desktop.Common;
 namespace AlTayerERP.Desktop
 {
-    public partial class CompanyForm : Form
+    public partial class CompanyForm : BaseForm
     {
         // ====================================================================
         // ربط المتغيرات المحلية بكلاس الـ ApiService المركزي
@@ -29,6 +31,13 @@ namespace AlTayerERP.Desktop
         public CompanyForm()
         {
             InitializeComponent();
+            ApplyBaseFormStyle();
+            // الحالة للعرض فقط. الإيقاف وإعادة التفعيل إجراءات مستقلة مدققة من الخادم.
+            chkIsActive.Enabled = false;
+            chkIsActive.TabStop = false;
+            btnDelete.Text = "إيقاف";
+            btnApprove.Text = "إعادة تفعيل";
+            btnUnApprove.Visible = false;
 
             // توحيد شكل الشاشة القديمة والاختصارات العربية دون تغيير منطقها.
 // إعداد أعمدة الجدول لمرة واحدة فقط عند الإقلاع لمنع تضاعف الأعمدة
@@ -38,7 +47,7 @@ namespace AlTayerERP.Desktop
         // ======================================================
         // [دالة] جلب قائمة الشركات من قاعدة البيانات عبر الـ API وعرضها في الجدول
         // ======================================================
-        private async void LoadCompanies()
+        private async Task LoadCompaniesAsync()
         {
             try
             {
@@ -84,23 +93,46 @@ namespace AlTayerERP.Desktop
         // ======================================================
         private async void CompanyForm_Load(object sender, EventArgs e)
         {
-            LoadCompanies();
+            await LoadGroupsAsync();
+            await LoadCompaniesAsync();
+        }
 
+        /// <summary>
+        /// تحميل المجموعات النشطة قبل الشركات كي تعمل قيمة SelectedValue عند فتح سجل.
+        /// لا يسمح باختيار مجموعة موقوفة لإنشاء أو تعديل شركة.
+        /// </summary>
+        private async Task LoadGroupsAsync()
+        {
+            btnSaveCompany.Enabled = false;
+            cmbGroups.DataSource = null;
             try
             {
-                var groups = await _client.GetFromJsonAsync<List<GroupLookupModel>>($"{_baseUrl}TenantGroups");
+                using var response = await _client.GetAsync($"{_baseUrl}TenantGroups");
+                if (!response.IsSuccessStatusCode)
+                    throw new HttpRequestException(await response.Content.ReadAsStringAsync());
 
-                if (groups != null && groups.Count > 0)
+                var groups = await response.Content.ReadFromJsonAsync<List<GroupLookupModel>>() ?? new List<GroupLookupModel>();
+                var activeGroups = groups
+                    .Where(group => group.Is_Active)
+                    .OrderBy(group => group.Group_Code)
+                    .ThenBy(group => group.Group_Name_AR)
+                    .ToList();
+
+                if (activeGroups.Count > 0)
                 {
-                    cmbGroups.DataSource = groups;
-                    cmbGroups.DisplayMember = "Group_Name_AR";
+                    cmbGroups.DataSource = activeGroups;
+                    cmbGroups.DisplayMember = nameof(GroupLookupModel.Display_Name);
                     cmbGroups.ValueMember = "Group_ID";
                     cmbGroups.SelectedIndex = -1;
+                    btnSaveCompany.Enabled = true;
+                    return;
                 }
+
+                MessageBox.Show("لا توجد مجموعة تجارية نشطة يمكن ربط الشركة بها.", "المجموعة التجارية", MessageBoxButtons.OK, MessageBoxIcon.Warning);
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"فشل تحميل المجموعات التجارية: {ex.Message}", "خطأ اتصال", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show($"تعذر تحميل المجموعات التجارية.\n{ex.Message}", "خطأ اتصال", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
@@ -115,9 +147,11 @@ namespace AlTayerERP.Desktop
             txtCompanyNameEn.Clear();
             txtCompanyPrefix.Clear();
             txtPhone.Clear();
+            txtMobile.Clear();
             txtEmail.Clear();
             txtAddress.Clear();
             txtTaxNumber.Clear();
+            txtActivityType.Clear();
 
             picCompanyLogo.Image = null;
             picCompanyLogo.Tag = null;
@@ -157,7 +191,7 @@ namespace AlTayerERP.Desktop
         // ======================================================
         private async void btnSaveCompany_Click(object sender, EventArgs e)
         {
-            if (cmbGroups.SelectedValue == null)
+            if (cmbGroups.SelectedValue == null || string.IsNullOrWhiteSpace(cmbGroups.SelectedValue.ToString()))
             {
                 MessageBox.Show("يرجى اختيار المجموعة الأم أولاً!", "تنبيه", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
@@ -185,7 +219,9 @@ namespace AlTayerERP.Desktop
                 Company_Name_AR = txtCompanyNameAr.Text.Trim(),
                 Company_Name_EN = txtCompanyNameEn.Text.Trim(),
                 Company_Prefix = txtCompanyPrefix.Text.Trim(),
+                Activity_Type = CleanOptional(txtActivityType.Text),
                 Phone = txtPhone.Text.Trim(),
+                Mobile = CleanOptional(txtMobile.Text),
                 Email = txtEmail.Text.Trim(),
                 Address = txtAddress.Text.Trim(),
                 Tax_Number = txtTaxNumber.Text.Trim(),
@@ -201,7 +237,7 @@ namespace AlTayerERP.Desktop
                 {
                     MessageBox.Show("تم تأسيس الشركة بنجاح!", "نجاح", MessageBoxButtons.OK, MessageBoxIcon.Information);
                     btnNew_Click(null, null);
-                    LoadCompanies();
+                    await LoadCompaniesAsync();
                 }
                 else
                 {
@@ -233,7 +269,9 @@ namespace AlTayerERP.Desktop
                     txtCompanyNameAr.Text = company.Company_Name_AR;
                     txtCompanyNameEn.Text = company.Company_Name_EN;
                     txtCompanyPrefix.Text = company.Company_Prefix;
+                    txtActivityType.Text = company.Activity_Type;
                     txtPhone.Text = company.Phone;
+                    txtMobile.Text = company.Mobile;
                     txtEmail.Text = company.Email;
                     txtAddress.Text = company.Address;
                     txtTaxNumber.Text = company.Tax_Number;
@@ -296,7 +334,9 @@ namespace AlTayerERP.Desktop
                 Company_Name_AR = txtCompanyNameAr.Text.Trim(),
                 Company_Name_EN = txtCompanyNameEn.Text.Trim(),
                 Company_Prefix = txtCompanyPrefix.Text.Trim(),
+                Activity_Type = CleanOptional(txtActivityType.Text),
                 Phone = txtPhone.Text.Trim(),
+                Mobile = CleanOptional(txtMobile.Text),
                 Email = txtEmail.Text.Trim(),
                 Address = txtAddress.Text.Trim(),
                 Tax_Number = txtTaxNumber.Text.Trim(),
@@ -312,7 +352,7 @@ namespace AlTayerERP.Desktop
                 {
                     MessageBox.Show("تم تحديث بيانات الشركة بنجاح!", "نجاح", MessageBoxButtons.OK, MessageBoxIcon.Information);
                     btnNew_Click(null, null);
-                    LoadCompanies();
+                    await LoadCompaniesAsync();
                 }
             }
             catch (Exception ex) { MessageBox.Show($"خطأ أثناء التعديل: {ex.Message}"); }
@@ -329,21 +369,36 @@ namespace AlTayerERP.Desktop
                 return;
             }
 
-            DialogResult confirm = MessageBox.Show("هل أنت متأكد من حذف الشركة المحددة نهائياً؟", "تأكيد حذف", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+            DialogResult confirm = MessageBox.Show("سيتم إيقاف الشركة مع الاحتفاظ بتاريخها. هل تريد المتابعة؟", "تأكيد الإيقاف", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
 
             if (confirm == DialogResult.Yes)
             {
+                var reason = Microsoft.VisualBasic.Interaction.InputBox("أدخل سبب إيقاف الشركة:", "سبب الإيقاف", "");
+                if (string.IsNullOrWhiteSpace(reason))
+                {
+                    MessageBox.Show("سبب الإيقاف مطلوب.", "تنبيه", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+
                 try
                 {
-                    HttpResponseMessage response = await _client.DeleteAsync($"{_baseUrl}Companies/{_selectedCompanyId}");
+                    using var request = new HttpRequestMessage(HttpMethod.Delete, $"{_baseUrl}Companies/{_selectedCompanyId}")
+                    {
+                        Content = JsonContent.Create(new { Reason = reason.Trim() })
+                    };
+                    HttpResponseMessage response = await _client.SendAsync(request);
                     if (response.IsSuccessStatusCode)
                     {
-                        MessageBox.Show("تم حذف الشركة بنجاح من النظام!", "تم الحذف", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                        MessageBox.Show("تم إيقاف الشركة بنجاح مع حفظ تاريخها.", "تم الإيقاف", MessageBoxButtons.OK, MessageBoxIcon.Information);
                         btnNew_Click(null, null);
-                        LoadCompanies();
+                        await LoadCompaniesAsync();
+                    }
+                    else
+                    {
+                        MessageBox.Show(await response.Content.ReadAsStringAsync(), "تعذر الإيقاف", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                     }
                 }
-                catch (Exception ex) { MessageBox.Show($"خطأ أثناء الحذف: {ex.Message}"); }
+                catch (Exception ex) { MessageBox.Show($"خطأ أثناء الإيقاف: {ex.Message}"); }
             }
         }
 
@@ -458,13 +513,25 @@ namespace AlTayerERP.Desktop
                 return;
             }
 
+            var reason = Microsoft.VisualBasic.Interaction.InputBox(
+                "أدخل سبب إعادة تفعيل الشركة:", "إعادة تفعيل الشركة", string.Empty).Trim();
+            if (string.IsNullOrWhiteSpace(reason))
+            {
+                MessageBox.Show("سبب إعادة التفعيل مطلوب.", "تنبيه", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
             try
             {
-                var response = await _client.PostAsync($"{_baseUrl}Companies/Approve/{_selectedCompanyId}", null);
-                if (response.IsSuccessStatusCode || response.StatusCode == System.Net.HttpStatusCode.NotFound)
+                var response = await _client.PostAsJsonAsync($"{_baseUrl}Companies/{_selectedCompanyId}/reactivate", new { Reason = reason });
+                if (response.IsSuccessStatusCode)
                 {
-                    MessageBox.Show("تم إصدار وتوثيق قرار اعتماد تشغيل الشركة بنجاح داخل منظومة الحسابات الموحدة.", "تم الاعتماد 🗸", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                    LoadCompanies();
+                    MessageBox.Show("تمت إعادة تفعيل الشركة وتسجيل السبب في سجل التدقيق.", "إعادة تفعيل", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    await LoadCompaniesAsync();
+                }
+                else
+                {
+                    MessageBox.Show(await response.Content.ReadAsStringAsync(), "تعذر إعادة التفعيل", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 }
             }
             catch (Exception ex) { MessageBox.Show($"خطأ اتصال: {ex.Message}"); }
@@ -481,24 +548,17 @@ namespace AlTayerERP.Desktop
                 return;
             }
 
-            try
-            {
-                var response = await _client.PostAsync($"{_baseUrl}Companies/UnApprove/{_selectedCompanyId}", null);
-                if (response.IsSuccessStatusCode || response.StatusCode == System.Net.HttpStatusCode.NotFound)
-                {
-                    MessageBox.Show("تم سحب وإيقاف اعتماد تشغيل الشركة، وتم تجميد ترحيل قيودها المالية مؤقتاً.", "سحب الاعتماد 🗙", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                    LoadCompanies();
-                }
-            }
-            catch (Exception ex) { MessageBox.Show($"خطأ اتصال: {ex.Message}"); }
+            // الزر مخفي في هذه المرحلة؛ إيقاف الشركة يتم من زر «إيقاف» مع سبب إلزامي.
+            await Task.CompletedTask;
         }
 
         // ======================================================
         // [حدث] زر تحديث - إعادة جلب بيانات الشاشة من جديد
         // ======================================================
-        private void btnRefresh_Click(object sender, EventArgs e)
+        private async void btnRefresh_Click(object sender, EventArgs e)
         {
-            CompanyForm_Load(null, null);
+            await LoadGroupsAsync();
+            await LoadCompaniesAsync();
             btnNew_Click(null, null);
         }
 
@@ -533,6 +593,7 @@ namespace AlTayerERP.Desktop
 
         private void dgvCompanies_CellContentClick(object sender, DataGridViewCellEventArgs e) { }
         private void btnPrint_Click(object sender, EventArgs e) { MessageBox.Show("تم توليد أمر الطباعة للتقرير المرفق.", "طباعة التقارير", MessageBoxButtons.OK, MessageBoxIcon.Information); }
+        private static string? CleanOptional(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
     }
 
     // ======================================================
@@ -541,7 +602,12 @@ namespace AlTayerERP.Desktop
     public class GroupLookupModel
     {
         public string Group_ID { get; set; } = string.Empty;
+        public string Group_Code { get; set; } = string.Empty;
         public string Group_Name_AR { get; set; } = string.Empty;
+        public bool Is_Active { get; set; }
+        public string Display_Name => string.IsNullOrWhiteSpace(Group_Code)
+            ? Group_Name_AR
+            : $"{Group_Code} - {Group_Name_AR}";
     }
 
     public class CompanyListModel
@@ -563,8 +629,10 @@ namespace AlTayerERP.Desktop
         public string Company_Name_AR { get; set; } = string.Empty;
         public string Company_Name_EN { get; set; } = string.Empty;
         public string? Company_Prefix { get; set; }
+        public string? Activity_Type { get; set; }
         public string? Tax_Number { get; set; }
         public string? Phone { get; set; }
+        public string? Mobile { get; set; }
         public string? Email { get; set; }
         public string? Address { get; set; }
         public byte[]? Company_Logo { get; set; }

@@ -1,144 +1,54 @@
-﻿using System;
-using System.ComponentModel.DataAnnotations; // تفعيل ميزات التحقق وتحديد المفاتيح الأساسية
-using System.ComponentModel.DataAnnotations.Schema; // تفعيل ميزات التحكم في أسماء الجداول والأعمدة وقواعد البيانات
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
-namespace AlTayerERP.Core.Entities
+namespace AlTayerERP.Core.Entities;
+
+/// <summary>الفرع التشغيلي التابع لشركة، بمعرف رقمي وكود أعمال مستقل.</summary>
+[Table("tenant_branches")]
+public class TenantBranch
 {
-    // =================================================================================
-    // كيان الفروع (Entity Class)
-    // يمثل الهيكل البرمجي لجدول Tenant_Branches داخل قاعدة البيانات (MySQL/PostgreSQL/SQL Server)
-    // =================================================================================
-    [Table("Tenant_Branches")] // يخبر المفسر أن هذا الكائن البرمجي يطابق تماماً جدول "Tenant_Branches" في قاعدة البيانات
-    public class TenantBranch
-    {
-        // ======================================================
-        // رقم الفرع (المفتاح الأساسي - Primary Key)
-        // وهو حقل ترقيم تلقائي (Identity) مميز لكل فرع
-        // ======================================================
-        [Key]
-        [Column("Branch_ID")]
-        public int Branch_ID { get; set; }
+    [Key, DatabaseGenerated(DatabaseGeneratedOption.Identity)]
+    public int Branch_ID { get; set; }
 
-        // ======================================================
-        // رقم الشركة التابعة التي ينتمي إليها هذا الفرع 
-        // ======================================================
-        [Column("Company_ID")]
-        public string Company_ID { get; set; } = string.Empty;
+    [Required, MaxLength(50)] public string Company_ID { get; set; } = string.Empty;
+    [Required, MaxLength(30)] public string Branch_Code { get; set; } = string.Empty;
+    [Required, MaxLength(150)] public string Branch_Name { get; set; } = string.Empty;
+    [MaxLength(150)] public string? Branch_Name_EN { get; set; }
+    [MaxLength(500)] public string? Address { get; set; }
 
-        // ======================================================
-        // كود أو رمز الفرع المالي والإداري الفريد (مثال: BR-108)
-        // ======================================================
-        [Column("Branch_Code")]
-        public string Branch_Code { get; set; } = string.Empty;
+    /// <summary>كود نوع الفرع المرجعي؛ يبقى نصيًا ككود أعمال.</summary>
+    [MaxLength(30)] public string? Branch_Type { get; set; }
+    /// <summary>المعرف المرجعي الاختياري لنوع الفرع؛ لا يحل محل كود الأعمال Branch_Type.</summary>
+    public int? Branch_Type_ID { get; set; }
+    public int? Parent_Branch_ID { get; set; }
 
-        // ======================================================
-        // اسم الفرع باللغة العربية (حقل إلزامي أساسي بالنظام)
-        // ======================================================
-        [Column("Branch_Name")]
-        public string Branch_Name { get; set; } = string.Empty;
+    public int? Country_ID { get; set; }
+    public int? Governorate_ID { get; set; }
+    public int? City_ID { get; set; }
 
-        // ======================================================
-        // اسم الفرع بالإنجليزي (تم تعيينه كـ ? لمنع الأخطاء في حال تركه فارغاً)
-        // ======================================================
-        [Column("Branch_Name_EN")]
-        public string? Branch_Name_EN { get; set; }
+    [MaxLength(50)] public string? Phone { get; set; }
+    [MaxLength(50)] public string? Mobile { get; set; }
+    [MaxLength(150)] public string? Email { get; set; }
+    [MaxLength(250)] public string? Website { get; set; }
+    [MaxLength(150)] public string? Manager_Name { get; set; }
+    [MaxLength(1000)] public string? Notes { get; set; }
 
-        // ======================================================
-        // العنوان أو الموقع الجغرافي التفصيلي الخاص بالفرع
-        // ======================================================
-        [Column("Address")]
-        public string? Address { get; set; }
+    public bool Allow_Credit { get; set; }
+    public bool Allow_Percentage { get; set; }
+    public bool Is_Active { get; set; } = true;
+    public int Currency_ID { get; set; }
 
-        // ======================================================
-        // نوع الفرع وطبيعته (مثال: رئيسي، فرعي، نقطة توزيع، مستودع)
-        // ======================================================
-        [Column("Branch_Type")]
-        public string? Branch_Type { get; set; }
+    public DateTime Created_Date { get; set; } = DateTime.UtcNow;
+    public DateTime? Updated_Date { get; set; }
+    public int? Created_By { get; set; }
+    public int? Updated_By { get; set; }
+    public int Edit_Count { get; set; }
+    public int? Stopped_By { get; set; }
+    public DateTime? Stopped_At { get; set; }
+    [MaxLength(500)] public string? Stopped_Reason { get; set; }
+    public int? Reactivated_By { get; set; }
+    public DateTime? Reactivated_At { get; set; }
+    [MaxLength(500)] public string? Reactivate_Reason { get; set; }
 
-        // =================================================================================
-        // حقل المفتاح الأجنبي للربط الذاتي الشجري (Parent_Branch_ID)
-        // يحمل رقم المعرف للفرع الرئيسي الأعلى الذي يتبع له هذا الفرع حالياً
-        // =================================================================================
-        [Column("Parent_Branch_ID")]
-        public int? Parent_Branch_ID { get; set; }
-
-        // 💡 [إضافة هندسية هامة جداً للـ EF Core]: خاصية الملاحة الافتراضية (Self-Referencing Navigation Property)
-        // تسمح لـ Entity Framework بفهم العلاقة الشجرية برمجياً لجلب بيانات الفرع الرئيسي التابع له تلقائياً عند الاستعلام
-        [ForeignKey("Parent_Branch_ID")]
-        public virtual TenantBranch? ParentBranch { get; set; }
-
-
-        // ======================================================
-        // أرقام هواتف الاتصال الثابتة والأرضية التابعة للفرع
-        // ======================================================
-        [Column("Phone")]
-        public string? Phone { get; set; }
-
-        // ======================================================
-        // أرقام الهواتف الجوالة أو المحمولة المسؤولة بالفرع
-        // ======================================================
-        [Column("Mobile")]
-        public string? Mobile { get; set; }
-
-        // ======================================================
-        // البريد الإلكتروني الرسمي الخاص بالمراسلات والإشعارات للفرع
-        // ======================================================
-        [Column("Email")]
-        public string? Email { get; set; }
-
-        // ======================================================
-        // الموقع أو الرابط الإلكتروني الخاص بالفرع على الإنترنت إن وجد
-        // ======================================================
-        [Column("Website")]
-        public string? Website { get; set; }
-
-        // ======================================================
-        // اسم الشخص المسؤول أو المدير الحالي المخول بإدارة الفرع
-        // ======================================================
-        [Column("Manager_Name")]
-        public string? Manager_Name { get; set; }
-
-        // ======================================================
-        // أي ملاحظات أو شروط إدارية إضافية متعلقة بهذا الفرع
-        // ======================================================
-        [Column("Notes")]
-        public string? Notes { get; set; }
-
-        // ======================================================
-        // صلاحية البيع والشحن بالآجل للعملاء من خلال هذا الفرع (True/False)
-        // ======================================================
-        [Column("Allow_Credit")]
-        public bool Allow_Credit { get; set; }
-
-        // ======================================================
-        // صلاحية منح الخصومات والصلاحيات المئوية في العمليات المالية (True/False)
-        // ======================================================
-        [Column("Allow_Percentage")]
-        public bool Allow_Percentage { get; set; }
-
-        // =================================================================================
-        // حالة تفعيل النشاط للفرع بالسيستم (True تعني نشط وجاهز للعمل، False تعني موقوف ومجمد)
-        // يتم تعيين القيمة الافتراضية كـ True (نشط) تلقائياً عند إنشاء أي سجل جديد
-        // =================================================================================
-        [Column("Is_Active")]
-        public bool Is_Active { get; set; } = true;
-
-        // ======================================================
-        // معرف العملة الافتراضية المعتمدة لكافة حسابات ومعاملات الفرع
-        // ======================================================
-        [Column("Currency_ID")]
-        public int Currency_ID { get; set; } = 1;
-
-        // ======================================================
-        // تاريخ ووقت إنشاء الفرع الحالي على النظام (يأخذ الوقت الحالي افتراضياً)
-        // ======================================================
-        [Column("Created_Date")]
-        public DateTime Created_Date { get; set; } = DateTime.Now;
-
-        // ======================================================
-        // تاريخ آخر تعديل تمت مباشرته على بيانات هذا الفرع، وهو يقبل Null
-        // ======================================================
-        [Column("Updated_Date")]
-        public DateTime? Updated_Date { get; set; }
-    }
+    public TenantBranch? ParentBranch { get; set; }
 }

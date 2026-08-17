@@ -47,6 +47,7 @@ namespace AlTayerERP.Desktop
         {
             // دالة النظام الأساسية لبناء ورسم عناصر الواجهة المعرفة في الـ Designer
             InitializeComponent();
+            ApplyApprovedUsersLayout();
 
             // توحيد شكل الشاشة القديمة والاختصارات العربية دون تغيير منطقها.
 // --- ربط الأحداث الأساسية للشاشة والأزرار مع إلغاء الاشتراك أولاً لمنع التكرار ---
@@ -81,8 +82,18 @@ namespace AlTayerERP.Desktop
             if (this.btnNew != null) this.btnNew.Click += btnNew_Click;
             if (this.btnDelete != null) this.btnDelete.Click += btnDelete_Click;
             if (this.btnClose != null) this.btnClose.Click += btnClose_Click;
-            if (this.btnRefresh != null) this.btnRefresh.Click += btnRefresh_Click;
+            if (this.btnRefresh != null)
+            {
+                this.btnRefresh.Click -= btnRefresh_Click;
+                this.btnRefresh.Click += btnRefresh_Click;
+            }
             if (this.btnSearch != null) this.btnSearch.Click += btnSearch_Click;
+
+            // الحفاظ على تطابق حقل الحالة ومربع "الحساب نشط" في كل أوضاع الشاشة.
+            chkIsActive.CheckedChanged -= chkIsActive_CheckedChanged;
+            chkIsActive.CheckedChanged += chkIsActive_CheckedChanged;
+            cmbStatus.SelectedIndexChanged -= cmbStatus_SelectedIndexChanged;
+            cmbStatus.SelectedIndexChanged += cmbStatus_SelectedIndexChanged;
         }
 
         /// <summary>
@@ -107,12 +118,16 @@ namespace AlTayerERP.Desktop
 
             // استدعاء دوال جلب البيانات الأساسية من الـ API بشكل متزامن ومرتب هندسياً
             await LoadBranchesAsync();
+            InitializeApprovedUserFilters();
             await LoadRolesAsync();
             await LoadUsersAsync();
-            await LoadFunctionPermissionsAsync();
 
-            // ✨ التعديل والفلترة حسب طلبك: تم الإبقاء فقط على دالة جلب صلاحيات البيانات الحقيقية لجدول dgvDataPermissions
-            await LoadDataPermissionsAsync();
+            // صلاحيات الدور تُدار من شاشة الأدوار؛ لا نحمل جداول مخفية أو نعدلها من شاشة المستخدمين.
+            if (grpPermissions.Visible)
+            {
+                await LoadFunctionPermissionsAsync();
+                await LoadDataPermissionsAsync();
+            }
 
             // بناء وفلترة كومبو بوكس البحث العلوي وتنظيف الفورم بالكامل
             SetupSearchAndFilters();
@@ -131,12 +146,14 @@ namespace AlTayerERP.Desktop
             dgvUsers.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
 
             dgvUsers.Columns.Add("User_ID", "رقم المستخدم");
-            dgvUsers.Columns.Add("User_Code", "كود المستخدم");
-            dgvUsers.Columns.Add("Full_Name", "اسم الموظف");
-            dgvUsers.Columns.Add("Login_Name", "اسم الدخول");
-            dgvUsers.Columns.Add("Phone", "الهاتف");
-            dgvUsers.Columns.Add("Email", "البريد");
+            dgvUsers.Columns.Add("Login_Name", "اسم المستخدم");
+            dgvUsers.Columns.Add("Full_Name", "الاسم الكامل");
+            dgvUsers.Columns.Add("Role_Name", "الدور");
+            dgvUsers.Columns.Add("Company_ID", "الشركة");
+            dgvUsers.Columns.Add("Branch_ID", "الفرع");
             dgvUsers.Columns.Add("Is_Active", "الحالة");
+            dgvUsers.Columns.Add("Last_Login_At", "آخر دخول");
+            dgvUsers.Columns.Add("Locked_Until", "مقفل");
         }
 
         /// <summary>
@@ -290,7 +307,7 @@ namespace AlTayerERP.Desktop
         /// </summary>
         private async void cmbRole_SelectedIndexChanged(object sender, EventArgs e)
         {
-            if (_isBinding) return;
+            if (_isBinding || !grpPermissions.Visible) return;
             if (cmbRole.SelectedValue == null) return;
             if (!int.TryParse(cmbRole.SelectedValue.ToString(), out int roleId)) return;
             await LoadRolePermissionsAsync(roleId);
@@ -357,7 +374,15 @@ namespace AlTayerERP.Desktop
                     });
                 }
                 var response = await _client.PostAsJsonAsync($"{_baseUrl}RolePermissions/SaveRolePermissions", permissions);
-                if (!response.IsSuccessStatusCode) MessageBox.Show(await response.Content.ReadAsStringAsync(), "خطأ حفظ الصلاحيات", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                if (!response.IsSuccessStatusCode)
+                {
+                    MessageBox.Show(await response.Content.ReadAsStringAsync(), "خطأ حفظ الصلاحيات", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+
+                // نقرأ المصفوفة بعد الحفظ من الخادم نفسه؛ لا نبقي واجهة قديمة
+                // ولا نعتمد على القيم المحلية عند تغيير صلاحيات الدور.
+                await ReloadPermissionsForCurrentRoleAsync();
             }
             catch (Exception ex)
             {
@@ -388,7 +413,19 @@ namespace AlTayerERP.Desktop
             try
             {
                 dgvUsers.Rows.Clear();
-                foreach (var user in usersList) dgvUsers.Rows.Add(user.User_ID, user.User_Code, user.Full_Name, user.Login_Name, user.Phone, user.Email, user.Is_Active ? "نشط" : "موقوف");
+                foreach (var user in usersList)
+                {
+                    dgvUsers.Rows.Add(
+                        user.User_ID,
+                        user.Login_Name,
+                        user.Full_Name,
+                        user.Role_Name,
+                        user.Company_ID,
+                        user.Branch_ID,
+                        user.Is_Active ? "نشط" : "موقوف",
+                        user.Last_Login_At?.ToLocalTime().ToString("yyyy/MM/dd HH:mm") ?? "—",
+                        user.Locked_Until is { } locked && locked > DateTime.UtcNow ? "نعم" : "لا");
+                }
             }
             finally { _isBinding = false; }
         }
@@ -445,7 +482,7 @@ namespace AlTayerERP.Desktop
             var response = await _client.PostAsJsonAsync($"{_baseUrl}Users", request);
             if (response.IsSuccessStatusCode)
             {
-                await SaveFunctionPermissionsAsync();
+                // صلاحيات الدور تُدار من شاشة الأدوار؛ لا تغيّر هنا عند حفظ مستخدم.
                 MessageBox.Show("تم حفظ المستخدم بنجاح.", "نجاح", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 await LoadUsersAsync();
                 ClearForm();
@@ -457,14 +494,41 @@ namespace AlTayerERP.Desktop
         private void btnNew_Click(object sender, EventArgs e) { ClearForm(); }
         private async void btnDelete_Click(object sender, EventArgs e) { await ExecuteDeleteAsync(); }
         private void btnClose_Click(object sender, EventArgs e) { this.Close(); }
-        private async void btnRefresh_Click(object sender, EventArgs e) { await LoadUsersAsync(); ClearForm(); }
+        private async void btnRefresh_Click(object sender, EventArgs e)
+        {
+            btnRefresh.Enabled = false;
+            try
+            {
+                await LoadUsersAsync();
+                await LoadFunctionPermissionsAsync();
+                await ReloadPermissionsForCurrentRoleAsync();
+                InitializeApprovedUserFilters();
+                MessageBox.Show("تم تحديث المستخدمين وصلاحيات الدور من النظام.", "تحديث النظام", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
+            finally
+            {
+                btnRefresh.Enabled = true;
+            }
+        }
+
+        /// <summary>يعيد تحميل صلاحيات الدور المحدد بعد الحفظ أو عند طلب التحديث.</summary>
+        private async Task ReloadPermissionsForCurrentRoleAsync()
+        {
+            if (cmbRole.SelectedValue != null &&
+                int.TryParse(cmbRole.SelectedValue.ToString(), out var roleId) &&
+                roleId > 0)
+            {
+                await LoadRolePermissionsAsync(roleId);
+            }
+        }
 
         /// <summary>
         /// 🔍 تفعيل ميزة البحث والفلترة السريعة لجدول المستخدمين داخل الذاكرة كاش لتسريع الأداء وحماية السيرفر
         /// </summary>
         private void btnSearch_Click(object sender, EventArgs e)
         {
-            string searchText = txtUserName.Text.Trim();
+            // مربع البحث يعتمد اسم الدخول، وهو الحقل الموحد الموجود في ملف التصميم.
+            string searchText = txtLoginName.Text.Trim();
             if (string.IsNullOrEmpty(searchText)) DisplayUsersInGrid(_usersCache);
             else
             {
@@ -484,7 +548,7 @@ namespace AlTayerERP.Desktop
             var response = await _client.PutAsJsonAsync($"{_baseUrl}Users/{_selectedUserId}", request);
             if (response.IsSuccessStatusCode)
             {
-                await SaveFunctionPermissionsAsync();
+                // صلاحيات الدور تُدار من شاشة الأدوار؛ لا تغيّر هنا عند تعديل مستخدم.
                 MessageBox.Show("تم التعديل بنجاح.", "نجاح", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 await LoadUsersAsync();
                 ClearForm();
@@ -520,6 +584,7 @@ namespace AlTayerERP.Desktop
                 {
                     _selectedUserId = Convert.ToInt32(currentRow.Cells["User_ID"].Value);
                     await GetUserDetailsAsync(_selectedUserId);
+                    UpdateUserActionButtons();
                 }
             }
         }
@@ -539,12 +604,29 @@ namespace AlTayerERP.Desktop
                     var user = System.Text.Json.JsonSerializer.Deserialize<UserDetailModel>(jsonString, options);
                     if (user != null)
                     {
-                        _isBinding = true; // قفل لمنع التفاف أو تكرار استدعاء الكومبوهات أثناء التعبئة
-                        txtFullName.Text = user.Full_Name; txtLoginName.Text = user.Login_Name; txtPhone.Text = user.Phone; txtEmail.Text = user.Email; txtNotes.Text = user.Notes; cmbBranch.SelectedValue = user.Branch_ID; cmbRole.SelectedValue = user.Role_ID; cmbStatus.Text = user.Is_Active ? "نشط" : "موقوف"; chkIsActive.Checked = user.Is_Active; chkChangePassword.Checked = user.Must_Change_Password; txtPassword.Text = string.Empty; txtConfirmPassword.Text = string.Empty;
+                        // تعبئة الحقول القادمة من الخادم فقط؛ لا يعرض النظام كلمة المرور القديمة.
+                        _isBinding = true;
+                        txtUserName.Text = user.User_ID.ToString();
+                        txtFullName.Text = user.Full_Name;
+                        txtLoginName.Text = user.Login_Name;
+                        txtPhone.Text = user.Phone ?? string.Empty;
+                        txtEmail.Text = user.Email ?? string.Empty;
+                        txtNotes.Text = user.Notes ?? string.Empty;
+                        cmbBranch.SelectedValue = user.Branch_ID;
+                        cmbRole.SelectedValue = user.Role_ID;
+                        cmbStatus.Text = user.Is_Active ? "نشط" : "موقوف";
+                        chkIsActive.Checked = user.Is_Active;
+                        chkChangePassword.Checked = user.Must_Change_Password;
+                        txtPassword.Clear();
+                        txtConfirmPassword.Clear();
                         _isBinding = false;
 
-                        // 👈 الاستدعاء الصريح المباشر لتأشير علامات الصلاحيات فور النقر
-                        await LoadRolePermissionsAsync(user.Role_ID);
+                        // تحميل أثر السجل من الخادم: تاريخ/منشئ/معدل/عدادات.
+                        await LoadUserAuditInfoAsync(user.User_ID);
+
+                        // صلاحيات الدور مستقلة عن بيانات المستخدم ولا تُحمّل إلا إن أُظهرت المجموعة صراحة.
+                        if (grpPermissions.Visible)
+                            await LoadRolePermissionsAsync(user.Role_ID);
                     }
                 }
             }
@@ -552,26 +634,164 @@ namespace AlTayerERP.Desktop
             finally { _isBinding = false; }
         }
 
+        /// <summary>يفعل أو يعطل الإجراءات التي تتطلب اختيار مستخدم من الجدول.</summary>
+        private void UpdateUserActionButtons()
+        {
+            var selected = _selectedUserId > 0;
+            btnEdit.Enabled = selected;
+            btnDelete.Enabled = selected && chkIsActive.Checked;
+            _btnReactivate.Enabled = selected && !chkIsActive.Checked;
+            _btnResetPassword.Enabled = selected;
+            _btnUnlock.Enabled = selected;
+        }
+
         private bool ValidateInputs(bool isInputsForUpdate)
         {
             if (string.IsNullOrWhiteSpace(txtFullName.Text)) { MessageBox.Show("يرجى إدخال الاسم."); return false; }
             if (string.IsNullOrWhiteSpace(txtLoginName.Text)) { MessageBox.Show("يرجى إدخال اسم الدخول."); return false; }
-            if (!isInputsForUpdate) { if (string.IsNullOrWhiteSpace(txtPassword.Text)) { MessageBox.Show("يرجى إدخال كلمة المرور."); return false; } if (txtPassword.Text != txtConfirmPassword.Text) { MessageBox.Show("كلمات المرور غير متطابقة."); return false; } }
+            if (txtLoginName.Text.Any(char.IsWhiteSpace))
+            {
+                MessageBox.Show("اسم الدخول لا يقبل مسافات.");
+                return false;
+            }
+            if (!string.IsNullOrWhiteSpace(txtEmail.Text) &&
+                !System.Net.Mail.MailAddress.TryCreate(txtEmail.Text.Trim(), out _))
+            {
+                MessageBox.Show("صيغة البريد الإلكتروني غير صحيحة.");
+                return false;
+            }
+            bool passwordProvided = !string.IsNullOrWhiteSpace(txtPassword.Text) || !string.IsNullOrWhiteSpace(txtConfirmPassword.Text);
+            if (!isInputsForUpdate && string.IsNullOrWhiteSpace(txtPassword.Text))
+            {
+                MessageBox.Show("يرجى إدخال كلمة المرور.");
+                return false;
+            }
+            if (passwordProvided && txtPassword.Text != txtConfirmPassword.Text)
+            {
+                MessageBox.Show("كلمتا المرور غير متطابقتين.");
+                return false;
+            }
             if (cmbBranch.SelectedValue == null || cmbRole.SelectedValue == null) { MessageBox.Show("يرجى اختيار الفرع والدور."); return false; }
             return true;
         }
 
-        private object BuildUserRequestObject(bool isUpdate)
+        // يجمع حقول الإدخال في طلب صريح مطابق لـ CreateUserDto؛ لا ينقل أي كلمة مرور قديمة.
+        private UserSaveRequest BuildUserRequestObject(bool isUpdate)
         {
-            return new { Company_ID = "COMP001", Branch_ID = Convert.ToInt32(cmbBranch.SelectedValue), Role_ID = Convert.ToInt32(cmbRole.SelectedValue), User_Code = string.Empty, Full_Name = txtFullName.Text.Trim(), Login_Name = txtLoginName.Text.Trim(), Password = txtPassword.Text.Trim(), Phone = txtPhone.Text.Trim(), Email = txtEmail.Text.Trim(), Notes = txtNotes.Text.Trim(), Must_Change_Password = chkChangePassword.Checked, Is_Active = cmbStatus.Text == "نشط" };
+            return new UserSaveRequest
+            {
+                Company_ID = CurrentSession.Company_ID,
+                Branch_ID = Convert.ToInt32(cmbBranch.SelectedValue),
+                Role_ID = Convert.ToInt32(cmbRole.SelectedValue),
+                User_Code = string.Empty,
+                Full_Name = txtFullName.Text.Trim(),
+                Login_Name = txtLoginName.Text.Trim(),
+                Password = txtPassword.Text.Trim(),
+                Phone = txtPhone.Text.Trim(),
+                Email = txtEmail.Text.Trim(),
+                Notes = txtNotes.Text.Trim(),
+                Must_Change_Password = chkChangePassword.Checked,
+                Is_Active = chkIsActive.Checked
+            };
         }
+
+        private void ArrangeToolbarButtons()
+        {
+            var buttons = new[] { btnNew, btnSave, btnEdit, btnDelete, btnPrint, btnSearch, btnRefresh, btnClose };
+            int x = pnlToolbar.ClientSize.Width - 12;
+            foreach (var button in buttons)
+            {
+                button.Size = new Size(102, 42);
+                button.Location = new Point(x - button.Width, 14);
+                button.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+                button.RightToLeft = RightToLeft.Yes;
+                button.FlatStyle = FlatStyle.Flat;
+                button.FlatAppearance.BorderColor = Color.FromArgb(191, 219, 254);
+                button.BackColor = button == btnSave
+                    ? Color.FromArgb(30, 64, 112)
+                    : button == btnClose ? Color.FromArgb(254, 242, 242) : Color.FromArgb(239, 246, 255);
+                button.ForeColor = button == btnSave ? Color.White : Color.FromArgb(30, 64, 112);
+                x -= button.Width + 8;
+            }
+        }
+
+        private void ArrangeUserFields()
+        {
+            int labelRight = panel1.ClientSize.Width - 22;
+            int fieldWidth = Math.Max(230, panel1.ClientSize.Width - 190);
+            int fieldLeft = 20;
+            int y = 12;
+
+            ArrangeField(label11, txtFullName, labelRight, fieldLeft, fieldWidth, ref y);
+            ArrangeField(label1, txtUserName, labelRight, fieldLeft, fieldWidth, ref y);
+            ArrangeField(label2, txtLoginName, labelRight, fieldLeft, fieldWidth, ref y);
+            ArrangeField(label3, txtPassword, labelRight, fieldLeft, fieldWidth, ref y);
+            ArrangeField(label4, txtConfirmPassword, labelRight, fieldLeft, fieldWidth, ref y);
+            ArrangeField(label7, cmbBranch, labelRight, fieldLeft, fieldWidth, ref y);
+            ArrangeField(label6, cmbRole, labelRight, fieldLeft, fieldWidth, ref y);
+            ArrangeField(label5, cmbStatus, labelRight, fieldLeft, fieldWidth, ref y);
+            ArrangeField(label10, txtPhone, labelRight, fieldLeft, fieldWidth, ref y);
+            ArrangeField(label9, txtEmail, labelRight, fieldLeft, fieldWidth, ref y);
+            ArrangeField(label8, txtNotes, labelRight, fieldLeft, fieldWidth, ref y);
+
+            chkChangePassword.Location = new Point(fieldLeft, y + 2);
+            chkChangePassword.AutoSize = true;
+            chkIsActive.Location = new Point(fieldLeft + 245, y + 2);
+            chkIsActive.AutoSize = true;
+        }
+
+        private static void ArrangeField(Label label, Control input, int labelRight, int fieldLeft, int fieldWidth, ref int y)
+        {
+            label.AutoSize = false;
+            label.TextAlign = ContentAlignment.MiddleRight;
+            label.Location = new Point(labelRight - 140, y + 4);
+            label.Size = new Size(140, 28);
+            input.Location = new Point(fieldLeft, y);
+            input.Size = new Size(fieldWidth, 32);
+            input.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
+            y += 38;
+        }
+
+        private void ArrangePermissionFilters()
+        {
+            int x = pnlPermissionHeader.ClientSize.Width - 12;
+            ArrangePermissionFilter(label14, cmbPermissionSearch, ref x);
+            ArrangePermissionFilter(label12, cmbPermissionRole, ref x);
+            ArrangePermissionFilter(label13, cmbPermissionModule, ref x);
+            ArrangePermissionFilter(label15, cmbPermissionScreen, ref x);
+            ArrangePermissionFilter(label16, cmbPermissionType, ref x);
+            chkSelectAll.Location = new Point(18, 56);
+            chkSelectAll.AutoSize = true;
+        }
+
+        private static void ArrangePermissionFilter(Label label, ComboBox combo, ref int x)
+        {
+            const int width = 155;
+            x -= width;
+            combo.Location = new Point(x, 42);
+            combo.Size = new Size(width, 31);
+            combo.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+            label.AutoSize = false;
+            label.TextAlign = ContentAlignment.MiddleRight;
+            label.Location = new Point(x, 12);
+            label.Size = new Size(width, 24);
+            label.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+            x -= 10;
+        }
+
+        // التخطيط المعتمد في FrmUsers.ApprovedLayout هو المالك الوحيد لشريط الأزرار.
+        // إبقاء هذا الحدث فارغاً يمنع ملف Designer القديم من نقل الأزرار وإخفائها.
+        private void pnlToolbar_Resize(object? sender, EventArgs e) { }
+        private void pnlPermissionHeader_Resize(object? sender, EventArgs e) => ArrangePermissionFilters();
 
         private void ClearForm()
         {
             _isBinding = true;
             try
             {
-                _selectedUserId = 0; txtFullName.Text = string.Empty; txtLoginName.Text = string.Empty; txtPassword.Text = string.Empty; txtConfirmPassword.Text = string.Empty; txtPhone.Text = string.Empty; txtEmail.Text = string.Empty; txtNotes.Text = string.Empty; cmbBranch.SelectedIndex = -1; cmbRole.SelectedIndex = -1; cmbStatus.Text = "نشط"; chkIsActive.Checked = true; chkChangePassword.Checked = true;
+                _selectedUserId = 0; txtUserName.Text = "(جديد)"; ClearUserAuditInfo();
+                btnEdit.Enabled = false; btnDelete.Enabled = false; _btnReactivate.Enabled = false;
+                _btnResetPassword.Enabled = false; _btnUnlock.Enabled = false; txtFullName.Text = string.Empty; txtLoginName.Text = string.Empty; txtPassword.Text = string.Empty; txtConfirmPassword.Text = string.Empty; txtPhone.Text = string.Empty; txtEmail.Text = string.Empty; txtNotes.Text = string.Empty; cmbBranch.SelectedIndex = -1; cmbRole.SelectedIndex = -1; cmbStatus.Text = "نشط"; chkIsActive.Checked = true; chkChangePassword.Checked = true;
                 if (dgvUsers.SelectedRows.Count > 0) dgvUsers.ClearSelection();
                 foreach (DataGridViewRow row in dgvFunctionPermissions.Rows) { for (int i = 2; i <= 7; i++) row.Cells[i].Value = false; }
                 if (cmbPermissionSearch != null) cmbPermissionSearch.SelectedIndex = -1;
@@ -601,8 +821,23 @@ namespace AlTayerERP.Desktop
         public string? Module_Name { get; set; }
     }
 
-    public class UserListModel { public int User_ID { get; set; } public string User_Code { get; set; } = string.Empty; public string Full_Name { get; set; } = string.Empty; public string Login_Name { get; set; } = string.Empty; public string? Phone { get; set; } public string? Email { get; set; } public bool Is_Active { get; set; } }
-    public class UserDetailModel { public int User_ID { get; set; } public string Company_ID { get; set; } = string.Empty; public int Branch_ID { get; set; } public int Role_ID { get; set; } public string User_Code { get; set; } = string.Empty; public string Full_Name { get; set; } = string.Empty; public string Login_Name { get; set; } = string.Empty; public string? Phone { get; set; } public string? Email { get; set; } public string? Notes { get; set; } public bool Must_Change_Password { get; set; } public bool Is_Active { get; set; } }
+    public class UserListModel
+    {
+        public int User_ID { get; set; }
+        public string User_Code { get; set; } = string.Empty;
+        public string Company_ID { get; set; } = string.Empty;
+        public int Branch_ID { get; set; }
+        public int Role_ID { get; set; }
+        public string Role_Name { get; set; } = string.Empty;
+        public string Full_Name { get; set; } = string.Empty;
+        public string Login_Name { get; set; } = string.Empty;
+        public string? Phone { get; set; }
+        public string? Email { get; set; }
+        public bool Is_Active { get; set; }
+        public DateTime? Last_Login_At { get; set; }
+        public DateTime? Locked_Until { get; set; }
+    }
+    public class UserDetailModel { public int User_ID { get; set; } public string Company_ID { get; set; } = string.Empty; public int Branch_ID { get; set; } public int Role_ID { get; set; } public string User_Code { get; set; } = string.Empty; public string Full_Name { get; set; } = string.Empty; public string Login_Name { get; set; } = string.Empty; public string? Phone { get; set; } public string? Email { get; set; } public string? Notes { get; set; } public bool Must_Change_Password { get; set; } public bool Is_Active { get; set; } public DateTime Created_At { get; set; } public DateTime? Updated_At { get; set; } }
     public class BranchLookupModel { public int Branch_ID { get; set; } public string Branch_Name { get; set; } = string.Empty; }
     public class RoleLookupModel { public int Role_ID { get; set; } public string Role_Name { get; set; } = string.Empty; }
     public class ScreenPermissionModel { public int Screen_ID { get; set; } public string Screen_Code { get; set; } = string.Empty; public string Screen_Name { get; set; } = string.Empty; public string Module_Name { get; set; } = string.Empty; }

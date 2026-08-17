@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="AlTayerERP.Mobile.Office.ApprovalRequestsPage"
+             FlowDirection="RightToLeft"
+             BackgroundColor="#F6F8FB"
+             Title="طلبات الاعتماد">
+    <Grid RowDefinitions="Auto,Auto,Auto,*" Padding="16" RowSpacing="12">
+        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+            <Picker x:Name="StatusPicker"
+                    Title="الحالة"
+                    BackgroundColor="White"
+                    TextColor="#17324D"
+                    SelectedIndexChanged="OnStatusChanged">
+                <Picker.Items>
+                    <x:String>الكل</x:String>
+                    <x:String>بانتظار المراجعة</x:String>
+                    <x:String>بانتظار الاعتماد</x:String>
+                </Picker.Items>
+            </Picker>
+            <Button Grid.Column="1"
+                    Text="تحديث"
+                    BackgroundColor="#0B6B87"
+                    TextColor="White"
+                    Clicked="OnRefreshClicked" />
+        </Grid>
+
+        <Label x:Name="SummaryLabel"
+               Grid.Row="1"
+               Text="طلبات معلقة: 0"
+               FontAttributes="Bold"
+               TextColor="#17324D" />
+
+        <Border Grid.Row="2"
+                Padding="12"
+                BackgroundColor="#FFF8E1"
+                Stroke="#E8C56A"
+                StrokeShape="RoundRectangle 12">
+            <Label x:Name="DiagnosticLabel"
+                   Text="المسودة لا تظهر هنا حتى يتم إرسالها للمراجعة."
+                   FontSize="12"
+                   TextColor="#7A5B00" />
+        </Border>
+
+        <RefreshView x:Name="RequestsRefresh"
+                     Grid.Row="3"
+                     Refreshing="OnRefreshing">
+            <CollectionView x:Name="RequestsList"
+                            SelectionMode="Single"
+                            SelectionChanged="OnSelectionChanged">
+                <CollectionView.EmptyView>
+                    <VerticalStackLayout Padding="20" Spacing="8">
+                        <Label x:Name="EmptyTitleLabel"
+                               Text="لا توجد طلبات اعتماد معلقة."
+                               HorizontalTextAlignment="Center"
+                               TextColor="#7A8896" />
+                        <Label Text="ارجع إلى شاشة طلب صرف، افتح المسودة، ثم اضغط إرسال للمراجعة."
+                               HorizontalTextAlignment="Center"
+                               FontSize="12"
+                               TextColor="#7A8896" />
+                    </VerticalStackLayout>
+                </CollectionView.EmptyView>
+                <CollectionView.ItemTemplate>
+                    <DataTemplate>
+                        <Border Margin="0,0,0,10"
+                                Padding="14"
+                                Stroke="#D9E2EC"
+                                BackgroundColor="White"
+                                StrokeShape="RoundRectangle 14">
+                            <Grid RowDefinitions="Auto,Auto,Auto,Auto"
+                                  ColumnDefinitions="*,Auto"
+                                  RowSpacing="6">
+                                <Label Text="{Binding Request_No}"
+                                       FontSize="16"
+                                       FontAttributes="Bold"
+                                       TextColor="#17324D" />
+                                <Label Grid.Column="1"
+                                       Text="{Binding StatusDisplay}"
+                                       TextColor="#0B6B87" />
+                                <Label Grid.Row="1"
+                                       Grid.ColumnSpan="2"
+                                       Text="{Binding Beneficiary_Name}"
+                                       TextColor="#35566F" />
+                                <Label Grid.Row="2"
+                                       Grid.ColumnSpan="2"
+                                       Text="{Binding Description}"
+                                       FontSize="12"
+                                       TextColor="#7A8896"
+                                       LineBreakMode="TailTruncation" />
+                                <Grid Grid.Row="3"
+                                      Grid.ColumnSpan="2"
+                                      ColumnDefinitions="*,Auto">
+                                    <Label Text="{Binding Request_Date, StringFormat='التاريخ: {0:yyyy/MM/dd}'}"
+                                           FontSize="12"
+                                           TextColor="#7A8896" />
+                                    <Label Grid.Column="1"
+                                           Text="{Binding LocalTotal, StringFormat='الإجمالي: {0:N2}'}"
+                                           FontAttributes="Bold"
+                                           TextColor="#17324D" />
+                                </Grid>
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+        </RefreshView>
+    </Grid>
+</ContentPage>

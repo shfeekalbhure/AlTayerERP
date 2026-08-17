@@ -10,6 +10,14 @@ using System.Windows.Forms;
 
 namespace AlTayerERP.Desktop
 {
+    /*
+     * دليل عربي لشاشة صلاحيات الأدوار:
+     * cmbRoles = اختيار الدور، txtSearch = البحث في الشاشات، dgvPermissions = جدول الصلاحيات.
+     * أعمدة Can_View/Can_Add/Can_Edit/Can_Delete وغيرها تمثل: عرض/إضافة/تعديل/حذف.
+     * btnSave حفظ الصلاحيات، btnGrantViewAll منح العرض للكل، btnClearAll إلغاء الكل،
+     * btnRefresh تحديث البيانات. تبقى الأسماء البرمجية بالإنجليزية لأنها مرتبطة مع API.
+     */
+
     /// <summary>
     /// إدارة صلاحيات الأدوار على مستوى الشاشة والعملية.
     /// تمنع الواجهة الصلاحيات المتناقضة، ويبقى التحقق النهائي في API.
@@ -43,7 +51,7 @@ namespace AlTayerERP.Desktop
             StartPosition = FormStartPosition.CenterParent;
             Width = 1240;
             Height = 720;
-            MinimumSize = new Size(980, 630);
+            MinimumSize = Size.Empty;
             RightToLeft = RightToLeft.Yes;
             RightToLeftLayout = true;
             Font = new Font("Segoe UI", 9.5F);
@@ -59,11 +67,11 @@ namespace AlTayerERP.Desktop
                 BackColor = BackColor
             };
             shell.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
-            shell.RowStyles.Add(new RowStyle(SizeType.Absolute, 74));
-            shell.RowStyles.Add(new RowStyle(SizeType.Absolute, 58));
-            shell.RowStyles.Add(new RowStyle(SizeType.Absolute, 45));
+            shell.RowStyles.Add(new RowStyle(SizeType.Absolute, 42));
+            shell.RowStyles.Add(new RowStyle(SizeType.Absolute, 56));
+            shell.RowStyles.Add(new RowStyle(SizeType.Absolute, 44));
             shell.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
-            shell.RowStyles.Add(new RowStyle(SizeType.Absolute, 30));
+            shell.RowStyles.Add(new RowStyle(SizeType.Absolute, 34));
 
             shell.Controls.Add(CreateHeader(), 0, 0);
             shell.Controls.Add(CreateToolbar(), 0, 1);
@@ -116,8 +124,8 @@ namespace AlTayerERP.Desktop
                 Text = "صلاحيات الأدوار",
                 Dock = DockStyle.Top,
                 ForeColor = Color.White,
-                Font = new Font("Segoe UI", 14F, FontStyle.Bold),
-                Height = 33,
+                Font = new Font("Segoe UI", 11F, FontStyle.Bold),
+                Height = 24,
                 TextAlign = ContentAlignment.MiddleRight
             });
             header.Controls.Add(new Label
@@ -125,8 +133,8 @@ namespace AlTayerERP.Desktop
                 Text = "امنح أقل قدر من الصلاحيات اللازم للعمل. أي عملية تتطلب حق العرض للشاشة.",
                 Dock = DockStyle.Bottom,
                 ForeColor = Color.FromArgb(220, 232, 247),
-                Font = new Font("Segoe UI", 8.5F),
-                Height = 20,
+                Font = new Font("Segoe UI", 7.5F),
+                Height = 14,
                 TextAlign = ContentAlignment.MiddleRight
             });
             return header;

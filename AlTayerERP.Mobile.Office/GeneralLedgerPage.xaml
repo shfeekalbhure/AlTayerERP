@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="AlTayerERP.Mobile.Office.GeneralLedgerPage"
+             FlowDirection="RightToLeft"
+             BackgroundColor="#F6F8FB"
+             Title="الأستاذ العام">
+    <Grid RowDefinitions="Auto,Auto,*" Padding="16" RowSpacing="12">
+        <VerticalStackLayout Spacing="10">
+            <Picker x:Name="AccountPicker"
+                    Title="اختر الحساب"
+                    BackgroundColor="White"
+                    TextColor="#17324D"
+                    ItemDisplayBinding="{Binding DisplayName}" />
+            <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
+                <DatePicker x:Name="FromDatePicker" BackgroundColor="White" TextColor="#17324D" />
+                <DatePicker x:Name="ToDatePicker" Grid.Column="1" BackgroundColor="White" TextColor="#17324D" />
+            </Grid>
+            <Button Text="عرض الحركة"
+                    HeightRequest="48"
+                    CornerRadius="12"
+                    BackgroundColor="#0B6B87"
+                    TextColor="White"
+                    Clicked="OnLoadClicked" />
+            <ActivityIndicator x:Name="BusyIndicator" IsVisible="False" IsRunning="False" Color="#0B6B87" />
+            <Label x:Name="MessageLabel" IsVisible="False" TextColor="#B42318" HorizontalTextAlignment="Center" />
+        </VerticalStackLayout>
+
+        <Border x:Name="SummaryBorder" Grid.Row="1" IsVisible="False" Padding="12" BackgroundColor="White" Stroke="#D9E2EC" StrokeShape="RoundRectangle 12">
+            <VerticalStackLayout Spacing="4">
+                <Label x:Name="AccountLabel" FontAttributes="Bold" FontSize="16" TextColor="#17324D" />
+                <Label x:Name="OpeningLabel" TextColor="#35566F" />
+                <Label x:Name="MovementLabel" TextColor="#35566F" />
+                <Label x:Name="ClosingLabel" FontAttributes="Bold" TextColor="#17324D" />
+            </VerticalStackLayout>
+        </Border>
+
+        <CollectionView x:Name="RowsList" Grid.Row="2" SelectionMode="None">
+            <CollectionView.EmptyView>
+                <Label Text="لا توجد حركة للحساب في الفترة المحددة." HorizontalTextAlignment="Center" TextColor="#7A8896" Padding="20" />
+            </CollectionView.EmptyView>
+            <CollectionView.ItemTemplate>
+                <DataTemplate>
+                    <Border Margin="0,0,0,10" Padding="12" BackgroundColor="White" Stroke="#D9E2EC" StrokeShape="RoundRectangle 12">
+                        <VerticalStackLayout Spacing="4">
+                            <Grid ColumnDefinitions="*,Auto">
+                                <Label Text="{Binding EntryNo}" FontAttributes="Bold" TextColor="#17324D" />
+                                <Label Grid.Column="1" Text="{Binding EntryDate, StringFormat='{0:yyyy/MM/dd}'}" FontSize="12" TextColor="#7A8896" />
+                            </Grid>
+                            <Label Text="{Binding Description}" TextColor="#35566F" LineBreakMode="TailTruncation" />
+                            <Label Text="{Binding SourceDocumentNo, StringFormat='المستند: {0}'}" FontSize="12" TextColor="#7A8896" />
+                            <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
+                                <Label Text="{Binding Debit, StringFormat='مدين: {0:N2}'}" TextColor="#35566F" />
+                                <Label Grid.Column="1" Text="{Binding Credit, StringFormat='دائن: {0:N2}'}" TextColor="#35566F" />
+                            </Grid>
+                            <Label Text="{Binding RunningDebit, StringFormat='الرصيد المدين: {0:N2}'}" FontAttributes="Bold" TextColor="#0B6B87" />
+                            <Label Text="{Binding RunningCredit, StringFormat='الرصيد الدائن: {0:N2}'}" FontAttributes="Bold" TextColor="#0B6B87" />
+                        </VerticalStackLayout>
+                    </Border>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+    </Grid>
+</ContentPage>

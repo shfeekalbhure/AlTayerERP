@@ -1,149 +1,210 @@
-﻿using AlTayerERP.Core.Entities;
-using AlTayerERP.Infrastructure.Data;
+using System.Data;
 using AlTayerERP.Core.Entities;
 using AlTayerERP.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 
 namespace AlTayerERP.API.Services
 {
-    // ======================================================
-    // خدمة توليد الأرقام المركزية في النظام
-    // تعتمد على جدولين:
-    // 1) numbering_settings  = قواعد الترقيم
-    // 2) numbering_counters  = العدادات الفعلية لكل شركة/فرع/سنة
-    // ======================================================
-    public class NumberGeneratorService
+    /// <summary>
+    /// محرك الترقيم المركزي (NumberGeneratorService).
+    /// يحجز الرقم في العداد داخل Transaction متسلسل؛ لذلك لا يعاد الرقم بعد إلغائه
+    /// ولا ينتج رقمان متطابقان عند طلبات متزامنة.
+    /// </summary>
+    public sealed class NumberGeneratorService
     {
-        // الاتصال بقاعدة البيانات
         private readonly AppDbContext _context;
 
-        public NumberGeneratorService(AppDbContext context)
-        {
-            _context = context;
-        }
+        public NumberGeneratorService(AppDbContext context) => _context = context;
 
-        // ======================================================
-        // توليد رقم بدون شركة
-        // يستخدم للشركات أو المستندات العامة
-        // مثال: CO-00001
-        // ======================================================
-        public async Task<string> GenerateNextNumberAsync(string documentType)
-        {
-            return await GenerateNextNumberInternalAsync(
-                documentType,
-                companyId: null,
-                branchId: null);
-        }
+        public async Task<string> GenerateNextNumberAsync(string documentType) =>
+            (await ReserveNextNumberAsync(documentType, null, null, null)).Document_Number;
 
-        // ======================================================
-        // توليد رقم حسب الشركة
-        // يستخدم للفروع والبوالص والتذاكر والسندات
-        // مثال: SHF-BR-0001
-        // ======================================================
-        public async Task<string> GenerateNextNumberAsync(string documentType, string companyId)
-        {
-            return await GenerateNextNumberInternalAsync(
-                documentType,
-                companyId,
-                branchId: null);
-        }
+        public async Task<string> GenerateNextNumberAsync(string documentType, string companyId) =>
+            (await ReserveNextNumberAsync(documentType, companyId, null, null)).Document_Number;
 
-        // ======================================================
-        // الدالة الداخلية الأساسية لتوليد الرقم
-        // ======================================================
-        private async Task<string> GenerateNextNumberInternalAsync(
+        /// <summary>
+        /// حجز رقم عرض مالي. FiscalYearId هو معرّف السنة المالي من الجلسة، لا سنة جهاز العميل.
+        /// </summary>
+        public async Task<NumberReservation> ReserveNextNumberAsync(
             string documentType,
             string? companyId,
-            int? branchId)
+            int? branchId,
+            int? fiscalYearId,
+            CancellationToken cancellationToken = default)
         {
-            // جلب إعدادات الترقيم (معدّل ليشمل Trim و ToUpper)
-            var setting = await _context.Numbering_Settings
-                .FirstOrDefaultAsync(x =>
-                    x.Document_Type.Trim().ToUpper() == documentType.Trim().ToUpper() &&
-                    x.Is_Active);
+            if (string.IsNullOrWhiteSpace(documentType))
+                throw new NumberingException("نوع المستند مطلوب.");
 
-            if (setting == null)
-                throw new Exception("لا توجد إعدادات ترقيم لهذا النوع: " + documentType);
+            var type = documentType.Trim().ToUpperInvariant();
 
-            // تحديد السنة إذا كان الإعداد يستخدم السنة
-            int? yearValue = setting.Use_Year ? DateTime.Now.Year : null;
-
-            // إذا كان الترقيم حسب الشركة ولا توجد شركة، نوقف العملية
-            if (setting.Use_Company && string.IsNullOrWhiteSpace(companyId))
-                throw new Exception("هذا النوع يحتاج شركة لتوليد الرقم.");
-
-            // جلب الشركة إذا وجدت
-            Company? company = null;
-
-            if (!string.IsNullOrWhiteSpace(companyId))
+            // يسمح التكرار فقط عند سباق إنشاء صف عداد جديد، وتمنعه قاعدة البيانات بفهرس فريد.
+            for (var attempt = 1; attempt <= 3; attempt++)
             {
-                company = await _context.Companies
-                    .FirstOrDefaultAsync(x => x.Company_ID == companyId);
-
-                if (company == null)
-                    throw new Exception("لم يتم العثور على الشركة المرتبطة بهذا الرقم.");
-            }
-
-            // البحث عن عداد مطابق (معدّل ليشمل Trim و ToUpper في Document_Type)
-            var counter = await _context.Numbering_Counters
-                .FirstOrDefaultAsync(x =>
-                    x.Document_Type.Trim().ToUpper() == documentType.Trim().ToUpper() &&
-                    x.Company_ID == (setting.Use_Company ? companyId : null) &&
-                    x.Branch_ID == (setting.Use_Branch ? branchId : null) &&
-                    x.Year_Value == yearValue);
-
-            // إذا لم يوجد عداد، ننشئه
-            if (counter == null)
-            {
-                counter = new NumberingCounter
+                await using var transaction = await _context.Database.BeginTransactionAsync(
+                    IsolationLevel.Serializable, cancellationToken);
+                try
                 {
-                    Document_Type = documentType,
-                    Company_ID = setting.Use_Company ? companyId : null,
-                    Branch_ID = setting.Use_Branch ? branchId : null,
-                    Year_Value = yearValue,
-                    Last_Number = 0,
-                    Created_At = DateTime.Now
-                };
+                    var setting = await _context.Numbering_Settings
+                        .FirstOrDefaultAsync(x => x.Document_Type == type && x.Is_Active, cancellationToken);
+                    if (setting == null)
+                        throw new NumberingException($"لا يوجد إعداد ترقيم نشط لنوع المستند: {type}.");
 
-                await _context.Numbering_Counters.AddAsync(counter);
+                    ValidateSetting(setting);
+                    var scope = await ResolveScopeAsync(setting, companyId, branchId, fiscalYearId, cancellationToken);
+
+                    var counter = await _context.Numbering_Counters
+                        .FirstOrDefaultAsync(x =>
+                            x.Document_Type == type &&
+                            x.Company_ID == scope.Company_ID &&
+                            x.Branch_ID == scope.Branch_ID &&
+                            x.Year_Value == scope.Fiscal_Year_ID, cancellationToken);
+
+                    if (counter == null)
+                    {
+                        counter = new NumberingCounter
+                        {
+                            Document_Type = type,
+                            // القيم غير المستخدمة تطبع بفراغ/صفر حتى يعمل المفتاح الفريد في MySQL.
+                            Company_ID = scope.Company_ID,
+                            Branch_ID = scope.Branch_ID,
+                            Year_Value = scope.Fiscal_Year_ID,
+                            Last_Number = 0,
+                            Created_At = DateTime.UtcNow
+                        };
+                        _context.Numbering_Counters.Add(counter);
+                    }
+
+                    var next = checked(counter.Last_Number + 1);
+                    var maximum = (int)Math.Pow(10, setting.Digits_Count) - 1;
+                    if (next > maximum)
+                        throw new NumberingException($"وصل عداد {type} إلى الحد الأقصى ({maximum:N0}). عدّل عدد الخانات قبل المتابعة.");
+
+                    counter.Last_Number = next;
+                    counter.Updated_At = DateTime.UtcNow;
+
+                    await _context.SaveChangesAsync(cancellationToken);
+                    await transaction.CommitAsync(cancellationToken);
+
+                    var number = BuildDocumentNumber(setting, scope, next);
+                    return new NumberReservation(
+                        number, type, counter.Counter_ID, next,
+                        scope.Company_ID, scope.Branch_ID, scope.Fiscal_Year_ID);
+                }
+                catch (DbUpdateException) when (attempt < 3)
+                {
+                    await transaction.RollbackAsync(cancellationToken);
+                    _context.ChangeTracker.Clear();
+                    await Task.Delay(TimeSpan.FromMilliseconds(20 * attempt), cancellationToken);
+                }
+                catch
+                {
+                    await transaction.RollbackAsync(cancellationToken);
+                    throw;
+                }
             }
 
-            // زيادة آخر رقم
-            counter.Last_Number += 1;
-            counter.Updated_At = DateTime.Now;
-
-            // تجهيز الرقم بالأصفار
-            string numberPart = counter.Last_Number
-                .ToString()
-                .PadLeft(setting.Digits_Count, '0');
-
-            // تكوين البادئة النهائية
-            string prefix = BuildPrefix(setting.Prefix, company);
-
-            // الرقم النهائي
-            string finalNumber = $"{prefix}-{numberPart}";
-
-            // حفظ العداد
-            await _context.SaveChangesAsync();
-
-            return finalNumber;
+            throw new NumberingException("تعذر حجز الرقم بسبب تعارض متزامن. أعد المحاولة.");
         }
 
-        // ======================================================
-        // تكوين البادئة النهائية
-        // إذا وجدت شركة ورمزها موجود:
-        // SHF + BR = SHF-BR
-        // إذا لا توجد شركة:
-        // CO
-        // ======================================================
-        private string BuildPrefix(string documentPrefix, Company? company)
+        private async Task<NumberingScope> ResolveScopeAsync(
+            NumberingSetting setting,
+            string? companyId,
+            int? branchId,
+            int? fiscalYearId,
+            CancellationToken cancellationToken)
         {
-            if (company != null && !string.IsNullOrWhiteSpace(company.Company_Prefix))
+            var normalizedCompany = setting.Use_Company
+                ? companyId?.Trim() ?? string.Empty
+                : string.Empty;
+            var normalizedBranch = setting.Use_Branch ? branchId.GetValueOrDefault() : 0;
+            var normalizedYear = setting.Use_Year ? fiscalYearId.GetValueOrDefault() : 0;
+
+            if (setting.Use_Company && string.IsNullOrWhiteSpace(normalizedCompany))
+                throw new NumberingException("إعداد الترقيم يتطلب شركة من سياق الجلسة.");
+            if (setting.Use_Branch && normalizedBranch <= 0)
+                throw new NumberingException("إعداد الترقيم يتطلب فرعاً من سياق الجلسة.");
+            if (setting.Use_Year && normalizedYear <= 0)
+                throw new NumberingException("إعداد الترقيم يتطلب سنة مالية من سياق الجلسة.");
+
+            string companyPrefix = string.Empty;
+            string branchCode = string.Empty;
+            if (setting.Use_Company)
             {
-                return $"{company.Company_Prefix.Trim().ToUpper()}-{documentPrefix.Trim().ToUpper()}";
+                var company = await _context.Companies.AsNoTracking()
+                    .FirstOrDefaultAsync(x => x.Company_ID == normalizedCompany && x.Is_Active, cancellationToken);
+                if (company == null)
+                    throw new NumberingException("شركة سياق الترقيم غير موجودة أو موقوفة.");
+                companyPrefix = string.IsNullOrWhiteSpace(company.Company_Prefix)
+                    ? normalizedCompany
+                    : company.Company_Prefix.Trim().ToUpperInvariant();
             }
 
-            return documentPrefix.Trim().ToUpper();
+            if (setting.Use_Branch)
+            {
+                branchCode = await _context.Tenant_Branches.AsNoTracking()
+                    .Where(x => x.Branch_ID == normalizedBranch && x.Is_Active)
+                    .Select(x => x.Branch_Code)
+                    .SingleOrDefaultAsync(cancellationToken)
+                    ?? string.Empty;
+
+                if (string.IsNullOrWhiteSpace(branchCode))
+                    throw new NumberingException("كود فرع سياق الترقيم غير موجود أو موقوف.");
+
+                branchCode = branchCode.Trim().ToUpperInvariant();
+            }
+
+            return new NumberingScope(normalizedCompany, normalizedBranch, normalizedYear, companyPrefix, branchCode);
         }
+
+        private static void ValidateSetting(NumberingSetting setting)
+        {
+            if (setting.Digits_Count is < 1 or > 9)
+                throw new NumberingException("عدد خانات الترقيم يجب أن يكون من 1 إلى 9.");
+            if (string.IsNullOrWhiteSpace(setting.Prefix))
+                throw new NumberingException("بادئة الرقم مطلوبة.");
+        }
+
+        private static string BuildDocumentNumber(NumberingSetting setting, NumberingScope scope, int serial)
+        {
+            // تدعم البادئة قوالب اختيارية: {COMPANY} و{BRANCH} و{YEAR}.
+            var prefix = setting.Prefix.Trim().ToUpperInvariant()
+                .Replace("{COMPANY}", scope.Company_Prefix, StringComparison.OrdinalIgnoreCase)
+                .Replace("{BRANCH}", scope.Branch_Code, StringComparison.OrdinalIgnoreCase)
+                .Replace("{YEAR}", scope.Fiscal_Year_ID == 0 ? string.Empty : scope.Fiscal_Year_ID.ToString(), StringComparison.OrdinalIgnoreCase)
+                .Trim('-');
+
+            var parts = new List<string> { prefix };
+            if (setting.Use_Company && !setting.Prefix.Contains("{COMPANY}", StringComparison.OrdinalIgnoreCase))
+                parts.Add(scope.Company_Prefix);
+            if (setting.Use_Branch && !setting.Prefix.Contains("{BRANCH}", StringComparison.OrdinalIgnoreCase))
+                parts.Add(scope.Branch_Code);
+            if (setting.Use_Year && !setting.Prefix.Contains("{YEAR}", StringComparison.OrdinalIgnoreCase))
+                parts.Add(scope.Fiscal_Year_ID.ToString());
+
+            parts.Add(serial.ToString().PadLeft(setting.Digits_Count, '0'));
+            return string.Join("-", parts.Where(x => !string.IsNullOrWhiteSpace(x)));
+        }
+
+        private sealed record NumberingScope(
+            string Company_ID,
+            int Branch_ID,
+            int Fiscal_Year_ID,
+            string Company_Prefix,
+            string Branch_Code);
+    }
+
+    /// <summary>نتيجة الحجز: الرقم النهائي والنطاق الذي منع تكراره.</summary>
+    public sealed record NumberReservation(
+        string Document_Number,
+        string Document_Type,
+        int Counter_ID,
+        int Serial_Number,
+        string Company_ID,
+        int Branch_ID,
+        int Fiscal_Year_ID);
+
+    public sealed class NumberingException : Exception
+    {
+        public NumberingException(string message) : base(message) { }
     }
 }

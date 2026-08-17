@@ -38,6 +38,17 @@ namespace AlTayerERP.Desktop
             dgvVoucherDetails.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.None;
             // إيقاف ضبط الحجم التلقائي للأسطر
             dgvVoucherDetails.AutoSizeRowsMode = DataGridViewAutoSizeRowsMode.None;
+            // التمرير ينتمي للجدول نفسه، وليس لنافذة السند أو مساحة العمل.
+            dgvVoucherDetails.ScrollBars = ScrollBars.Both;
+            dgvVoucherDetails.RightToLeft = RightToLeft.Yes;
+            dgvVoucherDetails.BorderStyle = BorderStyle.FixedSingle;
+            dgvVoucherDetails.EnableHeadersVisualStyles = false;
+            dgvVoucherDetails.BackgroundColor = System.Drawing.Color.White;
+            dgvVoucherDetails.GridColor = System.Drawing.Color.FromArgb(203, 213, 225);
+            dgvVoucherDetails.ColumnHeadersDefaultCellStyle.BackColor = System.Drawing.Color.FromArgb(226, 232, 240);
+            dgvVoucherDetails.ColumnHeadersDefaultCellStyle.ForeColor = System.Drawing.Color.FromArgb(30, 41, 59);
+            dgvVoucherDetails.ColumnHeadersDefaultCellStyle.Font =
+                new System.Drawing.Font("Segoe UI", 8.5F, System.Drawing.FontStyle.Bold);
             // منع المستخدم من تغيير ارتفاع ترويسة الأعمدة
             dgvVoucherDetails.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.DisableResizing;
             // تحديد ارتفاع ترويسة الأعمدة بـ 35 بكسل
@@ -53,6 +64,8 @@ namespace AlTayerERP.Desktop
             colNo.ReadOnly = true;
             colForeignAmount.ReadOnly = true;
             colLocalAmount.ReadOnly = true;
+
+            ConfigureDistributionColumns();
 
             // إلغاء التسجيل أولاً ثم إعادة التسجيل لمنع التكرار في الأحداث
             dgvVoucherDetails.CurrentCellDirtyStateChanged -= dgvVoucherDetails_CurrentCellDirtyStateChanged;
@@ -82,6 +95,58 @@ namespace AlTayerERP.Desktop
             dgvVoucherDetails.KeyDown -= dgvVoucherDetails_KeyDown;
             dgvVoucherDetails.KeyDown += dgvVoucherDetails_KeyDown;
 
+        }
+
+        /// <summary>
+        /// يضبط حجم أعمدة التوزيع المحاسبي لتظهر الحقول المهمة أولاً،
+        /// وتبقى بقية الأعمدة متاحة عبر شريط التمرير الأفقي.
+        /// </summary>
+        private void ConfigureDistributionColumns()
+        {
+            dgvVoucherDetails.RowTemplate.Height = 31;
+            dgvVoucherDetails.DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleRight;
+            dgvVoucherDetails.ColumnHeadersDefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleCenter;
+            dgvVoucherDetails.DefaultCellStyle.WrapMode = DataGridViewTriState.False;
+            dgvVoucherDetails.AllowUserToResizeColumns = true;
+
+            // إجمالي العرض يتجاوز مساحة الجدول عمداً؛ لذلك يظهر شريط التمرير الأفقي داخله.
+            colNo.Width = 48;
+            colAccountCode.Width = 125;
+            colAccountName.Width = 190;
+            colDescription.Width = 180;
+            colCostCenter.Width = 145;
+            colReferenceNo.Width = 125;
+            colReferenceType.Width = 115;
+            colReferenceName.Width = 155;
+            colReferenceDate.Width = 115;
+            colAmount.Width = 110;
+            colCurrency.Width = 125;
+            colExchangeRate.Width = 105;
+            colForeignAmount.Width = 120;
+            colLocalAmount.Width = 120;
+            colNotes.Width = 170;
+
+            colNo.HeaderText = "م";
+            colAccountCode.HeaderText = "رقم الحساب";
+            colAccountName.HeaderText = "اسم الحساب";
+            colDescription.HeaderText = "البيان";
+            colCostCenter.HeaderText = "مركز التكلفة";
+            colReferenceNo.HeaderText = "رقم المرجع";
+            colReferenceType.HeaderText = "نوع المرجع";
+            colReferenceName.HeaderText = "اسم المرجع";
+            colReferenceDate.HeaderText = "تاريخ المرجع";
+            colAmount.HeaderText = "المبلغ";
+            colCurrency.HeaderText = "العملة";
+            colExchangeRate.HeaderText = "سعر الصرف";
+            colForeignAmount.HeaderText = "المبلغ الأجنبي";
+            colLocalAmount.HeaderText = "المبلغ المحلي";
+            colNotes.HeaderText = "ملاحظات";
+
+            colNo.DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleCenter;
+            colAmount.DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleRight;
+            colExchangeRate.DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleRight;
+            colForeignAmount.DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleRight;
+            colLocalAmount.DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleRight;
         }
 
         #endregion
@@ -134,9 +199,7 @@ namespace AlTayerERP.Desktop
                 if (columnName == colAccountCode.Name ||
                     columnName == colAccountName.Name)
                 {
-                    object? accountId = row.Cells[columnName].Value;
-                    row.Cells[colAccountCode.Name].Value = accountId;
-                    row.Cells[colAccountName.Name].Value = accountId;
+                    SynchronizeGridAccountSelection(row, columnName);
                     return;
                 }
                 else if (columnName == colCurrency.Name)
@@ -286,6 +349,16 @@ namespace AlTayerERP.Desktop
         private void dgvVoucherDetails_CellEndEdit(object sender, DataGridViewCellEventArgs e)
         {
             if (_isLoading || e.RowIndex < 0) return;
+
+            if (e.ColumnIndex >= 0 &&
+                (dgvVoucherDetails.Columns[e.ColumnIndex].Name == colAccountCode.Name ||
+                 dgvVoucherDetails.Columns[e.ColumnIndex].Name == colAccountName.Name))
+            {
+                SynchronizeGridAccountSelection(
+                    dgvVoucherDetails.Rows[e.RowIndex],
+                    dgvVoucherDetails.Columns[e.ColumnIndex].Name);
+            }
+
             UpdateVoucherRowAmounts(e.RowIndex);
             UpdateVoucherTotals();
         }
@@ -367,7 +440,13 @@ namespace AlTayerERP.Desktop
         /// </summary>
         private void dgvVoucherDetails_RowsRemoved(object? sender, DataGridViewRowsRemovedEventArgs e)
         {
-            if (!_isLoading) UpdateVoucherTotals();
+            if (_isLoading)
+            {
+                return;
+            }
+
+            RenumberVoucherDetailRows();
+            UpdateVoucherTotals();
         }
 
         /// <summary>
@@ -382,6 +461,78 @@ namespace AlTayerERP.Desktop
         #endregion
 
         #region === تحديث صف الجدول ===
+
+        /// <summary>
+        /// يوحّد اختيار الحساب في عمودي الرقم والاسم. يقبل المعرف أو رقم الحساب
+        /// أو اسمه ثم يخزن معرف الحساب فقط؛ وهذا يمنع حفظ رقم ظاهر بدل المعرف الحقيقي.
+        /// </summary>
+        private void SynchronizeGridAccountSelection(
+            DataGridViewRow row,
+            string sourceColumnName)
+        {
+            if (row.IsNewRow)
+            {
+                return;
+            }
+
+            string selectedValue = Convert.ToString(
+                row.Cells[sourceColumnName].Value)?.Trim() ?? string.Empty;
+
+            if (string.IsNullOrWhiteSpace(selectedValue))
+            {
+                if (row.Cells[colAccountCode.Name].Value != null)
+                {
+                    row.Cells[colAccountCode.Name].Value = null;
+                }
+
+                if (row.Cells[colAccountName.Name].Value != null)
+                {
+                    row.Cells[colAccountName.Name].Value = null;
+                }
+                return;
+            }
+
+            AccountLookupModel? account = _accountLookups.FirstOrDefault(x =>
+                string.Equals(x.Account_ID, selectedValue, StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(x.Account_Code, selectedValue, StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(x.Account_Name_AR, selectedValue, StringComparison.OrdinalIgnoreCase));
+
+            if (account == null)
+            {
+                return;
+            }
+
+            if (!string.Equals(
+                    Convert.ToString(row.Cells[colAccountCode.Name].Value),
+                    account.Account_ID,
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                row.Cells[colAccountCode.Name].Value = account.Account_ID;
+            }
+
+            if (!string.Equals(
+                    Convert.ToString(row.Cells[colAccountName.Name].Value),
+                    account.Account_ID,
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                row.Cells[colAccountName.Name].Value = account.Account_ID;
+            }
+        }
+
+        /// <summary>
+        /// يعيد ترقيم أسطر التوزيع بعد الإضافة أو الحذف حتى يبقى رقم السطر متسلسلاً.
+        /// </summary>
+        private void RenumberVoucherDetailRows()
+        {
+            int lineNumber = 1;
+            foreach (DataGridViewRow row in dgvVoucherDetails.Rows)
+            {
+                if (!row.IsNewRow)
+                {
+                    row.Cells[colNo.Name].Value = lineNumber++;
+                }
+            }
+        }
 
         /// <summary>
         /// دالة تقوم بتحديث سعر الصرف للصف بناءً على العملة المحددة فيه.
