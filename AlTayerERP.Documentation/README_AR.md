@@ -22,6 +22,8 @@
 - `Release-Notes-AR.md`: سجل الإصدارات.
 - `SECURITY-AND-SETUP-AR.md`: دليل إعداد الاتصال والأمان والتشغيل.
 - `READINESS-REVIEW-2026-08-19-AR.md`: تقرير مراجعة وتجهيز خط الأساس الحالي.
+- `../Database/README_AR.md`: ترتيب تشغيل SQL وEF Core والتحقق بعد الترحيل.
+- `OPEN-PR-TRIAGE-AR.md`: فرز طلبات الدمج المفتوحة وقرارات المراجعة.
 
 ## المرجعية
 
