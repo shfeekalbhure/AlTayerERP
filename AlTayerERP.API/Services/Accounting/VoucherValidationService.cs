@@ -28,6 +28,10 @@ public class VoucherValidationService
             string.IsNullOrWhiteSpace(voucher.Against_Text))
             return (false, "الفرع والسنة والبيان المحاسبي حقول إلزامية.");
 
+        if (voucher.Details.Select(x => x.Line_No).Distinct().Count() != voucher.Details.Count ||
+            voucher.Details.Any(x => x.Line_No <= 0 || string.IsNullOrWhiteSpace(x.Account_ID)))
+            return (false, "أرقام سطور السند أو حساباته غير صالحة.");
+
         var voucherTypeCode = await _context.Voucher_Types.AsNoTracking()
             .Where(x => x.Voucher_Type_ID == voucher.Voucher_Type_ID && x.Is_Active)
             .Select(x => x.Voucher_Type_Code)
@@ -57,10 +61,6 @@ public class VoucherValidationService
 
         if (voucher.Exchange_Rate <= 0 || voucher.Currency_ID <= 0)
             return (false, "العملة وسعر الصرف يجب أن يكونا صالحين.");
-
-        if (voucher.Details.Select(x => x.Line_No).Distinct().Count() != voucher.Details.Count ||
-            voucher.Details.Any(x => x.Line_No <= 0 || string.IsNullOrWhiteSpace(x.Account_ID)))
-            return (false, "أرقام سطور السند أو حساباته غير صالحة.");
 
         if (!int.TryParse(voucher.Branch_ID, out int branchId))
             return (false, "معرف الفرع غير صالح.");

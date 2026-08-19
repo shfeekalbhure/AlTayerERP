@@ -70,7 +70,7 @@ namespace AlTayerERP.API.Controllers
             var rows = await _context.Chart_Of_Accounts.AsNoTracking()
                 .Where(x => x.Company_ID == Session.Company_ID &&
                             x.Is_Active && !x.Is_Postable && x.Is_Summary_Account &&
-                            (cashCodes.Contains(x.Account_Category) ||
+                            (x.Account_Category != null && cashCodes.Contains(x.Account_Category) ||
                              x.Account_Name_AR.Contains("صندوق") ||
                              x.Account_Name_AR.Contains("نقد")))
                 .OrderBy(x => x.Account_Code)

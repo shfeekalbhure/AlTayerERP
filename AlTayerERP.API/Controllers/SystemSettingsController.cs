@@ -106,10 +106,11 @@ namespace AlTayerERP.API.Controllers
             object? before = null;
             if (request.Setting_ID > 0)
             {
-                setting = await _context.System_Settings.FirstOrDefaultAsync(x => x.Setting_ID == request.Setting_ID);
-                if (setting == null || !IsVisibleInSession(setting, session))
+                var existing = await _context.System_Settings.FirstOrDefaultAsync(x => x.Setting_ID == request.Setting_ID);
+                if (existing == null || !IsVisibleInSession(existing, session))
                     return NotFound(new { message = "الإعداد غير موجود ضمن نطاق الجلسة." });
 
+                setting = existing;
                 before = new { setting.Setting_Key, setting.Setting_Value, setting.Scope, setting.Is_Active };
             }
             else

@@ -189,10 +189,13 @@ namespace AlTayerERP.API.Controllers
         /// </summary>
         [HttpPost]
         public async Task<IActionResult> Create(
-            [FromBody] CreateFinancialVoucherDto dto)
+            [FromBody] CreateFinancialVoucherDto? dto)
         {
+            if (dto is null)
+                return BadRequest(new { success = false, message = "بيانات السند مطلوبة." });
+
             var permissionFailure = await RequireReceiptVoucherPermissionAsync(
-                ScreenOperation.Add, voucherTypeId: dto?.Voucher_Type_ID);
+                ScreenOperation.Add, voucherTypeId: dto.Voucher_Type_ID);
             if (permissionFailure != null)
             {
                 return permissionFailure;
