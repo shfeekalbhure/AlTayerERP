@@ -26,6 +26,7 @@ public sealed class ApiDiagnosticResult
     public int PaymentMethodsCount { get; init; }
     public int OpenPeriodsCount { get; init; }
     public ApiConnectionKind ConnectionKind { get; init; }
+    public string? Environment { get; init; }
     public string? DatabaseName { get; init; }
     public string Message => GetMessage(ErrorType);
 

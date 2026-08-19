@@ -16,6 +16,8 @@ public sealed class ApiClientConfiguration
     private HttpClient? _applicationClient;
     private Uri? _sessionBaseAddress;
     private ApiConnectionKind _sessionConnectionKind;
+    private string? _sessionEnvironment;
+    private string? _sessionDatabaseName;
     private bool _recoveryAttempted;
 
     public ApiConnectionMode ConnectionMode { get; private set; } =
@@ -48,6 +50,8 @@ public sealed class ApiClientConfiguration
 
         _sessionBaseAddress = null;
         _sessionConnectionKind = ApiConnectionKind.None;
+        _sessionEnvironment = null;
+        _sessionDatabaseName = null;
         _recoveryAttempted = false;
         if (_applicationClient != null)
             _applicationClient.BaseAddress = UsbBaseAddress;
@@ -57,13 +61,13 @@ public sealed class ApiClientConfiguration
     public async Task<ApiDiagnosticResult> EnsureConnectionAsync(bool forceRetry = false, CancellationToken cancellationToken = default)
     {
         if (!forceRetry && _sessionBaseAddress != null)
-            return ReadyResult(_sessionBaseAddress, _sessionConnectionKind);
+            return ReadyResult(_sessionBaseAddress, _sessionConnectionKind, _sessionDatabaseName, _sessionEnvironment);
 
         await _connectionGate.WaitAsync(cancellationToken);
         try
         {
             if (!forceRetry && _sessionBaseAddress != null)
-                return ReadyResult(_sessionBaseAddress, _sessionConnectionKind);
+                return ReadyResult(_sessionBaseAddress, _sessionConnectionKind, _sessionDatabaseName, _sessionEnvironment);
 
             ApiDiagnosticResult? lastFailure = null;
             foreach (var candidate in GetCandidates())
@@ -73,6 +77,8 @@ public sealed class ApiClientConfiguration
                 {
                     _sessionBaseAddress = candidate.Address;
                     _sessionConnectionKind = candidate.Kind;
+                    _sessionEnvironment = result.Environment;
+                    _sessionDatabaseName = result.DatabaseName;
                     if (_applicationClient != null)
                         _applicationClient.BaseAddress = candidate.Address;
                     return result;
@@ -129,9 +135,12 @@ public sealed class ApiClientConfiguration
             var root = document.RootElement;
             var isReady = root.TryGetProperty("api", out var api) && api.GetString() == "ready" &&
                           root.TryGetProperty("database", out var database) && database.GetString() == "ready";
+            var environment = root.TryGetProperty("environment", out var environmentElement)
+                ? environmentElement.GetString()
+                : null;
             var databaseName = root.TryGetProperty("databaseName", out var name) ? name.GetString() : null;
             return isReady
-                ? ReadyResult(baseAddress, kind, databaseName)
+                ? ReadyResult(baseAddress, kind, databaseName, environment)
                 : FailureResult(ApiErrorType.ServerError, baseAddress, kind, (int)response.StatusCode, true);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -144,7 +153,7 @@ public sealed class ApiClientConfiguration
         }
     }
 
-    private ApiDiagnosticResult ReadyResult(Uri baseAddress, ApiConnectionKind kind, string? databaseName = null) => new()
+    private ApiDiagnosticResult ReadyResult(Uri baseAddress, ApiConnectionKind kind, string? databaseName = null, string? environment = null) => new()
     {
         Endpoint = "api/health",
         BaseAddress = baseAddress.ToString(),
@@ -152,6 +161,7 @@ public sealed class ApiClientConfiguration
         StatusCode = 200,
         ErrorType = ApiErrorType.None,
         ConnectionKind = kind,
+        Environment = environment,
         DatabaseName = databaseName
     };
 

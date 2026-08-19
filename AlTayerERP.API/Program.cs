@@ -1,4 +1,5 @@
 using AlTayerERP.API.Services;
+using AlTayerERP.API.Contracts;
 using AlTayerERP.API.Services.Accounting;
 using AlTayerERP.API.Services.Accounting.VoucherWorkflow;
 using AlTayerERP.Infrastructure.Data;
@@ -36,6 +37,7 @@ var mysqlConnection = new MySqlConnectionStringBuilder(connectionString)
     CharacterSet = "utf8mb4"
 };
 connectionString = mysqlConnection.ConnectionString;
+var databaseName = mysqlConnection.Database;
 
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseMySql(
@@ -165,7 +167,11 @@ app.MapGet("/api/health", async (AppDbContext db) =>
     {
         var databaseReady = await db.Database.CanConnectAsync();
         return databaseReady
-            ? Results.Ok(new { api = "ready", database = "ready" })
+            ? Results.Ok(new ApiHealthResponse(
+                Api: "ready",
+                Database: "ready",
+                Environment: app.Environment.EnvironmentName,
+                DatabaseName: string.IsNullOrWhiteSpace(databaseName) ? null : databaseName))
             : Results.StatusCode(StatusCodes.Status503ServiceUnavailable);
     }
     catch

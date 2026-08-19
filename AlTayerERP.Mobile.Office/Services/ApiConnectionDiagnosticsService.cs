@@ -51,6 +51,7 @@ public sealed class ApiConnectionDiagnosticsService(HttpClient httpClient, ApiCl
     private static void WriteDevelopment(ApiDiagnosticResult result) => Debug.WriteLine(
         $"[ApiDiagnostic]\nApp={result.App}\nEndpoint={result.Endpoint}\nBaseAddress={result.BaseAddress}\n" +
         $"ServerReached={result.ServerReached}\nStatusCode={result.StatusCode?.ToString() ?? "none"}\nErrorType={result.ErrorType}\n" +
+        $"Environment={result.Environment ?? "none"}\nDatabaseName={result.DatabaseName ?? "none"}\n" +
         $"CompanyId={result.CompanyId ?? "none"}\nBranchId={result.BranchId?.ToString() ?? "none"}\nFiscalYearId={result.FiscalYearId?.ToString() ?? "none"}\n" +
         $"AccountsCount={result.AccountsCount}\nCostCentersCount={result.CostCentersCount}\nCurrenciesCount={result.CurrenciesCount}\nPaymentMethodsCount={result.PaymentMethodsCount}\nOpenPeriodsCount={result.OpenPeriodsCount}");
 
