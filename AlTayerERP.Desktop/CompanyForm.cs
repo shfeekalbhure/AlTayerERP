@@ -261,7 +261,7 @@ namespace AlTayerERP.Desktop
                 var cellValue = dgvCompanies.Rows[e.RowIndex].Cells[0].Value;
                 if (cellValue == null) return;
 
-                _selectedCompanyId = cellValue.ToString();
+                _selectedCompanyId = cellValue.ToString() ?? string.Empty;
 
                 var company = await _client.GetFromJsonAsync<CompanyDetailsModel>($"{_baseUrl}Companies/{_selectedCompanyId}");
 

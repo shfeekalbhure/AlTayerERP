@@ -51,7 +51,7 @@ namespace AlTayerERP.Desktop
         //====================================
         // تحميل الشاشة
         //====================================
-        private async void FrmCostCenters_Load(object sender, EventArgs e)
+        private async void FrmCostCenters_Load(object? sender, EventArgs e)
         {
             try
             {
@@ -280,7 +280,7 @@ namespace AlTayerERP.Desktop
         //====================================
         // حفظ
         //====================================
-        private async void btnSave_Click(object sender, EventArgs e)
+        private async void btnSave_Click(object? sender, EventArgs e)
         {
             if (string.IsNullOrWhiteSpace(txtCostCenterNameAR.Text))
             {
@@ -319,7 +319,7 @@ namespace AlTayerERP.Desktop
         //====================================
         // تعديل
         //====================================
-        private async void btnEdit_Click(object sender, EventArgs e)
+        private async void btnEdit_Click(object? sender, EventArgs e)
         {
             if (string.IsNullOrWhiteSpace(_selectedCostCenterId))
             {
@@ -357,7 +357,7 @@ namespace AlTayerERP.Desktop
         //====================================
         // حذف
         //====================================
-        private async void btnDelete_Click(object sender, EventArgs e)
+        private async void btnDelete_Click(object? sender, EventArgs e)
         {
             if (string.IsNullOrWhiteSpace(_selectedCostCenterId))
             {
@@ -400,7 +400,7 @@ namespace AlTayerERP.Desktop
         //====================================
         // جديد وتحديث وإغلاق
         //====================================
-        private void btnNew_Click(object sender, EventArgs e)
+        private void btnNew_Click(object? sender, EventArgs e)
         {
             ClearForm();
         }

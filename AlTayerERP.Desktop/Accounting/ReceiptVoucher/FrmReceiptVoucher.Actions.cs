@@ -741,7 +741,7 @@ namespace AlTayerERP.Desktop
         // رسم محتويات صفحة الطباعة
         private void ReceiptPrintDocument_PrintPage(object? sender, PrintPageEventArgs e)
         {
-            Graphics graphics = e.Graphics;
+            Graphics graphics = e.Graphics ?? throw new InvalidOperationException("تعذر الحصول على سطح الرسم للطباعة.");
             Rectangle page = e.MarginBounds;
 
             // إنشاء الخطوط والأقلام وأدوات التنسيق بالنص العربي
@@ -767,7 +767,7 @@ namespace AlTayerERP.Desktop
 
             // طباعة رأس التقرير (اسم الشركة والعنوان)
             string companyName = string.IsNullOrWhiteSpace(CurrentSession.Company_Name)
-                ? "شركة الطائر السعيد للنقل" : CurrentSession.Company_Name;
+                ? "شركة الطائر السعيد للنقل" : CurrentSession.Company_Name!;
 
             graphics.DrawString(companyName, companyFont, Brushes.Black,
                 new RectangleF(page.Left, y, page.Width, 30), centerFormat);
