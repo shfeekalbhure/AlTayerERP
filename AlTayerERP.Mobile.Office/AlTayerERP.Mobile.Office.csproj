@@ -11,6 +11,12 @@
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
 
+		<!--
+		  XC0022 تنبيه أداء اختياري للربط المترجم في صفحات XAML الديناميكية.
+		  لا يمنع البناء، وسيُعالج تدريجيًا بإضافة x:DataType إلى ViewModels.
+		-->
+		<NoWarn>$(NoWarn);XC0022</NoWarn>
+
 		<ApplicationTitle>الطائر للبرمجيات</ApplicationTitle>
 		<ApplicationId>com.companyname.altayererp.mobile.office</ApplicationId>
 		<ApplicationDisplayVersion>1.0</ApplicationDisplayVersion>
