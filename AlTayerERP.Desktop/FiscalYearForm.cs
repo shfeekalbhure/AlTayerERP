@@ -67,7 +67,7 @@ private readonly HttpClient _client = ApiService.Client;
         // ======================================================
         // حدث تحميل الشاشة (Form Load)
         // ======================================================
-        private async void FiscalYearForm_Load(object sender, EventArgs e)
+        private async void FiscalYearForm_Load(object? sender, EventArgs e)
         {
             // تهيئة خيارات قائمة الحالة وتحديد الخيار الافتراضي "نشط"
             cmbStatus.Items.Clear();
@@ -158,7 +158,7 @@ private readonly HttpClient _client = ApiService.Client;
         // ======================================================
         // حدث النقر على صف في الجدول لنقل البيانات إلى حقول الإدخال
         // ======================================================
-        private void dgvFiscalYears_CellClick(object sender, DataGridViewCellEventArgs e)
+        private void dgvFiscalYears_CellClick(object? sender, DataGridViewCellEventArgs e)
         {
             if (e.RowIndex < 0) return;
 
@@ -186,7 +186,7 @@ private readonly HttpClient _client = ApiService.Client;
         // ======================================================
         // حدث زر "جديد" لتفريغ الحقول وتهيئة الواجهة للإضافة
         // ======================================================
-        private void btnNew_Click(object sender, EventArgs e)
+        private void btnNew_Click(object? sender, EventArgs e)
         {
             ClearFormFields();
             txtYearName.Focus();
@@ -247,7 +247,7 @@ private readonly HttpClient _client = ApiService.Client;
         // ======================================================
         // حدث زر "تعديل" لحفظ تعديلات سنة مالية محددة مسبقاً (btnEdit)
         // ======================================================
-        private async void btnEdit_Click(object sender, EventArgs e)
+        private async void btnEdit_Click(object? sender, EventArgs e)
         {
             if (_selectedFiscalYearId == 0)
             {
@@ -298,7 +298,7 @@ private readonly HttpClient _client = ApiService.Client;
         // ======================================================
         // حدث زر "حذف" لإزالة السنة المالية المحددة
         // ======================================================
-        private async void btnDelete_Click(object sender, EventArgs e)
+        private async void btnDelete_Click(object? sender, EventArgs e)
         {
             if (_selectedFiscalYearId == 0)
             {
@@ -355,7 +355,7 @@ private readonly HttpClient _client = ApiService.Client;
         // ======================================================
         // حدث زر "تحديث" لإعادة قراءة البيانات الطازجة من قاعدة البيانات
         // ======================================================
-        private async void btnRefresh_Click(object sender, EventArgs e)
+        private async void btnRefresh_Click(object? sender, EventArgs e)
         {
             await LoadFiscalYearsAsync();
         }
@@ -363,7 +363,7 @@ private readonly HttpClient _client = ApiService.Client;
         // ======================================================
         // حدث زر "إغلاق" لإنهاء الشاشة والعودة للقائمة الرئيسية
         // ======================================================
-        private void btnClose_Click(object sender, EventArgs e)
+        private void btnClose_Click(object? sender, EventArgs e)
         {
             this.Close();
         }
@@ -381,7 +381,7 @@ private readonly HttpClient _client = ApiService.Client;
         // ======================================================
         // 🖨️ حدث زر الطباعة المباشرة (btnPrint)
         // ======================================================
-        private void btnPrint_Click(object sender, EventArgs e)
+        private void btnPrint_Click(object? sender, EventArgs e)
         {
             PrintDialog printDialog = new PrintDialog();
             printDialog.Document = printDocument;
