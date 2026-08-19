@@ -1,6 +1,50 @@
-@AlTayerERP.API_HostAddress = http://localhost:5012
+@AlTayerERP_API_HostAddress = https://localhost:7021
+@Company_ID = REPLACE_WITH_COMPANY_ID
+@Branch_ID = 1
+@Year_ID = 1
+@Login_Name = REPLACE_WITH_LOGIN_NAME
+@Password = REPLACE_WITH_PASSWORD
+@Device_ID = desktop-local-test
 
-GET {{AlTayerERP.API_HostAddress}}/weatherforecast/
+### 1) الصحة: يجب أن تعيد 200 عند جاهزية API وقاعدة البيانات.
+GET {{AlTayerERP_API_HostAddress}}/api/health
 Accept: application/json
 
-###
+### 2) الدخول: لا يكتب هذا الملف كلمة مرور حقيقية.
+# انسخ Access_Token وRefresh_Token من الرد للاختبارات التالية.
+POST {{AlTayerERP_API_HostAddress}}/api/Auth/Login
+Content-Type: application/json
+
+{
+  "company_ID": "{{Company_ID}}",
+  "branch_ID": {{Branch_ID}},
+  "year_ID": {{Year_ID}},
+  "login_Name": "{{Login_Name}}",
+  "password": "{{Password}}",
+  "device_ID": "{{Device_ID}}"
+}
+
+### 3) سياق الجلسة: يستبدل ACCESS_TOKEN بالرمز الصادر من عملية الدخول.
+GET {{AlTayerERP_API_HostAddress}}/api/Auth/CurrentSession
+Authorization: Bearer ACCESS_TOKEN
+
+### 4) تجديد الرمز: يستبدل REFRESH_TOKEN بالرمز الصادر من عملية الدخول.
+POST {{AlTayerERP_API_HostAddress}}/api/Auth/Refresh
+Content-Type: application/json
+
+{
+  "refresh_Token": "REFRESH_TOKEN",
+  "device_ID": "{{Device_ID}}"
+}
+
+### 5) الخروج: يجب أن يبطل رمز الوصول ورموز التجديد التابعة للجلسة.
+POST {{AlTayerERP_API_HostAddress}}/api/Auth/Logout
+Authorization: Bearer ACCESS_TOKEN
+
+### 6) التحقق بعد الخروج: نفس ACCESS_TOKEN يجب أن يعيد 401.
+GET {{AlTayerERP_API_HostAddress}}/api/Auth/CurrentSession
+Authorization: Bearer ACCESS_TOKEN
+
+### 7) قفل الحساب: نفذ طلب دخول بكلمة مرور خاطئة خمس مرات خلال 15 دقيقة.
+# النتيجة المتوقعة: جميع الردود 401 عامة، ويظهر ACCOUNT_LOCKED في login_attempts
+# من دون كشفه للعميل؛ يفتح الحساب تلقائياً بعد 15 دقيقة أو بإجراء إداري موثق.

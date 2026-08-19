@@ -8,17 +8,34 @@ using System.Net.Http.Json;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using Microsoft.VisualBasic.FileIO;
 using AlTayerERP.Desktop.Services;
+using AlTayerERP.Desktop.Common;
 
 namespace AlTayerERP.Desktop
 {
-    public partial class BranchForm : Form
+    public partial class BranchForm : BaseForm
     {
         private readonly HttpClient _client = ApiService.Client;
         private readonly string _baseUrl = ApiService.BaseUrl;
 
         private int _selectedBranchId = 0;
         private List<BranchListModel> _branchesList = new List<BranchListModel>();
+        private List<BranchTypeLookupModel> _branchTypes = new List<BranchTypeLookupModel>();
+        private List<CityLookupModel> _cities = new List<CityLookupModel>();
+        private List<CountryLookupModel> _countries = new List<CountryLookupModel>();
+        private List<GovernorateLookupModel> _governorates = new List<GovernorateLookupModel>();
+        private readonly ComboBox cmbCountry = new ComboBox();
+        private readonly ComboBox cmbGovernorate = new ComboBox();
+        private readonly Label lblCountry = new Label();
+        private readonly Label lblGovernorate = new Label();
+        private bool _isLoadingGeography;
+        private int _defaultCurrencyId;
+        // يمنع إعادة تحميل الجدول أثناء تعبئة قائمة الشركات عند فتح الشاشة.
+        private bool _isLoadingCompanies;
+
+        // يمنع تكرار رسالة الفشل نفسها أثناء إعادة التحميل أو تغيير الشركة.
+        private readonly HashSet<string> _shownLookupWarnings = new HashSet<string>();
 
         // كائنات نظام الطباعة والمعاينة
         private System.Drawing.Printing.PrintDocument printDocument = new System.Drawing.Printing.PrintDocument();
@@ -28,19 +45,86 @@ namespace AlTayerERP.Desktop
         public BranchForm()
         {
             InitializeComponent();
+            // يرث القالب المرئي الموحد من BaseForm دون نقل قواعد الحفظ أو التدقيق إلى الواجهة.
+            ApplyBaseFormStyle();
+            CreateGeographySelectors();
+            // تعريف الحقول الإلزامية مرة واحدة؛ الخدمة الموحدة تتولى اللون والتحقق والرسالة.
+            ApplyRequiredFieldStyle(cmbCompanies, txtBranchNameAr, cmbBranchType, cmbCountry, cmbGovernorate, cmbCity);
+            ConfigureBranchEditorLayout();
 
             // توحيد شكل الشاشة القديمة والاختصارات العربية دون تغيير منطقها.
-this.Load -= BranchForm_Load;
+            this.Load -= BranchForm_Load;
             this.Load += BranchForm_Load;
+            cmbCompanies.SelectedValueChanged += cmbCompanies_SelectedValueChanged;
+            cmbCity.SelectedValueChanged += cmbCity_SelectedValueChanged;
+            cmbParentBranch.DropDown += cmbParentBranch_DropDown;
             printDocument.PrintPage += PrintDocument_PrintPage;
         }
 
-        private async void BranchForm_Load(object sender, EventArgs e)
+        /// <summary>يضبط حقول الاتصال والإدارة دون تلوين أو منطق مكرر داخل الشاشة.</summary>
+        private void ConfigureBranchEditorLayout()
+        {
+            cmbManager.FlatStyle = FlatStyle.Flat;
+            cmbManager.Width = 138;
+            txtPhone.Width = 112;
+            txtMobile.Width = 112;
+            txtEmail.Width = 112;
+            txtWebsite.Width = 112;
+            cmbCity.Location = new Point(756, 171);
+            label15.Location = new Point(670, 174);
+        }
+
+        /// <summary>إنشاء سلاسل الموقع: الدولة ثم المحافظة ثم المدينة.</summary>
+        private void CreateGeographySelectors()
+        {
+            ConfigureGeographyCombo(cmbCountry, "cmbCountry", new Point(756, 99));
+            ConfigureGeographyCombo(cmbGovernorate, "cmbGovernorate", new Point(756, 135));
+            ConfigureGeographyLabel(lblCountry, "lblCountry", "الدولة", new Point(680, 102));
+            ConfigureGeographyLabel(lblGovernorate, "lblGovernorate", "المحافظة", new Point(660, 138));
+
+            Controls.Add(cmbCountry);
+            Controls.Add(cmbGovernorate);
+            Controls.Add(lblCountry);
+            Controls.Add(lblGovernorate);
+            cmbCountry.BringToFront();
+            cmbGovernorate.BringToFront();
+            lblCountry.BringToFront();
+            lblGovernorate.BringToFront();
+
+            cmbCountry.SelectedValueChanged += cmbCountry_SelectedValueChanged;
+            cmbGovernorate.SelectedValueChanged += cmbGovernorate_SelectedValueChanged;
+        }
+
+        private static void ConfigureGeographyCombo(ComboBox combo, string name, Point location)
+        {
+            combo.Name = name;
+            combo.DropDownStyle = ComboBoxStyle.DropDownList;
+            combo.FlatStyle = FlatStyle.Flat;
+            combo.Location = location;
+            combo.Size = new Size(152, 33);
+        }
+
+        private static void ConfigureGeographyLabel(Label label, string name, string text, Point location)
+        {
+            label.Name = name;
+            label.Text = text;
+            label.AutoSize = true;
+            label.Location = location;
+        }
+
+        private void ShowLookupWarningOnce(string key, string message, string title, MessageBoxIcon icon = MessageBoxIcon.Warning)
+        {
+            if (_shownLookupWarnings.Add(key))
+                MessageBox.Show(message, title, MessageBoxButtons.OK, icon);
+        }
+
+        private async void BranchForm_Load(object? sender, EventArgs e)
         {
             SetupBranchesGrid();
-            FillBranchTypes();
+            ClearBranchTypes();
             InitializeStatusComboBox();
             await LoadCompaniesAsync();
+            await LoadCountriesAsync();
             await LoadBranchesAsync();
         }
 
@@ -49,39 +133,124 @@ this.Load -= BranchForm_Load;
             cmbStatus.Items.Clear();
             cmbStatus.Items.Add("نشط");
             cmbStatus.Items.Add("موقوف");
+            // الحالة للعرض فقط؛ تغييرها يمر حصراً عبر عمليتي الإيقاف وإعادة التفعيل المدققتين.
+            cmbStatus.Enabled = false;
+            cmbStatus.TabStop = false;
             // [تصحيح] التعيين عبر SelectedItem لضمان عدم رجوع الكومبو بوكس بـ Null
             cmbStatus.SelectedItem = "نشط";
         }
 
-        private void FillBranchTypes()
+        private void ClearBranchTypes()
         {
+            cmbBranchType.DataSource = null;
             cmbBranchType.Items.Clear();
-            cmbBranchType.Items.AddRange(new string[] { "رئيسي", "فرعي", "نقطة توزيع", "مستودع" });
             cmbBranchType.SelectedIndex = -1;
+        }
+
+        /// <summary>تحميل كل قائمة مستقلة كي تظهر للمستخدم رسالة تخص المنسدلة التي تعذر تحميلها فقط.</summary>
+        private async Task LoadBranchReferenceDataAsync(string? companyId)
+        {
+            ClearBranchTypes();
+            _defaultCurrencyId = 0;
+            if (string.IsNullOrWhiteSpace(companyId)) return;
+
+            await LoadBranchTypesAsync();
+            await LoadCompanyCurrenciesAsync(companyId);
+        }
+
+        /// <summary>تحميل قائمة أنواع الفروع فقط.</summary>
+        private async Task LoadBranchTypesAsync()
+        {
+            try
+            {
+                _branchTypes = await _client.GetFromJsonAsync<List<BranchTypeLookupModel>>(
+                    $"{_baseUrl}branch-reference-lookups/branch-types") ?? new List<BranchTypeLookupModel>();
+                cmbBranchType.DataSource = _branchTypes;
+                cmbBranchType.DisplayMember = nameof(BranchTypeLookupModel.Branch_Type_Name_AR);
+                cmbBranchType.ValueMember = nameof(BranchTypeLookupModel.Branch_Type_Code);
+                cmbBranchType.SelectedIndex = -1;
+                if (_branchTypes.Count == 0)
+                    ShowLookupWarningOnce("branch-types-empty", "لا توجد أنواع فروع نشطة. أضف نوع فرع أو فعّله ثم أعد المحاولة.", "قائمة أنواع الفروع");
+            }
+            catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+            {
+                ShowLookupWarningOnce("branch-types-not-found", "تعذر تحميل قائمة أنواع الفروع لأن خدمة أنواع الفروع غير موجودة في API المشغّل. حدّث API ثم أعد تشغيله.", "قائمة أنواع الفروع");
+            }
+            catch (Exception)
+            {
+                ShowLookupWarningOnce("branch-types-error", "تعذر تحميل قائمة أنواع الفروع. تحقق من اتصال API ثم أعد المحاولة.", "قائمة أنواع الفروع");
+            }
+        }
+
+        /// <summary>تحميل عملات الشركة المختارة فقط، واختيار العملة الافتراضية تلقائياً.</summary>
+        private async Task LoadCompanyCurrenciesAsync(string companyId)
+        {
+            try
+            {
+                var currencies = await _client.GetFromJsonAsync<List<CurrencyLookupModel>>(
+                    $"{_baseUrl}branch-reference-lookups/currencies?companyId={Uri.EscapeDataString(companyId)}") ?? new List<CurrencyLookupModel>();
+                var currency = currencies.FirstOrDefault(x => x.Is_Default)
+                    ?? currencies.FirstOrDefault(x => x.Is_Local_Currency)
+                    ?? currencies.FirstOrDefault();
+                _defaultCurrencyId = currency?.Currency_ID ?? 0;
+                if (_defaultCurrencyId <= 0)
+                    ShowLookupWarningOnce("currencies-empty", "لا توجد عملة نشطة للشركة المختارة. أضف عملة افتراضية للشركة ثم أعد المحاولة.", "قائمة عملات الشركة");
+            }
+            catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+            {
+                ShowLookupWarningOnce("currencies-not-found", "تعذر تحميل قائمة عملات الشركة لأن الشركة أو خدمة العملات غير موجودة في API المشغّل.", "قائمة عملات الشركة");
+            }
+            catch (Exception)
+            {
+                ShowLookupWarningOnce("currencies-error", "تعذر تحميل قائمة عملات الشركة. تحقق من اتصال API ثم أعد المحاولة.", "قائمة عملات الشركة");
+            }
         }
 
         private async Task LoadCompaniesAsync()
         {
             try
             {
+                _isLoadingCompanies = true;
                 var companies = await _client.GetFromJsonAsync<List<CompanyLookupModel>>($"{_baseUrl}Branches/GetCompaniesLookup");
+                if (companies is null || companies.Count == 0)
+                {
+                    cmbCompanies.DataSource = null;
+                    ShowLookupWarningOnce("companies-empty", "لا توجد شركات نشطة متاحة. فعّل شركة أولاً ثم أعد فتح شاشة الفروع.", "قائمة الشركات");
+                    return;
+                }
+
                 cmbCompanies.DataSource = companies;
                 cmbCompanies.DisplayMember = "Company_Name_AR";
                 cmbCompanies.ValueMember = "Company_ID";
 
+                // سياق الجلسة هو الاختيار الابتدائي فقط؛ مدير النظام يستطيع اختيار شركة أخرى من القائمة.
                 cmbCompanies.SelectedValue = CurrentSession.Company_ID;
+                await LoadBranchReferenceDataAsync(cmbCompanies.SelectedValue?.ToString());
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                MessageBox.Show("فشل تحميل الشركات:\n" + ex.Message);
+                ShowLookupWarningOnce("companies-error", "تعذر تحميل قائمة الشركات. تحقق من اتصال API ثم أعد المحاولة.", "قائمة الشركات");
+            }
+            finally
+            {
+                _isLoadingCompanies = false;
             }
         }
 
-        private async Task LoadBranchesAsync()
+        private async Task LoadBranchesAsync(string? companyId = null)
         {
             try
             {
-                var branches = await _client.GetFromJsonAsync<List<BranchListModel>>($"{_baseUrl}Branches?companyId={CurrentSession.Company_ID}");
+                // لا يعتمد تحميل الفروع على قيمة قديمة من CurrentSession بعد تغيير الشركة في الواجهة.
+                var selectedCompanyId = companyId ?? cmbCompanies.SelectedValue?.ToString() ?? CurrentSession.Company_ID;
+                if (string.IsNullOrWhiteSpace(selectedCompanyId))
+                {
+                    _branchesList = new List<BranchListModel>();
+                    FillBranchesGrid(_branchesList);
+                    return;
+                }
+
+                var branches = await _client.GetFromJsonAsync<List<BranchListModel>>($"{_baseUrl}Branches?companyId={Uri.EscapeDataString(selectedCompanyId)}");
                 _branchesList = branches ?? new List<BranchListModel>();
                 FillBranchesGrid(_branchesList);
                 PopulateParentBranchComboBox();
@@ -92,14 +261,134 @@ this.Load -= BranchForm_Load;
             }
         }
 
+        /// <summary>تحميل الدول أولاً؛ لا تصبح المحافظة والمدينة متاحتين قبل اختيارها.</summary>
+        private async Task LoadCountriesAsync()
+        {
+            try
+            {
+                _countries = await _client.GetFromJsonAsync<List<CountryLookupModel>>(
+                    $"{_baseUrl}GeographicReferences/countries?activeOnly=true") ?? new List<CountryLookupModel>();
+                cmbCountry.DataSource = _countries;
+                cmbCountry.DisplayMember = nameof(CountryLookupModel.Country_Name_AR);
+                cmbCountry.ValueMember = nameof(CountryLookupModel.Country_ID);
+                cmbCountry.SelectedIndex = -1;
+                ClearGovernoratesAndCities();
+                if (_countries.Count == 0)
+                    ShowLookupWarningOnce("countries-empty", "لا توجد دول نشطة. أضف دولة أو فعّلها ثم أعد المحاولة.", "قائمة الدول");
+            }
+            catch
+            {
+                ShowLookupWarningOnce("countries-error", "تعذر تحميل قائمة الدول. تحقق من اتصال API ثم أعد المحاولة.", "قائمة الدول");
+            }
+        }
+
+        private async void cmbCountry_SelectedValueChanged(object? sender, EventArgs e)
+        {
+            if (_isLoadingGeography || cmbCountry.SelectedValue is not int countryId)
+                return;
+
+            await LoadGovernoratesAsync(countryId);
+        }
+
+        private async Task LoadGovernoratesAsync(int countryId)
+        {
+            try
+            {
+                _governorates = await _client.GetFromJsonAsync<List<GovernorateLookupModel>>(
+                    $"{_baseUrl}GeographicReferences/governorates?countryId={countryId}&activeOnly=true") ?? new List<GovernorateLookupModel>();
+                cmbGovernorate.DataSource = _governorates;
+                cmbGovernorate.DisplayMember = nameof(GovernorateLookupModel.Governorate_Name_AR);
+                cmbGovernorate.ValueMember = nameof(GovernorateLookupModel.Governorate_ID);
+                cmbGovernorate.SelectedIndex = -1;
+                ClearCities();
+                if (_governorates.Count == 0)
+                    ShowLookupWarningOnce("governorates-empty", "لا توجد محافظات نشطة داخل الدولة المختارة.", "قائمة المحافظات");
+            }
+            catch
+            {
+                ShowLookupWarningOnce("governorates-error", "تعذر تحميل قائمة المحافظات. تحقق من اتصال API ثم أعد المحاولة.", "قائمة المحافظات");
+            }
+        }
+
+        private async void cmbGovernorate_SelectedValueChanged(object? sender, EventArgs e)
+        {
+            if (_isLoadingGeography || cmbGovernorate.SelectedValue is not int governorateId)
+                return;
+
+            await LoadCitiesAsync(governorateId);
+        }
+
+        private async Task LoadCitiesAsync(int governorateId)
+        {
+            try
+            {
+                _cities = await _client.GetFromJsonAsync<List<CityLookupModel>>(
+                    $"{_baseUrl}GeographicReferences/cities?governorateId={governorateId}&activeOnly=true") ?? new List<CityLookupModel>();
+                cmbCity.DataSource = _cities;
+                cmbCity.DisplayMember = nameof(CityLookupModel.City_Name_AR);
+                cmbCity.ValueMember = nameof(CityLookupModel.City_ID);
+                cmbCity.SelectedIndex = -1;
+                if (_cities.Count == 0)
+                    ShowLookupWarningOnce("cities-empty", "لا توجد مدن نشطة داخل المحافظة المختارة.", "قائمة المدن");
+            }
+            catch
+            {
+                ShowLookupWarningOnce("cities-error", "تعذر تحميل قائمة المدن. تحقق من اتصال API ثم أعد المحاولة.", "قائمة المدن");
+            }
+        }
+
+        private void ClearGovernoratesAndCities()
+        {
+            cmbGovernorate.DataSource = null;
+            cmbGovernorate.Items.Clear();
+            ClearCities();
+        }
+
+        private void ClearCities()
+        {
+            cmbCity.DataSource = null;
+            cmbCity.Items.Clear();
+        }
+
+        /// <summary>يحمّل فروع الشركة المحددة فقط، ولا يغيّر سياق الجلسة أو صلاحياتها.</summary>
+        private async void cmbCompanies_SelectedValueChanged(object? sender, EventArgs e)
+        {
+            if (_isLoadingCompanies || cmbCompanies.SelectedValue is null)
+                return;
+
+            var companyId = cmbCompanies.SelectedValue.ToString();
+            await LoadBranchReferenceDataAsync(companyId);
+            await LoadBranchesAsync(companyId);
+            _selectedBranchId = 0;
+        }
+
         private void PopulateParentBranchComboBox()
         {
-            var parentBranches = _branchesList.Where(b => b.Branch_Type == "رئيسي").ToList();
+            var parentBranches = _branchesList
+                .Where(b => b.Is_Active && b.Branch_ID != _selectedBranchId && IsEligibleParentBranchType(b.Branch_Type))
+                .ToList();
             cmbParentBranch.DataSource = null;
             cmbParentBranch.DataSource = parentBranches;
             cmbParentBranch.DisplayMember = "Branch_Name";
             cmbParentBranch.ValueMember = "Branch_ID";
             cmbParentBranch.SelectedIndex = -1;
+        }
+
+        /// <summary>الفرع الأب لا يكون إلا فرعاً رئيسياً أو فرعاً ضمن الشركة نفسها.</summary>
+        private static bool IsEligibleParentBranchType(string? branchType)
+        {
+            var normalized = (branchType ?? string.Empty).Trim();
+            return normalized.Equals("فرع رئيسي", StringComparison.OrdinalIgnoreCase)
+                || normalized.Equals("فرع", StringComparison.OrdinalIgnoreCase)
+                || normalized.Equals("MAIN", StringComparison.OrdinalIgnoreCase)
+                || normalized.Equals("BRANCH", StringComparison.OrdinalIgnoreCase);
+        }
+
+        /// <summary>رسالة خاصة بقائمة الفرع الأب عند عدم وجود فرع مؤهل ضمن الشركة المختارة.</summary>
+        private void cmbParentBranch_DropDown(object? sender, EventArgs e)
+        {
+            if (cmbParentBranch.Items.Count == 0)
+                ShowLookupWarningOnce("parent-branch-empty", "لا يوجد فرع أب نشط من نوع «فرع رئيسي» أو «فرع» ضمن الشركة المختارة.", "قائمة الفرع الأب", MessageBoxIcon.Information);
         }
 
         private void SetupBranchesGrid()
@@ -165,6 +454,10 @@ this.Load -= BranchForm_Load;
             cmbCompanies.SelectedValue = CurrentSession.Company_ID;
             cmbBranchType.SelectedIndex = -1;
             cmbParentBranch.SelectedIndex = -1;
+            _isLoadingGeography = true;
+            cmbCountry.SelectedIndex = -1;
+            ClearGovernoratesAndCities();
+            _isLoadingGeography = false;
             cmbManager.SelectedIndex = -1;
 
             cmbStatus.SelectedItem = "نشط";
@@ -174,7 +467,7 @@ this.Load -= BranchForm_Load;
             txtBranchNameAr.Focus();
         }
 
-        private async void btnSaveBranch_Click(object sender, EventArgs e)
+        private async void btnSaveBranch_Click(object? sender, EventArgs e)
         {
             if (!ValidateForm()) return;
 
@@ -202,15 +495,34 @@ this.Load -= BranchForm_Load;
 
         private bool ValidateForm()
         {
-            if (cmbCompanies.SelectedValue == null)
+            if (!ValidateRequiredField(cmbCompanies, "اختر الشركة التابعة."))
+                return false;
+
+            if (!ValidateRequiredField(txtBranchNameAr, "أدخل اسم الفرع بالعربي."))
+                return false;
+
+            if (!ValidateRequiredField(cmbBranchType, "اختر نوع الفرع."))
+                return false;
+
+            if (!ValidateRequiredField(cmbCountry, "اختر الدولة."))
+                return false;
+
+            if (!ValidateRequiredField(cmbGovernorate, "اختر المحافظة."))
+                return false;
+
+            if (!ValidateRequiredField(cmbCity, "اختر المدينة من القائمة."))
+                return false;
+
+            if (cmbParentBranch.SelectedValue is not null &&
+                Convert.ToInt32(cmbParentBranch.SelectedValue) == _selectedBranchId)
             {
-                MessageBox.Show("يرجى اختيار الشركة التابعة.");
+                MessageBox.Show("لا يجوز اختيار الفرع نفسه كفرع أب.");
                 return false;
             }
 
-            if (string.IsNullOrWhiteSpace(txtBranchNameAr.Text))
+            if (_defaultCurrencyId <= 0)
             {
-                MessageBox.Show("يرجى إدخال اسم الفرع بالعربي.");
+                MessageBox.Show("لا توجد عملة نشطة للشركة المختارة. أضف عملة افتراضية ثم أعد المحاولة.");
                 return false;
             }
 
@@ -228,6 +540,7 @@ this.Load -= BranchForm_Load;
                 Address = txtLocation.Text.Trim(),
                 Branch_Type = cmbBranchType.Text.Trim(),
                 Parent_Branch_ID = cmbParentBranch.SelectedValue != null ? (int?)Convert.ToInt32(cmbParentBranch.SelectedValue) : null,
+                City_ID = cmbCity.SelectedValue != null ? Convert.ToInt32(cmbCity.SelectedValue) : (int?)null,
                 Manager_Name = cmbManager.Text.Trim(),
                 Phone = txtPhone.Text.Trim(),
                 Mobile = txtMobile.Text.Trim(),
@@ -240,16 +553,16 @@ this.Load -= BranchForm_Load;
                 // [تصحيح الثغرة لحماية الحفظ]: فحص مزدوج قوي يمنع خطأ الـ Null النصي
                 Is_Active = cmbStatus.SelectedItem?.ToString() == "نشط" || cmbStatus.Text.Trim() == "نشط",
 
-                Currency_ID = 1
+                Currency_ID = _defaultCurrencyId
             };
         }
 
-        private void btnNew_Click(object sender, EventArgs e)
+        private void btnNew_Click(object? sender, EventArgs e)
         {
             ClearFormControls();
         }
 
-        private async void btnRefresh_Click(object sender, EventArgs e)
+        private async void btnRefresh_Click(object? sender, EventArgs e)
         {
             try
             {
@@ -263,7 +576,7 @@ this.Load -= BranchForm_Load;
             }
         }
 
-        private void btnSearch_Click(object sender, EventArgs e)
+        private void btnSearch_Click(object? sender, EventArgs e)
         {
             string keyword = Microsoft.VisualBasic.Interaction.InputBox(
                 "أدخل اسم الفرع أو كود الفرع للبحث:",
@@ -285,7 +598,7 @@ this.Load -= BranchForm_Load;
             FillBranchesGrid(result);
         }
 
-        private async void btnEdit_Click(object sender, EventArgs e)
+        private async void btnEdit_Click(object? sender, EventArgs e)
         {
             if (_selectedBranchId <= 0)
             {
@@ -301,7 +614,7 @@ this.Load -= BranchForm_Load;
                 {
                     MessageBox.Show("تم تعديل بيانات الفرع بنجاح.");
                     await LoadBranchesAsync();
-                    UpdateFormWithSelectedBranch(); // إعادة تعبئة الحقول والاحتفاظ بالسجل الحالي دون وهم الحذف
+                    await UpdateFormWithSelectedBranchAsync();
                 }
                 else
                 {
@@ -315,8 +628,51 @@ this.Load -= BranchForm_Load;
             }
         }
 
-        // [تعديل] تحديث الدالة لتعتمد كلياً على التخصيص الاحترافي SelectedItem للحالة ومنع سقوط حقل تابع لفرع
-        private void UpdateFormWithSelectedBranch()
+        /// <summary>يجلب الموقع الجغرافي الذي لا يظهر في قائمة الجدول المختصرة.</summary>
+        private async Task LoadBranchGeographyAsync(int branchId)
+        {
+            try
+            {
+                var geography = await _client.GetFromJsonAsync<BranchGeographyModel>($"{_baseUrl}branch-geography/{branchId}");
+                if (geography?.Country_ID is not int countryId || geography.Governorate_ID is not int governorateId)
+                {
+                    ClearGovernoratesAndCities();
+                    return;
+                }
+
+                _isLoadingGeography = true;
+                try
+                {
+                    cmbCountry.SelectedValue = countryId;
+                    await LoadGovernoratesAsync(countryId);
+                    cmbGovernorate.SelectedValue = governorateId;
+                    await LoadCitiesAsync(governorateId);
+                    cmbCity.SelectedValue = geography.City_ID ?? -1;
+                    if (cmbCity.SelectedIndex < 0) cmbCity.SelectedIndex = -1;
+                }
+                finally
+                {
+                    _isLoadingGeography = false;
+                }
+            }
+            catch (Exception ex)
+            {
+                cmbCity.SelectedIndex = -1;
+                MessageBox.Show("تعذر تحميل مدينة الفرع:\n" + ex.Message, "الفروع", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
+        }
+
+        /// <summary>عند اختيار المدينة تحفظ الدولة والمحافظة التابعة لها تلقائياً في الخادم.</summary>
+        private void cmbCity_SelectedValueChanged(object? sender, EventArgs e)
+        {
+            if (cmbCity.SelectedValue is not int cityId) return;
+            var city = _cities.FirstOrDefault(x => x.City_ID == cityId);
+            if (city != null && string.IsNullOrWhiteSpace(txtLocation.Text))
+                txtLocation.Text = city.City_Name_AR;
+        }
+
+        // تعبئة جميع الحقول عند النقر على صف، بما فيها القوائم المنسدلة والموقع.
+        private async Task UpdateFormWithSelectedBranchAsync()
         {
             var branch = _branchesList.FirstOrDefault(x => x.Branch_ID == _selectedBranchId);
             if (branch != null)
@@ -325,7 +681,11 @@ this.Load -= BranchForm_Load;
                 txtBranchNameAr.Text = branch.Branch_Name ?? "";
                 txtBranchNameEn.Text = branch.Branch_Name_EN ?? "";
                 txtLocation.Text = branch.Address ?? "";
-                cmbBranchType.Text = branch.Branch_Type ?? "";
+                var branchType = _branchTypes.FirstOrDefault(x =>
+                    string.Equals(x.Branch_Type_Name_AR, branch.Branch_Type, StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(x.Branch_Type_Code, branch.Branch_Type, StringComparison.OrdinalIgnoreCase));
+                cmbBranchType.SelectedValue = branchType?.Branch_Type_Code;
+                if (cmbBranchType.SelectedIndex < 0) cmbBranchType.Text = branch.Branch_Type ?? "";
 
                 // التثبيت بـ SelectedItem لحماية الحالة
                 cmbStatus.SelectedItem = branch.Is_Active ? "نشط" : "موقوف";
@@ -337,6 +697,7 @@ this.Load -= BranchForm_Load;
                 txtEmail.Text = branch.Email ?? "";
                 txtNotes.Text = branch.Notes ?? "";
 
+                PopulateParentBranchComboBox();
                 if (branch.Parent_Branch_ID.HasValue)
                     cmbParentBranch.SelectedValue = branch.Parent_Branch_ID.Value;
                 else
@@ -344,23 +705,28 @@ this.Load -= BranchForm_Load;
 
                 chkAllowCredit.Checked = branch.Allow_Credit;
                 chkAllowPercentage.Checked = branch.Allow_Percentage;
+                await LoadBranchGeographyAsync(branch.Branch_ID);
             }
         }
 
 
         
         // ربط حدث النقر بالدالة المنظمة التي أنشأتها لإعادة التوزيع
-        private void dgvBranches_CellClick(object sender, DataGridViewCellEventArgs e)
+        private async void dgvBranches_CellClick(object? sender, DataGridViewCellEventArgs e)
         {
             if (e.RowIndex < 0) return;
 
             var row = dgvBranches.Rows[e.RowIndex];
             _selectedBranchId = Convert.ToInt32(row.Cells["Branch_ID"].Value);
 
-            UpdateFormWithSelectedBranch();
+            await UpdateFormWithSelectedBranchAsync();
         }
 
-        private async void btnDelete_Click(object sender, EventArgs e)
+        /// <summary>
+        /// إيقاف الفرع بدلاً من حذفه فعلياً. يرسل السبب فقط، بينما يملأ الخادم
+        /// المستخدم والتاريخ وسجل التدقيق من الجلسة الموثوقة.
+        /// </summary>
+        private async void btnDelete_Click(object? sender, EventArgs e)
         {
             if (_selectedBranchId <= 0)
             {
@@ -368,75 +734,109 @@ this.Load -= BranchForm_Load;
                 return;
             }
 
-            var confirm = MessageBox.Show(
-                "هل أنت متأكد من حذف هذا الفرع؟",
-                "تأكيد الحذف",
-                MessageBoxButtons.YesNo,
-                MessageBoxIcon.Question);
+            var reason = Microsoft.VisualBasic.Interaction.InputBox(
+                "أدخل سبب إيقاف الفرع (حقل إلزامي للتدقيق):",
+                "إيقاف الفرع",
+                string.Empty).Trim();
 
-            if (confirm != DialogResult.Yes)
+            if (string.IsNullOrWhiteSpace(reason))
+            {
+                MessageBox.Show("لا يمكن إيقاف الفرع دون سبب.");
                 return;
+            }
 
             try
             {
-                var response = await _client.DeleteAsync($"{_baseUrl}Branches/{_selectedBranchId}");
+                using var request = new HttpRequestMessage(HttpMethod.Delete, $"{_baseUrl}Branches/{_selectedBranchId}")
+                {
+                    Content = JsonContent.Create(new { Reason = reason })
+                };
+                var response = await _client.SendAsync(request);
                 if (response.IsSuccessStatusCode)
                 {
-                    MessageBox.Show("تم حذف الفرع بنجاح.");
+                    MessageBox.Show("تم إيقاف الفرع دون حذف تاريخه.");
                     ClearFormControls();
                     await LoadBranchesAsync();
                 }
                 else
                 {
-                    string error = await response.Content.ReadAsStringAsync();
-                    MessageBox.Show("فشل الحذف:\n" + error);
+                    MessageBox.Show("فشل إيقاف الفرع:\n" + await response.Content.ReadAsStringAsync());
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show("خطأ أثناء الحذف:\n" + ex.Message);
+                MessageBox.Show("خطأ أثناء إيقاف الفرع:\n" + ex.Message);
             }
         }
 
-        // لوجستيات الاعتماد والموافقة الفورية
+        // إعادة التفعيل والإيقاف عمليتان صريحتان، وليستا تعديل Is_Active داخل PUT العام.
         private async Task ApproveOrUnapproveBranch(bool activate)
         {
             if (_selectedBranchId <= 0)
             {
-                MessageBox.Show(activate ? "يرجى تحديد الفرع المراد اعتماده وتنشيطه من الجدول أولاً." : "يرجى تحديد الفرع المراد تجميده وإلغاء اعتماده من الجدول.");
+                MessageBox.Show("يرجى تحديد فرع من الجدول أولاً.");
+                return;
+            }
+
+            var actionName = activate ? "إعادة تفعيل" : "إيقاف";
+            var reason = Microsoft.VisualBasic.Interaction.InputBox(
+                $"أدخل سبب {actionName} الفرع (حقل إلزامي للتدقيق):",
+                actionName + " الفرع",
+                string.Empty).Trim();
+
+            if (string.IsNullOrWhiteSpace(reason))
+            {
+                MessageBox.Show($"لا يمكن تنفيذ {actionName} دون سبب.");
                 return;
             }
 
             try
             {
-                cmbStatus.SelectedItem = activate ? "نشط" : "موقوف";
-                var branchData = BuildBranchRequest();
-                var response = await _client.PutAsJsonAsync($"{_baseUrl}Branches/{_selectedBranchId}", branchData);
+                HttpResponseMessage response;
+                if (activate)
+                {
+                    response = await _client.PostAsJsonAsync(
+                        $"{_baseUrl}Branches/{_selectedBranchId}/reactivate",
+                        new { Reason = reason });
+                }
+                else
+                {
+                    using var request = new HttpRequestMessage(HttpMethod.Delete, $"{_baseUrl}Branches/{_selectedBranchId}")
+                    {
+                        Content = JsonContent.Create(new { Reason = reason })
+                    };
+                    response = await _client.SendAsync(request);
+                }
 
                 if (response.IsSuccessStatusCode)
                 {
-                    MessageBox.Show(activate ? "تم اعتماد وتنشيط الفرع المحدد بنجاح في النظام." : "تم تجميد وإلغاء اعتماد الفرع المحدد بنجاح.");
+                    MessageBox.Show($"تم {actionName} الفرع بنجاح.");
                     await LoadBranchesAsync();
+                    await UpdateFormWithSelectedBranchAsync();
+                }
+                else
+                {
+                    MessageBox.Show($"فشل {actionName} الفرع:\n" + await response.Content.ReadAsStringAsync());
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show("خطأ أثناء معالجة حالة الاعتماد: " + ex.Message);
+                MessageBox.Show($"خطأ أثناء {actionName} الفرع: " + ex.Message);
             }
         }
 
-        private async void btnApprove_Click(object sender, EventArgs e) => await ApproveOrUnapproveBranch(activate: true);
-        private async void btnUnApprove_Click(object sender, EventArgs e) => await ApproveOrUnapproveBranch(activate: false);
-        private void btnClose_Click(object sender, EventArgs e) => Close();
+        private async void btnApprove_Click(object? sender, EventArgs e) => await ApproveOrUnapproveBranch(activate: true);
+        private async void btnUnApprove_Click(object? sender, EventArgs e) => await ApproveOrUnapproveBranch(activate: false);
+        private void btnClose_Click(object? sender, EventArgs e) => Close();
 
         // أزرار الطباعة والمعاينة والتصدير
-        private void btnPrint_Click(object sender, EventArgs e)
+        private void btnPrint_Click(object? sender, EventArgs e)
         {
             _printRowIndex = 0;
             printDocument.Print();
         }
 
-        private void btnPreview_Click(object sender, EventArgs e)
+        private void btnPreview_Click(object? sender, EventArgs e)
         {
             _printRowIndex = 0;
             printPreviewDialog.Document = printDocument;
@@ -444,7 +844,7 @@ this.Load -= BranchForm_Load;
             printPreviewDialog.ShowDialog();
         }
 
-        private void btnExport_Click(object sender, EventArgs e)
+        private void btnExport_Click(object? sender, EventArgs e)
         {
             try
             {
@@ -473,9 +873,181 @@ this.Load -= BranchForm_Load;
             }
         }
 
-        private void btnImport_Click(object sender, EventArgs e) => MessageBox.Show("يرجى تحديد ملف الإكسل (CSV) المعتمد لاستيراد الفروع دفعة واحدة.", "استيراد البيانات", MessageBoxButtons.OK, MessageBoxIcon.Asterisk);
+        /// <summary>
+        /// استيراد فروع من ملف CSV. يجب أن تكون الأعمدة بالترتيب:
+        /// Branch_Code,Branch_Name,Branch_Name_EN,Branch_Type,Parent_Branch_Code,City_ID,
+        /// Address,Manager_Name,Phone,Mobile,Email,Website,Notes,Allow_Credit,Allow_Percentage.
+        /// لا يمر أي صف إلا من خلال API ليطبق التحقق والتدقيق الهرمي نفسه المستخدم في الحفظ اليدوي.
+        /// </summary>
+        private async void btnImport_Click(object? sender, EventArgs e)
+        {
+            if (cmbCompanies.SelectedValue is null || _defaultCurrencyId <= 0)
+            {
+                MessageBox.Show("اختر الشركة وانتظر تحميل عملتها قبل الاستيراد.", "استيراد الفروع", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
 
-        private void PrintDocument_PrintPage(object sender, System.Drawing.Printing.PrintPageEventArgs e)
+            using var dialog = new OpenFileDialog
+            {
+                Title = "اختيار ملف فروع CSV",
+                Filter = "ملف CSV (*.csv)|*.csv",
+                Multiselect = false
+            };
+            if (dialog.ShowDialog(this) != DialogResult.OK) return;
+
+            List<BranchImportRow> rows;
+            try
+            {
+                rows = ReadBranchImportFile(dialog.FileName);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("تعذر قراءة ملف الاستيراد:\n" + ex.Message, "استيراد الفروع", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+
+            if (rows.Count == 0)
+            {
+                MessageBox.Show("الملف لا يحتوي على سجلات صالحة للاستيراد.", "استيراد الفروع", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            var errors = new List<string>();
+            var importedCodes = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+            var existingCodes = _branchesList
+                .Where(x => !string.IsNullOrWhiteSpace(x.Branch_Code))
+                .ToDictionary(x => x.Branch_Code!, x => x.Branch_ID, StringComparer.OrdinalIgnoreCase);
+
+            foreach (var row in rows)
+            {
+                var validation = ValidateImportRow(row, existingCodes, importedCodes);
+                if (validation is not null)
+                {
+                    errors.Add($"السطر {row.RowNumber}: {validation}");
+                    continue;
+                }
+
+                int? parentId = null;
+                if (!string.IsNullOrWhiteSpace(row.ParentBranchCode))
+                {
+                    if (!importedCodes.TryGetValue(row.ParentBranchCode, out var importedParentId) &&
+                        !existingCodes.TryGetValue(row.ParentBranchCode, out importedParentId))
+                    {
+                        errors.Add($"السطر {row.RowNumber}: كود الفرع الأب غير موجود. يجب أن يكون موجوداً أو وارداً في سطر سابق.");
+                        continue;
+                    }
+                    parentId = importedParentId;
+                }
+
+                var request = new
+                {
+                    Company_ID = cmbCompanies.SelectedValue.ToString() ?? string.Empty,
+                    Branch_Code = row.BranchCode,
+                    Branch_Name = row.BranchName,
+                    Branch_Name_EN = row.BranchNameEn,
+                    Branch_Type = row.BranchType,
+                    Parent_Branch_ID = parentId,
+                    City_ID = row.CityId,
+                    Address = row.Address,
+                    Manager_Name = row.ManagerName,
+                    Phone = row.Phone,
+                    Mobile = row.Mobile,
+                    Email = row.Email,
+                    Website = row.Website,
+                    Notes = row.Notes,
+                    Allow_Credit = row.AllowCredit,
+                    Allow_Percentage = row.AllowPercentage,
+                    Currency_ID = _defaultCurrencyId
+                };
+
+                try
+                {
+                    using var response = await _client.PostAsJsonAsync($"{_baseUrl}Branches", request);
+                    if (!response.IsSuccessStatusCode)
+                    {
+                        errors.Add($"السطر {row.RowNumber}: {await response.Content.ReadAsStringAsync()}");
+                        continue;
+                    }
+
+                    var saved = await response.Content.ReadFromJsonAsync<BranchListModel>();
+                    if (saved?.Branch_ID > 0 && !string.IsNullOrWhiteSpace(row.BranchCode))
+                        importedCodes[row.BranchCode] = saved.Branch_ID;
+                }
+                catch (Exception ex)
+                {
+                    errors.Add($"السطر {row.RowNumber}: {ex.Message}");
+                }
+            }
+
+            await LoadBranchesAsync();
+            var successCount = rows.Count - errors.Count;
+            var message = $"تم استيراد {successCount} من {rows.Count} سجل.";
+            if (errors.Count > 0)
+                message += "\n\nالأخطاء:\n" + string.Join("\n", errors.Take(12)) + (errors.Count > 12 ? "\n..." : string.Empty);
+            MessageBox.Show(message, "استيراد الفروع", MessageBoxButtons.OK,
+                errors.Count == 0 ? MessageBoxIcon.Information : MessageBoxIcon.Warning);
+        }
+
+        private List<BranchImportRow> ReadBranchImportFile(string filePath)
+        {
+            var rows = new List<BranchImportRow>();
+            using var parser = new TextFieldParser(filePath, Encoding.UTF8)
+            {
+                TextFieldType = FieldType.Delimited,
+                Delimiters = new[] { "," },
+                HasFieldsEnclosedInQuotes = true,
+                TrimWhiteSpace = true
+            };
+            if (!parser.EndOfData) parser.ReadFields(); // رأس الملف.
+
+            var rowNumber = 1;
+            while (!parser.EndOfData)
+            {
+                rowNumber++;
+                var fields = parser.ReadFields() ?? Array.Empty<string>();
+                if (fields.All(string.IsNullOrWhiteSpace)) continue;
+                if (fields.Length < 6) throw new InvalidOperationException($"السطر {rowNumber} لا يحتوي على الأعمدة الستة الإلزامية.");
+
+                rows.Add(new BranchImportRow
+                {
+                    RowNumber = rowNumber,
+                    BranchCode = ReadField(fields, 0),
+                    BranchName = ReadField(fields, 1),
+                    BranchNameEn = ReadField(fields, 2),
+                    BranchType = ReadField(fields, 3),
+                    ParentBranchCode = ReadField(fields, 4),
+                    CityId = int.TryParse(ReadField(fields, 5), out var cityId) ? cityId : 0,
+                    Address = ReadField(fields, 6),
+                    ManagerName = ReadField(fields, 7),
+                    Phone = ReadField(fields, 8),
+                    Mobile = ReadField(fields, 9),
+                    Email = ReadField(fields, 10),
+                    Website = ReadField(fields, 11),
+                    Notes = ReadField(fields, 12),
+                    AllowCredit = ParseImportBoolean(ReadField(fields, 13)),
+                    AllowPercentage = ParseImportBoolean(ReadField(fields, 14))
+                });
+            }
+            return rows;
+        }
+
+        private string? ValidateImportRow(BranchImportRow row, IReadOnlyDictionary<string, int> existingCodes, IReadOnlyDictionary<string, int> importedCodes)
+        {
+            if (string.IsNullOrWhiteSpace(row.BranchName)) return "اسم الفرع بالعربية مطلوب.";
+            if (row.CityId <= 0 || !_cities.Any(x => x.City_ID == row.CityId)) return "City_ID غير صحيح أو المدينة موقوفة.";
+            if (string.IsNullOrWhiteSpace(row.BranchType) || !_branchTypes.Any(x =>
+                string.Equals(x.Branch_Type_Name_AR, row.BranchType, StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(x.Branch_Type_Code, row.BranchType, StringComparison.OrdinalIgnoreCase)))
+                return "نوع الفرع غير صحيح.";
+            if (!string.IsNullOrWhiteSpace(row.BranchCode) && (existingCodes.ContainsKey(row.BranchCode) || importedCodes.ContainsKey(row.BranchCode)))
+                return "كود الفرع مكرر داخل الشركة أو داخل ملف الاستيراد.";
+            return null;
+        }
+
+        private static string ReadField(IReadOnlyList<string> fields, int index) => index < fields.Count ? fields[index].Trim() : string.Empty;
+        private static bool ParseImportBoolean(string value) => value.Equals("1") || value.Equals("true", StringComparison.OrdinalIgnoreCase) || value.Equals("نعم");
+
+        private void PrintDocument_PrintPage(object? sender, System.Drawing.Printing.PrintPageEventArgs e)
         {
             Font titleFont = new Font("Arial", 16, FontStyle.Bold);
             Font headerFont = new Font("Arial", 10, FontStyle.Bold);
@@ -483,15 +1055,16 @@ this.Load -= BranchForm_Load;
             int y = 50;
             int x = 50;
 
-            e.Graphics.DrawString("تقرير الفروع", titleFont, Brushes.Black, 350, y);
+            Graphics graphics = e.Graphics ?? throw new InvalidOperationException("تعذر الحصول على سطح الرسم للطباعة.");
+            graphics.DrawString("تقرير الفروع", titleFont, Brushes.Black, 350, y);
             y += 50;
 
-            e.Graphics.DrawString("رقم", headerFont, Brushes.Black, x, y);
-            e.Graphics.DrawString("كود الفرع", headerFont, Brushes.Black, x + 80, y);
-            e.Graphics.DrawString("اسم الفرع", headerFont, Brushes.Black, x + 180, y);
-            e.Graphics.DrawString("النوع", headerFont, Brushes.Black, x + 380, y);
-            e.Graphics.DrawString("الهاتف", headerFont, Brushes.Black, x + 480, y);
-            e.Graphics.DrawString("الحالة", headerFont, Brushes.Black, x + 600, y);
+            graphics.DrawString("رقم", headerFont, Brushes.Black, x, y);
+            graphics.DrawString("كود الفرع", headerFont, Brushes.Black, x + 80, y);
+            graphics.DrawString("اسم الفرع", headerFont, Brushes.Black, x + 180, y);
+            graphics.DrawString("النوع", headerFont, Brushes.Black, x + 380, y);
+            graphics.DrawString("الهاتف", headerFont, Brushes.Black, x + 480, y);
+            graphics.DrawString("الحالة", headerFont, Brushes.Black, x + 600, y);
             y += 30;
 
             while (_printRowIndex < _branchesList.Count)
@@ -503,22 +1076,22 @@ this.Load -= BranchForm_Load;
                     return;
                 }
 
-                e.Graphics.DrawString(b.Branch_ID.ToString(), rowFont, Brushes.Black, x, y);
-                e.Graphics.DrawString(b.Branch_Code ?? "", rowFont, Brushes.Black, x + 80, y);
-                e.Graphics.DrawString(b.Branch_Name ?? "", rowFont, Brushes.Black, x + 180, y);
-                e.Graphics.DrawString(b.Branch_Type ?? "", rowFont, Brushes.Black, x + 380, y);
-                e.Graphics.DrawString(b.Phone ?? "", rowFont, Brushes.Black, x + 480, y);
-                e.Graphics.DrawString(b.Is_Active ? "نشط" : "موقوف", rowFont, Brushes.Black, x + 600, y);
+                graphics.DrawString(b.Branch_ID.ToString(), rowFont, Brushes.Black, x, y);
+                graphics.DrawString(b.Branch_Code ?? "", rowFont, Brushes.Black, x + 80, y);
+                graphics.DrawString(b.Branch_Name ?? "", rowFont, Brushes.Black, x + 180, y);
+                graphics.DrawString(b.Branch_Type ?? "", rowFont, Brushes.Black, x + 380, y);
+                graphics.DrawString(b.Phone ?? "", rowFont, Brushes.Black, x + 480, y);
+                graphics.DrawString(b.Is_Active ? "نشط" : "موقوف", rowFont, Brushes.Black, x + 600, y);
                 y += 25;
                 _printRowIndex++;
             }
             e.HasMorePages = false;
         }
 
-        private void label13_Click(object sender, EventArgs e) { }
-        private void dgvBranches_CellContentClick(object sender, DataGridViewCellEventArgs e) { }
-        private void chkIsStop_CheckedChanged(object sender, EventArgs e) { }
-        private void chkAllowCredit_CheckedChanged(object sender, EventArgs e) { }
+        private void label13_Click(object? sender, EventArgs e) { }
+        private void dgvBranches_CellContentClick(object? sender, DataGridViewCellEventArgs e) { }
+        private void chkIsStop_CheckedChanged(object? sender, EventArgs e) { }
+        private void chkAllowCredit_CheckedChanged(object? sender, EventArgs e) { }
     }
 
     public class CompanyLookupModel
@@ -547,5 +1120,75 @@ this.Load -= BranchForm_Load;
         public bool Allow_Percentage { get; set; }
         public bool Is_Active { get; set; }
         public int Currency_ID { get; set; }
+
+    }
+
+    internal sealed class BranchReferenceLookupResponse
+    {
+        public List<BranchTypeLookupModel> BranchTypes { get; set; } = new List<BranchTypeLookupModel>();
+        public List<CurrencyLookupModel> Currencies { get; set; } = new List<CurrencyLookupModel>();
+    }
+
+    internal sealed class BranchTypeLookupModel
+    {
+        public int Branch_Type_ID { get; set; }
+        public string Branch_Type_Code { get; set; } = string.Empty;
+        public string Branch_Type_Name_AR { get; set; } = string.Empty;
+    }
+
+    internal sealed class CurrencyLookupModel
+    {
+        public int Currency_ID { get; set; }
+        public bool Is_Local_Currency { get; set; }
+        public bool Is_Default { get; set; }
+    }
+
+    internal sealed class CountryLookupModel
+    {
+        public int Country_ID { get; set; }
+        public string Country_Name_AR { get; set; } = string.Empty;
+    }
+
+    internal sealed class GovernorateLookupModel
+    {
+        public int Governorate_ID { get; set; }
+        public int Country_ID { get; set; }
+        public string Governorate_Name_AR { get; set; } = string.Empty;
+    }
+
+    internal sealed class CityLookupModel
+    {
+        public int City_ID { get; set; }
+        public int Country_ID { get; set; }
+        public int Governorate_ID { get; set; }
+        public string City_Name_AR { get; set; } = string.Empty;
+    }
+
+    internal sealed class BranchGeographyModel
+    {
+        public int Branch_ID { get; set; }
+        public int? Country_ID { get; set; }
+        public int? Governorate_ID { get; set; }
+        public int? City_ID { get; set; }
+    }
+
+    internal sealed class BranchImportRow
+    {
+        public int RowNumber { get; set; }
+        public string BranchCode { get; set; } = string.Empty;
+        public string BranchName { get; set; } = string.Empty;
+        public string BranchNameEn { get; set; } = string.Empty;
+        public string BranchType { get; set; } = string.Empty;
+        public string ParentBranchCode { get; set; } = string.Empty;
+        public int CityId { get; set; }
+        public string Address { get; set; } = string.Empty;
+        public string ManagerName { get; set; } = string.Empty;
+        public string Phone { get; set; } = string.Empty;
+        public string Mobile { get; set; } = string.Empty;
+        public string Email { get; set; } = string.Empty;
+        public string Website { get; set; } = string.Empty;
+        public string Notes { get; set; } = string.Empty;
+        public bool AllowCredit { get; set; }
+        public bool AllowPercentage { get; set; }
     }
 }

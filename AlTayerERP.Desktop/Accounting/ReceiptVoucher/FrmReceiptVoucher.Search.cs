@@ -251,7 +251,6 @@ namespace AlTayerERP.Desktop
                 LoadDetailsGrid(voucher);
                 UpdateTotals(voucher);
                 UpdateButtonsState(voucher);
-                UpdateStatusLabels();
 
                 SetViewMode();
             }
@@ -386,12 +385,6 @@ namespace AlTayerERP.Desktop
             _currentApprovalStatus = voucher.Approval_Status;
             _currentReviewStatus = voucher.Review_Status;
             UpdateWorkflowButtonsState();
-        }
-
-        private void UpdateStatusLabels()
-        {
-            lblStatusApi.Text = "API: متصل";
-            lblStatusDatabase.Text = "قاعدة البيانات: متصلة";
         }
 
         #endregion

@@ -74,5 +74,30 @@ namespace AlTayerERP.Core.Entities
         // ======================================================
         [Column("Updated_At")]
         public DateTime? Updated_At { get; set; }
+
+        /// <summary>المستخدم المنشئ Created_By من جلسة الخادم.</summary>
+        [Column("Created_By")]
+        public int? Created_By { get; set; }
+
+        /// <summary>آخر مستخدم عدّل السجل Updated_By من جلسة الخادم.</summary>
+        [Column("Updated_By")]
+        public int? Updated_By { get; set; }
+
+        /// <summary>عدد التعديلات الناجحة Edit_Count ولا يستقبل من العميل.</summary>
+        [Column("Edit_Count")]
+        public int Edit_Count { get; set; }
+
+        [Column("Stopped_By")]
+        public int? Stopped_By { get; set; }
+        [Column("Stopped_At")]
+        public DateTime? Stopped_At { get; set; }
+        [Column("Stopped_Reason")]
+        public string? Stopped_Reason { get; set; }
+        [Column("Reactivated_By")]
+        public int? Reactivated_By { get; set; }
+        [Column("Reactivated_At")]
+        public DateTime? Reactivated_At { get; set; }
+        [Column("Reactivate_Reason")]
+        public string? Reactivate_Reason { get; set; }
     }
 }

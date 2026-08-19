@@ -1,6 +1,12 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
+		<!--
+		  نتولى إدراج ملفات الموارد مرة واحدة في الأسفل.
+		  يمنع هذا تكرار إدراج FrmReceiptVoucher.resx بواسطة الإدراج التلقائي للمشروع.
+		-->
+		<EnableDefaultEmbeddedResourceItems>false</EnableDefaultEmbeddedResourceItems>
+
 		<!-- نوع المشروع: تطبيق Windows Forms -->
 		<OutputType>WinExe</OutputType>
 
@@ -15,11 +21,22 @@
 
 		<!-- إضافة الاستدعاءات العامة تلقائيًا -->
 		<ImplicitUsings>enable</ImplicitUsings>
+
+		<!--
+		  ملفات WinForms Designer المولدة تحتوي حقولًا محفوظة للتوافق مع المصمم
+		  وقد لا تُستخدم في كل إصدار من الشاشة. لا نعامل تحذيراتها كفشل بناء.
+		-->
+		<NoWarn>$(NoWarn);CS0169;CS0649</NoWarn>
 	</PropertyGroup>
 
 	<!-- مراجع المشاريع -->
 	<ItemGroup>
 		<ProjectReference Include="..\AlTayerERP.Core\AlTayerERP.Core.csproj" />
+	</ItemGroup>
+
+	<!-- إدراج جميع ملفات الموارد مرة واحدة مع استبعاد مخرجات البناء المؤقتة. -->
+	<ItemGroup>
+		<EmbeddedResource Include="**\*.resx" Exclude="bin\**;obj\**" />
 	</ItemGroup>
 
 	<!-- ملف الموارد العام للمشروع -->
@@ -36,9 +53,11 @@
 		</EmbeddedResource>
 	</ItemGroup>
 
-	<!-- الشاشة الرئيسية لسند القبض -->
+	<!-- الشاشة الرئيسية لسند القبض: هذا هو الملف الوحيد الذي يفتح في المصمم. -->
 	<ItemGroup>
-		<Compile Update="Accounting\ReceiptVoucher\FrmReceiptVoucher.cs" />
+		<Compile Update="Accounting\ReceiptVoucher\FrmReceiptVoucher.cs">
+			<SubType>Form</SubType>
+		</Compile>
 
 		<Compile Update="Accounting\ReceiptVoucher\FrmReceiptVoucher.Designer.cs">
 			<DependentUpon>FrmReceiptVoucher.cs</DependentUpon>
@@ -48,13 +67,11 @@
 	</ItemGroup>
 
 	<!--
-      إزالة أي تسجيل تلقائي لملف موارد سند القبض،
-      ثم تسجيل ملف الموارد الصحيح مرة واحدة فقط.
+      ملف الموارد موجود تلقائياً بواسطة مشروع .NET.
+      نحدّث خصائصه فقط ولا نضيف نسخة ثانية منه؛ لمنع خطأ تعارض ملفات الموارد.
   -->
 	<ItemGroup>
-		<EmbeddedResource Remove="**\FrmReceiptVoucher.resx" />
-
-		<EmbeddedResource Include="Accounting\ReceiptVoucher\FrmReceiptVoucher.resx">
+		<EmbeddedResource Update="Accounting\ReceiptVoucher\FrmReceiptVoucher.resx">
 			<DependentUpon>FrmReceiptVoucher.cs</DependentUpon>
 			<LogicalName>AlTayerERP.Desktop.FrmReceiptVoucher.resources</LogicalName>
 		</EmbeddedResource>
@@ -65,36 +82,103 @@
       وليست شاشات مستقلة ولا ملفات تصميم.
   -->
 	<ItemGroup>
+		<!-- FrmReceiptVoucher.Load.cs: جزء برمجي تابع للنموذج وليس ملف تصميم مستقل. -->
 		<Compile Update="Accounting\ReceiptVoucher\FrmReceiptVoucher.Load.cs">
+			<DependentUpon>FrmReceiptVoucher.cs</DependentUpon>
+			<SubType>Code</SubType>
 			<AutoGen>False</AutoGen>
 			<DesignTime>False</DesignTime>
 		</Compile>
 
+		<!-- FrmReceiptVoucher.New.cs: جزء برمجي تابع للنموذج وليس ملف تصميم مستقل. -->
 		<Compile Update="Accounting\ReceiptVoucher\FrmReceiptVoucher.New.cs">
+			<DependentUpon>FrmReceiptVoucher.cs</DependentUpon>
+			<SubType>Code</SubType>
 			<AutoGen>False</AutoGen>
 			<DesignTime>False</DesignTime>
 		</Compile>
 
+		<!-- FrmReceiptVoucher.Grid.cs: جزء برمجي تابع للنموذج وليس ملف تصميم مستقل. -->
 		<Compile Update="Accounting\ReceiptVoucher\FrmReceiptVoucher.Grid.cs">
+			<DependentUpon>FrmReceiptVoucher.cs</DependentUpon>
+			<SubType>Code</SubType>
 			<AutoGen>False</AutoGen>
 			<DesignTime>False</DesignTime>
 		</Compile>
 
+		<!-- FrmReceiptVoucher.Save.cs: جزء برمجي تابع للنموذج وليس ملف تصميم مستقل. -->
 		<Compile Update="Accounting\ReceiptVoucher\FrmReceiptVoucher.Save.cs">
+			<DependentUpon>FrmReceiptVoucher.cs</DependentUpon>
+			<SubType>Code</SubType>
 			<AutoGen>False</AutoGen>
 			<DesignTime>False</DesignTime>
 		</Compile>
 
+		<!-- FrmReceiptVoucher.Search.cs: جزء برمجي تابع للنموذج وليس ملف تصميم مستقل. -->
 		<Compile Update="Accounting\ReceiptVoucher\FrmReceiptVoucher.Search.cs">
+			<DependentUpon>FrmReceiptVoucher.cs</DependentUpon>
+			<SubType>Code</SubType>
+			<AutoGen>False</AutoGen>
+			<DesignTime>False</DesignTime>
+		</Compile>
+		<!-- FrmReceiptVoucher.Actions.cs: جزء برمجي تابع للنموذج وليس ملف تصميم مستقل. -->
+		<Compile Update="Accounting\ReceiptVoucher\FrmReceiptVoucher.Actions.cs">
+			<DependentUpon>FrmReceiptVoucher.cs</DependentUpon>
+			<SubType>Code</SubType>
+			<AutoGen>False</AutoGen>
+			<DesignTime>False</DesignTime>
+		</Compile>
+		<!-- FrmReceiptVoucher.Mode.cs: جزء برمجي تابع للنموذج وليس ملف تصميم مستقل. -->
+		<Compile Update="Accounting\ReceiptVoucher\FrmReceiptVoucher.Mode.cs">
+			<DependentUpon>FrmReceiptVoucher.cs</DependentUpon>
+			<SubType>Code</SubType>
+			<AutoGen>False</AutoGen>
+			<DesignTime>False</DesignTime>
+		</Compile>
+		<!-- FrmReceiptVoucher.Shortcuts.cs: جزء برمجي تابع للنموذج وليس ملف تصميم مستقل. -->
+		<Compile Update="Accounting\ReceiptVoucher\FrmReceiptVoucher.Shortcuts.cs">
+			<DependentUpon>FrmReceiptVoucher.cs</DependentUpon>
+			<SubType>Code</SubType>
 			<AutoGen>False</AutoGen>
 			<DesignTime>False</DesignTime>
 		</Compile>
 	</ItemGroup>
 
-	<!-- شاشة سند الصرف -->
+	<!-- شاشتا سند الصرف والقيد اليومي تعيدان استخدام نموذج السند الموحد -->
 	<ItemGroup>
 		<Compile Update="FrmPaymentVoucher.cs">
 			<SubType>Form</SubType>
+		</Compile>
+		<Compile Update="FrmJournalVoucher.cs">
+			<SubType>Form</SubType>
+		</Compile>
+	</ItemGroup>
+	<ItemGroup>
+		<Compile Update="CountriesForm.cs">
+			<SubType>Form</SubType>
+		</Compile>
+		<Compile Update="CountriesForm.Designer.cs">
+			<DependentUpon>CountriesForm.cs</DependentUpon>
+			<AutoGen>True</AutoGen>
+			<DesignTime>True</DesignTime>
+		</Compile>
+	</ItemGroup>
+	<ItemGroup>
+		<Compile Update="FrmGovernorates.cs">
+			<SubType>Form</SubType>
+		</Compile>
+		<Compile Update="FrmGovernorates.Designer.cs">
+			<DependentUpon>FrmGovernorates.cs</DependentUpon>
+			<AutoGen>True</AutoGen>
+			<DesignTime>True</DesignTime>
+		</Compile>
+		<Compile Update="FrmCities.cs">
+			<SubType>Form</SubType>
+		</Compile>
+		<Compile Update="FrmCities.Designer.cs">
+			<DependentUpon>FrmCities.cs</DependentUpon>
+			<AutoGen>True</AutoGen>
+			<DesignTime>True</DesignTime>
 		</Compile>
 	</ItemGroup>
 	<ItemGroup>

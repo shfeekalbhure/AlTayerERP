@@ -368,7 +368,7 @@
             // 
             // colBranch
             // 
-            colBranch.DataPropertyName = "Branch_ID";
+            colBranch.DataPropertyName = "Branch_Name";
             colBranch.HeaderText = "الفرع";
             colBranch.MinimumWidth = 6;
             colBranch.Name = "colBranch";
@@ -376,8 +376,8 @@
             // 
             // colOpeningBalance
             // 
-            colOpeningBalance.DataPropertyName = "Opening_Balance";
-            colOpeningBalance.HeaderText = "الرصيد الافتتاحي";
+            colOpeningBalance.DataPropertyName = "Current_Balance";
+            colOpeningBalance.HeaderText = "الرصيد الدفتري";
             colOpeningBalance.MinimumWidth = 6;
             colOpeningBalance.Name = "colOpeningBalance";
             colOpeningBalance.Width = 125;
@@ -624,7 +624,7 @@
             // 
             txtCashBoxNameAR.Location = new Point(118, 76);
             txtCashBoxNameAR.Name = "txtCashBoxNameAR";
-            txtCashBoxNameAR.RightToLeft = RightToLeft.No;
+            txtCashBoxNameAR.RightToLeft = RightToLeft.Yes;
             txtCashBoxNameAR.Size = new Size(195, 27);
             txtCashBoxNameAR.TabIndex = 51;
             // 
@@ -651,7 +651,7 @@
             cmbBranch.FormattingEnabled = true;
             cmbBranch.Location = new Point(118, 264);
             cmbBranch.Name = "cmbBranch";
-            cmbBranch.RightToLeft = RightToLeft.No;
+            cmbBranch.RightToLeft = RightToLeft.Yes;
             cmbBranch.Size = new Size(195, 28);
             cmbBranch.TabIndex = 40;
             // 
@@ -669,7 +669,7 @@
             cmbAccount.FormattingEnabled = true;
             cmbAccount.Location = new Point(116, 167);
             cmbAccount.Name = "cmbAccount";
-            cmbAccount.RightToLeft = RightToLeft.No;
+            cmbAccount.RightToLeft = RightToLeft.Yes;
             cmbAccount.Size = new Size(195, 28);
             cmbAccount.TabIndex = 41;
             // 
@@ -678,7 +678,7 @@
             cmbCurrency.FormattingEnabled = true;
             cmbCurrency.Location = new Point(118, 218);
             cmbCurrency.Name = "cmbCurrency";
-            cmbCurrency.RightToLeft = RightToLeft.No;
+            cmbCurrency.RightToLeft = RightToLeft.Yes;
             cmbCurrency.Size = new Size(195, 28);
             cmbCurrency.TabIndex = 41;
             // 

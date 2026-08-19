@@ -1,657 +1,214 @@
-﻿using AlTayerERP.API.DTOs;
+using AlTayerERP.API.DTOs;
+using AlTayerERP.API.Services;
 using AlTayerERP.Core.Entities;
 using AlTayerERP.Infrastructure.Data;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using System;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace AlTayerERP.API.Controllers
 {
+    /// <summary>
+    /// إدارة العملات للشركة الموجودة في الجلسة الموثوقة فقط.
+    /// Company_ID وحقول التدقيق القادمة من العميل لا يعتمد عليها الخادم.
+    /// </summary>
+    [Authorize]
     [Route("api/[controller]")]
     [ApiController]
-    public class CurrenciesController : ControllerBase
+    public sealed class CurrenciesController : ControllerBase
     {
         private readonly AppDbContext _context;
+        private readonly ScreenAuthorizationService _authorization;
+        private readonly AuditTrailService _audit;
 
-        public CurrenciesController(AppDbContext context)
+        public CurrenciesController(AppDbContext context, ScreenAuthorizationService authorization, AuditTrailService audit)
         {
             _context = context;
+            _authorization = authorization;
+            _audit = audit;
         }
 
-        //==================================================
-        // جلب جميع العملات الخاصة بالشركة
-        //==================================================
+        private ServerSession? Session => HttpContext.Items["ServerSession"] as ServerSession;
 
-        [HttpGet]
-        public async Task<IActionResult> GetCurrencies(
-            [FromQuery] string companyId)
+        private async Task<IActionResult?> RequireAsync(ScreenOperation operation)
         {
-            if (string.IsNullOrWhiteSpace(companyId))
-            {
-                return BadRequest("رقم الشركة مطلوب.");
-            }
+            if (Session == null)
+                return Unauthorized(new { message = "انتهت الجلسة أو أنها غير صالحة." });
 
-            var data = await _context.Currencies
-                .AsNoTracking()
-                .Where(x => x.Company_ID == companyId)
-                .OrderByDescending(x => x.Is_Local_Currency)
+            return await _authorization.IsAllowedAsync(Session, "Currencies", operation)
+                ? null
+                : Forbid();
+        }
+
+        [HttpGet("GetLookup")]
+        public async Task<IActionResult> GetLookup()
+        {
+            if (Session == null)
+                return Unauthorized(new { message = "انتهت الجلسة أو أنها غير صالحة." });
+
+            if (!await _authorization.IsAllowedAsync(Session, "CashBoxes", ScreenOperation.View))
+                return Forbid();
+
+            return Ok(await _context.Currencies.AsNoTracking()
+                .Where(x => x.Company_ID == Session.Company_ID && x.Is_Active)
+                .OrderByDescending(x => x.Is_Default)
+                .ThenByDescending(x => x.Is_Local_Currency)
                 .ThenBy(x => x.Currency_Code)
                 .Select(x => new
                 {
-                    x.Currency_ID,
-                    x.Company_ID,
                     x.Currency_Code,
-                    x.Currency_Name_AR,
-                    x.Currency_Name_EN,
-                    x.Currency_Symbol,
-                    x.Decimal_Places,
-                    x.Exchange_Rate,
-                    x.Min_Exchange_Rate,
-                    x.Max_Exchange_Rate,
-                    x.Is_Local_Currency,
-                    x.Is_Default,
-                    x.Is_Active,
-                    x.Notes,
-                    x.Created_By,
-                    x.Created_At,
-                    x.Updated_By,
-                    x.Updated_At
+                    x.Currency_Name_AR
                 })
-                .ToListAsync();
-
-            return Ok(data);
+                .ToListAsync());
         }
 
-        //==================================================
-        // جلب عملة واحدة
-        //==================================================
+        [HttpGet]
+        public async Task<IActionResult> GetCurrencies()
+        {
+            var error = await RequireAsync(ScreenOperation.View);
+            if (error != null || Session == null) return error!;
+
+            var data = await _context.Currencies.AsNoTracking()
+                .Where(x => x.Company_ID == Session.Company_ID)
+                .OrderByDescending(x => x.Is_Local_Currency).ThenBy(x => x.Currency_Code)
+                .Select(x => new
+                {
+                    x.Currency_ID, x.Company_ID, x.Currency_Code, x.Currency_Name_AR, x.Currency_Name_EN,
+                    x.Currency_Symbol, x.Decimal_Places, x.Exchange_Rate, x.Min_Exchange_Rate,
+                    x.Max_Exchange_Rate, x.Is_Local_Currency, x.Is_Default, x.Is_Active, x.Notes,
+                    x.Created_By, x.Created_At, x.Updated_By, x.Updated_At
+                }).ToListAsync();
+            return Ok(data);
+        }
 
         [HttpGet("{id:int}")]
         public async Task<IActionResult> GetCurrencyById(int id)
         {
-            var currency = await _context.Currencies
-                .AsNoTracking()
-                .Where(x => x.Currency_ID == id)
-                .Select(x => new
-                {
-                    x.Currency_ID,
-                    x.Company_ID,
-                    x.Currency_Code,
-                    x.Currency_Name_AR,
-                    x.Currency_Name_EN,
-                    x.Currency_Symbol,
-                    x.Decimal_Places,
-                    x.Exchange_Rate,
-                    x.Min_Exchange_Rate,
-                    x.Max_Exchange_Rate,
-                    x.Is_Local_Currency,
-                    x.Is_Default,
-                    x.Is_Active,
-                    x.Notes,
-                    x.Created_By,
-                    x.Created_At,
-                    x.Updated_By,
-                    x.Updated_At
-                })
-                .FirstOrDefaultAsync();
+            var error = await RequireAsync(ScreenOperation.View);
+            if (error != null || Session == null) return error!;
 
-            if (currency == null)
-            {
-                return NotFound("العملة غير موجودة.");
-            }
-
-            return Ok(currency);
+            var currency = await _context.Currencies.AsNoTracking()
+                .FirstOrDefaultAsync(x => x.Currency_ID == id && x.Company_ID == Session.Company_ID);
+            return currency == null ? NotFound(new { message = "العملة غير موجودة ضمن الشركة الحالية." }) : Ok(currency);
         }
-
-        //==================================================
-        // إضافة عملة جديدة
-        //==================================================
 
         [HttpPost]
-        public async Task<IActionResult> CreateCurrency(
-            [FromBody] CreateCurrencyDto dto)
+        public async Task<IActionResult> CreateCurrency([FromBody] CreateCurrencyDto dto)
         {
-            if (dto == null)
-            {
-                return BadRequest("بيانات العملة غير صحيحة.");
-            }
+            var error = await RequireAsync(ScreenOperation.Add);
+            if (error != null || Session == null) return error!;
+            var validation = Validate(dto);
+            if (validation != null) return BadRequest(new { message = validation });
 
-            string? validationMessage = ValidateCurrencyDto(dto);
+            var code = dto.Currency_Code.Trim().ToUpperInvariant();
+            if (await _context.Currencies.AnyAsync(x => x.Company_ID == Session.Company_ID && x.Currency_Code == code))
+                return Conflict(new { message = "كود العملة مستخدم مسبقاً في الشركة الحالية." });
 
-            if (validationMessage != null)
-            {
-                return BadRequest(validationMessage);
-            }
-
-            string companyId = dto.Company_ID.Trim();
-            string currencyCode =
-                dto.Currency_Code.Trim().ToUpperInvariant();
-
-            bool codeExists = await _context.Currencies.AnyAsync(x =>
-                x.Company_ID == companyId &&
-                x.Currency_Code.ToUpper() == currencyCode);
-
-            if (codeExists)
-            {
-                return BadRequest("كود العملة موجود مسبقًا.");
-            }
-
-            await using var transaction =
-                await _context.Database.BeginTransactionAsync();
-
-            try
-            {
-                /*
-                 * إذا كانت العملة الجديدة محلية،
-                 * نلغي صفة العملة المحلية عن أي عملة سابقة.
-                 */
-                if (dto.Is_Local_Currency)
-                {
-                    var previousLocalCurrencies =
-                        await _context.Currencies
-                            .Where(x =>
-                                x.Company_ID == companyId &&
-                                x.Is_Local_Currency)
-                            .ToListAsync();
-
-                    foreach (Currency item in previousLocalCurrencies)
-                    {
-                        item.Is_Local_Currency = false;
-                        item.Updated_By =
-                            dto.Created_By ?? dto.Updated_By;
-
-                        item.Updated_At = DateTime.Now;
-                    }
-                }
-
-                /*
-                 * إذا كانت هذه العملة هي العملة الافتراضية،
-                 * نلغي صفة الافتراضية عن بقية العملات.
-                 */
-                if (dto.Is_Default)
-                {
-                    var previousDefaultCurrencies =
-                        await _context.Currencies
-                            .Where(x =>
-                                x.Company_ID == companyId &&
-                                x.Is_Default)
-                            .ToListAsync();
-
-                    foreach (Currency item in previousDefaultCurrencies)
-                    {
-                        item.Is_Default = false;
-                        item.Updated_By =
-                            dto.Created_By ?? dto.Updated_By;
-                        item.Updated_At =
-                            DateTime.Now;
-                    }
-                }
-
-                Currency currency = new Currency
-                {
-                    Company_ID = companyId,
-
-                    Currency_Code = currencyCode,
-
-                    Currency_Name_AR =
-                        dto.Currency_Name_AR.Trim(),
-
-                    Currency_Name_EN =
-                        dto.Currency_Name_EN?.Trim(),
-
-                    Currency_Symbol =
-                        dto.Currency_Symbol?.Trim(),
-
-                    Decimal_Places =
-                        dto.Decimal_Places,
-
-                    Exchange_Rate =
-                        dto.Is_Local_Currency
-                            ? 1
-                            : dto.Exchange_Rate,
-
-                    Min_Exchange_Rate =
-                        dto.Is_Local_Currency
-                            ? 1
-                            : dto.Min_Exchange_Rate,
-
-                    Max_Exchange_Rate =
-                        dto.Is_Local_Currency
-                            ? 1
-                            : dto.Max_Exchange_Rate,
-
-                    Is_Local_Currency =
-                        dto.Is_Local_Currency,
-
-                    Is_Default =
-                        dto.Is_Default,
-
-                    Is_Active =
-                        dto.Is_Active,
-
-                    Notes =
-                        dto.Notes?.Trim(),
-
-                    Created_By =
-                        dto.Created_By,
-
-                    Created_At =
-                        DateTime.Now
-                };
-
-                await _context.Currencies.AddAsync(currency);
-
-                await _context.SaveChangesAsync();
-
-                await transaction.CommitAsync();
-
-                return Ok(new
-                {
-                    Message = "تم حفظ العملة بنجاح.",
-                    Currency = currency
-                });
-            }
-            catch (Exception ex)
-            {
-                await transaction.RollbackAsync();
-
-                return StatusCode(
-                    500,
-                    $"حدث خطأ أثناء حفظ العملة: {ex.Message}");
-            }
+            await using var tx = await _context.Database.BeginTransactionAsync();
+            await ClearFlagsAsync(dto);
+            var row = Build(dto, Session.Company_ID, code);
+            row.Created_By = Session.User_ID.ToString();
+            row.Created_At = DateTime.UtcNow;
+            _context.Currencies.Add(row);
+            _audit.Add(Session, HttpContext, "currencies", row.Currency_ID.ToString(), "CREATE", null,
+                new { row.Currency_Code, row.Currency_Name_AR, row.Is_Local_Currency, row.Is_Active });
+            await _context.SaveChangesAsync();
+            await tx.CommitAsync();
+            return CreatedAtAction(nameof(GetCurrencyById), new { id = row.Currency_ID }, row);
         }
-
-        //==================================================
-        // تعديل عملة
-        //==================================================
 
         [HttpPut("{id:int}")]
-        public async Task<IActionResult> UpdateCurrency(
-            int id,
-            [FromBody] CreateCurrencyDto dto)
+        public async Task<IActionResult> UpdateCurrency(int id, [FromBody] CreateCurrencyDto dto)
         {
-            if (dto == null)
-            {
-                return BadRequest("بيانات العملة غير صحيحة.");
-            }
+            var error = await RequireAsync(ScreenOperation.Edit);
+            if (error != null || Session == null) return error!;
+            var validation = Validate(dto);
+            if (validation != null) return BadRequest(new { message = validation });
 
-            string? validationMessage = ValidateCurrencyDto(dto);
+            var row = await _context.Currencies.FirstOrDefaultAsync(x => x.Currency_ID == id && x.Company_ID == Session.Company_ID);
+            if (row == null) return NotFound(new { message = "العملة غير موجودة ضمن الشركة الحالية." });
 
-            if (validationMessage != null)
-            {
-                return BadRequest(validationMessage);
-            }
+            var code = dto.Currency_Code.Trim().ToUpperInvariant();
+            if (await _context.Currencies.AnyAsync(x => x.Company_ID == Session.Company_ID && x.Currency_Code == code && x.Currency_ID != id))
+                return Conflict(new { message = "كود العملة مستخدم مسبقاً في الشركة الحالية." });
 
-            Currency? currency =
-                await _context.Currencies
-                    .FirstOrDefaultAsync(
-                        x => x.Currency_ID == id);
-
-            if (currency == null)
-            {
-                return NotFound("العملة غير موجودة.");
-            }
-
-            string companyId = dto.Company_ID.Trim();
-            string currencyCode =
-                dto.Currency_Code.Trim().ToUpperInvariant();
-
-            bool codeExists = await _context.Currencies.AnyAsync(x =>
-                x.Currency_ID != id &&
-                x.Company_ID == companyId &&
-                x.Currency_Code.ToUpper() == currencyCode);
-
-            if (codeExists)
-            {
-                return BadRequest(
-                    "يوجد عملة أخرى تستخدم نفس الكود.");
-            }
-
-            /*
-             * لا نسمح بإلغاء العملة المحلية مباشرة.
-             * لتغييرها، يتم اختيار عملة أخرى كعملة محلية.
-             */
-            if (currency.Is_Local_Currency &&
-                !dto.Is_Local_Currency)
-            {
-                return BadRequest(
-                    "لا يمكن إلغاء العملة المحلية مباشرة. " +
-                    "اختر عملة أخرى وحددها كعملة محلية، " +
-                    "وسيتم استبدال العملة المحلية تلقائيًا.");
-            }
-
-            await using var transaction =
-                await _context.Database.BeginTransactionAsync();
-
-            try
-            {
-                /*
-                 * عند اختيار العملة الحالية كعملة محلية،
-                 * نلغي صفة المحلية عن بقية العملات.
-                 */
-                if (dto.Is_Local_Currency)
-                {
-                    var otherLocalCurrencies =
-                        await _context.Currencies
-                            .Where(x =>
-                                x.Company_ID == companyId &&
-                                x.Currency_ID != id &&
-                                x.Is_Local_Currency)
-                            .ToListAsync();
-
-                    foreach (Currency item in otherLocalCurrencies)
-                    {
-                        item.Is_Local_Currency = false;
-
-                        item.Updated_By =
-                            dto.Updated_By ??
-                            dto.Created_By;
-
-                        item.Updated_At =
-                            DateTime.Now;
-                    }
-                }
-
-                /*
-                 * إذا كانت هذه العملة هي العملة الافتراضية،
-                 * نلغي صفة الافتراضية عن بقية العملات.
-                 */
-                if (dto.Is_Default)
-                {
-                    var previousDefaultCurrencies =
-                        await _context.Currencies
-                            .Where(x =>
-                                x.Company_ID == companyId &&
-                                x.Currency_ID != id &&
-                                x.Is_Default)
-                            .ToListAsync();
-
-                    foreach (Currency item in previousDefaultCurrencies)
-                    {
-                        item.Is_Default = false;
-                        item.Updated_By =
-                            dto.Updated_By ?? dto.Created_By;
-                        item.Updated_At =
-                            DateTime.Now;
-                    }
-                }
-
-                currency.Company_ID =
-                    companyId;
-
-                currency.Currency_Code =
-                    currencyCode;
-
-                currency.Currency_Name_AR =
-                    dto.Currency_Name_AR.Trim();
-
-                currency.Currency_Name_EN =
-                    dto.Currency_Name_EN?.Trim();
-
-                currency.Currency_Symbol =
-                    dto.Currency_Symbol?.Trim();
-
-                currency.Decimal_Places =
-                    dto.Decimal_Places;
-
-                currency.Exchange_Rate =
-                    dto.Is_Local_Currency
-                        ? 1
-                        : dto.Exchange_Rate;
-
-                currency.Min_Exchange_Rate =
-                    dto.Is_Local_Currency
-                        ? 1
-                        : dto.Min_Exchange_Rate;
-
-                currency.Max_Exchange_Rate =
-                    dto.Is_Local_Currency
-                        ? 1
-                        : dto.Max_Exchange_Rate;
-
-                currency.Is_Local_Currency =
-                    dto.Is_Local_Currency;
-
-                currency.Is_Default =
-                    dto.Is_Default;
-
-                currency.Is_Active =
-                    dto.Is_Active;
-
-                currency.Notes =
-                    dto.Notes?.Trim();
-
-                currency.Updated_By =
-                    dto.Updated_By ??
-                    dto.Created_By;
-
-                currency.Updated_At =
-                    DateTime.Now;
-
-                await _context.SaveChangesAsync();
-
-                await transaction.CommitAsync();
-
-                return Ok(new
-                {
-                    Message = "تم تعديل العملة بنجاح.",
-                    Currency = currency
-                });
-            }
-            catch (Exception ex)
-            {
-                await transaction.RollbackAsync();
-
-                return StatusCode(
-                    500,
-                    $"حدث خطأ أثناء تعديل العملة: {ex.Message}");
-            }
+            var old = new { row.Currency_Code, row.Currency_Name_AR, row.Is_Local_Currency, row.Is_Default, row.Is_Active };
+            await using var tx = await _context.Database.BeginTransactionAsync();
+            await ClearFlagsAsync(dto, id);
+            Apply(row, dto, code);
+            row.Updated_By = Session.User_ID.ToString();
+            row.Updated_At = DateTime.UtcNow;
+            _audit.Add(Session, HttpContext, "currencies", row.Currency_ID.ToString(), "UPDATE", old,
+                new { row.Currency_Code, row.Currency_Name_AR, row.Is_Local_Currency, row.Is_Default, row.Is_Active });
+            await _context.SaveChangesAsync();
+            await tx.CommitAsync();
+            return Ok(row);
         }
-
-        //==================================================
-        // حذف عملة
-        //==================================================
 
         [HttpDelete("{id:int}")]
-        public async Task<IActionResult> DeleteCurrency(int id)
+        public async Task<IActionResult> Deactivate(int id, [FromQuery] string? reason)
         {
-            Currency? currency =
-                await _context.Currencies
-                    .FirstOrDefaultAsync(
-                        x => x.Currency_ID == id);
+            var error = await RequireAsync(ScreenOperation.Delete);
+            if (error != null || Session == null) return error!;
 
-            if (currency == null)
-            {
-                return NotFound("العملة غير موجودة.");
-            }
+            var row = await _context.Currencies.FirstOrDefaultAsync(x => x.Currency_ID == id && x.Company_ID == Session.Company_ID);
+            if (row == null) return NotFound(new { message = "العملة غير موجودة ضمن الشركة الحالية." });
+            if (row.Is_Local_Currency) return BadRequest(new { message = "لا يمكن إيقاف العملة المحلية؛ عيّن عملة محلية بديلة أولاً." });
 
-            if (currency.Is_Local_Currency)
-            {
-                return BadRequest(
-                    "لا يمكن حذف العملة المحلية. " +
-                    "اختر عملة أخرى كعملة محلية أولًا.");
-            }
-
-            try
-            {
-                _context.Currencies.Remove(currency);
-
-                await _context.SaveChangesAsync();
-
-                return Ok("تم حذف العملة بنجاح.");
-            }
-            catch (DbUpdateException)
-            {
-                return BadRequest(
-                    "لا يمكن حذف العملة لأنها مستخدمة في عمليات أو حسابات أخرى. " +
-                    "يمكنك إيقافها بدلًا من حذفها.");
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(
-                    500,
-                    $"حدث خطأ أثناء حذف العملة: {ex.Message}");
-            }
+            row.Is_Active = false;
+            row.Updated_By = Session.User_ID.ToString();
+            row.Updated_At = DateTime.UtcNow;
+            _audit.Add(Session, HttpContext, "currencies", row.Currency_ID.ToString(), "DEACTIVATE",
+                new { Is_Active = true }, new { Is_Active = false }, reason);
+            await _context.SaveChangesAsync();
+            return Ok(new { message = "تم إيقاف العملة دون حذف تاريخها المالي." });
         }
 
-        //==================================================
-        // قائمة العملات النشطة للشاشات الأخرى
-        //==================================================
-
-        [HttpGet("GetLookup")]
-        public async Task<IActionResult> GetLookup(
-            [FromQuery] string companyId)
+        private async Task ClearFlagsAsync(CreateCurrencyDto dto, int excludingId = 0)
         {
-            if (string.IsNullOrWhiteSpace(companyId))
-            {
-                return BadRequest("رقم الشركة مطلوب.");
-            }
-
-            var data = await _context.Currencies
-                .AsNoTracking()
-                .Where(x =>
-                    x.Company_ID == companyId &&
-                    x.Is_Active)
-                .OrderByDescending(x => x.Is_Local_Currency)
-                .ThenBy(x => x.Currency_Name_AR)
-                .Select(x => new
-                {
-                    x.Currency_ID,
-                    x.Currency_Code,
-                    x.Currency_Name_AR,
-                    x.Currency_Symbol,
-                    x.Decimal_Places,
-                    x.Exchange_Rate,
-                    x.Min_Exchange_Rate,
-                    x.Max_Exchange_Rate,
-                    x.Is_Local_Currency,
-                    x.Is_Default
-                })
-                .ToListAsync();
-
-            return Ok(data);
-        }
-
-        //==================================================
-        // جلب العملة المحلية للشركة
-        //==================================================
-
-        [HttpGet("GetLocalCurrency")]
-        public async Task<IActionResult> GetLocalCurrency(
-            [FromQuery] string companyId)
-        {
-            if (string.IsNullOrWhiteSpace(companyId))
-            {
-                return BadRequest("رقم الشركة مطلوب.");
-            }
-
-            var currency = await _context.Currencies
-                .AsNoTracking()
-                .Where(x =>
-                    x.Company_ID == companyId &&
-                    x.Is_Local_Currency &&
-                    x.Is_Active)
-                .Select(x => new
-                {
-                    x.Currency_ID,
-                    x.Currency_Code,
-                    x.Currency_Name_AR,
-                    x.Currency_Symbol,
-                    x.Decimal_Places,
-                    x.Exchange_Rate
-                })
-                .FirstOrDefaultAsync();
-
-            if (currency == null)
-            {
-                return NotFound(
-                    "لم يتم تحديد العملة المحلية للشركة.");
-            }
-
-            return Ok(currency);
-        }
-
-        //==================================================
-        // التحقق من بيانات العملة
-        //==================================================
-
-        private static string? ValidateCurrencyDto(
-            CreateCurrencyDto dto)
-        {
-            if (string.IsNullOrWhiteSpace(dto.Company_ID))
-            {
-                return "رقم الشركة مطلوب.";
-            }
-
-            if (string.IsNullOrWhiteSpace(dto.Currency_Code))
-            {
-                return "كود العملة مطلوب.";
-            }
-
-            if (string.IsNullOrWhiteSpace(dto.Currency_Name_AR))
-            {
-                return "اسم العملة العربي مطلوب.";
-            }
-
-            if (dto.Decimal_Places < 0 ||
-                dto.Decimal_Places > 6)
-            {
-                return
-                    "عدد المنازل العشرية يجب أن يكون بين 0 و6.";
-            }
-
-            /*
-             * العملة المحلية تُحفظ تلقائيًا بسعر صرف 1،
-             * لذلك لا نحتاج فحص الحدود المدخلة لها.
-             */
+            if (Session == null) return;
             if (dto.Is_Local_Currency)
-            {
-                return null;
-            }
+                await _context.Currencies.Where(x => x.Company_ID == Session.Company_ID && x.Is_Local_Currency && x.Currency_ID != excludingId)
+                    .ExecuteUpdateAsync(x => x.SetProperty(v => v.Is_Local_Currency, false).SetProperty(v => v.Updated_At, DateTime.UtcNow));
+            if (dto.Is_Default)
+                await _context.Currencies.Where(x => x.Company_ID == Session.Company_ID && x.Is_Default && x.Currency_ID != excludingId)
+                    .ExecuteUpdateAsync(x => x.SetProperty(v => v.Is_Default, false).SetProperty(v => v.Updated_At, DateTime.UtcNow));
+        }
 
-            if (dto.Exchange_Rate <= 0)
-            {
-                return "سعر الصرف يجب أن يكون أكبر من صفر.";
-            }
+        private static Currency Build(CreateCurrencyDto dto, string companyId, string code)
+        {
+            var row = new Currency { Company_ID = companyId };
+            Apply(row, dto, code);
+            return row;
+        }
 
-            if (dto.Min_Exchange_Rate <= 0)
-            {
-                return
-                    "أقل سعر صرف يجب أن يكون أكبر من صفر.";
-            }
+        private static void Apply(Currency row, CreateCurrencyDto dto, string code)
+        {
+            row.Currency_Code = code;
+            row.Currency_Name_AR = dto.Currency_Name_AR.Trim();
+            row.Currency_Name_EN = NullIfWhiteSpace(dto.Currency_Name_EN);
+            row.Currency_Symbol = NullIfWhiteSpace(dto.Currency_Symbol);
+            row.Decimal_Places = dto.Decimal_Places;
+            row.Is_Local_Currency = dto.Is_Local_Currency;
+            row.Is_Default = dto.Is_Default;
+            row.Exchange_Rate = dto.Is_Local_Currency ? 1m : dto.Exchange_Rate;
+            row.Min_Exchange_Rate = dto.Is_Local_Currency ? 1m : dto.Min_Exchange_Rate;
+            row.Max_Exchange_Rate = dto.Is_Local_Currency ? 1m : dto.Max_Exchange_Rate;
+            row.Is_Active = dto.Is_Active;
+            row.Notes = NullIfWhiteSpace(dto.Notes);
+        }
 
-            if (dto.Max_Exchange_Rate <= 0)
-            {
-                return
-                    "أعلى سعر صرف يجب أن يكون أكبر من صفر.";
-            }
-
-            if (dto.Min_Exchange_Rate >
-                dto.Max_Exchange_Rate)
-            {
-                return
-                    "أقل سعر صرف لا يمكن أن يكون أكبر من أعلى سعر صرف.";
-            }
-
-            if (dto.Exchange_Rate <
-                dto.Min_Exchange_Rate)
-            {
-                return
-                    $"سعر الصرف أقل من الحد الأدنى المسموح " +
-                    $"({dto.Min_Exchange_Rate:N6}).";
-            }
-
-            if (dto.Exchange_Rate >
-                dto.Max_Exchange_Rate)
-            {
-                return
-                    $"سعر الصرف يتجاوز الحد الأعلى المسموح " +
-                    $"({dto.Max_Exchange_Rate:N6}).";
-            }
-
+        private static string? Validate(CreateCurrencyDto? dto)
+        {
+            if (dto == null || string.IsNullOrWhiteSpace(dto.Currency_Code) || string.IsNullOrWhiteSpace(dto.Currency_Name_AR))
+                return "كود العملة واسمها العربي حقول مطلوبة.";
+            if (dto.Currency_Code.Trim().Length > 20 || dto.Decimal_Places < 0 || dto.Decimal_Places > 6)
+                return "كود العملة غير صالح أو عدد المنازل العشرية يجب أن يكون بين 0 و6.";
+            if (dto.Exchange_Rate <= 0 || dto.Min_Exchange_Rate <= 0 || dto.Max_Exchange_Rate <= 0 || dto.Min_Exchange_Rate > dto.Max_Exchange_Rate)
+                return "سعر الصرف وحدوده يجب أن تكون موجبة ومنضبطة.";
             return null;
         }
+
+        private static string? NullIfWhiteSpace(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
     }
 }

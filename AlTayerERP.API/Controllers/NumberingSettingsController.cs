@@ -1,278 +1,217 @@
-﻿// ==========================================================
-// استدعاء المكتبات التي يحتاجها هذا الـ Controller
-// ==========================================================
-
-// استدعاء كلاس إعدادات الترقيم الموجود في مشروع Core
+using AlTayerERP.API.Services;
 using AlTayerERP.Core.Entities;
-
-// استدعاء الاتصال بقاعدة البيانات
 using AlTayerERP.Infrastructure.Data;
-
-// استدعاء مكتبات إنشاء Web API
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-
-// استدعاء Entity Framework
 using Microsoft.EntityFrameworkCore;
-
-using System.Collections.Generic;
-
 
 namespace AlTayerERP.API.Controllers
 {
-    // ==========================================================
-    // هذا Controller خاص بإعدادات الترقيم
-    // الرابط سيكون:
-    // http://localhost:5012/api/NumberingSettings
-    // ==========================================================
+    /// <summary>
+    /// إعدادات ومحرك الترقيم المركزي (NumberingSettings).
+    /// لا يقبل الشركة أو الفرع أو السنة من العميل عند الحجز؛ تؤخذ من ServerSession.
+    /// </summary>
+    [Authorize]
     [Route("api/[controller]")]
     [ApiController]
-    public class NumberingSettingsController : ControllerBase
+    public sealed class NumberingSettingsController : ControllerBase
     {
-        // الاتصال بقاعدة البيانات
-        private readonly AppDbContext _context;
+        private static readonly HashSet<string> ResetTypes = new(StringComparer.OrdinalIgnoreCase)
+        {
+            "NONE", "COMPANY", "BRANCH", "YEAR", "COMPANYYEAR", "BRANCHYEAR"
+        };
 
-        // Constructor يستقبل الاتصال بقاعدة البيانات تلقائياً
-        public NumberingSettingsController(AppDbContext context)
+        private readonly AppDbContext _context;
+        private readonly NumberGeneratorService _numbers;
+        private readonly ScreenAuthorizationService _authorization;
+        private readonly AuditTrailService _audit;
+
+        public NumberingSettingsController(
+            AppDbContext context,
+            NumberGeneratorService numbers,
+            ScreenAuthorizationService authorization,
+            AuditTrailService audit)
         {
             _context = context;
+            _numbers = numbers;
+            _authorization = authorization;
+            _audit = audit;
         }
 
-        // ======================================================
-        // جلب جميع إعدادات الترقيم
-        // GET api/NumberingSettings
-        // ======================================================
+        private async Task<IActionResult?> DenyUnlessAsync(ScreenOperation operation)
+        {
+            if (HttpContext.Items["ServerSession"] is not ServerSession session)
+                return Unauthorized();
+            return await _authorization.IsAllowedAsync(session, "NumberingSettings", operation)
+                ? null : Forbid();
+        }
+
         [HttpGet]
         public async Task<IActionResult> GetAll()
         {
-            try
-            {
-                var data = await _context.Numbering_Settings
-                    .OrderBy(x => x.Document_Type)
-                    .ToListAsync();
+            var denied = await DenyUnlessAsync(ScreenOperation.View);
+            if (denied != null) return denied;
 
-                return Ok(data);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, ex.ToString());
-            }
+            var data = await _context.Numbering_Settings.AsNoTracking()
+                .OrderBy(x => x.Document_Type)
+                .Select(x => new
+                {
+                    x.Numbering_ID, x.Document_Type, x.Prefix, x.Digits_Count, x.Reset_Type,
+                    x.Use_Company, x.Use_Branch, x.Use_Year, x.Is_Active
+                })
+                .ToListAsync();
+            return Ok(data);
         }
 
-        // ======================================================
-        // حفظ أو تعديل إعداد ترقيم
-        // POST api/NumberingSettings
-        // ======================================================
+        /// <summary>
+        /// حفظ قاعدة الترقيم فقط. لا يسمح بتعديل Last_Number لأن المصدر الوحيد له هو العداد.
+        /// </summary>
         [HttpPost]
-        public async Task<IActionResult> Save([FromBody] NumberingSetting model)
+        public async Task<IActionResult> Save([FromBody] SaveNumberingSettingRequest request)
         {
+            var denied = await DenyUnlessAsync(request?.Numbering_ID > 0 ? ScreenOperation.Edit : ScreenOperation.Add);
+            if (denied != null) return denied;
+            var session = (ServerSession)HttpContext.Items["ServerSession"]!;
+
+            if (request == null || string.IsNullOrWhiteSpace(request.Document_Type) ||
+                string.IsNullOrWhiteSpace(request.Prefix))
+                return BadRequest("نوع المستند والبادئة مطلوبان.");
+
+            var documentType = request.Document_Type.Trim().ToUpperInvariant();
+            var prefix = request.Prefix.Trim().ToUpperInvariant();
+            var resetType = NormalizeResetType(request.Reset_Type);
+            if (!ResetTypes.Contains(resetType))
+                return BadRequest("طريقة التصفير غير صالحة.");
+            if (request.Digits_Count is < 1 or > 9)
+                return BadRequest("عدد الخانات يجب أن يكون من 1 إلى 9.");
+
+            var duplicate = await _context.Numbering_Settings.AnyAsync(x =>
+                x.Document_Type == documentType && x.Numbering_ID != request.Numbering_ID);
+            if (duplicate) return Conflict("يوجد إعداد ترقيم لهذا النوع مسبقاً.");
+
+            NumberingSetting setting;
+            object? before = null;
+            if (request.Numbering_ID > 0)
+            {
+                setting = await _context.Numbering_Settings.FirstOrDefaultAsync(x => x.Numbering_ID == request.Numbering_ID)
+                    ?? throw new KeyNotFoundException("إعداد الترقيم غير موجود.");
+                before = new { setting.Document_Type, setting.Prefix, setting.Digits_Count, setting.Reset_Type, setting.Is_Active };
+            }
+            else
+            {
+                setting = new NumberingSetting();
+                _context.Numbering_Settings.Add(setting);
+            }
+
+            var flags = ResolveResetFlags(resetType);
+            setting.Document_Type = documentType;
+            setting.Prefix = prefix;
+            setting.Digits_Count = request.Digits_Count;
+            setting.Reset_Type = resetType;
+            setting.Use_Company = flags.UseCompany;
+            setting.Use_Branch = flags.UseBranch;
+            setting.Use_Year = flags.UseYear;
+            setting.Is_Active = request.Is_Active;
+
+            _audit.Add(session, HttpContext, "numbering_settings",
+                request.Numbering_ID == 0 ? "new" : request.Numbering_ID.ToString(),
+                request.Numbering_ID == 0 ? "CREATE" : "UPDATE", before,
+                new { setting.Document_Type, setting.Prefix, setting.Digits_Count, setting.Reset_Type, setting.Is_Active });
+
+            await _context.SaveChangesAsync();
+            return Ok(new
+            {
+                message = request.Numbering_ID == 0 ? "تمت إضافة إعداد الترقيم." : "تم تعديل إعداد الترقيم.",
+                setting.Numbering_ID
+            });
+        }
+
+        /// <summary>
+        /// إيقاف الإعداد فقط؛ لا يحذف العدادات أو الأرقام المحجوزة حفاظاً على عدم إعادة الاستخدام.
+        /// </summary>
+        [HttpDelete("{id:int}")]
+        public async Task<IActionResult> Deactivate(int id)
+        {
+            var denied = await DenyUnlessAsync(ScreenOperation.Delete);
+            if (denied != null) return denied;
+            var session = (ServerSession)HttpContext.Items["ServerSession"]!;
+
+            var setting = await _context.Numbering_Settings.FirstOrDefaultAsync(x => x.Numbering_ID == id);
+            if (setting == null) return NotFound("إعداد الترقيم غير موجود.");
+
+            setting.Is_Active = false;
+            _audit.Add(session, HttpContext, "numbering_settings", id.ToString(), "DEACTIVATE",
+                new { Is_Active = true }, new { Is_Active = false });
+            await _context.SaveChangesAsync();
+            return Ok(new { message = "تم إيقاف إعداد الترقيم. لم تُحذف أي أرقام أو عدادات." });
+        }
+
+        /// <summary>
+        /// يحجز الرقم النهائي. POST وليس GET لأن الحجز عملية تغير حالة العداد.
+        /// الرقم المحجوز لا يرجع إلى العداد عند الإلغاء أو حذف المسودة.
+        /// </summary>
+        [HttpPost("Reserve")]
+        public async Task<IActionResult> Reserve([FromBody] ReserveNumberRequest request, CancellationToken cancellationToken)
+        {
+            var denied = await DenyUnlessAsync(ScreenOperation.Add);
+            if (denied != null) return denied;
+            var session = (ServerSession)HttpContext.Items["ServerSession"]!;
+
+            if (request == null || string.IsNullOrWhiteSpace(request.Document_Type))
+                return BadRequest("نوع المستند مطلوب.");
+
             try
             {
-                if (model == null)
-                    return BadRequest("لم تصل بيانات إعداد الترقيم.");
+                var reservation = await _numbers.ReserveNextNumberAsync(
+                    request.Document_Type, session.Company_ID, session.Branch_ID, session.Year_ID, cancellationToken);
 
-                if (string.IsNullOrWhiteSpace(model.Document_Type))
-                    return BadRequest("نوع المستند مطلوب.");
+                _audit.Add(session, HttpContext, "numbering_counters",
+                    reservation.Counter_ID.ToString(), "NUMBER_RESERVED",
+                    newValues: new
+                    {
+                        reservation.Document_Number, reservation.Document_Type,
+                        reservation.Serial_Number, reservation.Company_ID,
+                        reservation.Branch_ID, reservation.Fiscal_Year_ID
+                    });
+                await _audit.SaveChangesAsync(cancellationToken);
 
-                if (string.IsNullOrWhiteSpace(model.Prefix))
-                    return BadRequest("البادئة مطلوبة.");
-
-                if (string.IsNullOrWhiteSpace(model.Reset_Type))
-                    return BadRequest("طريقة التصفير مطلوبة.");
-
-                // تنظيف القيم قبل الحفظ
-                model.Document_Type = model.Document_Type.Trim();
-                model.Prefix = model.Prefix.Trim().ToUpper();
-                model.Reset_Type = model.Reset_Type.Trim();
-
-                if (model.Digits_Count <= 0)
-                    model.Digits_Count = 4;
-
-                if (model.Last_Number < 0)
-                    model.Last_Number = 0;
-
-                // ==================================================
-                // إذا كان رقم السجل = صفر فهذا سجل جديد
-                // ==================================================
-                if (model.Numbering_ID == 0)
-                {
-                    // منع تكرار نفس نوع المستند
-                    bool exists = await _context.Numbering_Settings
-                        .AnyAsync(x => x.Document_Type == model.Document_Type);
-
-                    if (exists)
-                        return BadRequest("يوجد إعداد ترقيم لهذا المستند مسبقاً.");
-
-                    await _context.Numbering_Settings.AddAsync(model);
-                }
-                else
-                {
-                    // ==================================================
-                    // إذا كان السجل موجوداً نقوم بتحديثه
-                    // ==================================================
-
-                    var oldSetting = await _context.Numbering_Settings
-                        .FirstOrDefaultAsync(x => x.Numbering_ID == model.Numbering_ID);
-
-                    if (oldSetting == null)
-                        return NotFound("إعداد الترقيم غير موجود.");
-
-                    // منع تغيير نوع المستند إلى نوع موجود في سجل آخر
-                    bool duplicate = await _context.Numbering_Settings
-                        .AnyAsync(x =>
-                            x.Document_Type == model.Document_Type &&
-                            x.Numbering_ID != model.Numbering_ID);
-
-                    if (duplicate)
-                        return BadRequest("يوجد إعداد ترقيم آخر لنفس نوع المستند.");
-
-                    oldSetting.Document_Type = model.Document_Type;
-                    oldSetting.Prefix = model.Prefix;
-                    oldSetting.Digits_Count = model.Digits_Count;
-                    oldSetting.Reset_Type = model.Reset_Type;
-                    oldSetting.Last_Number = model.Last_Number;
-                    oldSetting.Use_Company = model.Use_Company;
-                    oldSetting.Use_Branch = model.Use_Branch;
-                    oldSetting.Use_Year = model.Use_Year;
-                    oldSetting.Is_Active = model.Is_Active;
-                }
-
-                await _context.SaveChangesAsync();
-
-                return Ok(model);
+                return Ok(reservation);
             }
-            catch (Exception ex)
+            catch (NumberingException ex)
             {
-                return StatusCode(500, ex.ToString());
+                return BadRequest(new { message = ex.Message });
             }
         }
 
-        // ======================================================
-        // حذف إعداد ترقيم حسب رقمه
-        // DELETE api/NumberingSettings/1
-        // ======================================================
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> Delete(int id)
-        {
-            try
+        private static string NormalizeResetType(string? value) =>
+            (value ?? string.Empty).Trim().Replace("_", string.Empty).Replace("-", string.Empty).ToUpperInvariant();
+
+        private static (bool UseCompany, bool UseBranch, bool UseYear) ResolveResetFlags(string resetType) =>
+            resetType switch
             {
-                var setting = await _context.Numbering_Settings.FindAsync(id);
+                "NONE" => (false, false, false),
+                "COMPANY" => (true, false, false),
+                "BRANCH" => (true, true, false),
+                "YEAR" => (false, false, true),
+                "COMPANYYEAR" => (true, false, true),
+                "BRANCHYEAR" => (true, true, true),
+                _ => throw new InvalidOperationException("طريقة تصفير غير مدعومة.")
+            };
+    }
 
-                if (setting == null)
-                    return NotFound("إعداد الترقيم غير موجود.");
+    /// <summary>عقد حفظ الإعداد؛ Last_Number غير موجود عمداً لأنه لا يعدل من UI.</summary>
+    public sealed class SaveNumberingSettingRequest
+    {
+        public int Numbering_ID { get; set; }
+        public string Document_Type { get; set; } = string.Empty;
+        public string Prefix { get; set; } = string.Empty;
+        public int Digits_Count { get; set; } = 6;
+        public string Reset_Type { get; set; } = "BRANCHYEAR";
+        public bool Is_Active { get; set; } = true;
+    }
 
-                _context.Numbering_Settings.Remove(setting);
-
-                await _context.SaveChangesAsync();
-
-                return Ok("تم الحذف بنجاح");
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, ex.ToString());
-            }
-        }
-        // ======================================================
-        // توليد رقم مستند جديد حسب إعدادات الترقيم
-        // GET api/NumberingSettings/GenerateNumber
-        // مثال:
-        // api/NumberingSettings/GenerateNumber?documentType=RECEIPT&companyId=FG-00001&branchId=1&year=2026
-        // ======================================================
-        [HttpGet("GenerateNumber")]
-        public async Task<IActionResult> GenerateNumber(
-            [FromQuery] string documentType,
-            [FromQuery] string companyId,
-            [FromQuery] int branchId,
-            [FromQuery] int year)
-        {
-            try
-            {
-                // التحقق من البيانات المطلوبة
-                if (string.IsNullOrWhiteSpace(documentType))
-                    return BadRequest("نوع المستند مطلوب.");
-
-                if (string.IsNullOrWhiteSpace(companyId))
-                    return BadRequest("معرف الشركة مطلوب.");
-
-                if (branchId <= 0)
-                    return BadRequest("معرف الفرع مطلوب.");
-
-                if (year <= 0)
-                    return BadRequest("السنة المالية مطلوبة.");
-
-                documentType = documentType.Trim();
-
-                // جلب إعداد الترقيم النشط لنوع المستند
-                var setting = await _context.Numbering_Settings
-                    .FirstOrDefaultAsync(x =>
-                        x.Document_Type == documentType &&
-                        x.Is_Active);
-
-                if (setting == null)
-                {
-                    return NotFound(
-                        $"لا يوجد إعداد ترقيم نشط لنوع المستند: {documentType}");
-                }
-
-                // زيادة آخر رقم
-                int nextNumber = setting.Last_Number + 1;
-
-                // إنشاء الجزء الرقمي حسب عدد الخانات
-                string serialPart =
-                    nextNumber.ToString().PadLeft(
-                        setting.Digits_Count,
-                        '0');
-
-                // تكوين أجزاء الرقم النهائي
-                var numberParts = new List<string>();
-
-                // إضافة البادئة
-                if (!string.IsNullOrWhiteSpace(setting.Prefix))
-                {
-                    numberParts.Add(
-                        setting.Prefix.Trim().ToUpper());
-                }
-
-                // إضافة الشركة حسب الإعداد
-                if (setting.Use_Company)
-                {
-                    numberParts.Add(companyId);
-                }
-
-                // إضافة الفرع حسب الإعداد
-                if (setting.Use_Branch)
-                {
-                    numberParts.Add(branchId.ToString());
-                }
-
-                // إضافة السنة حسب الإعداد
-                if (setting.Use_Year)
-                {
-                    numberParts.Add(year.ToString());
-                }
-
-                // إضافة الرقم التسلسلي
-                numberParts.Add(serialPart);
-
-                // تكوين الرقم النهائي
-                string generatedNumber =
-                    string.Join("-", numberParts);
-
-                // ملاحظة:
-                // هنا لا نقوم بتحديث Last_Number حتى لا نحجز الرقم
-                // قبل الحفظ الفعلي للسند.
-                // التحديث النهائي سيتم داخل عملية حفظ السند.
-
-                return Ok(new
-                {
-                    Document_Type = documentType,
-                    Generated_Number = generatedNumber,
-                    Next_Number = nextNumber
-                });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, ex.ToString());
-            }
-        }
+    public sealed class ReserveNumberRequest
+    {
+        public string Document_Type { get; set; } = string.Empty;
     }
 }

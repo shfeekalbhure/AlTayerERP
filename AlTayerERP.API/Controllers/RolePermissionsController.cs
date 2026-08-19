@@ -2,53 +2,49 @@ using AlTayerERP.API.DTOs;
 using AlTayerERP.API.Services;
 using AlTayerERP.Core.Entities;
 using AlTayerERP.Infrastructure.Data;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace AlTayerERP.API.Controllers
 {
     /// <summary>
-    /// إدارة صلاحيات الأدوار. كل الطلبات هنا تعتمد على جلسة أصدرها الخادم بعد الدخول.
+    /// إدارة صلاحيات الأدوار. تعديل الصلاحيات محصور بمدير النظام لأن هذه الشاشة
+    /// تتحكم بوصول بقية النظام، بينما مصدر الجلسة هو AuthenticationHandler.
     /// </summary>
+    [Authorize]
     [Route("api/[controller]")]
     [ApiController]
     public class RolePermissionsController : ControllerBase
     {
-        private const string SessionHeader = "X-Session-Token";
         private readonly AppDbContext _context;
-        private readonly ServerSessionService _sessions;
+        private readonly AuditTrailService _audit;
 
-        public RolePermissionsController(AppDbContext context, ServerSessionService sessions)
+        public RolePermissionsController(AppDbContext context, AuditTrailService audit)
         {
             _context = context;
-            _sessions = sessions;
+            _audit = audit;
         }
 
-        // استخراج الجلسة من الترويسة؛ لا نثق بمُعرّف الدور القادم من العميل.
-        private bool TryGetSession(out ServerSession session) =>
-            _sessions.TryGet(Request.Headers[SessionHeader].ToString(), out session);
+        private bool TryGetSession(out ServerSession session)
+        {
+            session = HttpContext.Items["ServerSession"] as ServerSession ?? default!;
+            return session != null;
+        }
+
+        private bool IsAdministrator(out ServerSession session) =>
+            TryGetSession(out session) && session.Is_System_Admin;
 
         [HttpGet("GetScreens")]
         public async Task<IActionResult> GetScreens()
         {
-            if (!TryGetSession(out var session))
-                return Unauthorized("انتهت الجلسة أو أنها غير صالحة. سجل الدخول من جديد.");
-
-            // كتالوج إدارة الصلاحيات لا يفتح إلا لمدير النظام.
-            if (!session.Is_System_Admin)
+            if (!IsAdministrator(out _))
                 return Forbid();
 
-            var screens = await _context.SystemScreens
-                .AsNoTracking()
+            var screens = await _context.SystemScreens.AsNoTracking()
                 .Where(x => x.Is_Active)
                 .OrderBy(x => x.Sort_Order)
-                .Select(x => new
-                {
-                    x.Screen_ID,
-                    x.Screen_Code,
-                    x.Screen_Name,
-                    x.Module_Name
-                })
+                .Select(x => new { x.Screen_ID, x.Screen_Code, x.Screen_Name, x.Module_Name })
                 .ToListAsync();
 
             return Ok(screens);
@@ -57,28 +53,23 @@ namespace AlTayerERP.API.Controllers
         [HttpGet("GetRolePermissions/{roleId:int}")]
         public async Task<IActionResult> GetRolePermissions(int roleId)
         {
-            if (!TryGetSession(out var session))
-                return Unauthorized("انتهت الجلسة أو أنها غير صالحة. سجل الدخول من جديد.");
-
-            // المستخدم العادي يقرأ صلاحيات دوره فقط؛ مدير النظام يستطيع إدارتها كلها.
-            if (!session.Is_System_Admin && session.Role_ID != roleId)
+            if (!IsAdministrator(out _))
                 return Forbid();
 
-            var permissions = await _context.RolePermissions
-                .AsNoTracking()
+            var permissions = await _context.RolePermissions.AsNoTracking()
                 .Where(x => x.Role_ID == roleId)
                 .ToListAsync();
 
             return Ok(permissions);
         }
 
+        /// <summary>
+        /// يستبدل مصفوفة الدور داخل Transaction واحدة، ويسجل ملخصاً فقط دون بيانات حساسة.
+        /// </summary>
         [HttpPost("SaveRolePermissions")]
         public async Task<IActionResult> SaveRolePermissions([FromBody] List<SaveRolePermissionDto> permissions)
         {
-            if (!TryGetSession(out var session))
-                return Unauthorized("انتهت الجلسة أو أنها غير صالحة. سجل الدخول من جديد.");
-
-            if (!session.Is_System_Admin)
+            if (!IsAdministrator(out var session))
                 return Forbid();
 
             if (permissions == null || permissions.Count == 0)
@@ -88,10 +79,9 @@ namespace AlTayerERP.API.Controllers
             if (roleId <= 0 || permissions.Any(x => x.Role_ID != roleId || x.Screen_ID <= 0))
                 return BadRequest("بيانات الصلاحيات غير صالحة أو تخص أكثر من دور.");
 
-            // منع الصلاحيات المتناقضة: لا توجد عملية إضافة/تعديل/حذف دون حق العرض للشاشة.
             if (permissions.Any(x => !x.Can_View &&
-                (x.Can_Add || x.Can_Edit || x.Can_Delete || x.Can_Print ||
-                 x.Can_Export || x.Can_Import || x.Can_Approve || x.Can_UnApprove)))
+                (x.Can_Add || x.Can_Edit || x.Can_Delete || x.Can_Print || x.Can_Export ||
+                 x.Can_Import || x.Can_Approve || x.Can_UnApprove)))
             {
                 return BadRequest("لا يمكن منح عملية على شاشة ليس لها حق العرض.");
             }
@@ -101,42 +91,41 @@ namespace AlTayerERP.API.Controllers
                 return BadRequest("الدور المحدد غير موجود أو غير فعال.");
 
             var requestedScreenIds = permissions.Select(x => x.Screen_ID).Distinct().ToList();
-            var activeScreens = await _context.SystemScreens
+            var activeScreenIds = await _context.SystemScreens.AsNoTracking()
                 .Where(x => x.Is_Active && requestedScreenIds.Contains(x.Screen_ID))
                 .Select(x => x.Screen_ID)
                 .ToListAsync();
-
-            if (activeScreens.Count != requestedScreenIds.Count)
+            if (activeScreenIds.Count != requestedScreenIds.Count)
                 return BadRequest("تحتوي العملية على شاشة غير موجودة أو غير فعالة.");
 
             await using var transaction = await _context.Database.BeginTransactionAsync();
             try
             {
-                var oldPermissions = await _context.RolePermissions
-                    .Where(x => x.Role_ID == roleId)
-                    .ToListAsync();
+                var oldRows = await _context.RolePermissions.Where(x => x.Role_ID == roleId).ToListAsync();
+                _context.RolePermissions.RemoveRange(oldRows);
 
-                _context.RolePermissions.RemoveRange(oldPermissions);
-
-                var rows = permissions.Select(item => new RolePermission
+                var newRows = permissions.Select(x => new RolePermission
                 {
                     Role_ID = roleId,
-                    Screen_ID = item.Screen_ID,
-                    Can_View = item.Can_View,
-                    Can_Add = item.Can_Add,
-                    Can_Edit = item.Can_Edit,
-                    Can_Delete = item.Can_Delete,
-                    Can_Print = item.Can_Print,
-                    Can_Export = item.Can_Export,
-                    Can_Import = item.Can_Import,
-                    Can_Approve = item.Can_Approve,
-                    Can_UnApprove = item.Can_UnApprove
+                    Screen_ID = x.Screen_ID,
+                    Can_View = x.Can_View,
+                    Can_Add = x.Can_Add,
+                    Can_Edit = x.Can_Edit,
+                    Can_Delete = x.Can_Delete,
+                    Can_Print = x.Can_Print,
+                    Can_Export = x.Can_Export,
+                    Can_Import = x.Can_Import,
+                    Can_Approve = x.Can_Approve,
+                    Can_UnApprove = x.Can_UnApprove
                 }).ToList();
 
-                await _context.RolePermissions.AddRangeAsync(rows);
+                await _context.RolePermissions.AddRangeAsync(newRows);
+                _audit.Add(session, HttpContext, "role_permissions", roleId.ToString(), "UPDATE",
+                    new { Count = oldRows.Count },
+                    new { Count = newRows.Count, GrantedView = newRows.Count(x => x.Can_View) },
+                    "استبدال مصفوفة صلاحيات الدور");
                 await _context.SaveChangesAsync();
                 await transaction.CommitAsync();
-
                 return Ok(new { message = "تم حفظ الصلاحيات بنجاح." });
             }
             catch

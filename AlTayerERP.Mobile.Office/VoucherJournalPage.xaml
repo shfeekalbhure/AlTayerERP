@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="AlTayerERP.Mobile.Office.VoucherJournalPage"
+             FlowDirection="RightToLeft"
+             BackgroundColor="#F6F8FB"
+             Title="القيد المحاسبي">
+    <ScrollView>
+        <VerticalStackLayout Padding="16" Spacing="12">
+            <Border BackgroundColor="#17324D" StrokeThickness="0" Padding="16" StrokeShape="RoundRectangle 16">
+                <VerticalStackLayout Spacing="6">
+                    <Label x:Name="EntryNoLabel" FontSize="21" FontAttributes="Bold" TextColor="White" />
+                    <Label x:Name="StatusLabel" FontSize="13" TextColor="#D9EAF7" />
+                </VerticalStackLayout>
+            </Border>
+            <Border BackgroundColor="White" Stroke="#D9E2EC" Padding="14" StrokeShape="RoundRectangle 14">
+                <VerticalStackLayout Spacing="6">
+                    <Label x:Name="VoucherLabel" FontAttributes="Bold" TextColor="#17324D" />
+                    <Label x:Name="DateLabel" TextColor="#35566F" />
+                    <Label x:Name="DescriptionLabel" TextColor="#35566F" />
+                    <Label x:Name="TotalsLabel" FontAttributes="Bold" TextColor="#17324D" />
+                </VerticalStackLayout>
+            </Border>
+            <Label Text="تفاصيل القيد" FontSize="18" FontAttributes="Bold" TextColor="#17324D" />
+            <VerticalStackLayout x:Name="LinesPanel" Spacing="10" />
+            <ActivityIndicator x:Name="BusyIndicator" Color="#0B6B87" IsVisible="False" IsRunning="False" />
+            <Label x:Name="MessageLabel" IsVisible="False" TextColor="#B42318" HorizontalTextAlignment="Center" />
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

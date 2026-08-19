@@ -33,7 +33,7 @@ namespace AlTayerERP.Desktop
         // ======================================================
         // [حدث] زر الحفظ - إرسال بيانات المجموعة التجارية للـ API بالربط المركزي
         // ======================================================
-        private async void btnSaveGroup_Click(object sender, EventArgs e)
+        private async void btnSaveGroup_Click(object? sender, EventArgs e)
         {
             // 1. التحقق من إدخال البيانات الأساسية
             if (string.IsNullOrWhiteSpace(txtGroupNameAr.Text))
@@ -80,7 +80,7 @@ namespace AlTayerERP.Desktop
             }
         }
 
-        private void Form1_Load(object sender, EventArgs e)
+        private void Form1_Load(object? sender, EventArgs e)
         {
         }
     }

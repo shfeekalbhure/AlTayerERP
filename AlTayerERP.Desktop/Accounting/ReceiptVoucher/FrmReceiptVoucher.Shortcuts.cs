@@ -20,6 +20,37 @@ namespace AlTayerERP.Desktop
             cmbCostCenter.KeyDown += cmbCostCenter_KeyDown;
         }
 
+        /// <summary>
+        /// اختصارات سند القبض الموحدة: F2 حفظ، F3 جديد، F4 تعديل، F5 تحديث.
+        /// F9 يبقى مخصصاً للاستعلام بحسب الحقل النشط.
+        /// </summary>
+        private void FrmReceiptVoucher_KeyDown(object? sender, KeyEventArgs e)
+        {
+            if (e.KeyCode == Keys.F2 && btnSave.Enabled)
+            {
+                btnSave.PerformClick();
+            }
+            else if (e.KeyCode == Keys.F3 && btnNew.Enabled)
+            {
+                btnNew.PerformClick();
+            }
+            else if (e.KeyCode == Keys.F4 && btnEdit.Enabled)
+            {
+                btnEdit.PerformClick();
+            }
+            else if (e.KeyCode == Keys.F5 && btnRefresh.Enabled)
+            {
+                btnRefresh.PerformClick();
+            }
+            else
+            {
+                return;
+            }
+
+            e.Handled = true;
+            e.SuppressKeyPress = true;
+        }
+
         private void cmbCashAccount_KeyDown(object? sender, KeyEventArgs e)
         {
             if (e.KeyCode != Keys.F9)

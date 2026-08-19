@@ -14,12 +14,8 @@ namespace AlTayerERP.Desktop
         {
             ApplicationConfiguration.Initialize();
 
-            Application.ThreadException += (_, e) => ShowStartupError(e.Exception);
-            AppDomain.CurrentDomain.UnhandledException += (_, e) =>
-            {
-                if (e.ExceptionObject is Exception exception)
-                    ShowStartupError(exception);
-            };
+            // حماية موحدة: خطأ شاشة واحدة لا ينهي النظام بصمت، ويسجل التفاصيل للمراجعة.
+            AppExceptionHandler.Initialize();
 
             try
             {
@@ -27,20 +23,8 @@ namespace AlTayerERP.Desktop
             }
             catch (Exception ex)
             {
-                // لا نسمح بأن يختفي البرنامج عند فشل إنشاء شاشة الدخول.
-                ShowStartupError(ex);
+                AppExceptionHandler.HandleUiException(ex, "بدء شاشة الدخول");
             }
-        }
-
-        private static void ShowStartupError(Exception ex)
-        {
-            MessageBox.Show(
-                "تعذر بدء شاشة الدخول.\n\n" +
-                "السبب الفني:\n" + ex.Message + "\n\n" +
-                "تأكد من نجاح Build ومن تشغيل مشروع AlTayerERP.Desktop.",
-                "خطأ بدء التشغيل",
-                MessageBoxButtons.OK,
-                MessageBoxIcon.Error);
         }
     }
 }

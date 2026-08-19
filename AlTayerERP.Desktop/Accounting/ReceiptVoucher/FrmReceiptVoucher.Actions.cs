@@ -41,6 +41,10 @@ namespace AlTayerERP.Desktop
 
             btnRefresh.Click -= btnRefresh_Click;
             btnRefresh.Click += btnRefresh_Click;
+
+            btnAttachments.Click -= btnAttachments_Click;
+            btnAttachments.Click += btnAttachments_Click;
+
             // للتراجع
             btnUndo.Click -= btnUndo_Click;
             btnUndo.Click += btnUndo_Click;
@@ -92,6 +96,24 @@ namespace AlTayerERP.Desktop
         }
 
         #endregion
+
+        #region === المرفقات واستعراض القيد ===
+
+        private void btnAttachments_Click(object? sender, EventArgs e)
+        {
+            if (_selectedVoucherId <= 0)
+            {
+                MessageBox.Show("احفظ أو ابحث عن سند القبض أولاً.", "المرفقات",
+                    MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
+
+            using var form = new FrmVoucherAttachments(_selectedVoucherId);
+            form.ShowDialog(this);
+        }
+
+        #endregion
+
         #region === زر التعديل ===
 
         /// <summary>
@@ -154,7 +176,8 @@ namespace AlTayerERP.Desktop
                 // تأكيد الحذف وتصفير الواجهة لتجهيز سند جديد
                 MessageBox.Show("تم حذف سند القبض بنجاح.", "نجاح", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 NewVoucher();
-                await GenerateVoucherNumberAsync();
+                // بعد الحذف تُفتح مسودة قابلة للإدخال؛ الرقم يصدر من الخادم عند الحفظ فقط.
+                SetNewMode();
             }
             catch (Exception ex)
             {
@@ -718,7 +741,7 @@ namespace AlTayerERP.Desktop
         // رسم محتويات صفحة الطباعة
         private void ReceiptPrintDocument_PrintPage(object? sender, PrintPageEventArgs e)
         {
-            Graphics graphics = e.Graphics;
+            Graphics graphics = e.Graphics ?? throw new InvalidOperationException("تعذر الحصول على سطح الرسم للطباعة.");
             Rectangle page = e.MarginBounds;
 
             // إنشاء الخطوط والأقلام وأدوات التنسيق بالنص العربي
@@ -744,7 +767,7 @@ namespace AlTayerERP.Desktop
 
             // طباعة رأس التقرير (اسم الشركة والعنوان)
             string companyName = string.IsNullOrWhiteSpace(CurrentSession.Company_Name)
-                ? "شركة الطائر السعيد للنقل" : CurrentSession.Company_Name;
+                ? "شركة الطائر السعيد للنقل" : CurrentSession.Company_Name!;
 
             graphics.DrawString(companyName, companyFont, Brushes.Black,
                 new RectangleF(page.Left, y, page.Width, 30), centerFormat);

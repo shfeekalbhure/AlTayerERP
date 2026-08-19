@@ -145,14 +145,17 @@ namespace AlTayerERP.API.Controllers
                 await _context.Cash_Boxes
                     .AsNoTracking()
                     .Where(x =>
-                        x.Company_ID == companyId &&
+                        x.Company_ID.Trim() == companyId.Trim() &&
                         x.Branch_ID == branchId &&
-                        x.Is_Active)
-                  
-                       
-
-
-
+                        x.Is_Active &&
+                        x.Account_ID != null &&
+                        x.Account_ID != "" &&
+                        _context.Chart_Of_Accounts.Any(account =>
+                            account.Company_ID.Trim() == companyId.Trim() &&
+                            account.Account_ID == x.Account_ID &&
+                            account.Is_Active &&
+                            account.Is_Postable &&
+                            !account.Is_Summary_Account))
                     .OrderBy(x => x.Box_Name_AR)
                     .Select(x => new CashBoxLookupDto
                     {
@@ -174,10 +177,10 @@ namespace AlTayerERP.API.Controllers
                 await _context.Currencies
                     .AsNoTracking()
                     .Where(x =>
-                        x.Company_ID == companyId &&
+                        x.Company_ID.Trim() == companyId.Trim() &&
                         x.Is_Active)
-                    .OrderByDescending(x => x.Is_Default)
-                    .ThenBy(x => x.Currency_Name_AR)
+                    .OrderByDescending(x => x.Is_Local_Currency)
+                    .ThenBy(x => x.Currency_Code)
                     .Select(x => new CurrencyLookupDto
                     {
                         Currency_ID =
@@ -190,7 +193,7 @@ namespace AlTayerERP.API.Controllers
                             x.Currency_Name_AR,
 
                         Exchange_Rate =
-                            x.Exchange_Rate,
+                            x.Is_Local_Currency ? 1m : x.Exchange_Rate,
 
                         Is_Default =
                             x.Is_Default,
@@ -213,8 +216,9 @@ namespace AlTayerERP.API.Controllers
                 await _context.Cost_Centers
                     .AsNoTracking()
                     .Where(x =>
-                        x.Company_ID == companyId &&
-                        x.Is_Active)
+                        x.Company_ID.Trim() == companyId.Trim() &&
+                        x.Is_Active &&
+                        x.Is_Postable)
       //              .OrderBy(x => x.Cost_Center_Code)
                     .OrderBy(x => x.Center_Code)
 
@@ -298,9 +302,10 @@ namespace AlTayerERP.API.Controllers
                 await _context.Chart_Of_Accounts
                     .AsNoTracking()
                     .Where(x =>
-                        x.Company_ID == companyId &&
+                        x.Company_ID.Trim() == companyId.Trim() &&
                         x.Is_Active &&
-                        x.Is_Postable)
+                        x.Is_Postable &&
+                        !x.Is_Summary_Account)
                     .OrderBy(x => x.Account_Code)
                     .Select(x => new AccountLookupDto
                     {

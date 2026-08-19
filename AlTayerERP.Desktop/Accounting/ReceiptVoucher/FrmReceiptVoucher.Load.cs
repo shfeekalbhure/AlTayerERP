@@ -116,42 +116,6 @@ namespace AlTayerERP.Desktop
 
         #region === فتح الشاشة ===
 
-        /*      private async void FrmReceiptVoucher_Load(object? sender, EventArgs e)
-              {
-                  _isLoading = true;
-                  UseWaitCursor = true;
-
-                  try
-                  {
-                      LoadCurrentSession();
-                      await LoadFinancialVoucherLookupsAsync();
-                      NewVoucher();
-                      await GenerateVoucherNumberAsync();
-                      UpdateStatusBar("متصل", "متصلة", "فعال");
-                      SetViewMode();
-                  }
-                  catch (HttpRequestException ex)
-                  {
-                      UpdateStatusBar("غير متصل", "غير مفحوصة", "فعال");
-                      ShowError("تعذر الاتصال بالـ API", ex);
-                  }
-                  catch (Exception ex)
-                  {
-                      UpdateStatusBar("خطأ", "غير مفحوصة", "غير معروف");
-                      ShowError("حدث خطأ أثناء تحميل الشاشة", ex);
-                  }
-                  finally
-                  {
-
-
-                      _isLoading = false;
-                      UseWaitCursor = false;
-
-                      if (cmbCurrency.SelectedIndex >= 0)
-                          CalculateHeaderCurrencyAmounts();
-                  }
-              }
-        */
         private async void FrmReceiptVoucher_Load(object? sender, EventArgs e)
         {
             _isLoading = true;
@@ -233,10 +197,8 @@ namespace AlTayerERP.Desktop
 
         private void LoadCurrentSession()
         {
-            lblCompanyName.Text = $"الشركة : {CurrentSession.Company_Name}";
-            lblCurrentBranch.Text = $"الفرع : {CurrentSession.Branch_Name}";
-            lblFiscalYear.Text = $"السنة المالية : {CurrentSession.Year_Name}";
-            lblCurrentUser.Text = $"المستخدم : {CurrentSession.Full_Name}";
+            // بيانات الشركة والاتصال تظهر مرة واحدة في الشاشة الرئيسية فقط.
+            // يبقى في السند تدقيق الإنشاء الذي يخص هذا المستند تحديداً.
             txtCreatedBy.Text = CurrentSession.Full_Name;
             txtCreatedDate.Text = DateTime.Now.ToString("yyyy/MM/dd hh:mm tt");
         }
@@ -433,12 +395,16 @@ namespace AlTayerERP.Desktop
 
         private void SetInitialSelections(FinancialVoucherLookupsModel lookups)
         {
-            var receiptType = lookups.VoucherTypes.FirstOrDefault(t =>
-                t.Voucher_Type_Code.Equals("RECEIPT", StringComparison.OrdinalIgnoreCase) ||
-                t.Voucher_Type_Code.Equals("RECEIPT_VOUCHER", StringComparison.OrdinalIgnoreCase) ||
-                t.Voucher_Type_Name_AR.Contains("قبض"));
+            var configuredType = lookups.VoucherTypes.FirstOrDefault(t =>
+                t.Voucher_Type_Code.Equals(_voucherTypeCode, StringComparison.OrdinalIgnoreCase));
 
-            if (receiptType != null) cmbVoucherType.SelectedValue = receiptType.Voucher_Type_ID;
+            if (configuredType == null)
+            {
+                throw new InvalidOperationException(
+                    $"لم يتم إعداد نوع السند '{_voucherTypeCode}' ضمن البيانات المرجعية.");
+            }
+
+            cmbVoucherType.SelectedValue = configuredType.Voucher_Type_ID;
             cmbVoucherType.Enabled = false;
 
             var draftStatus = lookups.VoucherStatuses.FirstOrDefault(s =>
@@ -489,11 +455,10 @@ namespace AlTayerERP.Desktop
 
         private void UpdateStatusBar(string apiStatus, string dbStatus, string licenseStatus)
         {
-            lblStatusApi.Text = $"API: {apiStatus}";
-            lblStatusDatabase.Text = $"قاعدة البيانات: {dbStatus}";
-            lblStatusLicense.Text = $"الترخيص: {licenseStatus}";
-            lblVersion.Text = "الإصدار: 1.0.0";
-            lblStatusTime.Text = DateTime.Now.ToString("yyyy/MM/dd hh:mm tt");
+            // شريط حالة الاتصال موحد في الشاشة الرئيسية ولا يتكرر داخل سند القبض.
+            _ = apiStatus;
+            _ = dbStatus;
+            _ = licenseStatus;
         }
 
         private static void ShowError(string message, Exception ex)

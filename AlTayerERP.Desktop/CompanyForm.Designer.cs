@@ -1,16 +1,9 @@
-﻿namespace AlTayerERP.Desktop
+namespace AlTayerERP.Desktop
 {
     partial class CompanyForm
     {
-        /// <summary>
-        /// Required designer variable.
-        /// </summary>
         private System.ComponentModel.IContainer components = null;
 
-        /// <summary>
-        /// Clean up any resources being used.
-        /// </summary>
-        /// <param name="disposing">true if managed resources should be disposed; otherwise, false.</param>
         protected override void Dispose(bool disposing)
         {
             if (disposing && (components != null))
@@ -22,436 +15,583 @@
 
         #region Windows Form Designer generated code
 
-        /// <summary>
-        /// Required method for Designer support - do not modify
-        /// the contents of this method with the code editor.
-        /// </summary>
         private void InitializeComponent()
         {
-            cmbGroups = new ComboBox();
-            txtCompanyNameEn = new TextBox();
-            txtCompanyNameAr = new TextBox();
-            btnSaveCompany = new Button();
-            label1 = new Label();
-            label2 = new Label();
-            label3 = new Label();
-            txtCompanyPrefix = new TextBox();
-            label4 = new Label();
+            pnlHeader = new Panel();
+            lblScreenTitle = new Label();
+            lblScreenSubTitle = new Label();
+            pnlToolbar = new FlowLayoutPanel();
             btnNew = new Button();
+            btnSaveCompany = new Button();
             btnEdit = new Button();
             btnDelete = new Button();
-            btnSearch = new Button();
-            txtEmail = new TextBox();
-            txtAddress = new TextBox();
-            txtPhone = new TextBox();
-            label5 = new Label();
-            label6 = new Label();
-            label7 = new Label();
-            txtTaxNumber = new TextBox();
-            label8 = new Label();
-            chkIsActive = new CheckBox();
-            btnRefresh = new Button();
-            btnPrint = new Button();
-            btnClose = new Button();
-            btnExport = new Button();
-            btnImport = new Button();
-            btnPreview = new Button();
             btnApprove = new Button();
             btnUnApprove = new Button();
+            btnSearch = new Button();
+            btnRefresh = new Button();
+            btnPreview = new Button();
+            btnPrint = new Button();
+            btnExport = new Button();
+            btnImport = new Button();
+            btnClose = new Button();
+            splitMain = new SplitContainer();
+            pnlListHeader = new Panel();
+            lblListTitle = new Label();
             dgvCompanies = new DataGridView();
+            pnlDetails = new Panel();
+            grpBasic = new GroupBox();
+            tblBasic = new TableLayoutPanel();
+            label1 = new Label();
+            cmbGroups = new ComboBox();
+            label2 = new Label();
+            txtCompanyNameAr = new TextBox();
+            label3 = new Label();
+            txtCompanyNameEn = new TextBox();
+            label4 = new Label();
+            txtCompanyPrefix = new TextBox();
+            label8 = new Label();
+            txtTaxNumber = new TextBox();
+            chkIsActive = new CheckBox();
+            grpContact = new GroupBox();
+            tblContact = new TableLayoutPanel();
+            label5 = new Label();
+            txtPhone = new TextBox();
+            label6 = new Label();
+            txtEmail = new TextBox();
+            label7 = new Label();
+            txtAddress = new TextBox();
+            label10 = new Label();
+            txtMobile = new TextBox();
+            label11 = new Label();
+            txtActivityType = new TextBox();
+            grpLogo = new GroupBox();
             picCompanyLogo = new PictureBox();
             label9 = new Label();
+            pnlLogoButtons = new FlowLayoutPanel();
             btnBrowseLogo = new Button();
             btnRemoveLogo = new Button();
+            pnlAudit = new Panel();
+            lblCreatedByCaption = new Label();
+            lblCreatedBy = new Label();
+            lblCreatedAtCaption = new Label();
+            lblCreatedAt = new Label();
+            lblModifiedByCaption = new Label();
+            lblModifiedBy = new Label();
+            lblModifiedAtCaption = new Label();
+            lblModifiedAt = new Label();
+            lblEditCountCaption = new Label();
+            lblEditCount = new Label();
+            lblPrintCountCaption = new Label();
+            lblPrintCount = new Label();
+            pnlHeader.SuspendLayout();
+            pnlToolbar.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)splitMain).BeginInit();
+            splitMain.Panel1.SuspendLayout();
+            splitMain.Panel2.SuspendLayout();
+            splitMain.SuspendLayout();
+            pnlListHeader.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)dgvCompanies).BeginInit();
+            pnlDetails.SuspendLayout();
+            grpBasic.SuspendLayout();
+            tblBasic.SuspendLayout();
+            grpContact.SuspendLayout();
+            tblContact.SuspendLayout();
+            grpLogo.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)picCompanyLogo).BeginInit();
+            pnlLogoButtons.SuspendLayout();
+            pnlAudit.SuspendLayout();
             SuspendLayout();
-            // 
-            // cmbGroups
-            // 
-            cmbGroups.FormattingEnabled = true;
-            cmbGroups.Location = new Point(182, 94);
-            cmbGroups.Name = "cmbGroups";
-            cmbGroups.Size = new Size(277, 28);
-            cmbGroups.TabIndex = 0;
-            // 
-            // txtCompanyNameEn
-            // 
-            txtCompanyNameEn.Location = new Point(182, 161);
-            txtCompanyNameEn.Name = "txtCompanyNameEn";
-            txtCompanyNameEn.Size = new Size(245, 27);
-            txtCompanyNameEn.TabIndex = 1;
-            // 
-            // txtCompanyNameAr
-            // 
-            txtCompanyNameAr.Location = new Point(182, 128);
-            txtCompanyNameAr.Name = "txtCompanyNameAr";
-            txtCompanyNameAr.Size = new Size(245, 27);
-            txtCompanyNameAr.TabIndex = 1;
-            // 
-            // btnSaveCompany
-            // 
-            btnSaveCompany.Location = new Point(79, 12);
-            btnSaveCompany.Name = "btnSaveCompany";
-            btnSaveCompany.Size = new Size(94, 29);
-            btnSaveCompany.TabIndex = 2;
-            btnSaveCompany.Text = "حفظ الشركة";
-            btnSaveCompany.UseVisualStyleBackColor = true;
-            btnSaveCompany.Click += btnSaveCompany_Click;
-            // 
-            // label1
-            // 
-            label1.AutoSize = true;
-            label1.Font = new Font("Segoe UI", 10.8F, FontStyle.Bold);
-            label1.Location = new Point(25, 97);
-            label1.Name = "label1";
-            label1.Size = new Size(148, 25);
-            label1.TabIndex = 3;
-            label1.Text = "المجموعة التجارية";
-            // 
-            // label2
-            // 
-            label2.AutoSize = true;
-            label2.Font = new Font("Segoe UI", 10.8F, FontStyle.Bold);
-            label2.Location = new Point(15, 131);
-            label2.Name = "label2";
-            label2.Size = new Size(159, 25);
-            label2.TabIndex = 3;
-            label2.Text = "اسم الشركة بالعربي";
-            // 
-            // label3
-            // 
-            label3.AutoSize = true;
-            label3.Font = new Font("Segoe UI", 10.8F, FontStyle.Bold);
-            label3.Location = new Point(23, 164);
-            label3.Name = "label3";
-            label3.Size = new Size(150, 25);
-            label3.TabIndex = 3;
-            label3.Text = "اسم الشركة انجلزي";
-            // 
-            // txtCompanyPrefix
-            // 
-            txtCompanyPrefix.Location = new Point(182, 194);
-            txtCompanyPrefix.Name = "txtCompanyPrefix";
-            txtCompanyPrefix.Size = new Size(245, 27);
-            txtCompanyPrefix.TabIndex = 1;
-            // 
-            // label4
-            // 
-            label4.AutoSize = true;
-            label4.Font = new Font("Segoe UI", 10.8F, FontStyle.Bold);
-            label4.Location = new Point(82, 196);
-            label4.Name = "label4";
-            label4.Size = new Size(91, 25);
-            label4.TabIndex = 3;
-            label4.Text = "رمز الشركة";
-            // 
-            // btnNew
-            // 
-            btnNew.Location = new Point(179, 12);
-            btnNew.Name = "btnNew";
-            btnNew.Size = new Size(94, 29);
-            btnNew.TabIndex = 2;
-            btnNew.Text = "جديد";
-            btnNew.UseVisualStyleBackColor = true;
+            //
+            // pnlHeader
+            //
+            pnlHeader.BackColor = Color.FromArgb(31, 78, 121);
+            pnlHeader.Controls.Add(lblScreenSubTitle);
+            pnlHeader.Controls.Add(lblScreenTitle);
+            pnlHeader.Dock = DockStyle.Top;
+            pnlHeader.Location = new Point(0, 0);
+            pnlHeader.Name = "pnlHeader";
+            pnlHeader.Padding = new Padding(24, 10, 24, 8);
+            pnlHeader.Size = new Size(1320, 74);
+            pnlHeader.TabIndex = 0;
+            //
+            // lblScreenTitle
+            //
+            lblScreenTitle.AutoSize = true;
+            lblScreenTitle.Dock = DockStyle.Top;
+            lblScreenTitle.Font = new Font("Segoe UI", 18F, FontStyle.Bold);
+            lblScreenTitle.ForeColor = Color.White;
+            lblScreenTitle.Location = new Point(24, 10);
+            lblScreenTitle.Name = "lblScreenTitle";
+            lblScreenTitle.Size = new Size(185, 41);
+            lblScreenTitle.TabIndex = 0;
+            lblScreenTitle.Text = "إدارة الشركات";
+            //
+            // lblScreenSubTitle
+            //
+            lblScreenSubTitle.AutoSize = true;
+            lblScreenSubTitle.Dock = DockStyle.Bottom;
+            lblScreenSubTitle.Font = new Font("Segoe UI", 9.5F);
+            lblScreenSubTitle.ForeColor = Color.FromArgb(220, 232, 244);
+            lblScreenSubTitle.Location = new Point(24, 43);
+            lblScreenSubTitle.Name = "lblScreenSubTitle";
+            lblScreenSubTitle.Size = new Size(349, 23);
+            lblScreenSubTitle.TabIndex = 1;
+            lblScreenSubTitle.Text = "تعريف الشركات التابعة وإدارة بياناتها الأساسية";
+            //
+            // pnlToolbar
+            //
+            pnlToolbar.BackColor = Color.White;
+            pnlToolbar.Controls.Add(btnNew);
+            pnlToolbar.Controls.Add(btnSaveCompany);
+            pnlToolbar.Controls.Add(btnEdit);
+            pnlToolbar.Controls.Add(btnDelete);
+            pnlToolbar.Controls.Add(btnApprove);
+            pnlToolbar.Controls.Add(btnUnApprove);
+            pnlToolbar.Controls.Add(btnSearch);
+            pnlToolbar.Controls.Add(btnRefresh);
+            pnlToolbar.Controls.Add(btnPreview);
+            pnlToolbar.Controls.Add(btnPrint);
+            pnlToolbar.Controls.Add(btnExport);
+            pnlToolbar.Controls.Add(btnImport);
+            pnlToolbar.Controls.Add(btnClose);
+            pnlToolbar.Dock = DockStyle.Top;
+            pnlToolbar.FlowDirection = FlowDirection.RightToLeft;
+            pnlToolbar.Location = new Point(0, 74);
+            pnlToolbar.Name = "pnlToolbar";
+            pnlToolbar.Padding = new Padding(12, 9, 12, 8);
+            pnlToolbar.Size = new Size(1320, 58);
+            pnlToolbar.TabIndex = 1;
+            pnlToolbar.WrapContents = false;
+            //
+            // toolbar buttons
+            //
+            ConfigureToolbarButton(btnNew, "جديد");
+            ConfigureToolbarButton(btnSaveCompany, "حفظ");
+            ConfigureToolbarButton(btnEdit, "تعديل");
+            ConfigureToolbarButton(btnDelete, "إيقاف");
+            ConfigureToolbarButton(btnApprove, "إعادة تفعيل");
+            ConfigureToolbarButton(btnUnApprove, "إلغاء الاعتماد");
+            ConfigureToolbarButton(btnSearch, "بحث");
+            ConfigureToolbarButton(btnRefresh, "تحديث");
+            ConfigureToolbarButton(btnPreview, "معاينة");
+            ConfigureToolbarButton(btnPrint, "طباعة");
+            ConfigureToolbarButton(btnExport, "تصدير");
+            ConfigureToolbarButton(btnImport, "استيراد");
+            ConfigureToolbarButton(btnClose, "إغلاق");
             btnNew.Click += btnNew_Click;
-            // 
-            // btnEdit
-            // 
-            btnEdit.Location = new Point(279, 12);
-            btnEdit.Name = "btnEdit";
-            btnEdit.Size = new Size(94, 29);
-            btnEdit.TabIndex = 2;
-            btnEdit.Text = "تعديل";
-            btnEdit.UseVisualStyleBackColor = true;
+            btnSaveCompany.Click += btnSaveCompany_Click;
             btnEdit.Click += btnEdit_Click;
-            // 
-            // btnDelete
-            // 
-            btnDelete.Location = new Point(379, 12);
-            btnDelete.Name = "btnDelete";
-            btnDelete.Size = new Size(94, 29);
-            btnDelete.TabIndex = 2;
-            btnDelete.Text = "حذف";
-            btnDelete.UseVisualStyleBackColor = true;
             btnDelete.Click += btnDelete_Click;
-            // 
-            // btnSearch
-            // 
-            btnSearch.Location = new Point(479, 12);
-            btnSearch.Name = "btnSearch";
-            btnSearch.Size = new Size(94, 29);
-            btnSearch.TabIndex = 2;
-            btnSearch.Text = "بحث";
-            btnSearch.UseVisualStyleBackColor = true;
-            btnSearch.Click += btnSearch_Click;
-            // 
-            // txtEmail
-            // 
-            txtEmail.Location = new Point(182, 328);
-            txtEmail.Name = "txtEmail";
-            txtEmail.Size = new Size(245, 27);
-            txtEmail.TabIndex = 1;
-            // 
-            // txtAddress
-            // 
-            txtAddress.Location = new Point(182, 227);
-            txtAddress.Name = "txtAddress";
-            txtAddress.Size = new Size(245, 27);
-            txtAddress.TabIndex = 1;
-            // 
-            // txtPhone
-            // 
-            txtPhone.Location = new Point(182, 295);
-            txtPhone.Name = "txtPhone";
-            txtPhone.Size = new Size(245, 27);
-            txtPhone.TabIndex = 1;
-            // 
-            // label5
-            // 
-            label5.AutoSize = true;
-            label5.Font = new Font("Segoe UI", 10.8F, FontStyle.Bold);
-            label5.Location = new Point(42, 298);
-            label5.Name = "label5";
-            label5.Size = new Size(61, 25);
-            label5.TabIndex = 3;
-            label5.Text = "الهاتف";
-            // 
-            // label6
-            // 
-            label6.AutoSize = true;
-            label6.Font = new Font("Segoe UI", 10.8F, FontStyle.Bold);
-            label6.Location = new Point(43, 331);
-            label6.Name = "label6";
-            label6.Size = new Size(132, 25);
-            label6.TabIndex = 3;
-            label6.Text = "البريد الإلكتروني";
-            // 
-            // label7
-            // 
-            label7.AutoSize = true;
-            label7.Font = new Font("Segoe UI", 10.8F, FontStyle.Bold);
-            label7.Location = new Point(41, 229);
-            label7.Name = "label7";
-            label7.Size = new Size(66, 25);
-            label7.TabIndex = 3;
-            label7.Text = "العنوان";
-            // 
-            // txtTaxNumber
-            // 
-            txtTaxNumber.Location = new Point(182, 262);
-            txtTaxNumber.Name = "txtTaxNumber";
-            txtTaxNumber.Size = new Size(245, 27);
-            txtTaxNumber.TabIndex = 1;
-            // 
-            // label8
-            // 
-            label8.AutoSize = true;
-            label8.Font = new Font("Segoe UI", 10.8F, FontStyle.Bold);
-            label8.Location = new Point(53, 264);
-            label8.Name = "label8";
-            label8.Size = new Size(119, 25);
-            label8.TabIndex = 3;
-            label8.Text = "الرقم الضريبي";
-            // 
-            // chkIsActive
-            // 
-            chkIsActive.AutoSize = true;
-            chkIsActive.Location = new Point(493, 100);
-            chkIsActive.Name = "chkIsActive";
-            chkIsActive.Size = new Size(62, 24);
-            chkIsActive.TabIndex = 4;
-            chkIsActive.Text = "نشط";
-            chkIsActive.UseVisualStyleBackColor = true;
-            // 
-            // btnRefresh
-            // 
-            btnRefresh.Location = new Point(579, 12);
-            btnRefresh.Name = "btnRefresh";
-            btnRefresh.Size = new Size(94, 29);
-            btnRefresh.TabIndex = 2;
-            btnRefresh.Text = "تحديث";
-            btnRefresh.UseVisualStyleBackColor = true;
-            btnRefresh.Click += btnRefresh_Click;
-            // 
-            // btnPrint
-            // 
-            btnPrint.Location = new Point(79, 47);
-            btnPrint.Name = "btnPrint";
-            btnPrint.Size = new Size(94, 29);
-            btnPrint.TabIndex = 2;
-            btnPrint.Text = "طباعة";
-            btnPrint.UseVisualStyleBackColor = true;
-            btnPrint.Click += btnPrint_Click;
-            // 
-            // btnClose
-            // 
-            btnClose.Location = new Point(179, 47);
-            btnClose.Name = "btnClose";
-            btnClose.Size = new Size(94, 29);
-            btnClose.TabIndex = 2;
-            btnClose.Text = "اغلاق";
-            btnClose.UseVisualStyleBackColor = true;
-            btnClose.Click += btnClose_Click;
-            // 
-            // btnExport
-            // 
-            btnExport.Location = new Point(279, 47);
-            btnExport.Name = "btnExport";
-            btnExport.Size = new Size(94, 29);
-            btnExport.TabIndex = 2;
-            btnExport.Text = "تصدير";
-            btnExport.UseVisualStyleBackColor = true;
-            btnExport.Click += btnExport_Click;
-            // 
-            // btnImport
-            // 
-            btnImport.Location = new Point(379, 47);
-            btnImport.Name = "btnImport";
-            btnImport.Size = new Size(94, 29);
-            btnImport.TabIndex = 2;
-            btnImport.Text = "استيراد";
-            btnImport.UseVisualStyleBackColor = true;
-            btnImport.Click += btnImport_Click;
-            // 
-            // btnPreview
-            // 
-            btnPreview.Location = new Point(479, 47);
-            btnPreview.Name = "btnPreview";
-            btnPreview.Size = new Size(94, 29);
-            btnPreview.TabIndex = 2;
-            btnPreview.Text = "معاينة";
-            btnPreview.UseVisualStyleBackColor = true;
-            btnPreview.Click += btnPreview_Click;
-            // 
-            // btnApprove
-            // 
-            btnApprove.Location = new Point(579, 47);
-            btnApprove.Name = "btnApprove";
-            btnApprove.Size = new Size(94, 29);
-            btnApprove.TabIndex = 2;
-            btnApprove.Text = "اعتماد";
-            btnApprove.UseVisualStyleBackColor = true;
             btnApprove.Click += btnApprove_Click;
-            // 
-            // btnUnApprove
-            // 
-            btnUnApprove.Location = new Point(679, 47);
-            btnUnApprove.Name = "btnUnApprove";
-            btnUnApprove.Size = new Size(109, 29);
-            btnUnApprove.TabIndex = 2;
-            btnUnApprove.Text = "الغاء الاعتماد";
-            btnUnApprove.UseVisualStyleBackColor = true;
             btnUnApprove.Click += btnUnApprove_Click;
-            // 
+            btnSearch.Click += btnSearch_Click;
+            btnRefresh.Click += btnRefresh_Click;
+            btnPreview.Click += btnPreview_Click;
+            btnPrint.Click += btnPrint_Click;
+            btnExport.Click += btnExport_Click;
+            btnImport.Click += btnImport_Click;
+            btnClose.Click += btnClose_Click;
+            //
+            // splitMain
+            //
+            splitMain.Dock = DockStyle.Fill;
+            splitMain.FixedPanel = FixedPanel.Panel1;
+            splitMain.Location = new Point(0, 132);
+            splitMain.Name = "splitMain";
+            splitMain.Panel1.Controls.Add(dgvCompanies);
+            splitMain.Panel1.Controls.Add(pnlListHeader);
+            splitMain.Panel1.Padding = new Padding(10);
+            splitMain.Panel2.Controls.Add(pnlDetails);
+            splitMain.Panel2.Padding = new Padding(10);
+            splitMain.RightToLeft = RightToLeft.Yes;
+            splitMain.Size = new Size(1320, 628);
+            splitMain.SplitterDistance = 430;
+            splitMain.TabIndex = 2;
+            //
+            // pnlListHeader
+            //
+            pnlListHeader.BackColor = Color.FromArgb(238, 244, 249);
+            pnlListHeader.Controls.Add(lblListTitle);
+            pnlListHeader.Dock = DockStyle.Top;
+            pnlListHeader.Location = new Point(10, 10);
+            pnlListHeader.Name = "pnlListHeader";
+            pnlListHeader.Padding = new Padding(12);
+            pnlListHeader.Size = new Size(410, 50);
+            pnlListHeader.TabIndex = 0;
+            //
+            // lblListTitle
+            //
+            lblListTitle.AutoSize = true;
+            lblListTitle.Dock = DockStyle.Right;
+            lblListTitle.Font = new Font("Segoe UI", 11F, FontStyle.Bold);
+            lblListTitle.ForeColor = Color.FromArgb(31, 78, 121);
+            lblListTitle.Location = new Point(281, 12);
+            lblListTitle.Name = "lblListTitle";
+            lblListTitle.Size = new Size(117, 25);
+            lblListTitle.TabIndex = 0;
+            lblListTitle.Text = "قائمة الشركات";
+            //
             // dgvCompanies
-            // 
+            //
             dgvCompanies.AllowUserToAddRows = false;
+            dgvCompanies.AllowUserToDeleteRows = false;
             dgvCompanies.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
-            dgvCompanies.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
-            dgvCompanies.Dock = DockStyle.Bottom;
-            dgvCompanies.Location = new Point(0, 370);
+            dgvCompanies.BackgroundColor = Color.White;
+            dgvCompanies.BorderStyle = BorderStyle.None;
+            dgvCompanies.ColumnHeadersHeight = 38;
+            dgvCompanies.Dock = DockStyle.Fill;
+            dgvCompanies.Location = new Point(10, 60);
+            dgvCompanies.MultiSelect = false;
             dgvCompanies.Name = "dgvCompanies";
             dgvCompanies.ReadOnly = true;
+            dgvCompanies.RowHeadersVisible = false;
             dgvCompanies.RowHeadersWidth = 51;
+            dgvCompanies.RowTemplate.Height = 34;
             dgvCompanies.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
-            dgvCompanies.Size = new Size(1022, 220);
-            dgvCompanies.TabIndex = 5;
-            dgvCompanies.CellContentClick += dgvCompanies_CellClick;
-            // 
+            dgvCompanies.Size = new Size(410, 558);
+            dgvCompanies.TabIndex = 1;
+            dgvCompanies.CellClick += dgvCompanies_CellClick;
+            //
+            // pnlDetails
+            //
+            pnlDetails.AutoScroll = true;
+            pnlDetails.BackColor = Color.FromArgb(247, 249, 252);
+            pnlDetails.Controls.Add(pnlAudit);
+            pnlDetails.Controls.Add(grpLogo);
+            pnlDetails.Controls.Add(grpContact);
+            pnlDetails.Controls.Add(grpBasic);
+            pnlDetails.Dock = DockStyle.Fill;
+            pnlDetails.Location = new Point(10, 10);
+            pnlDetails.Name = "pnlDetails";
+            pnlDetails.Padding = new Padding(10);
+            pnlDetails.Size = new Size(856, 608);
+            pnlDetails.TabIndex = 0;
+            //
+            // grpBasic
+            //
+            grpBasic.Controls.Add(tblBasic);
+            grpBasic.Dock = DockStyle.Top;
+            grpBasic.Font = new Font("Segoe UI", 10.5F, FontStyle.Bold);
+            grpBasic.ForeColor = Color.FromArgb(31, 78, 121);
+            grpBasic.Location = new Point(10, 10);
+            grpBasic.Name = "grpBasic";
+            grpBasic.Padding = new Padding(14, 12, 14, 14);
+            grpBasic.Size = new Size(836, 172);
+            grpBasic.TabIndex = 0;
+            grpBasic.TabStop = false;
+            grpBasic.Text = "البيانات الأساسية";
+            //
+            // tblBasic
+            //
+            tblBasic.ColumnCount = 4;
+            tblBasic.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 16F));
+            tblBasic.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 34F));
+            tblBasic.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 16F));
+            tblBasic.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 34F));
+            tblBasic.Controls.Add(label1, 0, 0);
+            tblBasic.Controls.Add(cmbGroups, 1, 0);
+            tblBasic.Controls.Add(label2, 2, 0);
+            tblBasic.Controls.Add(txtCompanyNameAr, 3, 0);
+            tblBasic.Controls.Add(label4, 0, 1);
+            tblBasic.Controls.Add(txtCompanyPrefix, 1, 1);
+            tblBasic.Controls.Add(chkIsActive, 3, 1);
+            tblBasic.Dock = DockStyle.Fill;
+            tblBasic.Location = new Point(14, 36);
+            tblBasic.Name = "tblBasic";
+            tblBasic.RowCount = 2;
+            tblBasic.RowStyles.Add(new RowStyle(SizeType.Percent, 50F));
+            tblBasic.RowStyles.Add(new RowStyle(SizeType.Percent, 50F));
+            tblBasic.Size = new Size(808, 122);
+            tblBasic.TabIndex = 0;
+            StyleCaption(label1, "المجموعة التجارية");
+            StyleCaption(label2, "اسم الشركة بالعربي");
+            StyleCaption(label3, "اسم الشركة بالإنجليزي");
+            StyleCaption(label4, "رمز الشركة");
+            StyleCaption(label8, "الرقم الضريبي");
+            StyleInput(cmbGroups);
+            StyleInput(txtCompanyNameAr);
+            StyleInput(txtCompanyNameEn);
+            StyleInput(txtCompanyPrefix);
+            StyleInput(txtTaxNumber);
+            chkIsActive.AutoSize = true;
+            chkIsActive.Dock = DockStyle.Right;
+            chkIsActive.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
+            chkIsActive.ForeColor = Color.FromArgb(40, 40, 40);
+            chkIsActive.Text = "شركة نشطة";
+            chkIsActive.TextAlign = ContentAlignment.MiddleRight;
+            //
+            // grpContact
+            //
+            grpContact.Controls.Add(tblContact);
+            grpContact.Dock = DockStyle.Top;
+            grpContact.Font = new Font("Segoe UI", 10.5F, FontStyle.Bold);
+            grpContact.ForeColor = Color.FromArgb(31, 78, 121);
+            grpContact.Location = new Point(10, 182);
+            grpContact.Name = "grpContact";
+            grpContact.Padding = new Padding(14, 12, 14, 14);
+            grpContact.Size = new Size(836, 235);
+            grpContact.TabIndex = 1;
+            grpContact.TabStop = false;
+            grpContact.Text = "بيانات إضافية (اختيارية)";
+            //
+            // tblContact
+            //
+            tblContact.ColumnCount = 4;
+            tblContact.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 16F));
+            tblContact.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 34F));
+            tblContact.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 16F));
+            tblContact.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 34F));
+            tblContact.Controls.Add(label3, 0, 0);
+            tblContact.Controls.Add(txtCompanyNameEn, 1, 0);
+            tblContact.Controls.Add(label11, 2, 0);
+            tblContact.Controls.Add(txtActivityType, 3, 0);
+            tblContact.Controls.Add(label8, 0, 1);
+            tblContact.Controls.Add(txtTaxNumber, 1, 1);
+            tblContact.Controls.Add(label10, 2, 1);
+            tblContact.Controls.Add(txtMobile, 3, 1);
+            tblContact.Controls.Add(label5, 0, 2);
+            tblContact.Controls.Add(txtPhone, 1, 2);
+            tblContact.Controls.Add(label6, 2, 2);
+            tblContact.Controls.Add(txtEmail, 3, 2);
+            tblContact.Controls.Add(label7, 0, 3);
+            tblContact.Controls.Add(txtAddress, 1, 3);
+            tblContact.SetColumnSpan(txtAddress, 3);
+            tblContact.Dock = DockStyle.Fill;
+            tblContact.Location = new Point(14, 36);
+            tblContact.Name = "tblContact";
+            tblContact.RowCount = 4;
+            tblContact.RowStyles.Add(new RowStyle(SizeType.Percent, 25F));
+            tblContact.RowStyles.Add(new RowStyle(SizeType.Percent, 25F));
+            tblContact.RowStyles.Add(new RowStyle(SizeType.Percent, 25F));
+            tblContact.RowStyles.Add(new RowStyle(SizeType.Percent, 25F));
+            tblContact.Size = new Size(808, 185);
+            tblContact.TabIndex = 0;
+            StyleCaption(label5, "الهاتف");
+            StyleCaption(label6, "البريد الإلكتروني");
+            StyleCaption(label7, "العنوان");
+            StyleCaption(label10, "الجوال");
+            StyleCaption(label11, "نوع النشاط");
+            StyleCaption(label3, "الاسم بالإنجليزي");
+            StyleCaption(label8, "الرقم الضريبي");
+            StyleInput(txtPhone);
+            StyleInput(txtMobile);
+            StyleInput(txtEmail);
+            StyleInput(txtAddress);
+            StyleInput(txtActivityType);
+            StyleInput(txtCompanyNameEn);
+            StyleInput(txtTaxNumber);
+            //
+            // grpLogo
+            //
+            grpLogo.Controls.Add(pnlLogoButtons);
+            grpLogo.Controls.Add(picCompanyLogo);
+            grpLogo.Controls.Add(label9);
+            grpLogo.Dock = DockStyle.Top;
+            grpLogo.Font = new Font("Segoe UI", 10.5F, FontStyle.Bold);
+            grpLogo.ForeColor = Color.FromArgb(31, 78, 121);
+            grpLogo.Location = new Point(10, 417);
+            grpLogo.Name = "grpLogo";
+            grpLogo.Padding = new Padding(14, 12, 14, 14);
+            grpLogo.Size = new Size(836, 190);
+            grpLogo.TabIndex = 2;
+            grpLogo.TabStop = false;
+            grpLogo.Text = "شعار الشركة";
+            //
             // picCompanyLogo
-            // 
-            picCompanyLogo.BackColor = Color.FromArgb(255, 255, 128);
-            picCompanyLogo.Location = new Point(769, 163);
+            //
+            picCompanyLogo.BackColor = Color.White;
+            picCompanyLogo.BorderStyle = BorderStyle.FixedSingle;
+            picCompanyLogo.Location = new Point(648, 34);
             picCompanyLogo.Name = "picCompanyLogo";
-            picCompanyLogo.Size = new Size(180, 180);
+            picCompanyLogo.Size = new Size(160, 135);
             picCompanyLogo.SizeMode = PictureBoxSizeMode.Zoom;
-            picCompanyLogo.TabIndex = 6;
+            picCompanyLogo.TabIndex = 0;
             picCompanyLogo.TabStop = false;
-            // 
+            //
             // label9
-            // 
+            //
             label9.AutoSize = true;
-            label9.Font = new Font("Segoe UI", 10.8F, FontStyle.Bold);
-            label9.Location = new Point(771, 131);
+            label9.Font = new Font("Segoe UI", 9.5F);
+            label9.ForeColor = Color.DimGray;
+            label9.Location = new Point(24, 45);
             label9.Name = "label9";
-            label9.Size = new Size(105, 25);
-            label9.TabIndex = 3;
-            label9.Text = "شعار الشركة";
-            // 
-            // btnBrowseLogo
-            // 
-            btnBrowseLogo.Location = new Point(631, 196);
-            btnBrowseLogo.Name = "btnBrowseLogo";
-            btnBrowseLogo.Size = new Size(120, 29);
-            btnBrowseLogo.TabIndex = 2;
-            btnBrowseLogo.Text = "اختيار الشعار";
-            btnBrowseLogo.UseVisualStyleBackColor = true;
+            label9.Size = new Size(311, 21);
+            label9.TabIndex = 1;
+            label9.Text = "يفضل استخدام شعار بصيغة PNG بخلفية شفافة";
+            //
+            // pnlLogoButtons
+            //
+            pnlLogoButtons.Controls.Add(btnBrowseLogo);
+            pnlLogoButtons.Controls.Add(btnRemoveLogo);
+            pnlLogoButtons.FlowDirection = FlowDirection.RightToLeft;
+            pnlLogoButtons.Location = new Point(22, 82);
+            pnlLogoButtons.Name = "pnlLogoButtons";
+            pnlLogoButtons.Size = new Size(318, 48);
+            pnlLogoButtons.TabIndex = 2;
+            ConfigureSmallButton(btnBrowseLogo, "اختيار الشعار");
+            ConfigureSmallButton(btnRemoveLogo, "حذف الشعار");
             btnBrowseLogo.Click += btnBrowseLogo_Click;
-            // 
-            // btnRemoveLogo
-            // 
-            btnRemoveLogo.Location = new Point(631, 231);
-            btnRemoveLogo.Name = "btnRemoveLogo";
-            btnRemoveLogo.Size = new Size(120, 29);
-            btnRemoveLogo.TabIndex = 2;
-            btnRemoveLogo.Text = "حذف الشعار";
-            btnRemoveLogo.UseVisualStyleBackColor = true;
             btnRemoveLogo.Click += btnRemoveLogo_Click;
-            // 
+            //
+            // pnlAudit
+            //
+            pnlAudit.BackColor = Color.FromArgb(232, 238, 244);
+            pnlAudit.Controls.Add(lblPrintCount);
+            pnlAudit.Controls.Add(lblPrintCountCaption);
+            pnlAudit.Controls.Add(lblEditCount);
+            pnlAudit.Controls.Add(lblEditCountCaption);
+            pnlAudit.Controls.Add(lblModifiedAt);
+            pnlAudit.Controls.Add(lblModifiedAtCaption);
+            pnlAudit.Controls.Add(lblModifiedBy);
+            pnlAudit.Controls.Add(lblModifiedByCaption);
+            pnlAudit.Controls.Add(lblCreatedAt);
+            pnlAudit.Controls.Add(lblCreatedAtCaption);
+            pnlAudit.Controls.Add(lblCreatedBy);
+            pnlAudit.Controls.Add(lblCreatedByCaption);
+            pnlAudit.Dock = DockStyle.Bottom;
+            pnlAudit.Location = new Point(10, 548);
+            pnlAudit.Name = "pnlAudit";
+            pnlAudit.Padding = new Padding(10);
+            pnlAudit.Size = new Size(836, 50);
+            pnlAudit.TabIndex = 3;
+            ConfigureAuditPair(lblCreatedByCaption, lblCreatedBy, "أنشئ بواسطة:", "—", 700);
+            ConfigureAuditPair(lblCreatedAtCaption, lblCreatedAt, "تاريخ الإنشاء:", "—", 535);
+            ConfigureAuditPair(lblModifiedByCaption, lblModifiedBy, "عُدل بواسطة:", "—", 370);
+            ConfigureAuditPair(lblModifiedAtCaption, lblModifiedAt, "تاريخ التعديل:", "—", 205);
+            ConfigureAuditPair(lblEditCountCaption, lblEditCount, "عدد التعديلات:", "0", 85);
+            ConfigureAuditPair(lblPrintCountCaption, lblPrintCount, "عدد الطباعة:", "0", 0);
+            //
             // CompanyForm
-            // 
+            //
             AutoScaleDimensions = new SizeF(8F, 20F);
             AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(1022, 590);
-            Controls.Add(picCompanyLogo);
-            Controls.Add(dgvCompanies);
-            Controls.Add(chkIsActive);
-            Controls.Add(label8);
-            Controls.Add(label7);
-            Controls.Add(label4);
-            Controls.Add(label9);
-            Controls.Add(label6);
-            Controls.Add(label3);
-            Controls.Add(label5);
-            Controls.Add(label2);
-            Controls.Add(label1);
-            Controls.Add(btnUnApprove);
-            Controls.Add(btnRemoveLogo);
-            Controls.Add(btnApprove);
-            Controls.Add(btnBrowseLogo);
-            Controls.Add(btnRefresh);
-            Controls.Add(btnPreview);
-            Controls.Add(btnSearch);
-            Controls.Add(btnImport);
-            Controls.Add(btnExport);
-            Controls.Add(btnDelete);
-            Controls.Add(btnClose);
-            Controls.Add(btnEdit);
-            Controls.Add(btnPrint);
-            Controls.Add(btnNew);
-            Controls.Add(btnSaveCompany);
-            Controls.Add(txtPhone);
-            Controls.Add(txtCompanyNameAr);
-            Controls.Add(txtTaxNumber);
-            Controls.Add(txtAddress);
-            Controls.Add(txtCompanyPrefix);
-            Controls.Add(txtEmail);
-            Controls.Add(txtCompanyNameEn);
-            Controls.Add(cmbGroups);
+            BackColor = Color.FromArgb(247, 249, 252);
+            ClientSize = new Size(1320, 760);
+            Controls.Add(splitMain);
+            Controls.Add(pnlToolbar);
+            Controls.Add(pnlHeader);
+            Font = new Font("Segoe UI", 9.5F);
+            MinimumSize = new Size(1180, 700);
             Name = "CompanyForm";
             RightToLeft = RightToLeft.Yes;
             RightToLeftLayout = true;
-            Text = "ادارة تاسيس الشركات التابعة";
+            StartPosition = FormStartPosition.CenterParent;
+            Text = "إدارة الشركات";
             Load += CompanyForm_Load;
+            pnlHeader.ResumeLayout(false);
+            pnlHeader.PerformLayout();
+            pnlToolbar.ResumeLayout(false);
+            splitMain.Panel1.ResumeLayout(false);
+            splitMain.Panel2.ResumeLayout(false);
+            ((System.ComponentModel.ISupportInitialize)splitMain).EndInit();
+            splitMain.ResumeLayout(false);
+            pnlListHeader.ResumeLayout(false);
+            pnlListHeader.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)dgvCompanies).EndInit();
+            pnlDetails.ResumeLayout(false);
+            grpBasic.ResumeLayout(false);
+            tblBasic.ResumeLayout(false);
+            tblBasic.PerformLayout();
+            grpContact.ResumeLayout(false);
+            tblContact.ResumeLayout(false);
+            tblContact.PerformLayout();
+            grpLogo.ResumeLayout(false);
+            grpLogo.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)picCompanyLogo).EndInit();
+            pnlLogoButtons.ResumeLayout(false);
+            pnlAudit.ResumeLayout(false);
+            pnlAudit.PerformLayout();
             ResumeLayout(false);
-            PerformLayout();
+        }
+
+        private static void ConfigureToolbarButton(Button button, string text)
+        {
+            button.BackColor = Color.FromArgb(245, 248, 251);
+            button.FlatAppearance.BorderColor = Color.FromArgb(190, 205, 220);
+            button.FlatStyle = FlatStyle.Flat;
+            button.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+            button.ForeColor = Color.FromArgb(31, 78, 121);
+            button.Margin = new Padding(4, 0, 4, 0);
+            button.Name = "btn" + text.Replace(" ", string.Empty);
+            button.Size = new Size(88, 40);
+            button.Text = text;
+            button.UseVisualStyleBackColor = false;
+        }
+
+        private static void ConfigureSmallButton(Button button, string text)
+        {
+            button.BackColor = Color.White;
+            button.FlatAppearance.BorderColor = Color.FromArgb(170, 190, 210);
+            button.FlatStyle = FlatStyle.Flat;
+            button.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+            button.ForeColor = Color.FromArgb(31, 78, 121);
+            button.Margin = new Padding(5);
+            button.Size = new Size(140, 36);
+            button.Text = text;
+            button.UseVisualStyleBackColor = false;
+        }
+
+        private static void StyleCaption(Label label, string text)
+        {
+            label.AutoSize = true;
+            label.Dock = DockStyle.Right;
+            label.Font = new Font("Segoe UI", 9.5F, FontStyle.Bold);
+            label.ForeColor = Color.FromArgb(55, 65, 75);
+            label.Margin = new Padding(5, 13, 5, 5);
+            label.Text = text;
+            label.TextAlign = ContentAlignment.MiddleRight;
+        }
+
+        private static void StyleInput(Control control)
+        {
+            control.Dock = DockStyle.Fill;
+            control.Font = new Font("Segoe UI", 10F);
+            control.Margin = new Padding(5, 9, 5, 9);
+        }
+
+        private static void ConfigureAuditPair(Label caption, Label value, string captionText, string valueText, int right)
+        {
+            caption.AutoSize = true;
+            caption.Font = new Font("Segoe UI", 8.5F, FontStyle.Bold);
+            caption.ForeColor = Color.FromArgb(70, 80, 90);
+            caption.Location = new Point(right, 15);
+            caption.Text = captionText;
+            value.AutoSize = true;
+            value.Font = new Font("Segoe UI", 8.5F);
+            value.ForeColor = Color.FromArgb(31, 78, 121);
+            value.Location = new Point(Math.Max(0, right - 50), 15);
+            value.Text = valueText;
         }
 
         #endregion
 
+        private Panel pnlHeader;
+        private Label lblScreenTitle;
+        private Label lblScreenSubTitle;
+        private FlowLayoutPanel pnlToolbar;
+        private SplitContainer splitMain;
+        private Panel pnlListHeader;
+        private Label lblListTitle;
+        private Panel pnlDetails;
+        private GroupBox grpBasic;
+        private TableLayoutPanel tblBasic;
+        private GroupBox grpContact;
+        private TableLayoutPanel tblContact;
+        private GroupBox grpLogo;
+        private FlowLayoutPanel pnlLogoButtons;
+        private Panel pnlAudit;
+        private Label lblCreatedByCaption;
+        private Label lblCreatedBy;
+        private Label lblCreatedAtCaption;
+        private Label lblCreatedAt;
+        private Label lblModifiedByCaption;
+        private Label lblModifiedBy;
+        private Label lblModifiedAtCaption;
+        private Label lblModifiedAt;
+        private Label lblEditCountCaption;
+        private Label lblEditCount;
+        private Label lblPrintCountCaption;
+        private Label lblPrintCount;
         private ComboBox cmbGroups;
         private TextBox txtCompanyNameAr;
         private TextBox txtCompanyNameEn;
@@ -468,11 +608,15 @@
         private TextBox txtEmail;
         private TextBox txtAddress;
         private TextBox txtPhone;
+        private TextBox txtMobile;
         private Label label5;
         private Label label6;
         private Label label7;
         private TextBox txtTaxNumber;
         private Label label8;
+        private Label label10;
+        private Label label11;
+        private TextBox txtActivityType;
         private CheckBox chkIsActive;
         private Button btnNew;
         private Button btnPrint;

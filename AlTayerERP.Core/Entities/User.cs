@@ -52,5 +52,21 @@ namespace AlTayerERP.Core.Entities
 
         [Column("Updated_At")]
         public DateTime? Updated_At { get; set; }
+
+        // حقول قفل الدخول يديرها الـ API فقط، ولا يقبلها من تطبيق سطح المكتب.
+        [Column("Failed_Login_Count")]
+        public int Failed_Login_Count { get; set; }
+
+        [Column("Last_Failed_Login_At")]
+        public DateTime? Last_Failed_Login_At { get; set; }
+
+        [Column("Locked_Until")]
+        public DateTime? Locked_Until { get; set; }
+
+        [Column("Last_Login_At")]
+        public DateTime? Last_Login_At { get; set; }
+
+        [Column("Last_Login_IP")]
+        public string? Last_Login_IP { get; set; }
     }
 }

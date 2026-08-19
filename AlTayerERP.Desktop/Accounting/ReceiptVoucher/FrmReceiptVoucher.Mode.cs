@@ -38,7 +38,10 @@ namespace AlTayerERP.Desktop
             btnSearch.Enabled = true;
             btnRefresh.Enabled = _selectedVoucherId > 0;
             btnPrint.Enabled = _selectedVoucherId > 0;
-            btnViewJournalEntry.Enabled = _selectedVoucherId > 0;
+            // لا يوجد قيد محاسبي قابل للاستعراض قبل ترحيل السند.
+            btnViewJournalEntry.Enabled =
+                _selectedVoucherId > 0 && chkPosted.Checked;
+            btnAttachments.Enabled = _selectedVoucherId > 0;
 
             btnSave.Enabled = false;
             btnUndo.Enabled = false;
@@ -62,6 +65,7 @@ namespace AlTayerERP.Desktop
             btnRefresh.Enabled = false;
             btnPrint.Enabled = false;
             btnViewJournalEntry.Enabled = false;
+            btnAttachments.Enabled = false;
 
             btnSave.Enabled = true;
             btnUndo.Enabled = true;
@@ -125,6 +129,7 @@ namespace AlTayerERP.Desktop
             btnRefresh.Enabled = false;
             btnPrint.Enabled = false;
             btnViewJournalEntry.Enabled = false;
+            btnAttachments.Enabled = false;
 
             btnSave.Enabled = true;
             btnUndo.Enabled = true;

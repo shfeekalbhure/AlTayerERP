@@ -52,6 +52,10 @@ namespace AlTayerERP.Infrastructure.Data
         // جدول شاشات النظام البرمجية المتوفرة لضبط الوصول
         public DbSet<SystemScreen> SystemScreens { get; set; } = null!;
 
+        // سجلات الأمان: محاولات الدخول ورموز التجديد لا تحمل كلمات مرور أو رموزاً أصلية.
+        public DbSet<LoginAttempt> Login_Attempts { get; set; } = null!;
+        public DbSet<RefreshToken> Refresh_Tokens { get; set; } = null!;
+
         #endregion
 
         #region 3. إعدادات الترقيم والرقابة والاعتمادات
@@ -139,6 +143,9 @@ namespace AlTayerERP.Infrastructure.Data
 
         // جدول الأطراف المالية
         public DbSet<Party> Parties { get; set; } = null!;
+        public DbSet<PaymentRequest> Payment_Requests { get; set; } = null!;
+        public DbSet<PaymentRequestLine> Payment_Request_Lines { get; set; } = null!;
+        public DbSet<PaymentRequestAttachment> Payment_Request_Attachments { get; set; } = null!;
         #endregion
 
         #region إعداد الجداول والعلاقات باستخدام (Fluent API)
@@ -154,6 +161,30 @@ namespace AlTayerERP.Infrastructure.Data
             {
                 entity.ToTable("tenant_groups");
                 entity.HasKey(e => e.Group_ID);
+
+                // الحقول التالية كانت جزءاً من نموذج قديم للمجموعة ولا توجد في
+                // جدول المرحلة الحالية. بيانات التدقيق تُحفظ في audit_logs.
+                entity.Ignore(e => e.Short_Name);
+                entity.Ignore(e => e.Parent_Group_ID);
+                entity.Ignore(e => e.Main_Company_ID);
+                entity.Ignore(e => e.Default_Currency_Code);
+                entity.Ignore(e => e.Country_Name);
+                entity.Ignore(e => e.City_Name);
+                entity.Ignore(e => e.Short_Address);
+                entity.Ignore(e => e.Phone);
+                entity.Ignore(e => e.Email);
+                entity.Ignore(e => e.Manager_Name);
+                entity.Ignore(e => e.Sort_Order);
+                entity.Ignore(e => e.Updated_At);
+                entity.Ignore(e => e.Created_By);
+                entity.Ignore(e => e.Updated_By);
+                entity.Ignore(e => e.Edit_Count);
+                entity.Ignore(e => e.Stopped_By);
+                entity.Ignore(e => e.Stopped_At);
+                entity.Ignore(e => e.Stopped_Reason);
+                entity.Ignore(e => e.Reactivated_By);
+                entity.Ignore(e => e.Reactivated_At);
+                entity.Ignore(e => e.Reactivate_Reason);
             });
 
             // إعدادات جدول الشركات وتحديد المفتاح الرئيسي
@@ -186,6 +217,25 @@ namespace AlTayerERP.Infrastructure.Data
             {
                 entity.ToTable("users");
                 entity.HasKey(e => e.User_ID);
+            });
+
+            // سجل المحاولات مستقل عن المستخدم حتى تسجل أيضاً محاولات اسم دخول غير صحيح.
+            modelBuilder.Entity<LoginAttempt>(entity =>
+            {
+                entity.ToTable("login_attempts");
+                entity.HasKey(e => e.Login_Attempt_ID);
+                entity.HasIndex(e => new { e.Login_Name, e.Attempted_At });
+                entity.HasIndex(e => new { e.User_ID, e.Attempted_At });
+            });
+
+            // رمز التجديد يحفظ كبصمة فقط ويمنع تعدد الرموز النشطة لنفس القيمة.
+            modelBuilder.Entity<RefreshToken>(entity =>
+            {
+                entity.ToTable("refresh_tokens");
+                entity.HasKey(e => e.Refresh_Token_ID);
+                entity.HasIndex(e => e.Token_Hash).IsUnique();
+                entity.HasIndex(e => new { e.User_ID, e.Expires_At });
+                entity.HasIndex(e => e.Session_ID);
             });
 
             // إعدادات جدول الأدوار وتحديد المفتاح الرئيسي
@@ -239,6 +289,18 @@ namespace AlTayerERP.Infrastructure.Data
             {
                 entity.ToTable("numbering_counters");
                 entity.HasKey(e => e.Counter_ID);
+
+                // القيم غير المستخدمة تخزن كسلسلة فارغة/صفر؛ المفتاح يمنع إنشاء
+                // عدادين لنفس نوع المستند ونطاق الشركة/الفرع/السنة.
+                entity.HasIndex(e => new
+                {
+                    e.Document_Type,
+                    e.Company_ID,
+                    e.Branch_ID,
+                    e.Year_Value
+                })
+                .IsUnique()
+                .HasDatabaseName("UQ_Numbering_Counter_Scope");
             });
 
             // إعدادات جدول الحدود المالية وتحديد المفتاح الرئيسي
@@ -261,6 +323,9 @@ namespace AlTayerERP.Infrastructure.Data
                 entity.ToTable("approval_requests");
                 entity.HasKey(e => e.Approval_ID);
             });
+            modelBuilder.Entity<PaymentRequest>(entity => { entity.ToTable("payment_requests"); entity.HasKey(e=>e.Payment_Request_ID); entity.HasIndex(e=>new {e.Company_ID,e.Branch_ID,e.Fiscal_Year_ID,e.Request_No}).IsUnique(); entity.Property(e=>e.Approved_Local_Total).HasPrecision(19,4); entity.HasMany(e=>e.Details).WithOne(e=>e.PaymentRequest).HasForeignKey(e=>e.Payment_Request_ID).OnDelete(DeleteBehavior.Restrict); });
+            modelBuilder.Entity<PaymentRequestLine>(entity => { entity.ToTable("payment_request_lines"); entity.HasKey(e=>e.Payment_Request_Line_ID); entity.HasIndex(e=>new {e.Payment_Request_ID,e.Line_No}).IsUnique(); entity.Property(e=>e.Exchange_Rate).HasPrecision(19,8); entity.Property(e=>e.Foreign_Amount).HasPrecision(19,4); entity.Property(e=>e.Local_Amount).HasPrecision(19,4); });
+            modelBuilder.Entity<PaymentRequestAttachment>(entity => { entity.ToTable("payment_request_attachments"); entity.HasKey(e=>e.Payment_Request_Attachment_ID); entity.HasIndex(e=>new {e.Payment_Request_ID,e.Is_Active}); });
 
             #endregion
 

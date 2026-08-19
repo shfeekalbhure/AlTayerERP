@@ -196,10 +196,6 @@ namespace AlTayerERP.Desktop
                 btnUndo.Enabled = false;
                 UseWaitCursor = true;
 
-                lblStatusApi.Text = isNewVoucher
-                    ? "API: جاري حفظ السند..."
-                    : "API: جاري حفظ التعديلات...";
-
                 CreateFinancialVoucherRequest request =
                    BuildCreateVoucherRequest();
 
@@ -227,9 +223,6 @@ namespace AlTayerERP.Desktop
 
                 if (!response.Success)
                 {
-                    lblStatusApi.Text =
-                        "API: متصل - فشلت العملية";
-
                     MessageBox.Show(
                         response.Message,
                         isNewVoucher
@@ -252,10 +245,6 @@ namespace AlTayerERP.Desktop
                 // معرفه الحقيقي ورقم القيد وبقية البيانات.
                 await SearchVoucherAsync(voucherNumber);
 
-                lblStatusApi.Text = "API: متصل";
-                lblStatusDatabase.Text =
-                    "قاعدة البيانات: متصلة";
-
                 MessageBox.Show(
                     response.Message,
                     isNewVoucher
@@ -269,8 +258,6 @@ namespace AlTayerERP.Desktop
             }
             catch (HttpRequestException ex)
             {
-                lblStatusApi.Text = "API: غير متصل";
-
                 MessageBox.Show(
                     $"تعذر الاتصال بالـ API.\n\n{ex.Message}",
                     "خطأ في الاتصال",
@@ -279,9 +266,6 @@ namespace AlTayerERP.Desktop
             }
             catch (TaskCanceledException)
             {
-                lblStatusApi.Text =
-                    "API: انتهت مهلة الاتصال";
-
                 MessageBox.Show(
                     "انتهت مهلة الاتصال بالـ API.",
                     "انتهاء مهلة الاتصال",
@@ -346,15 +330,7 @@ namespace AlTayerERP.Desktop
                 return false;
             }
 
-            // التحقق من أن رقم السند تم توليده بشكل صحيح ولا يحتوي على نصوص أخطاء أو حالة جاري التحميل
-            if (string.IsNullOrWhiteSpace(txtVoucherNo.Text)
-                || txtVoucherNo.Text.Contains("جاري", StringComparison.OrdinalIgnoreCase)
-                || txtVoucherNo.Text.Contains("تعذر", StringComparison.OrdinalIgnoreCase))
-            {
-                errorMessage = "رقم السند غير جاهز.\nاضغط زر جديد لتوليد رقم صحيح.";
-                txtVoucherNo.Focus();
-                return false;
-            }
+            // رقم السند لا يدخل من المستخدم ولا يُحجز داخل الشاشة؛ يصدره الخادم بعد نجاح الحفظ.
 
             // التحقق من اختيار نوع السند المالي من القائمة المنسدلة
             if (cmbVoucherType.SelectedValue == null)
@@ -473,6 +449,18 @@ namespace AlTayerERP.Desktop
                     return false;
                 }
 
+                // يمنع الحفظ برقم أو نص غير مربوط بحساب فعّال من القوائم المحملة.
+                if (!_accountLookups.Any(account =>
+                        string.Equals(
+                            account.Account_ID,
+                            accountId,
+                            StringComparison.OrdinalIgnoreCase)))
+                {
+                    errorMessage = $"الحساب المختار غير صالح في السطر رقم {visibleRowNo}. استخدم F9 لاختيار حساب فعّال.";
+                    dgvVoucherDetails.CurrentCell = row.Cells[colAccountCode.Name];
+                    return false;
+                }
+
                 string cashAccountId = cmbCashAccount.SelectedValue?.ToString()?.Trim() ?? string.Empty;
                 if (string.Equals(accountId, cashAccountId, StringComparison.OrdinalIgnoreCase))
                 {
@@ -551,6 +539,7 @@ namespace AlTayerERP.Desktop
         {
             // تحويل وجلب القيم المحددة من عناصر الواجهة المختلفة مع تنظيف النصوص
             int voucherTypeId = Convert.ToInt32(cmbVoucherType.SelectedValue, CultureInfo.InvariantCulture);
+            bool isPaymentVoucher = string.Equals(_voucherTypeCode, "PAYMENT", StringComparison.OrdinalIgnoreCase);
             int voucherStatusId = Convert.ToInt32(cmbStatus.SelectedValue, CultureInfo.InvariantCulture);
             string cashAccountId = cmbCashAccount.SelectedValue?.ToString()?.Trim() ?? string.Empty;
             string? partyId = cmbParty.SelectedValue?.ToString()?.Trim();
@@ -620,8 +609,8 @@ namespace AlTayerERP.Desktop
                 Exchange_Rate = decimal.Round(numExchangeRate.Value, 6, MidpointRounding.AwayFromZero),
                 Foreign_Amount = decimal.Round(numForeignAmount.Value, 2, MidpointRounding.AwayFromZero),
                 Local_Amount = decimal.Round(numLocalAmount.Value, 2, MidpointRounding.AwayFromZero),
-                Debit_Amount = decimal.Round(numLocalAmount.Value, 2, MidpointRounding.AwayFromZero),
-                Credit_Amount = 0m,
+                Debit_Amount = isPaymentVoucher ? 0m : decimal.Round(numLocalAmount.Value, 2, MidpointRounding.AwayFromZero),
+                Credit_Amount = isPaymentVoucher ? decimal.Round(numLocalAmount.Value, 2, MidpointRounding.AwayFromZero) : 0m,
                 Line_Type = 1,
                 Notes = NullIfWhiteSpace(txtHeaderNotes.Text)
             });
@@ -735,13 +724,13 @@ namespace AlTayerERP.Desktop
                                 2,
                                 MidpointRounding.AwayFromZero),
 
-                        Debit_Amount = 0m,
+                        Debit_Amount = isPaymentVoucher
+                            ? decimal.Round(localAmount, 2, MidpointRounding.AwayFromZero)
+                            : 0m,
 
-                        Credit_Amount =
-                            decimal.Round(
-                                localAmount,
-                                2,
-                                MidpointRounding.AwayFromZero),
+                        Credit_Amount = isPaymentVoucher
+                            ? 0m
+                            : decimal.Round(localAmount, 2, MidpointRounding.AwayFromZero),
 
                         Line_Type = 2,
 

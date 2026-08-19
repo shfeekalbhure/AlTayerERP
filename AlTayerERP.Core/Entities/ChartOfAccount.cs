@@ -53,7 +53,6 @@ namespace AlTayerERP.Core.Entities
         [Column("Notes")]
         public string? Notes { get; set; }
 
-        // --- الحقول التي تم تعديل مسمياتها لتطابق قاعدة البيانات ---
         [Column("Allow_ManualEntry")]
         public bool Allow_ManualEntry { get; set; }
 
@@ -63,7 +62,6 @@ namespace AlTayerERP.Core.Entities
         [Column("Requires_CostCenter")]
         public bool Requires_CostCenter { get; set; }
 
-        // --- الحقول الإضافية الجديدة ---
         [Column("Requires_Party")]
         public bool Requires_Party { get; set; }
 
@@ -82,11 +80,20 @@ namespace AlTayerERP.Core.Entities
         [Column("Multi_Currency")]
         public bool Multi_Currency { get; set; }
 
+        /// <summary>حساب رقابي مرتبط بدفتر مساعد ولا يقبل القيود اليدوية المباشرة.</summary>
+        [Column("Is_Control_Account")]
+        public bool Is_Control_Account { get; set; }
+
+        /// <summary>نوع الدفتر المساعد المرتبط بالحساب الرقابي.</summary>
+        [Column("Control_Account_Type")]
+        [StringLength(30)]
+        public string? Control_Account_Type { get; set; }
+
         [Column("Account_Path")]
         public string? Account_Path { get; set; }
 
         [Column("Account_Serial")]
-        public int? Account_Serial { get; set; }
+        public int Account_Serial { get; set; } = 0;
 
         [Column("Created_By")]
         public string? Created_By { get; set; }
