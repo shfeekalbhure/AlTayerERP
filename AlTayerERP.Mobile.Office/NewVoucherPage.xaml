@@ -44,7 +44,14 @@
             </Grid>
 
             <Entry x:Name="ReferenceEntry" Placeholder="رقم المرجع - اختياري" BackgroundColor="White" TextColor="#17324D" PlaceholderColor="#7A8896" />
+            <Label Text="تاريخ المرجع" FontAttributes="Bold" TextColor="#17324D" />
+            <DatePicker x:Name="ReferenceDatePicker" BackgroundColor="White" TextColor="#17324D" />
             <Editor x:Name="DescriptionEditor" Placeholder="البيان" BackgroundColor="White" TextColor="#17324D" PlaceholderColor="#7A8896" MinimumHeightRequest="80" AutoSize="TextChanges" />
+            <Editor x:Name="HeaderNotesEditor" Placeholder="ملاحظات السند - اختياري" BackgroundColor="White" TextColor="#17324D" PlaceholderColor="#7A8896" MinimumHeightRequest="65" AutoSize="TextChanges" />
+            <Grid ColumnDefinitions="*,Auto" Padding="0,4">
+                <Label Text="يتطلب اعتماداً" VerticalTextAlignment="Center" FontAttributes="Bold" TextColor="#17324D" />
+                <Switch x:Name="RequiresApprovalSwitch" Grid.Column="1" IsToggled="True" OnColor="#0B6B87" />
+            </Grid>
 
             <Label Text="إضافة سطر محاسبي" FontSize="18" FontAttributes="Bold" TextColor="#17324D" Margin="0,8,0,0" />
 
@@ -70,6 +77,12 @@
             <Entry x:Name="ForeignAmountEntry" Placeholder="المبلغ الأجنبي" Keyboard="Numeric" Text="0" BackgroundColor="White" TextColor="#17324D" TextChanged="OnForeignAmountChanged" />
             <Entry x:Name="LocalAmountEntry" Placeholder="المبلغ المحلي" Keyboard="Numeric" BackgroundColor="White" TextColor="#17324D" />
             <Editor x:Name="LineDescriptionEditor" Placeholder="وصف السطر" BackgroundColor="White" TextColor="#17324D" PlaceholderColor="#7A8896" MinimumHeightRequest="65" />
+            <Entry x:Name="LineReferenceTypeEntry" Placeholder="نوع مرجع السطر - اختياري" BackgroundColor="White" TextColor="#17324D" PlaceholderColor="#7A8896" />
+            <Entry x:Name="LineReferenceNoEntry" Placeholder="رقم مرجع السطر - اختياري" BackgroundColor="White" TextColor="#17324D" PlaceholderColor="#7A8896" />
+            <Entry x:Name="LineReferenceNameEntry" Placeholder="اسم مرجع السطر - اختياري" BackgroundColor="White" TextColor="#17324D" PlaceholderColor="#7A8896" />
+            <DatePicker x:Name="LineReferenceDatePicker" BackgroundColor="White" TextColor="#17324D" />
+            <Entry x:Name="ProjectIdEntry" Placeholder="معرف المشروع - اختياري" BackgroundColor="White" TextColor="#17324D" PlaceholderColor="#7A8896" />
+            <Editor x:Name="LineNotesEditor" Placeholder="ملاحظات السطر - اختياري" BackgroundColor="White" TextColor="#17324D" PlaceholderColor="#7A8896" MinimumHeightRequest="55" />
             <Button x:Name="AddLineButton" Text="+ إضافة السطر" BackgroundColor="#0B6B87" TextColor="White" CornerRadius="12" HeightRequest="48" Clicked="OnAddLineClicked" />
 
             <Grid ColumnDefinitions="*,Auto" Margin="0,8,0,0">

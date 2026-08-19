@@ -44,10 +44,17 @@ public sealed class CreateMobileVoucherDto
     public decimal Foreign_Total { get; set; }
     public decimal Local_Total { get; set; }
     public string? Reference_No { get; set; }
+    public DateTime? Reference_Date { get; set; }
     public string? Against_Text { get; set; }
     public string? Description { get; set; }
+    public string? Notes { get; set; }
+    public int? Module_ID { get; set; }
+    public int? Document_Type_ID { get; set; }
+    public long? Document_ID { get; set; }
+    public string? Source_Document_No { get; set; }
     public bool Requires_Approval { get; set; }
     public List<CreateMobileVoucherLineDto> Details { get; set; } = [];
+    public List<CreateDocumentAllocationDto> Allocations { get; set; } = [];
 }
 
 public sealed class CreateMobileVoucherLineDto
@@ -56,6 +63,11 @@ public sealed class CreateMobileVoucherLineDto
     public string Account_ID { get; set; } = string.Empty;
     public string? Description { get; set; }
     public string? Cost_Center_ID { get; set; }
+    public string? Project_ID { get; set; }
+    public string? Reference_Type { get; set; }
+    public string? Reference_No { get; set; }
+    public string? Reference_Name { get; set; }
+    public DateTime? Reference_Date { get; set; }
     public int Currency_ID { get; set; }
     public decimal Exchange_Rate { get; set; }
     public decimal Foreign_Amount { get; set; }
@@ -63,6 +75,23 @@ public sealed class CreateMobileVoucherLineDto
     public decimal Debit_Amount { get; set; }
     public decimal Credit_Amount { get; set; }
     public byte Line_Type { get; set; } = 2;
+    public string? Notes { get; set; }
+}
+
+public sealed class CreateDocumentAllocationDto
+{
+    public int Module_ID { get; set; }
+    public int Document_Type_ID { get; set; }
+    public long Document_ID { get; set; }
+    public string Document_No { get; set; } = string.Empty;
+    public string? Party_ID { get; set; }
+    public int Currency_ID { get; set; }
+    public decimal Exchange_Rate { get; set; } = 1m;
+    public decimal Document_Total { get; set; }
+    public decimal Collected_Before { get; set; }
+    public decimal Collected_Now { get; set; }
+    public decimal Remaining_Balance { get; set; }
+    public string? Notes { get; set; }
 }
 
 public sealed class UpdateMobileVoucherDto
@@ -84,8 +113,14 @@ public sealed class UpdateMobileVoucherDto
     public decimal Foreign_Total { get; set; }
     public decimal Local_Total { get; set; }
     public string? Reference_No { get; set; }
+    public DateTime? Reference_Date { get; set; }
     public string? Against_Text { get; set; }
     public string? Description { get; set; }
+    public string? Notes { get; set; }
+    public int? Module_ID { get; set; }
+    public int? Document_Type_ID { get; set; }
+    public long? Document_ID { get; set; }
+    public string? Source_Document_No { get; set; }
     public bool Requires_Approval { get; set; }
     public List<UpdateMobileVoucherLineDto> Details { get; set; } = [];
     public List<object> Allocations { get; set; } = [];
@@ -98,6 +133,11 @@ public sealed class UpdateMobileVoucherLineDto
     public string Account_ID { get; set; } = string.Empty;
     public string? Description { get; set; }
     public string? Cost_Center_ID { get; set; }
+    public string? Project_ID { get; set; }
+    public string? Reference_Type { get; set; }
+    public string? Reference_No { get; set; }
+    public string? Reference_Name { get; set; }
+    public DateTime? Reference_Date { get; set; }
     public int Currency_ID { get; set; }
     public decimal Exchange_Rate { get; set; }
     public decimal Foreign_Amount { get; set; }
@@ -105,6 +145,7 @@ public sealed class UpdateMobileVoucherLineDto
     public decimal Debit_Amount { get; set; }
     public decimal Credit_Amount { get; set; }
     public byte Line_Type { get; set; } = 2;
+    public string? Notes { get; set; }
 }
 
 public sealed class CreateMobileVoucherResultDto

@@ -40,6 +40,7 @@ public static class MauiProgram
         builder.Services.AddSingleton<AuthenticationService>();
         builder.Services.AddSingleton<MobileHomeService>();
         builder.Services.AddSingleton<PaymentRequestService>();
+        builder.Services.AddSingleton<ApprovalRequestsService>();
         builder.Services.AddSingleton<PaymentRequestReferenceService>();
         builder.Services.AddSingleton<PaymentRequestAttachmentService>();
         builder.Services.AddSingleton<PaymentVoucherService>();

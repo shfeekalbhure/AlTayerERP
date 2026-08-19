@@ -22,6 +22,8 @@ public partial class NewVoucherPage : ContentPage
         PartyNameEntry.Placeholder = _type == "RECEIPT" ? "استلمنا من" : "اسم المستفيد";
         LinesList.ItemsSource = _lines;
         VoucherDatePicker.Date = DateTime.Today;
+        ReferenceDatePicker.Date = DateTime.Today;
+        LineReferenceDatePicker.Date = DateTime.Today;
         OnLookupPageLoaded(this, EventArgs.Empty);
     }
 
@@ -171,7 +173,13 @@ public partial class NewVoucherPage : ContentPage
             ExchangeRate = rate,
             ForeignAmount = foreign,
             LocalAmount = local,
-            Description = Clean(LineDescriptionEditor.Text)
+            Description = Clean(LineDescriptionEditor.Text),
+            ProjectId = Clean(ProjectIdEntry.Text),
+            ReferenceType = Clean(LineReferenceTypeEntry.Text),
+            ReferenceNo = Clean(LineReferenceNoEntry.Text),
+            ReferenceName = Clean(LineReferenceNameEntry.Text),
+            ReferenceDate = string.IsNullOrWhiteSpace(LineReferenceNoEntry.Text) ? null : LineReferenceDatePicker.Date?.Date,
+            Notes = Clean(LineNotesEditor.Text)
         });
         ClearLineEditor();
         UpdateTotal();
@@ -235,6 +243,7 @@ public partial class NewVoucherPage : ContentPage
                 Debit_Amount = _type == "RECEIPT" ? total : 0m,
                 Credit_Amount = _type == "PAYMENT" ? total : 0m,
                 Description = accountingText,
+                Notes = Clean(HeaderNotesEditor.Text),
                 Line_Type = 1
             }
         };
@@ -251,6 +260,12 @@ public partial class NewVoucherPage : ContentPage
             Debit_Amount = _type == "PAYMENT" ? x.LocalAmount : 0m,
             Credit_Amount = _type == "RECEIPT" ? x.LocalAmount : 0m,
             Description = x.Description,
+            Project_ID = x.ProjectId,
+            Reference_Type = x.ReferenceType,
+            Reference_No = x.ReferenceNo,
+            Reference_Name = x.ReferenceName,
+            Reference_Date = x.ReferenceDate,
+            Notes = x.Notes,
             Line_Type = 2
         }));
 
@@ -279,9 +294,16 @@ public partial class NewVoucherPage : ContentPage
             Foreign_Total = 0m,
             Local_Total = total,
             Reference_No = Clean(ReferenceEntry.Text),
+            Reference_Date = string.IsNullOrWhiteSpace(ReferenceEntry.Text) ? null : ReferenceDatePicker.Date?.Date,
             Against_Text = accountingText,
             Description = accountingText,
-            Requires_Approval = true,
+            Notes = Clean(HeaderNotesEditor.Text),
+            Module_ID = null,
+            Document_Type_ID = null,
+            Document_ID = null,
+            Source_Document_No = null,
+            Requires_Approval = RequiresApprovalSwitch.IsToggled,
+            Allocations = [],
             Details = details
         };
 
@@ -317,6 +339,12 @@ public partial class NewVoucherPage : ContentPage
         ForeignAmountEntry.Text = "0";
         LocalAmountEntry.Text = string.Empty;
         LineDescriptionEditor.Text = string.Empty;
+        LineReferenceTypeEntry.Text = string.Empty;
+        LineReferenceNoEntry.Text = string.Empty;
+        LineReferenceNameEntry.Text = string.Empty;
+        LineReferenceDatePicker.Date = DateTime.Today;
+        ProjectIdEntry.Text = string.Empty;
+        LineNotesEditor.Text = string.Empty;
     }
 
     private void UpdateTotal() => TotalLabel.Text = $"الإجمالي: {_lines.Sum(x => x.LocalAmount):N2}";
@@ -364,5 +392,11 @@ public partial class NewVoucherPage : ContentPage
         public decimal ForeignAmount { get; init; }
         public decimal LocalAmount { get; init; }
         public string? Description { get; init; }
+        public string? ProjectId { get; init; }
+        public string? ReferenceType { get; init; }
+        public string? ReferenceNo { get; init; }
+        public string? ReferenceName { get; init; }
+        public DateTime? ReferenceDate { get; init; }
+        public string? Notes { get; init; }
     }
 }

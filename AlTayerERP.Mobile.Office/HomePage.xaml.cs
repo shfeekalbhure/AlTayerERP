@@ -8,6 +8,7 @@ public partial class HomePage : ContentPage
     private readonly MobileHomeService _mobileHomeService;
     private readonly AuthenticationService _authenticationService;
     private readonly PaymentRequestService _paymentRequestService;
+    private readonly ApprovalRequestsService _approvalRequestsService;
     private readonly PaymentVoucherService _paymentVoucherService;
     private readonly ReceiptVoucherService _receiptVoucherService;
     private readonly JournalVoucherService _journalVoucherService;
@@ -30,6 +31,7 @@ public partial class HomePage : ContentPage
         var services = IPlatformApplication.Current?.Services
             ?? throw new InvalidOperationException("خدمات التطبيق غير مهيأة.");
         _paymentRequestService = services.GetRequiredService<PaymentRequestService>();
+        _approvalRequestsService = services.GetRequiredService<ApprovalRequestsService>();
         _paymentVoucherService = services.GetRequiredService<PaymentVoucherService>();
         _receiptVoucherService = services.GetRequiredService<ReceiptVoucherService>();
         _journalVoucherService = services.GetRequiredService<JournalVoucherService>();
@@ -105,7 +107,7 @@ public partial class HomePage : ContentPage
         await Navigation.PushAsync(new DocumentSearchPage(_documentSearchService));
 
     private async void OnApprovalRequestsClicked(object? sender, EventArgs e) =>
-        await Navigation.PushAsync(new ApprovalRequestsPage(_paymentRequestService));
+        await Navigation.PushAsync(new ApprovalRequestsPage(_approvalRequestsService));
 
     private async void OnTrialBalanceClicked(object? sender, EventArgs e) =>
         await Navigation.PushAsync(new TrialBalancePage(_trialBalanceService));

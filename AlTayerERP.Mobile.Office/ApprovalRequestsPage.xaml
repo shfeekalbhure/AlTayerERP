@@ -49,12 +49,13 @@
                             SelectionMode="Single"
                             SelectionChanged="OnSelectionChanged">
                 <CollectionView.EmptyView>
+
                     <VerticalStackLayout Padding="20" Spacing="8">
                         <Label x:Name="EmptyTitleLabel"
                                Text="لا توجد طلبات اعتماد معلقة."
                                HorizontalTextAlignment="Center"
                                TextColor="#7A8896" />
-                        <Label Text="ارجع إلى شاشة طلب صرف، افتح المسودة، ثم اضغط إرسال للمراجعة."
+                        <Label Text="تظهر هنا الطلبات العامة التي تحتاج إلى مراجعة أو اعتماد."
                                HorizontalTextAlignment="Center"
                                FontSize="12"
                                TextColor="#7A8896" />
@@ -70,7 +71,7 @@
                             <Grid RowDefinitions="Auto,Auto,Auto,Auto"
                                   ColumnDefinitions="*,Auto"
                                   RowSpacing="6">
-                                <Label Text="{Binding Request_No}"
+                                <Label Text="{Binding ReferenceDisplay}"
                                        FontSize="16"
                                        FontAttributes="Bold"
                                        TextColor="#17324D" />
@@ -79,22 +80,22 @@
                                        TextColor="#0B6B87" />
                                 <Label Grid.Row="1"
                                        Grid.ColumnSpan="2"
-                                       Text="{Binding Beneficiary_Name}"
+                                       Text="{Binding Request_Type}"
                                        TextColor="#35566F" />
                                 <Label Grid.Row="2"
                                        Grid.ColumnSpan="2"
-                                       Text="{Binding Description}"
+                                       Text="{Binding Reason}"
                                        FontSize="12"
                                        TextColor="#7A8896"
                                        LineBreakMode="TailTruncation" />
                                 <Grid Grid.Row="3"
                                       Grid.ColumnSpan="2"
                                       ColumnDefinitions="*,Auto">
-                                    <Label Text="{Binding Request_Date, StringFormat='التاريخ: {0:yyyy/MM/dd}'}"
+                                    <Label Text="{Binding Requested_At, StringFormat='التاريخ: {0:yyyy/MM/dd}'}"
                                            FontSize="12"
                                            TextColor="#7A8896" />
                                     <Label Grid.Column="1"
-                                           Text="{Binding LocalTotal, StringFormat='الإجمالي: {0:N2}'}"
+                                           Text="{Binding AmountDisplay, StringFormat='الإجمالي: {0}'}"
                                            FontAttributes="Bold"
                                            TextColor="#17324D" />
                                 </Grid>
