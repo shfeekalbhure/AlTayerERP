@@ -137,7 +137,75 @@ public sealed class VoucherEntryService(HttpClient httpClient, SessionStorageSer
             $"[MobileVoucherSaveError] Endpoint={response.RequestMessage?.RequestUri?.AbsolutePath} " +
             $"StatusCode={(int)response.StatusCode} Details={developerDetails}");
 
-        // لا نمرر نص الخادم أو HTTP الخام إلى واجهة Mobile.
-        throw new InvalidOperationException(fallback);
+        // نعرض فقط رسالة عربية قصيرة ومضبوطة صادرة من API؛ أما النص الخام
+        // فيبقى في سجل التطوير حتى لا تظهر تفاصيل تقنية أو أسرار للمستخدم.
+        var serverMessage = ExtractSafeServerMessage(developerDetails);
+        throw new InvalidOperationException(serverMessage ?? fallback);
+    }
+
+    private static string? ExtractSafeServerMessage(string payload)
+    {
+        if (string.IsNullOrWhiteSpace(payload))
+            return null;
+
+        try
+        {
+            using var document = JsonDocument.Parse(payload);
+            var root = document.RootElement;
+
+            foreach (var propertyName in new[] { "message", "title" })
+            {
+                if (root.TryGetProperty(propertyName, out var property) &&
+                    property.ValueKind == JsonValueKind.String)
+                {
+                    var message = property.GetString()?.Trim();
+                    if (IsSafeArabicMessage(message))
+                        return message;
+                }
+            }
+
+            // يدعم ValidationProblemDetails إذا أعاد الخادم أخطاء حقول متعددة.
+            if (root.TryGetProperty("errors", out var errors) &&
+                errors.ValueKind == JsonValueKind.Object)
+            {
+                var messages = new List<string>();
+                foreach (var error in errors.EnumerateObject())
+                {
+                    if (error.Value.ValueKind == JsonValueKind.Array)
+                    {
+                        foreach (var item in error.Value.EnumerateArray())
+                        {
+                            if (item.ValueKind == JsonValueKind.String)
+                                messages.Add(item.GetString()!.Trim());
+                        }
+                    }
+                    else if (error.Value.ValueKind == JsonValueKind.String)
+                    {
+                        messages.Add(error.Value.GetString()!.Trim());
+                    }
+                }
+
+                var combined = string.Join(" ", messages.Where(IsSafeArabicMessage).Distinct());
+                if (IsSafeArabicMessage(combined))
+                    return combined;
+            }
+        }
+        catch (JsonException)
+        {
+            // يبقى استخدام الرسالة العامة عند استجابة غير JSON.
+        }
+
+        return null;
+    }
+
+    private static bool IsSafeArabicMessage(string? message) =>
+        !string.IsNullOrWhiteSpace(message) &&
+        message.Length <= 500 &&
+        message.Any(character => character is >= '\u0600' and <= '\u06FF') &&
+        !message.Contains("connection string", StringComparison.OrdinalIgnoreCase) &&
+        !message.Contains("password", StringComparison.OrdinalIgnoreCase) &&
+        !message.Contains("token", StringComparison.OrdinalIgnoreCase) &&
+        !message.Contains("stack trace", StringComparison.OrdinalIgnoreCase) &&
+        !message.Contains(" at ", StringComparison.OrdinalIgnoreCase);
     }
 }
