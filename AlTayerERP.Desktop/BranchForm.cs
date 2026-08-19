@@ -467,7 +467,7 @@ namespace AlTayerERP.Desktop
             txtBranchNameAr.Focus();
         }
 
-        private async void btnSaveBranch_Click(object sender, EventArgs e)
+        private async void btnSaveBranch_Click(object? sender, EventArgs e)
         {
             if (!ValidateForm()) return;
 
@@ -557,12 +557,12 @@ namespace AlTayerERP.Desktop
             };
         }
 
-        private void btnNew_Click(object sender, EventArgs e)
+        private void btnNew_Click(object? sender, EventArgs e)
         {
             ClearFormControls();
         }
 
-        private async void btnRefresh_Click(object sender, EventArgs e)
+        private async void btnRefresh_Click(object? sender, EventArgs e)
         {
             try
             {
@@ -576,7 +576,7 @@ namespace AlTayerERP.Desktop
             }
         }
 
-        private void btnSearch_Click(object sender, EventArgs e)
+        private void btnSearch_Click(object? sender, EventArgs e)
         {
             string keyword = Microsoft.VisualBasic.Interaction.InputBox(
                 "أدخل اسم الفرع أو كود الفرع للبحث:",
@@ -598,7 +598,7 @@ namespace AlTayerERP.Desktop
             FillBranchesGrid(result);
         }
 
-        private async void btnEdit_Click(object sender, EventArgs e)
+        private async void btnEdit_Click(object? sender, EventArgs e)
         {
             if (_selectedBranchId <= 0)
             {
@@ -726,7 +726,7 @@ namespace AlTayerERP.Desktop
         /// إيقاف الفرع بدلاً من حذفه فعلياً. يرسل السبب فقط، بينما يملأ الخادم
         /// المستخدم والتاريخ وسجل التدقيق من الجلسة الموثوقة.
         /// </summary>
-        private async void btnDelete_Click(object sender, EventArgs e)
+        private async void btnDelete_Click(object? sender, EventArgs e)
         {
             if (_selectedBranchId <= 0)
             {
@@ -825,18 +825,18 @@ namespace AlTayerERP.Desktop
             }
         }
 
-        private async void btnApprove_Click(object sender, EventArgs e) => await ApproveOrUnapproveBranch(activate: true);
-        private async void btnUnApprove_Click(object sender, EventArgs e) => await ApproveOrUnapproveBranch(activate: false);
-        private void btnClose_Click(object sender, EventArgs e) => Close();
+        private async void btnApprove_Click(object? sender, EventArgs e) => await ApproveOrUnapproveBranch(activate: true);
+        private async void btnUnApprove_Click(object? sender, EventArgs e) => await ApproveOrUnapproveBranch(activate: false);
+        private void btnClose_Click(object? sender, EventArgs e) => Close();
 
         // أزرار الطباعة والمعاينة والتصدير
-        private void btnPrint_Click(object sender, EventArgs e)
+        private void btnPrint_Click(object? sender, EventArgs e)
         {
             _printRowIndex = 0;
             printDocument.Print();
         }
 
-        private void btnPreview_Click(object sender, EventArgs e)
+        private void btnPreview_Click(object? sender, EventArgs e)
         {
             _printRowIndex = 0;
             printPreviewDialog.Document = printDocument;
@@ -844,7 +844,7 @@ namespace AlTayerERP.Desktop
             printPreviewDialog.ShowDialog();
         }
 
-        private void btnExport_Click(object sender, EventArgs e)
+        private void btnExport_Click(object? sender, EventArgs e)
         {
             try
             {
@@ -879,7 +879,7 @@ namespace AlTayerERP.Desktop
         /// Address,Manager_Name,Phone,Mobile,Email,Website,Notes,Allow_Credit,Allow_Percentage.
         /// لا يمر أي صف إلا من خلال API ليطبق التحقق والتدقيق الهرمي نفسه المستخدم في الحفظ اليدوي.
         /// </summary>
-        private async void btnImport_Click(object sender, EventArgs e)
+        private async void btnImport_Click(object? sender, EventArgs e)
         {
             if (cmbCompanies.SelectedValue is null || _defaultCurrencyId <= 0)
             {
@@ -1047,7 +1047,7 @@ namespace AlTayerERP.Desktop
         private static string ReadField(IReadOnlyList<string> fields, int index) => index < fields.Count ? fields[index].Trim() : string.Empty;
         private static bool ParseImportBoolean(string value) => value.Equals("1") || value.Equals("true", StringComparison.OrdinalIgnoreCase) || value.Equals("نعم");
 
-        private void PrintDocument_PrintPage(object sender, System.Drawing.Printing.PrintPageEventArgs e)
+        private void PrintDocument_PrintPage(object? sender, System.Drawing.Printing.PrintPageEventArgs e)
         {
             Font titleFont = new Font("Arial", 16, FontStyle.Bold);
             Font headerFont = new Font("Arial", 10, FontStyle.Bold);
@@ -1055,15 +1055,16 @@ namespace AlTayerERP.Desktop
             int y = 50;
             int x = 50;
 
-            e.Graphics.DrawString("تقرير الفروع", titleFont, Brushes.Black, 350, y);
+            Graphics graphics = e.Graphics ?? throw new InvalidOperationException("تعذر الحصول على سطح الرسم للطباعة.");
+            graphics.DrawString("تقرير الفروع", titleFont, Brushes.Black, 350, y);
             y += 50;
 
-            e.Graphics.DrawString("رقم", headerFont, Brushes.Black, x, y);
-            e.Graphics.DrawString("كود الفرع", headerFont, Brushes.Black, x + 80, y);
-            e.Graphics.DrawString("اسم الفرع", headerFont, Brushes.Black, x + 180, y);
-            e.Graphics.DrawString("النوع", headerFont, Brushes.Black, x + 380, y);
-            e.Graphics.DrawString("الهاتف", headerFont, Brushes.Black, x + 480, y);
-            e.Graphics.DrawString("الحالة", headerFont, Brushes.Black, x + 600, y);
+            graphics.DrawString("رقم", headerFont, Brushes.Black, x, y);
+            graphics.DrawString("كود الفرع", headerFont, Brushes.Black, x + 80, y);
+            graphics.DrawString("اسم الفرع", headerFont, Brushes.Black, x + 180, y);
+            graphics.DrawString("النوع", headerFont, Brushes.Black, x + 380, y);
+            graphics.DrawString("الهاتف", headerFont, Brushes.Black, x + 480, y);
+            graphics.DrawString("الحالة", headerFont, Brushes.Black, x + 600, y);
             y += 30;
 
             while (_printRowIndex < _branchesList.Count)
@@ -1075,12 +1076,12 @@ namespace AlTayerERP.Desktop
                     return;
                 }
 
-                e.Graphics.DrawString(b.Branch_ID.ToString(), rowFont, Brushes.Black, x, y);
-                e.Graphics.DrawString(b.Branch_Code ?? "", rowFont, Brushes.Black, x + 80, y);
-                e.Graphics.DrawString(b.Branch_Name ?? "", rowFont, Brushes.Black, x + 180, y);
-                e.Graphics.DrawString(b.Branch_Type ?? "", rowFont, Brushes.Black, x + 380, y);
-                e.Graphics.DrawString(b.Phone ?? "", rowFont, Brushes.Black, x + 480, y);
-                e.Graphics.DrawString(b.Is_Active ? "نشط" : "موقوف", rowFont, Brushes.Black, x + 600, y);
+                graphics.DrawString(b.Branch_ID.ToString(), rowFont, Brushes.Black, x, y);
+                graphics.DrawString(b.Branch_Code ?? "", rowFont, Brushes.Black, x + 80, y);
+                graphics.DrawString(b.Branch_Name ?? "", rowFont, Brushes.Black, x + 180, y);
+                graphics.DrawString(b.Branch_Type ?? "", rowFont, Brushes.Black, x + 380, y);
+                graphics.DrawString(b.Phone ?? "", rowFont, Brushes.Black, x + 480, y);
+                graphics.DrawString(b.Is_Active ? "نشط" : "موقوف", rowFont, Brushes.Black, x + 600, y);
                 y += 25;
                 _printRowIndex++;
             }

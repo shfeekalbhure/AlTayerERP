@@ -124,7 +124,8 @@ internal static class CountriesScreenClosureService
             using var bodyFont = new Font("Segoe UI", 10.5F);
             using var smallFont = new Font("Segoe UI", 9F);
 
-            e.Graphics.DrawString("بيانات الدولة", titleFont, Brushes.Navy, 80, 70);
+            Graphics graphics = e.Graphics ?? throw new InvalidOperationException("تعذر الحصول على سطح الرسم للطباعة.");
+            graphics.DrawString("بيانات الدولة", titleFont, Brushes.Navy, 80, 70);
             var body =
                 $"الكود: {code}\n" +
                 $"الاسم بالعربية: {nameAr}\n" +
@@ -136,13 +137,13 @@ internal static class CountriesScreenClosureService
                 $"الجنسية: {nationality}\n" +
                 $"الحالة: {active}\n" +
                 $"الملاحظات: {notes}";
-            e.Graphics.DrawString(body, bodyFont, Brushes.Black, new RectangleF(80, 120, 680, 340));
+            graphics.DrawString(body, bodyFont, Brushes.Black, new RectangleF(80, 120, 680, 340));
 
             var auditText =
                 $"أنشئ بواسطة: {audit.Created_By ?? "—"}    تاريخ الإنشاء: {FormatDate(audit.Created_At)}\n" +
                 $"عُدّل بواسطة: {audit.Updated_By ?? "—"}    تاريخ التعديل: {FormatDate(audit.Updated_At)}\n" +
                 $"عدد التعديلات: {audit.Edit_Count}    عدد مرات الطباعة: {audit.Print_Count}";
-            e.Graphics.DrawString(auditText, smallFont, Brushes.DimGray, new RectangleF(80, 485, 680, 120));
+            graphics.DrawString(auditText, smallFont, Brushes.DimGray, new RectangleF(80, 485, 680, 120));
         };
 
         using var preview = new PrintPreviewDialog

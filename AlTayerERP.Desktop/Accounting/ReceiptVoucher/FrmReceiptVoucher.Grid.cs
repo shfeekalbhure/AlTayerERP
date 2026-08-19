@@ -346,7 +346,7 @@ namespace AlTayerERP.Desktop
         /// حدث يتم استدعاؤه فور انتهاء المستخدم من تعديل خلية ما.
         /// وظيفته: التأكد من إعادة احتساب مبالغ الصف المعدل وتحديث إجمالي السند.
         /// </summary>
-        private void dgvVoucherDetails_CellEndEdit(object sender, DataGridViewCellEventArgs e)
+        private void dgvVoucherDetails_CellEndEdit(object? sender, DataGridViewCellEventArgs e)
         {
             if (_isLoading || e.RowIndex < 0) return;
 
@@ -429,7 +429,7 @@ namespace AlTayerERP.Desktop
         /// حدث يتم استدعاؤه عند حدوث خطأ في صحة بيانات الجدول (Data Error).
         /// وظيفته: إيقاف رمي الاستثناءات وتفادي عرض شاشات الخطأ الافتراضية للمستخدم.
         /// </summary>
-        private void dgvVoucherDetails_DataError(object sender, DataGridViewDataErrorEventArgs e)
+        private void dgvVoucherDetails_DataError(object? sender, DataGridViewDataErrorEventArgs e)
         {
             e.ThrowException = false;
         }
@@ -453,7 +453,7 @@ namespace AlTayerERP.Desktop
         /// حدث الضغط على محتويات خلايا الجدول.
         /// وظيفته: لا يحتوي على منطق برمجي حالياً ولكنه يتحقق من صحة فهرس الصف.
         /// </summary>
-        private void dataGridView1_CellContentClick(object sender, DataGridViewCellEventArgs e)
+        private void dataGridView1_CellContentClick(object? sender, DataGridViewCellEventArgs e)
         {
             if (e.RowIndex < 0) return;
         }
