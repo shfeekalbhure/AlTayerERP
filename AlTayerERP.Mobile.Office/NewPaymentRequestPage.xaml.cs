@@ -23,7 +23,7 @@ public partial class NewPaymentRequestPage : ContentPage
         InitializeComponent();
         _service = service;
         _editingRequest = editingRequest;
-        _referenceService = IPlatformApplication.Current.Services
+        _referenceService = (IPlatformApplication.Current?.Services ?? throw new InvalidOperationException("خدمات التطبيق غير مهيأة."))
             .GetRequiredService<PaymentRequestReferenceService>();
 
         RequestDatePicker.Date = editingRequest?.Request_Date ?? DateTime.Today;
@@ -339,7 +339,7 @@ public partial class NewPaymentRequestPage : ContentPage
             if (submitAfterSave)
                 await _service.SubmitAsync(saved.Payment_Request_ID);
 
-            await DisplayAlert(
+            await DisplayAlertAsync(
                 "تمت العملية",
                 submitAfterSave
                     ? $"تم حفظ طلب الصرف {saved.Request_No} وإرساله للمراجعة."

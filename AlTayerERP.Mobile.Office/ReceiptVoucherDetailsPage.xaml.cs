@@ -20,11 +20,11 @@ public partial class ReceiptVoucherDetailsPage : ContentPage
     {
         InitializeComponent();
         _service = service;
-        _workflow = IPlatformApplication.Current.Services.GetRequiredService<VoucherWorkflowService>();
-        _journalService = IPlatformApplication.Current.Services.GetRequiredService<VoucherJournalService>();
-        _attachmentService = IPlatformApplication.Current.Services.GetRequiredService<VoucherAttachmentService>();
-        _entryService = IPlatformApplication.Current.Services.GetRequiredService<VoucherEntryService>();
-        _printService = IPlatformApplication.Current.Services.GetRequiredService<IReceiptVoucherPrintService>();
+        _workflow = (IPlatformApplication.Current?.Services ?? throw new InvalidOperationException("خدمات التطبيق غير مهيأة.")).GetRequiredService<VoucherWorkflowService>();
+        _journalService = (IPlatformApplication.Current?.Services ?? throw new InvalidOperationException("خدمات التطبيق غير مهيأة.")).GetRequiredService<VoucherJournalService>();
+        _attachmentService = (IPlatformApplication.Current?.Services ?? throw new InvalidOperationException("خدمات التطبيق غير مهيأة.")).GetRequiredService<VoucherAttachmentService>();
+        _entryService = (IPlatformApplication.Current?.Services ?? throw new InvalidOperationException("خدمات التطبيق غير مهيأة.")).GetRequiredService<VoucherEntryService>();
+        _printService = (IPlatformApplication.Current?.Services ?? throw new InvalidOperationException("خدمات التطبيق غير مهيأة.")).GetRequiredService<IReceiptVoucherPrintService>();
         _voucherId = voucherId;
     }
 
@@ -149,7 +149,7 @@ public partial class ReceiptVoucherDetailsPage : ContentPage
 
     private async void OnDeleteClicked(object? sender, EventArgs e)
     {
-        var confirmed = await DisplayAlert("حذف سند القبض", "هل تريد حذف هذه المسودة؟", "نعم", "لا");
+        var confirmed = await DisplayAlertAsync("حذف سند القبض", "هل تريد حذف هذه المسودة؟", "نعم", "لا");
         if (!confirmed) return;
         await ExecuteAsync(async () =>
         {
@@ -197,7 +197,7 @@ public partial class ReceiptVoucherDetailsPage : ContentPage
         try
         {
             var result = await _printService.ExportPdfAsync(_currentVoucher);
-            var openFile = await DisplayAlert(
+            var openFile = await DisplayAlertAsync(
                 "تم التصدير",
                 $"تم حفظ {result.FileName} في مجلد التنزيلات / AlTayerERP / سندات القبض.",
                 "فتح الملف",
@@ -229,7 +229,7 @@ public partial class ReceiptVoucherDetailsPage : ContentPage
         try
         {
             await action();
-            await DisplayAlert("تمت العملية", successMessage, "موافق");
+            await DisplayAlertAsync("تمت العملية", successMessage, "موافق");
             if (reloadAfter) await LoadAsync();
         }
         catch (Exception ex)

@@ -27,13 +27,15 @@ public partial class HomePage : ContentPage
         InitializeComponent();
         _mobileHomeService = mobileHomeService;
         _authenticationService = authenticationService;
-        _paymentRequestService = IPlatformApplication.Current.Services.GetRequiredService<PaymentRequestService>();
-        _paymentVoucherService = IPlatformApplication.Current.Services.GetRequiredService<PaymentVoucherService>();
-        _receiptVoucherService = IPlatformApplication.Current.Services.GetRequiredService<ReceiptVoucherService>();
-        _journalVoucherService = IPlatformApplication.Current.Services.GetRequiredService<JournalVoucherService>();
-        _documentSearchService = IPlatformApplication.Current.Services.GetRequiredService<DocumentSearchService>();
-        _trialBalanceService = IPlatformApplication.Current.Services.GetRequiredService<TrialBalanceService>();
-        _generalLedgerService = IPlatformApplication.Current.Services.GetRequiredService<GeneralLedgerService>();
+        var services = IPlatformApplication.Current?.Services
+            ?? throw new InvalidOperationException("خدمات التطبيق غير مهيأة.");
+        _paymentRequestService = services.GetRequiredService<PaymentRequestService>();
+        _paymentVoucherService = services.GetRequiredService<PaymentVoucherService>();
+        _receiptVoucherService = services.GetRequiredService<ReceiptVoucherService>();
+        _journalVoucherService = services.GetRequiredService<JournalVoucherService>();
+        _documentSearchService = services.GetRequiredService<DocumentSearchService>();
+        _trialBalanceService = services.GetRequiredService<TrialBalanceService>();
+        _generalLedgerService = services.GetRequiredService<GeneralLedgerService>();
         WelcomeLabel.Text = $"مرحباً {fullName}";
         ContextLabel.Text = $"الشركة: {companyId} | الفرع: {branchId} | السنة: {yearId}";
     }
@@ -113,7 +115,7 @@ public partial class HomePage : ContentPage
 
     private async void OnLogoutClicked(object? sender, EventArgs e)
     {
-        var confirmed = await DisplayAlert("تسجيل الخروج", "هل تريد إنهاء الجلسة؟", "نعم", "لا");
+        var confirmed = await DisplayAlertAsync("تسجيل الخروج", "هل تريد إنهاء الجلسة؟", "نعم", "لا");
         if (!confirmed)
             return;
 
@@ -125,7 +127,7 @@ public partial class HomePage : ContentPage
         {
             if (Application.Current?.Windows.FirstOrDefault() is Window window)
             {
-                window.Page = new NavigationPage(IPlatformApplication.Current.Services.GetRequiredService<MainPage>())
+                window.Page = new NavigationPage((IPlatformApplication.Current?.Services ?? throw new InvalidOperationException("خدمات التطبيق غير مهيأة.")).GetRequiredService<MainPage>())
                 {
                     FlowDirection = FlowDirection.RightToLeft,
                     BarBackgroundColor = Color.FromArgb("#17324D"),

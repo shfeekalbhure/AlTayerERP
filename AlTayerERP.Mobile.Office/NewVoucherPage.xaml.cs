@@ -291,7 +291,7 @@ public partial class NewVoucherPage : ContentPage
         {
             var result = await _service.CreateAsync(dto);
             ReportSaveCheckpoint("تم تجاوز: استجابة الخادم بنجاح.");
-            await DisplayAlert("تم الحفظ", $"تم حفظ السند {result.Voucher_No} كمسودة.", "موافق");
+            await DisplayAlertAsync("تم الحفظ", $"تم حفظ السند {result.Voucher_No} كمسودة.", "موافق");
             await Navigation.PopAsync();
         }
         catch (Exception ex)

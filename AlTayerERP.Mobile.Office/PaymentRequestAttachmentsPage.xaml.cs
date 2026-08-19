@@ -52,7 +52,7 @@ public partial class PaymentRequestAttachmentsPage : ContentPage
 
             UploadButton.IsEnabled = false;
             await _service.UploadAsync(_requestId, file);
-            await DisplayAlert("تم الرفع", $"تم رفع الملف {file.FileName}.", "موافق");
+            await DisplayAlertAsync("تم الرفع", $"تم رفع الملف {file.FileName}.", "موافق");
             await LoadAsync();
         }
         catch (Exception ex)

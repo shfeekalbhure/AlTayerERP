@@ -16,7 +16,8 @@ public partial class DocumentSearchPage : ContentPage
     {
         InitializeComponent();
         _searchService = searchService;
-        var services = IPlatformApplication.Current.Services;
+        var services = IPlatformApplication.Current?.Services
+            ?? throw new InvalidOperationException("خدمات التطبيق غير مهيأة.");
         _paymentRequestService = services.GetRequiredService<PaymentRequestService>();
         _paymentVoucherService = services.GetRequiredService<PaymentVoucherService>();
         _receiptVoucherService = services.GetRequiredService<ReceiptVoucherService>();

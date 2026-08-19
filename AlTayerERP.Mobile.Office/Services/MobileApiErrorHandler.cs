@@ -14,7 +14,7 @@ public sealed class MobileApiErrorHandler(SessionStorageService sessionStorage)
     private bool _redirectingToLogin;
 
     public static string GetUserMessage(Exception exception) =>
-        IPlatformApplication.Current.Services.GetRequiredService<MobileApiErrorHandler>()
+        (IPlatformApplication.Current?.Services ?? throw new InvalidOperationException("خدمات التطبيق غير مهيأة.")).GetRequiredService<MobileApiErrorHandler>()
             .GetUserMessageCore(exception);
 
     public static bool IsConflict(Exception exception) =>
@@ -57,7 +57,7 @@ public sealed class MobileApiErrorHandler(SessionStorageService sessionStorage)
                 if (Application.Current?.Windows.FirstOrDefault() is not Window window)
                     return;
 
-                var loginPage = IPlatformApplication.Current.Services.GetRequiredService<MainPage>();
+                var loginPage = (IPlatformApplication.Current?.Services ?? throw new InvalidOperationException("خدمات التطبيق غير مهيأة.")).GetRequiredService<MainPage>();
                 window.Page = new NavigationPage(loginPage)
                 {
                     FlowDirection = FlowDirection.RightToLeft,

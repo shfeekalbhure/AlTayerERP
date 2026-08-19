@@ -13,7 +13,7 @@ public partial class ReceiptVouchersPage : ContentPage
     {
         InitializeComponent();
         _service = service;
-        _entryService = IPlatformApplication.Current.Services.GetRequiredService<VoucherEntryService>();
+        _entryService = (IPlatformApplication.Current?.Services ?? throw new InvalidOperationException("خدمات التطبيق غير مهيأة.")).GetRequiredService<VoucherEntryService>();
     }
 
     protected override async void OnAppearing()
@@ -30,7 +30,7 @@ public partial class ReceiptVouchersPage : ContentPage
         }
         catch (Exception ex)
         {
-            await DisplayAlert("تعذر التحميل", ex.Message, "موافق");
+            await DisplayAlertAsync("تعذر التحميل", ex.Message, "موافق");
         }
         finally
         {

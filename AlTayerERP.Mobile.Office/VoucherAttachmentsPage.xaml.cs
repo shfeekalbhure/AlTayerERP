@@ -33,7 +33,7 @@ public partial class VoucherAttachmentsPage : ContentPage
         }
         catch (Exception ex)
         {
-            await DisplayAlert("تعذر التحميل", ex.Message, "موافق");
+            await DisplayAlertAsync("تعذر التحميل", ex.Message, "موافق");
         }
         finally
         {
@@ -57,7 +57,7 @@ public partial class VoucherAttachmentsPage : ContentPage
             var allowed = new[] { ".pdf", ".png", ".jpg", ".jpeg", ".xlsx", ".docx" };
             if (!allowed.Contains(extension))
             {
-                await DisplayAlert("نوع غير مسموح", "الأنواع المسموحة: PDF وصور وExcel وWord.", "موافق");
+                await DisplayAlertAsync("نوع غير مسموح", "الأنواع المسموحة: PDF وصور وExcel وWord.", "موافق");
                 return;
             }
 
@@ -68,7 +68,7 @@ public partial class VoucherAttachmentsPage : ContentPage
         }
         catch (Exception ex)
         {
-            await DisplayAlert("تعذر الرفع", ex.Message, "موافق");
+            await DisplayAlertAsync("تعذر الرفع", ex.Message, "موافق");
         }
         finally
         {
@@ -92,7 +92,7 @@ public partial class VoucherAttachmentsPage : ContentPage
         }
         catch (Exception ex)
         {
-            await DisplayAlert("تعذر الفتح", ex.Message, "موافق");
+            await DisplayAlertAsync("تعذر الفتح", ex.Message, "موافق");
         }
         finally
         {
@@ -117,7 +117,7 @@ public partial class VoucherAttachmentsPage : ContentPage
         }
         catch (Exception ex)
         {
-            await DisplayAlert("تعذر الحذف", ex.Message, "موافق");
+            await DisplayAlertAsync("تعذر الحذف", ex.Message, "موافق");
         }
         finally
         {

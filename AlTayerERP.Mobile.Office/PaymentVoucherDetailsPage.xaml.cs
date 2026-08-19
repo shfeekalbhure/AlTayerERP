@@ -20,11 +20,11 @@ public partial class PaymentVoucherDetailsPage : ContentPage
     {
         InitializeComponent();
         _service = service;
-        _workflow = IPlatformApplication.Current.Services.GetRequiredService<VoucherWorkflowService>();
-        _journalService = IPlatformApplication.Current.Services.GetRequiredService<VoucherJournalService>();
-        _attachmentService = IPlatformApplication.Current.Services.GetRequiredService<VoucherAttachmentService>();
-        _entryService = IPlatformApplication.Current.Services.GetRequiredService<VoucherEntryService>();
-        _printService = IPlatformApplication.Current.Services.GetRequiredService<IReceiptVoucherPrintService>();
+        _workflow = (IPlatformApplication.Current?.Services ?? throw new InvalidOperationException("خدمات التطبيق غير مهيأة.")).GetRequiredService<VoucherWorkflowService>();
+        _journalService = (IPlatformApplication.Current?.Services ?? throw new InvalidOperationException("خدمات التطبيق غير مهيأة.")).GetRequiredService<VoucherJournalService>();
+        _attachmentService = (IPlatformApplication.Current?.Services ?? throw new InvalidOperationException("خدمات التطبيق غير مهيأة.")).GetRequiredService<VoucherAttachmentService>();
+        _entryService = (IPlatformApplication.Current?.Services ?? throw new InvalidOperationException("خدمات التطبيق غير مهيأة.")).GetRequiredService<VoucherEntryService>();
+        _printService = (IPlatformApplication.Current?.Services ?? throw new InvalidOperationException("خدمات التطبيق غير مهيأة.")).GetRequiredService<IReceiptVoucherPrintService>();
         _voucherId = voucherId;
     }
 
@@ -120,7 +120,7 @@ public partial class PaymentVoucherDetailsPage : ContentPage
     }
     private async void OnDeleteClicked(object? sender, EventArgs e)
     {
-        if (!await DisplayAlert("حذف سند الصرف", "هل تريد حذف هذه المسودة؟", "نعم", "لا")) return;
+        if (!await DisplayAlertAsync("حذف سند الصرف", "هل تريد حذف هذه المسودة؟", "نعم", "لا")) return;
         await ExecuteAsync(async () => { await _service.DeleteAsync(_voucherId); await Navigation.PopAsync(); }, "تم حذف السند.", false);
     }
     private async void OnPrintClicked(object? sender, EventArgs e)
@@ -142,7 +142,7 @@ public partial class PaymentVoucherDetailsPage : ContentPage
             if (exportPdf)
             {
                 var result = await _printService.ExportPdfAsync(printable, VoucherPdfExportOptions.PaymentVoucher);
-                if (await DisplayAlert("تم التصدير", $"تم حفظ {result.FileName} في Downloads/AlTayerERP/PaymentVouchers.", "فتح الملف", "موافق"))
+                if (await DisplayAlertAsync("تم التصدير", $"تم حفظ {result.FileName} في Downloads/AlTayerERP/PaymentVouchers.", "فتح الملف", "موافق"))
                     await Launcher.Default.OpenAsync(new Uri(result.ContentUri));
             }
             else await _printService.PrintAsync(printable, VoucherPdfExportOptions.PaymentVoucher);
@@ -178,7 +178,7 @@ public partial class PaymentVoucherDetailsPage : ContentPage
     private async Task ExecuteAsync(Func<Task> action, string successMessage, bool reloadAfter = true)
     {
         BusyIndicator.IsVisible = BusyIndicator.IsRunning = true; MessageLabel.IsVisible = false;
-        try { await action(); await DisplayAlert("تمت العملية", successMessage, "موافق"); if (reloadAfter) await LoadAsync(); }
+        try { await action(); await DisplayAlertAsync("تمت العملية", successMessage, "موافق"); if (reloadAfter) await LoadAsync(); }
         catch (Exception ex) { ShowMessage(ex.Message); }
         finally { BusyIndicator.IsVisible = BusyIndicator.IsRunning = false; }
     }

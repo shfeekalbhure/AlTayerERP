@@ -395,7 +395,7 @@ private readonly HttpClient _client = ApiService.Client;
         // ======================================================
         // 🎨 محرك رسم صفحة التقرير للطباعة (PrintPage)
         // ======================================================
-        private void PrintDocument_PrintPage(object sender, PrintPageEventArgs e)
+        private void PrintDocument_PrintPage(object? sender, PrintPageEventArgs e)
         {
             Font titleFont = new Font("Arial", 18, FontStyle.Bold);
             Font headerFont = new Font("Arial", 12, FontStyle.Bold);
@@ -405,14 +405,15 @@ private readonly HttpClient _client = ApiService.Client;
             Pen grayPen = new Pen(Color.LightGray, 1);
 
             int yPosition = 50;
-            e.Graphics.DrawString("شركة الطاير السعيد للنقل والخدمات", headerFont, blackBrush, new PointF(550, yPosition));
+            Graphics graphics = e.Graphics ?? throw new InvalidOperationException("تعذر الحصول على سطح الرسم للطباعة.");
+            graphics.DrawString("شركة الطاير السعيد للنقل والخدمات", headerFont, blackBrush, new PointF(550, yPosition));
             yPosition += 30;
-            e.Graphics.DrawString("تقرير السنوات المالية المسجلة بالنظام", titleFont, blackBrush, new PointF(250, yPosition));
+            graphics.DrawString("تقرير السنوات المالية المسجلة بالنظام", titleFont, blackBrush, new PointF(250, yPosition));
             yPosition += 30;
-            e.Graphics.DrawString($"تاريخ استخراج التقرير: {DateTime.Now.ToShortDateString()}", dataFont, blackBrush, new PointF(50, yPosition));
+            graphics.DrawString($"تاريخ استخراج التقرير: {DateTime.Now.ToShortDateString()}", dataFont, blackBrush, new PointF(50, yPosition));
             yPosition += 40;
 
-            e.Graphics.DrawLine(new Pen(Color.Black, 2), 50, yPosition, 750, yPosition);
+            graphics.DrawLine(new Pen(Color.Black, 2), 50, yPosition, 750, yPosition);
             yPosition += 20;
 
             int[] columnWidths = { 80, 150, 110, 110, 80, 80, 80 };
@@ -421,12 +422,12 @@ private readonly HttpClient _client = ApiService.Client;
             int xPosition = 50;
             for (int i = 0; i < headers.Length; i++)
             {
-                e.Graphics.DrawString(headers[i], headerFont, blackBrush, new PointF(xPosition, yPosition));
+                graphics.DrawString(headers[i], headerFont, blackBrush, new PointF(xPosition, yPosition));
                 xPosition += columnWidths[i];
             }
 
             yPosition += 25;
-            e.Graphics.DrawLine(new Pen(Color.Black, 1), 50, yPosition, 750, yPosition);
+            graphics.DrawLine(new Pen(Color.Black, 1), 50, yPosition, 750, yPosition);
             yPosition += 10;
 
             foreach (DataGridViewRow row in dgvFiscalYears.Rows)
@@ -441,12 +442,12 @@ private readonly HttpClient _client = ApiService.Client;
                 for (int i = 0; i < row.Cells.Count; i++)
                 {
                     string cellValue = row.Cells[i].Value?.ToString() ?? "";
-                    e.Graphics.DrawString(cellValue, dataFont, blackBrush, new PointF(xPosition, yPosition));
+                    graphics.DrawString(cellValue, dataFont, blackBrush, new PointF(xPosition, yPosition));
                     xPosition += columnWidths[i];
                 }
 
                 yPosition += 25;
-                e.Graphics.DrawLine(grayPen, 50, yPosition, 750, yPosition);
+                graphics.DrawLine(grayPen, 50, yPosition, 750, yPosition);
                 yPosition += 5;
             }
         }

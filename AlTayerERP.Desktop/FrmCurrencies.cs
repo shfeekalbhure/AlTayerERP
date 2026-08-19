@@ -78,7 +78,7 @@ RegisterEvents();
 
         #region تحميل الشاشة
 
-        private async void FrmCurrencies_Load(object sender, EventArgs e)
+        private async void FrmCurrencies_Load(object? sender, EventArgs e)
         {
             try
             {

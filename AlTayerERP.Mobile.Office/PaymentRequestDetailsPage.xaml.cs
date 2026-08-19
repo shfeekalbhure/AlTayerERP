@@ -15,7 +15,7 @@ public partial class PaymentRequestDetailsPage : ContentPage
     {
         InitializeComponent();
         _service = service;
-        _attachmentService = IPlatformApplication.Current.Services.GetRequiredService<PaymentRequestAttachmentService>();
+        _attachmentService = (IPlatformApplication.Current?.Services ?? throw new InvalidOperationException("خدمات التطبيق غير مهيأة.")).GetRequiredService<PaymentRequestAttachmentService>();
         _requestId = requestId;
     }
 
@@ -118,7 +118,7 @@ public partial class PaymentRequestDetailsPage : ContentPage
             if (selected == null)
                 return;
 
-            var confirmed = await DisplayAlert(
+            var confirmed = await DisplayAlertAsync(
                 "إنشاء سند صرف",
                 $"سيتم إنشاء سند صرف بقيمة {_request.LocalTotal:N2} من {selected.DisplayName}. هل تريد المتابعة؟",
                 "إنشاء",
@@ -127,7 +127,7 @@ public partial class PaymentRequestDetailsPage : ContentPage
                 return;
 
             var result = await _service.CreatePaymentVoucherAsync(_requestId, selected.AccountId);
-            await DisplayAlert("تم إنشاء السند", $"رقم سند الصرف: {result.VoucherNo}", "موافق");
+            await DisplayAlertAsync("تم إنشاء السند", $"رقم سند الصرف: {result.VoucherNo}", "موافق");
             await LoadAsync();
         }
         catch (Exception ex)
@@ -162,7 +162,7 @@ public partial class PaymentRequestDetailsPage : ContentPage
             return;
         }
 
-        var voucherService = IPlatformApplication.Current.Services.GetRequiredService<PaymentVoucherService>();
+        var voucherService = (IPlatformApplication.Current?.Services ?? throw new InvalidOperationException("خدمات التطبيق غير مهيأة.")).GetRequiredService<PaymentVoucherService>();
         await Navigation.PushAsync(new PaymentVoucherDetailsPage(voucherService, voucherId));
     }
 
@@ -189,7 +189,7 @@ public partial class PaymentRequestDetailsPage : ContentPage
         try
         {
             await action();
-            await DisplayAlert("تمت العملية", successMessage, "موافق");
+            await DisplayAlertAsync("تمت العملية", successMessage, "موافق");
             await LoadAsync();
         }
         catch (Exception ex) { ShowMessage(ex.Message); }

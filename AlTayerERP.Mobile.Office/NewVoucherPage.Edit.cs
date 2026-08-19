@@ -307,7 +307,7 @@ public partial class NewVoucherPage
         try
         {
             await _service.UpdateAsync(dto);
-            await DisplayAlert("تم التعديل", _type == "RECEIPT" ? "تم حفظ تعديلات سند القبض وإعادته إلى بداية دورة المراجعة." : "تم حفظ تعديلات سند الصرف وإعادته إلى بداية دورة المراجعة.", "موافق");
+            await DisplayAlertAsync("تم التعديل", _type == "RECEIPT" ? "تم حفظ تعديلات سند القبض وإعادته إلى بداية دورة المراجعة." : "تم حفظ تعديلات سند الصرف وإعادته إلى بداية دورة المراجعة.", "موافق");
             await Navigation.PopAsync();
         }
         catch (Exception ex)
