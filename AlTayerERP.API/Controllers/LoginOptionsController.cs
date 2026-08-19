@@ -57,6 +57,8 @@ public sealed class LoginOptionsController : ControllerBase
             .Select(x => new LoginCompanyOptionDto
             {
                 Company_ID = x.Company.Company_ID,
+                Company_Name_AR = x.Company.Company_Name_AR,
+                // يبقى الاسم القديم مدعومًا لأي عميل سابق.
                 Company_Name = x.Company.Company_Name_AR
             })
             .ToListAsync(cancellationToken);
@@ -191,6 +193,7 @@ public sealed class LoginOptionsController : ControllerBase
 public sealed class LoginCompanyOptionDto
 {
     public string Company_ID { get; set; } = string.Empty;
+    public string Company_Name_AR { get; set; } = string.Empty;
     public string Company_Name { get; set; } = string.Empty;
 }
 

@@ -31,7 +31,7 @@
 
 | الوظيفة | Desktop | Mobile.Office | مصدر البيانات |
 |---|---|---|---|
-| قائمة الشركات | `GET api/Branches/GetCompaniesLookup` | خدمة المصادقة تستخدم قائمة الشركات نفسها في التدفق الحالي | جدول `Companies` عبر API |
+| قائمة الشركات | `GET api/Branches/GetCompaniesLookup` | `GET api/Auth/LoginCompanies` | جدول `Companies` مع `Tenant_Groups` وشروط الظهور في الدخول |
 | الفروع | `GET api/Branches/GetActiveBranchesLookup?companyId=...` | `POST api/Auth/LoginOptions` يعيد الفروع بعد التحقق من المستخدم | جدول `Tenant_Branches` |
 | السنوات | `GET api/FiscalYears/Lookup?companyId=...` | `POST api/Auth/LoginOptions` يعيد السنوات المفتوحة | جدول `Fiscal_Years` |
 | الدخول النهائي | `POST api/Auth/Login` | `POST api/Auth/Login` | `Users`, `Roles`, نطاق الشركة/الفرع/السنة، والجلسة |
@@ -44,9 +44,9 @@
 
 * مسار `LoginOptions` في الجوال يقيد المستخدم غير مدير النظام بفرعه فقط من خلال الشرط `x.Branch_ID == user.Branch_ID`.
 * Desktop يحمل الفروع النشطة للشركة من مسار مستقل قبل الدخول، وبالتالي قد يعرض فروعًا أكثر للمستخدم قبل أن يرفض الخادم الدخول أو يطبق نطاقه النهائي.
-* قائمة الشركات في `LoginOptionsController` تربط `Companies` بـ`Tenant_Groups` وتطبق `Group.Is_Active` و`Group.Show_In_Login`. أما مسار `Branches/GetCompaniesLookup` المستخدم في Desktop/التدفق الحالي للجوال فلا يثبت من جرده أنه يطبق القيد نفسه.
+* قائمة الشركات في `LoginOptionsController` تربط `Companies` بـ`Tenant_Groups` وتطبق `Group.Is_Active` و`Group.Show_In_Login`، ولذلك أصبحت هي المصدر المعتمد لشاشة دخول الجوال. أما مسار `Branches/GetCompaniesLookup` فيبقى مسارًا عامًا لواجهات Desktop والإدارة.
 
-إذًا، قد يرى العميلان **قوائم شركات أو فروع مختلفة** رغم أنهما يقرآن من الجداول نفسها. القرار المطلوب هنا قرار عمل: هل يسمح للمستخدم باختيار أي فرع قبل الدخول، أم يجب أن تظهر له فروعته المصرح بها فقط؟ لا أوصي بتغيير هذا السلوك تلقائيًا ضمن إصلاحات الأمان أو قبل اعتماد السياسة.
+إذًا، قد يرى العميلان **قوائم شركات مختلفة** رغم أنهما يقرآن من الجداول نفسها؛ وهذا مقصود بعد فصل قائمة الدخول عن قائمة الإدارة. إذا ظهرت القائمة فارغة في الجوال، يجب التحقق من أن الشركة نشطة، وأن مجموعتها التجارية نشطة، وأن `Show_In_Login = 1`. أما قرار فروع المستخدم، فيبقى مقيدًا في `LoginOptions` للمستخدم غير مدير النظام.
 
 ## 4. مطابقة منسدلات السندات
 

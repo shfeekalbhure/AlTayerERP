@@ -4,10 +4,17 @@ public sealed class LoginCompanyOptionDto
 {
     public string Company_ID { get; set; } = string.Empty;
     public string Company_Name_AR { get; set; } = string.Empty;
+    // توافق مع الاستجابة القديمة من api/Auth/LoginCompanies.
+    public string Company_Name { get; set; } = string.Empty;
 
-    public string DisplayName => string.IsNullOrWhiteSpace(Company_Name_AR)
-        ? Company_ID
-        : $"{Company_Name_AR} - {Company_ID}";
+    public string DisplayName
+    {
+        get
+        {
+            var name = string.IsNullOrWhiteSpace(Company_Name_AR) ? Company_Name : Company_Name_AR;
+            return string.IsNullOrWhiteSpace(name) ? Company_ID : $"{name} - {Company_ID}";
+        }
+    }
 }
 
 public sealed class LoginOptionsRequestDto
