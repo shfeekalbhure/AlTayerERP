@@ -11,11 +11,13 @@ var builder = WebApplication.CreateBuilder(args);
 // ====================================================================
 // [1] قراءة نص الاتصال وتسجيل قاعدة البيانات بمحرك Pomelo MySQL
 // ====================================================================
-var connectionString =
-    builder.Configuration.GetConnectionString("DefaultConnection")
-    ?? throw new InvalidOperationException(
-        "لم يتم العثور على نص الاتصال DefaultConnection داخل appsettings.json."
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+if (string.IsNullOrWhiteSpace(connectionString))
+{
+    throw new InvalidOperationException(
+        "لم يتم ضبط نص الاتصال DefaultConnection. استخدم User Secrets أو متغير البيئة ConnectionStrings__DefaultConnection."
     );
+}
 
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseMySql(
@@ -27,14 +29,29 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 // ====================================================================
 // [2] تسجيل سياسة CORS لربط تطبيق WinForms بالـ API
 // ====================================================================
+var allowedOrigins = builder.Configuration
+    .GetSection("Cors:AllowedOrigins")
+    .Get<string[]>() ?? Array.Empty<string>();
+
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowAll", policy =>
+    options.AddPolicy("ConfiguredOrigins", policy =>
     {
-        policy
-            .AllowAnyOrigin()
-            .AllowAnyMethod()
-            .AllowAnyHeader();
+        var origins = allowedOrigins
+            .Where(origin => !string.IsNullOrWhiteSpace(origin))
+            .Select(origin => origin.Trim())
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+
+        // عدم وجود أصول يعني تعطيل CORS افتراضيًا، وهو آمن لتطبيق سطح المكتب.
+        // يمكن تفعيل الأصول المطلوبة لكل بيئة من خلال Cors:AllowedOrigins.
+        if (origins.Length > 0)
+        {
+            policy
+                .WithOrigins(origins)
+                .AllowAnyMethod()
+                .AllowAnyHeader();
+        }
     });
 });
 
@@ -100,7 +117,7 @@ if (app.Environment.IsDevelopment())
 // ====================================================================
 app.UseHttpsRedirection();
 
-app.UseCors("AllowAll");
+app.UseCors("ConfiguredOrigins");
 
 
 // حماية عامة: بعد الدخول لا يمكن استدعاء واجهات العمل دون رمز جلسة صادر من الخادم.

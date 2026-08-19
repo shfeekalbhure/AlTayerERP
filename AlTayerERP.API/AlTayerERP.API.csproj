@@ -9,6 +9,8 @@
 
 		<!-- تفعيل ميزة الاستدعاء التلقائي لملفات النظام الشائعة (Implicit Usings) -->
 		<ImplicitUsings>enable</ImplicitUsings>
+		<!-- حفظ إعدادات الاتصال المحلية خارج المستودع باستخدام User Secrets -->
+		<UserSecretsId>AlTayerERP-API-Development</UserSecretsId>
 	</PropertyGroup>
 
 	<ItemGroup>

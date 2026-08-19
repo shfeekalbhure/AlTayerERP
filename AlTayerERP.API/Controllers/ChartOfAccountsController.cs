@@ -189,7 +189,7 @@ namespace AlTayerERP.API.Controllers
             try
             {
                 string accountType = ConvertAccountTypeToDb(dto.Account_Type);
-                string accountCategory = ConvertAccountCategoryToDb(dto.Account_Category);
+                string? accountCategory = ConvertAccountCategoryToDb(dto.Account_Category);
                 string normalBalance = ConvertNormalBalanceToDb(dto.Normal_Balance) ?? "Debit";
                 string generatedCode = await _accountNumberService.GenerateAccountCodeAsync(dto.Company_ID.Trim(), dto.Parent_Account_ID);
                 if (string.IsNullOrWhiteSpace(generatedCode)) return BadRequest("فشل النظام في توليد رقم الحساب.");
