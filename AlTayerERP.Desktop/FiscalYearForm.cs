@@ -195,7 +195,7 @@ private readonly HttpClient _client = ApiService.Client;
         // ======================================================
         // حدث زر "حفظ" لإضافة سنة مالية جديدة بالكامل للسيرفر
         // ======================================================
-        private async void btnSave_Click(object sender, EventArgs e)
+        private async void btnSave_Click(object? sender, EventArgs e)
         {
             if (_selectedFiscalYearId > 0)
             {
@@ -334,7 +334,7 @@ private readonly HttpClient _client = ApiService.Client;
         // ======================================================
         // حدث زر "بحث" (مربوط بـ btnSearch_Click_1 المعتمد بالـ Designer)
         // ======================================================
-        private void btnSearch_Click_1(object sender, EventArgs e)
+        private void btnSearch_Click_1(object? sender, EventArgs e)
         {
             // يعتمد البحث الذكي المحلي على حقل txtYearName نظراً لعدم وجود حقل بحث مستقل بالـ Designer
             string searchKey = txtYearName.Text.Trim().ToLower();
@@ -466,11 +466,11 @@ private readonly HttpClient _client = ApiService.Client;
             cmbStatus.Text = "نشط";
         }
 
-        private void panel2_Paint(object sender, PaintEventArgs e) { }
-        private void panel3_Paint(object sender, PaintEventArgs e) { }
+        private void panel2_Paint(object? sender, PaintEventArgs e) { }
+        private void panel3_Paint(object? sender, PaintEventArgs e) { }
 
 
-        private void btnPreview_Click(object sender, EventArgs e)
+        private void btnPreview_Click(object? sender, EventArgs e)
         {
             OpenPrintPreview();
         }

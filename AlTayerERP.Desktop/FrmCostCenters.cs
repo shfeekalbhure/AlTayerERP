@@ -405,7 +405,7 @@ namespace AlTayerERP.Desktop
             ClearForm();
         }
 
-        private async void btnRefresh_Click(object sender, EventArgs e)
+        private async void btnRefresh_Click(object? sender, EventArgs e)
         {
             try
             {

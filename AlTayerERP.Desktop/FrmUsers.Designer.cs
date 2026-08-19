@@ -1090,7 +1090,7 @@
         private DataGridViewTextBoxColumn colExtraPermission;
         private DataGridViewCheckBoxColumn colAllow;
 
-        private void pnlToolbar_Paint(object sender, PaintEventArgs e) { }
-        private void pnlPermissionHeader_Paint(object sender, PaintEventArgs e) { }
+        private void pnlToolbar_Paint(object? sender, PaintEventArgs e) { }
+        private void pnlPermissionHeader_Paint(object? sender, PaintEventArgs e) { }
     }
 }

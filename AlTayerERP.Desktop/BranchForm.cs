@@ -712,7 +712,7 @@ namespace AlTayerERP.Desktop
 
         
         // ربط حدث النقر بالدالة المنظمة التي أنشأتها لإعادة التوزيع
-        private async void dgvBranches_CellClick(object sender, DataGridViewCellEventArgs e)
+        private async void dgvBranches_CellClick(object? sender, DataGridViewCellEventArgs e)
         {
             if (e.RowIndex < 0) return;
 
@@ -1088,10 +1088,10 @@ namespace AlTayerERP.Desktop
             e.HasMorePages = false;
         }
 
-        private void label13_Click(object sender, EventArgs e) { }
-        private void dgvBranches_CellContentClick(object sender, DataGridViewCellEventArgs e) { }
-        private void chkIsStop_CheckedChanged(object sender, EventArgs e) { }
-        private void chkAllowCredit_CheckedChanged(object sender, EventArgs e) { }
+        private void label13_Click(object? sender, EventArgs e) { }
+        private void dgvBranches_CellContentClick(object? sender, DataGridViewCellEventArgs e) { }
+        private void chkIsStop_CheckedChanged(object? sender, EventArgs e) { }
+        private void chkAllowCredit_CheckedChanged(object? sender, EventArgs e) { }
     }
 
     public class CompanyLookupModel

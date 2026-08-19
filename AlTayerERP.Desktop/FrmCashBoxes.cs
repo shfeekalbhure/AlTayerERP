@@ -1,4 +1,4 @@
-using AlTayerERP.Desktop.Models;
+﻿using AlTayerERP.Desktop.Models;
 using AlTayerERP.Desktop.Services;
 using System;
 using System.Collections.Generic;
@@ -1112,11 +1112,11 @@ namespace AlTayerERP.Desktop
         }
 
         // معالجات متوافقة مع ملف المصمم الحالي.
-        private void chkIsActive_CheckedChanged(object sender, EventArgs e) { }
-        private void groupBox3_Enter(object sender, EventArgs e) { }
-        private void groupBox4_Enter(object sender, EventArgs e) { }
-        private void label11_Click(object sender, EventArgs e) { }
-        private void label3_Click(object sender, EventArgs e) { }
+        private void chkIsActive_CheckedChanged(object? sender, EventArgs e) { }
+        private void groupBox3_Enter(object? sender, EventArgs e) { }
+        private void groupBox4_Enter(object? sender, EventArgs e) { }
+        private void label11_Click(object? sender, EventArgs e) { }
+        private void label3_Click(object? sender, EventArgs e) { }
 
         #endregion
     }

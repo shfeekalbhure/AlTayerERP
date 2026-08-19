@@ -99,7 +99,7 @@ namespace AlTayerERP.Desktop
         /// <summary>
         /// حدث تحميل الشاشة لأول مرة (Load Event) - تهيئة البيانات واستدعاء الـ API
         /// </summary>
-        private async void FrmUsers_Load(object sender, EventArgs e)
+        private async void FrmUsers_Load(object? sender, EventArgs e)
         {
             // تهيئة أعمدة جدول المستخدمين السفلي
             SetupUsersGrid();
@@ -272,7 +272,7 @@ namespace AlTayerERP.Desktop
         /// <summary>
         /// 🔍 حدث البحث والفلترة الذكية داخل جدول الصلاحيات برمجياً لإخفاء وإظهار الأسطر حسب الكلمة المكتوبة
         /// </summary>
-        private void cmbPermissionSearch_SelectedIndexChanged(object sender, EventArgs e)
+        private void cmbPermissionSearch_SelectedIndexChanged(object? sender, EventArgs e)
         {
             if (_isBinding) return;
             string search = cmbPermissionSearch.Text.Trim();
@@ -293,7 +293,7 @@ namespace AlTayerERP.Desktop
         /// <summary>
         /// 🏁 حدث اختيار أو إلغاء تحديد الكل لكافة خانات جدول الصلاحيات الستة دفعة واحدة
         /// </summary>
-        private void chkSelectAll_CheckedChanged(object sender, EventArgs e)
+        private void chkSelectAll_CheckedChanged(object? sender, EventArgs e)
         {
             if (chkSelectAll == null) return;
             foreach (DataGridViewRow row in dgvFunctionPermissions.Rows)
@@ -305,7 +305,7 @@ namespace AlTayerERP.Desktop
         /// <summary>
         /// حدث إطلاق جلب البيانات عند قيام المستخدم بتغيير الدور (Role) من الواجهة
         /// </summary>
-        private async void cmbRole_SelectedIndexChanged(object sender, EventArgs e)
+        private async void cmbRole_SelectedIndexChanged(object? sender, EventArgs e)
         {
             if (_isBinding || !grpPermissions.Visible) return;
             if (cmbRole.SelectedValue == null) return;
@@ -475,7 +475,7 @@ namespace AlTayerERP.Desktop
         /// <summary>
         /// ➕ حدث حفظ مستخدم جديد واستدعاء الصلاحيات المحدثة لحفظها معاً فوراً بالتزامن
         /// </summary>
-        private async void btnSave_Click(object sender, EventArgs e)
+        private async void btnSave_Click(object? sender, EventArgs e)
         {
             if (!ValidateInputs(isInputsForUpdate: false)) return;
             var request = BuildUserRequestObject(isUpdate: false);
@@ -490,11 +490,11 @@ namespace AlTayerERP.Desktop
             else MessageBox.Show(await response.Content.ReadAsStringAsync(), "فشل الحفظ", MessageBoxButtons.OK, MessageBoxIcon.Warning);
         }
 
-        private async void btnEdit_Click(object sender, EventArgs e) { await ExecuteUpdateAsync(); }
-        private void btnNew_Click(object sender, EventArgs e) { ClearForm(); }
-        private async void btnDelete_Click(object sender, EventArgs e) { await ExecuteDeleteAsync(); }
-        private void btnClose_Click(object sender, EventArgs e) { this.Close(); }
-        private async void btnRefresh_Click(object sender, EventArgs e)
+        private async void btnEdit_Click(object? sender, EventArgs e) { await ExecuteUpdateAsync(); }
+        private void btnNew_Click(object? sender, EventArgs e) { ClearForm(); }
+        private async void btnDelete_Click(object? sender, EventArgs e) { await ExecuteDeleteAsync(); }
+        private void btnClose_Click(object? sender, EventArgs e) { this.Close(); }
+        private async void btnRefresh_Click(object? sender, EventArgs e)
         {
             btnRefresh.Enabled = false;
             try
@@ -525,7 +525,7 @@ namespace AlTayerERP.Desktop
         /// <summary>
         /// 🔍 تفعيل ميزة البحث والفلترة السريعة لجدول المستخدمين داخل الذاكرة كاش لتسريع الأداء وحماية السيرفر
         /// </summary>
-        private void btnSearch_Click(object sender, EventArgs e)
+        private void btnSearch_Click(object? sender, EventArgs e)
         {
             // مربع البحث يعتمد اسم الدخول، وهو الحقل الموحد الموجود في ملف التصميم.
             string searchText = txtLoginName.Text.Trim();
@@ -574,7 +574,7 @@ namespace AlTayerERP.Desktop
         /// <summary>
         /// حدث النقر بالماوس واختيار سطر مستخدم من الجدول السفلي لتعبئة بياناته وإضاءة صلاحياته الحقيقية
         /// </summary>
-        private async void dgvUsers_SelectionChanged(object sender, EventArgs e)
+        private async void dgvUsers_SelectionChanged(object? sender, EventArgs e)
         {
             if (_isBinding) return;
             if (dgvUsers.SelectedRows.Count > 0)
@@ -802,11 +802,11 @@ namespace AlTayerERP.Desktop
         }
 
         // 🛡️ أحداث احتياطية فارغة لإرضاء ملف الـ Designer والتخلص من خطأ الـ Build تماماً
-        private void grpUserData_Enter(object sender, EventArgs e) { }
-        private void panel1_Paint(object sender, PaintEventArgs e) { }
-        private void tabPage1_Click(object sender, EventArgs e) { }
-        private void dataGridView1_CellContentClick(object sender, DataGridViewCellEventArgs e) { }
-        private void dgvDataPermissions_CellContentClick(object sender, DataGridViewCellEventArgs e) { }
+        private void grpUserData_Enter(object? sender, EventArgs e) { }
+        private void panel1_Paint(object? sender, PaintEventArgs e) { }
+        private void tabPage1_Click(object? sender, EventArgs e) { }
+        private void dataGridView1_CellContentClick(object? sender, DataGridViewCellEventArgs e) { }
+        private void dgvDataPermissions_CellContentClick(object? sender, DataGridViewCellEventArgs e) { }
     }
 
     // --- الـ Models المستقرة النظيفة الموقعة داخل الـ Namespace لحل أخطاء التجميع ---

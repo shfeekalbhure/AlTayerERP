@@ -91,7 +91,7 @@ namespace AlTayerERP.Desktop
         // ======================================================
         // [حدث] تحميل الشاشة - يتم جلب البيانات فور ظهور الواجهة
         // ======================================================
-        private async void CompanyForm_Load(object sender, EventArgs e)
+        private async void CompanyForm_Load(object? sender, EventArgs e)
         {
             await LoadGroupsAsync();
             await LoadCompaniesAsync();
@@ -139,7 +139,7 @@ namespace AlTayerERP.Desktop
         // ======================================================
         // [حدث] زر جديد - تفريغ الواجهة بالكامل وتجهيزها لإدخال جديد
         // ======================================================
-        private void btnNew_Click(object sender, EventArgs e)
+        private void btnNew_Click(object? sender, EventArgs e)
         {
             _selectedCompanyId = string.Empty;
 
@@ -165,7 +165,7 @@ namespace AlTayerERP.Desktop
         // ======================================================
         // [حدث] زر استعراض - اختيار شعار الشركة من ملفات الجهاز
         // ======================================================
-        private void btnBrowseLogo_Click(object sender, EventArgs e)
+        private void btnBrowseLogo_Click(object? sender, EventArgs e)
         {
             OpenFileDialog openFile = new OpenFileDialog();
             openFile.Filter = "ملفات الصور|*.jpg;*.jpeg;*.png;*.bmp";
@@ -180,7 +180,7 @@ namespace AlTayerERP.Desktop
         // ======================================================
         // [حدث] زر الحذف - إزالة الشعار الحالي من المعاينة فقط
         // ======================================================
-        private void btnRemoveLogo_Click(object sender, EventArgs e)
+        private void btnRemoveLogo_Click(object? sender, EventArgs e)
         {
             picCompanyLogo.Image = null;
             picCompanyLogo.Tag = null;
@@ -189,7 +189,7 @@ namespace AlTayerERP.Desktop
         // ======================================================
         // [حدث] زر الحفظ - الإرسال للـ API (إضافة جديد)
         // ======================================================
-        private async void btnSaveCompany_Click(object sender, EventArgs e)
+        private async void btnSaveCompany_Click(object? sender, EventArgs e)
         {
             if (cmbGroups.SelectedValue == null || string.IsNullOrWhiteSpace(cmbGroups.SelectedValue.ToString()))
             {
@@ -252,7 +252,7 @@ namespace AlTayerERP.Desktop
         // ======================================================
         // [حدث] النقر على الجدول - جلب السجل الحالي وعرض بياناته في حقول الشاشة
         // ======================================================
-        private async void dgvCompanies_CellClick(object sender, DataGridViewCellEventArgs e)
+        private async void dgvCompanies_CellClick(object? sender, DataGridViewCellEventArgs e)
         {
             if (dgvCompanies.Rows.Count <= 0 || e.RowIndex == -1) return;
 
@@ -300,7 +300,7 @@ namespace AlTayerERP.Desktop
         // ======================================================
         // [حدث] زر تعديل - إرسال البيانات المحدثة إلى السيرفر عبر طلب PUT
         // ======================================================
-        private async void btnEdit_Click(object sender, EventArgs e)
+        private async void btnEdit_Click(object? sender, EventArgs e)
         {
             if (string.IsNullOrEmpty(_selectedCompanyId))
             {
@@ -363,7 +363,7 @@ namespace AlTayerERP.Desktop
         // ======================================================
         // [حدث] زر حذف - إزالة السجل نهائياً من قاعدة البيانات
         // ======================================================
-        private async void btnDelete_Click(object sender, EventArgs e)
+        private async void btnDelete_Click(object? sender, EventArgs e)
         {
             if (string.IsNullOrEmpty(_selectedCompanyId))
             {
@@ -407,7 +407,7 @@ namespace AlTayerERP.Desktop
         // ======================================================
         // [حدث] زر البحث والفلترة - فلترة شجرية سريعة محلياً
         // ======================================================
-        private void btnSearch_Click(object sender, EventArgs e)
+        private void btnSearch_Click(object? sender, EventArgs e)
         {
             string keyword = Microsoft.VisualBasic.Interaction.InputBox("أدخل اسم الشركة أو رمزها للبحث السريع:", "البحث الذكي في الشركات", "");
 
@@ -429,7 +429,7 @@ namespace AlTayerERP.Desktop
         // ======================================================
         // [حدث] زر تصدير البيانات - تصدير محتوى الجدول بالكامل لملف Excel (CSV)
         // ======================================================
-        private void btnExport_Click(object sender, EventArgs e)
+        private void btnExport_Click(object? sender, EventArgs e)
         {
             if (dgvCompanies.Rows.Count == 0)
             {
@@ -480,7 +480,7 @@ namespace AlTayerERP.Desktop
         // ======================================================
         // [حدث] زر استيراد الشركات من ملف خارجي
         // ======================================================
-        private void btnImport_Click(object sender, EventArgs e)
+        private void btnImport_Click(object? sender, EventArgs e)
         {
             OpenFileDialog openFile = new OpenFileDialog();
             openFile.Filter = "ملفات البيانات المدعومة (*.csv;*.txt)|*.csv;*.txt";
@@ -494,7 +494,7 @@ namespace AlTayerERP.Desktop
         // ======================================================
         // [حدث] زر معاينة السجل المستندي المرفق للشركة
         // ======================================================
-        private void btnPreview_Click(object sender, EventArgs e)
+        private void btnPreview_Click(object? sender, EventArgs e)
         {
             if (string.IsNullOrEmpty(_selectedCompanyId))
             {
@@ -507,7 +507,7 @@ namespace AlTayerERP.Desktop
         // ======================================================
         // [حدث] زر اعتماد الشركة ماليّاً وفنيّاً
         // ======================================================
-        private async void btnApprove_Click(object sender, EventArgs e)
+        private async void btnApprove_Click(object? sender, EventArgs e)
         {
             if (string.IsNullOrEmpty(_selectedCompanyId))
             {
@@ -542,7 +542,7 @@ namespace AlTayerERP.Desktop
         // ======================================================
         // [حدث] زر إلغاء الاعتماد وتجميد النشاط
         // ======================================================
-        private async void btnUnApprove_Click(object sender, EventArgs e)
+        private async void btnUnApprove_Click(object? sender, EventArgs e)
         {
             if (string.IsNullOrEmpty(_selectedCompanyId))
             {
@@ -557,7 +557,7 @@ namespace AlTayerERP.Desktop
         // ======================================================
         // [حدث] زر تحديث - إعادة جلب بيانات الشاشة من جديد
         // ======================================================
-        private async void btnRefresh_Click(object sender, EventArgs e)
+        private async void btnRefresh_Click(object? sender, EventArgs e)
         {
             await LoadGroupsAsync();
             await LoadCompaniesAsync();
@@ -567,7 +567,7 @@ namespace AlTayerERP.Desktop
         // ======================================================
         // [حدث] زر إغلاق الفورم
         // ======================================================
-        private void btnClose_Click(object sender, EventArgs e)
+        private void btnClose_Click(object? sender, EventArgs e)
         {
             this.Close();
         }
@@ -593,8 +593,8 @@ namespace AlTayerERP.Desktop
             dgvCompanies.Columns.Add("Is_Active", "الحالة");
         }
 
-        private void dgvCompanies_CellContentClick(object sender, DataGridViewCellEventArgs e) { }
-        private void btnPrint_Click(object sender, EventArgs e) { MessageBox.Show("تم توليد أمر الطباعة للتقرير المرفق.", "طباعة التقارير", MessageBoxButtons.OK, MessageBoxIcon.Information); }
+        private void dgvCompanies_CellContentClick(object? sender, DataGridViewCellEventArgs e) { }
+        private void btnPrint_Click(object? sender, EventArgs e) { MessageBox.Show("تم توليد أمر الطباعة للتقرير المرفق.", "طباعة التقارير", MessageBoxButtons.OK, MessageBoxIcon.Information); }
         private static string? CleanOptional(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
     }
 

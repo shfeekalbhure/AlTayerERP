@@ -260,7 +260,7 @@ public partial class CountriesForm : BaseForm
         var response = await ApiService.Client.PostAsync("GeographicReferences/countries/" + _selectedId + "/print", null);
         if (!response.IsSuccessStatusCode) { MessageBox.Show(await response.Content.ReadAsStringAsync(), "تعذر تسجيل الطباعة", MessageBoxButtons.OK, MessageBoxIcon.Warning); return; }
         using var document = new PrintDocument { DocumentName = "بيانات الدولة - " + txtCountryNameAr.Text };
-        document.PrintPage += (_, e) => { using var font = new Font("Segoe UI", 11); e.Graphics.DrawString($"بيانات الدولة\nالكود: {txtCountryCode.Text}\nالاسم: {txtCountryNameAr.Text}\nISO2: {txtIso2.Text}\nISO3: {txtIso3.Text}", font, Brushes.Black, 70, 70); };
+        document.PrintPage += (_, e) => { var graphics = e.Graphics; if (graphics is null) return; using var font = new Font("Segoe UI", 11); graphics.DrawString($"بيانات الدولة\nالكود: {txtCountryCode.Text}\nالاسم: {txtCountryNameAr.Text}\nISO2: {txtIso2.Text}\nISO3: {txtIso3.Text}", font, Brushes.Black, 70, 70); };
         using var preview = new PrintPreviewDialog { Document = document, Width = 900, Height = 700, RightToLeft = RightToLeft.Yes };
         preview.ShowDialog(this); await LoadAuditAsync(_selectedId);
     }

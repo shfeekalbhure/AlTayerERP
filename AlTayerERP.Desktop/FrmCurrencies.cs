@@ -282,7 +282,7 @@ RegisterEvents();
 
         #region حفظ
 
-        private async void btnSave_Click(object sender, EventArgs e)
+        private async void btnSave_Click(object? sender, EventArgs e)
         {
             try
             {
@@ -326,7 +326,7 @@ RegisterEvents();
 
         #region تعديل
 
-        private async void btnEdit_Click(object sender, EventArgs e)
+        private async void btnEdit_Click(object? sender, EventArgs e)
         {
             try
             {
@@ -381,7 +381,7 @@ RegisterEvents();
 
         #region حذف
 
-        private async void btnDelete_Click(object sender, EventArgs e)
+        private async void btnDelete_Click(object? sender, EventArgs e)
         {
             try
             {
@@ -701,7 +701,7 @@ RegisterEvents();
 
         #region جديد
 
-        private void btnNew_Click(object sender, EventArgs e)
+        private void btnNew_Click(object? sender, EventArgs e)
         {
             ClearForm();
         }
@@ -710,7 +710,7 @@ RegisterEvents();
 
         #region تحديث
 
-        private async void btnRefresh_Click(object sender, EventArgs e)
+        private async void btnRefresh_Click(object? sender, EventArgs e)
         {
             await LoadCurrenciesAsync();
             ClearForm();
@@ -720,7 +720,7 @@ RegisterEvents();
 
         #region بحث
 
-        private void btnSearch_Click(object sender, EventArgs e)
+        private void btnSearch_Click(object? sender, EventArgs e)
         {
             string searchText =
                 Microsoft.VisualBasic.Interaction.InputBox(
@@ -986,7 +986,7 @@ RegisterEvents();
 
         #region إغلاق الشاشة
 
-        private void btnClose_Click(object sender, EventArgs e)
+        private void btnClose_Click(object? sender, EventArgs e)
         {
             Close();
         }

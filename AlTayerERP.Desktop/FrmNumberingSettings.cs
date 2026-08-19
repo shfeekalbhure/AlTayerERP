@@ -79,7 +79,7 @@ namespace AlTayerERP.Desktop
         // ======================================================
         // عند فتح الشاشة
         // ======================================================
-        private async void FrmNumberingSettings_Load(object sender, EventArgs e)
+        private async void FrmNumberingSettings_Load(object? sender, EventArgs e)
         {
             FillCombos();
             ClearForm();
@@ -128,7 +128,7 @@ namespace AlTayerERP.Desktop
 // عند اختيار نوع المستند
 // يتم اقتراح البادئة وعدد الأرقام وطريقة التصفير تلقائياً
 // ======================================================
-private void cmbDocumentType_SelectedIndexChanged(object sender, EventArgs e)
+private void cmbDocumentType_SelectedIndexChanged(object? sender, EventArgs e)
         {
             switch (cmbDocumentType.Text)
             {
@@ -342,7 +342,7 @@ private void cmbDocumentType_SelectedIndexChanged(object sender, EventArgs e)
         // ======================================================
         // زر جديد
         // ======================================================
-        private void btnNew_Click(object sender, EventArgs e)
+        private void btnNew_Click(object? sender, EventArgs e)
         {
             ClearForm();
         }
@@ -350,7 +350,7 @@ private void cmbDocumentType_SelectedIndexChanged(object sender, EventArgs e)
         // ======================================================
         // زر حفظ سجل جديد فقط
         // ======================================================
-        private async void btnSave_Click(object sender, EventArgs e)
+        private async void btnSave_Click(object? sender, EventArgs e)
         {
             if (_selectedNumberingId != 0)
             {
@@ -394,7 +394,7 @@ private void cmbDocumentType_SelectedIndexChanged(object sender, EventArgs e)
         // ======================================================
         // زر تعديل السجل المحدد
         // ======================================================
-        private async void btnEdit_Click(object sender, EventArgs e)
+        private async void btnEdit_Click(object? sender, EventArgs e)
         {
             if (_selectedNumberingId == 0)
             {
@@ -434,7 +434,7 @@ private void cmbDocumentType_SelectedIndexChanged(object sender, EventArgs e)
         // ======================================================
         // زر حذف السجل المحدد
         // ======================================================
-        private async void btnDelete_Click(object sender, EventArgs e)
+        private async void btnDelete_Click(object? sender, EventArgs e)
         {
             if (_selectedNumberingId == 0)
             {
@@ -477,7 +477,7 @@ private void cmbDocumentType_SelectedIndexChanged(object sender, EventArgs e)
         // ======================================================
         // زر تحديث
         // ======================================================
-        private async void btnRefresh_Click(object sender, EventArgs e)
+        private async void btnRefresh_Click(object? sender, EventArgs e)
         {
             await LoadNumberingSettings();
         }
@@ -485,7 +485,7 @@ private void cmbDocumentType_SelectedIndexChanged(object sender, EventArgs e)
         // ======================================================
         // زر إغلاق
         // ======================================================
-        private void btnClose_Click(object sender, EventArgs e)
+        private void btnClose_Click(object? sender, EventArgs e)
         {
             this.Close();
         }
@@ -494,7 +494,7 @@ private void cmbDocumentType_SelectedIndexChanged(object sender, EventArgs e)
         // عند الضغط على صف من الجدول
         // يتم نقل بياناته إلى الحقول
         // ======================================================
-        private void dgvNumberingSettings_CellClick(object sender, DataGridViewCellEventArgs e)
+        private void dgvNumberingSettings_CellClick(object? sender, DataGridViewCellEventArgs e)
         {
             if (e.RowIndex < 0)
                 return;
@@ -678,7 +678,7 @@ private void cmbDocumentType_SelectedIndexChanged(object sender, EventArgs e)
         // ======================================================
         // حدث فارغ أنشأه المصمم
         // ======================================================
-        private void grpNumbering_Enter(object sender, EventArgs e)
+        private void grpNumbering_Enter(object? sender, EventArgs e)
         {
         }
     }

@@ -637,14 +637,14 @@ namespace AlTayerERP.Desktop
         }
 
         // أحداث مصمم الشاشة القديمة التي يجب إبقاؤها لمنع أخطاء الربط.
-        private void cbParentAccount_SelectedIndexChanged(object sender, EventArgs e) { }
-        private void label13_Click(object sender, EventArgs e) { }
-        private void pnlMainDetails_Paint(object sender, PaintEventArgs e) { }
-        private void gbBasicInfo_Enter(object sender, EventArgs e) { }
-        private void dgvSubAccounts_CellContentClick(object sender, DataGridViewCellEventArgs e) { }
-        private void chkRequiresProject_CheckedChanged(object sender, EventArgs e) { }
-        private void pnlToolbar_Paint(object sender, PaintEventArgs e) { }
-        private void grpSystemInfo_Enter(object sender, EventArgs e) { }
+        private void cbParentAccount_SelectedIndexChanged(object? sender, EventArgs e) { }
+        private void label13_Click(object? sender, EventArgs e) { }
+        private void pnlMainDetails_Paint(object? sender, PaintEventArgs e) { }
+        private void gbBasicInfo_Enter(object? sender, EventArgs e) { }
+        private void dgvSubAccounts_CellContentClick(object? sender, DataGridViewCellEventArgs e) { }
+        private void chkRequiresProject_CheckedChanged(object? sender, EventArgs e) { }
+        private void pnlToolbar_Paint(object? sender, PaintEventArgs e) { }
+        private void grpSystemInfo_Enter(object? sender, EventArgs e) { }
 
         private sealed class AccountCategoryLookupModel
         {

@@ -877,7 +877,7 @@ namespace AlTayerERP.Desktop
         private void pnlToolbar_Paint(object? sender, PaintEventArgs e) { }
         private void dgvVoucherDetails_CellContentClick(object? sender, DataGridViewCellEventArgs e) { }
 
-        private void groupBox1_Enter(object sender, EventArgs e) { }
+        private void groupBox1_Enter(object? sender, EventArgs e) { }
 
         #endregion
 
@@ -917,7 +917,7 @@ namespace AlTayerERP.Desktop
 
         #endregion
 
-        private void button1_Click(object sender, EventArgs e)
+        private void button1_Click(object? sender, EventArgs e)
         {
             // فتح شاشة البحث كشاشة منبثقة (Modal) تمنع التعديل خلفها حتى تختار الحساب
 
