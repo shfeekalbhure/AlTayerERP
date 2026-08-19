@@ -2,7 +2,7 @@
 
 **تاريخ المراجعة:** 19 أغسطس 2026
 
-**الفرع:** `chore/prepare-release-baseline`
+**الفرع:** `chore/prepare-unified-phase1-screens`، مبني على `agent/unified-phase1-screens`
 
 **النطاق:** مراجعة خط الأساس الموجود في `master`، إصلاح بوابات الأمان والجودة ذات الأولوية، وإضافة تحقق قابل للتكرار.
 
@@ -17,7 +17,7 @@
 | المجال | التغيير | الحالة |
 |---|---|---|
 | الأسرار | استبدال الاتصال المضمن في `appsettings.json` بقيمة فارغة تعتمد على User Secrets أو متغير البيئة | مكتمل |
-| إعداد التشغيل | إضافة `appsettings.example.json` و`UserSecretsId` وملف دليل الأمان والتشغيل | مكتمل |
+| إعداد التشغيل | إضافة `appsettings.Example.json` الموحد و`UserSecretsId` وملف دليل الأمان والتشغيل | مكتمل |
 | CORS | استبدال سياسة `AllowAll` بسياسة `ConfiguredOrigins` مغلقة افتراضيًا | مكتمل |
 | الاختبارات | إضافة `AlTayerERP.Tests` مع اختبارات توازن المدين والدائن، ومنع السطر المدين والدائن معًا، ومنع تكرار أرقام السطور | مكتمل |
 | الحل | إضافة `AlTayerERP.sln` المتوافق مع SDK 8 مع إبقاء `AlTayerERP.slnx` كما هو | مكتمل |
@@ -32,7 +32,7 @@
 | `dotnet test AlTayerERP.Tests/AlTayerERP.Tests.csproj --configuration Release` | ناجح | 3 ناجحة، 0 فاشلة، 0 متخطاة |
 | `dotnet sln AlTayerERP.sln list` | ناجح | API وCore وDesktop وInfrastructure وTests موجودة |
 | `git diff --check` | ناجح | لا توجد أخطاء مسافات أو تنسيق في الفروقات |
-| بناء Windows Forms محليًا | غير منفذ | بيئة المراجعة Linux؛ مساره موجود في CI على Windows |
+| بناء Windows Forms محليًا | ناجح في CI | تشغيل Windows Desktop Build على GitHub Actions ناجح |
 | تشغيل API ضد MySQL | غير منفذ | يتطلب قاعدة بيانات وبيانات اعتماد يوفرها مالك البيئة |
 
 ## الملفات المهمة
@@ -47,7 +47,11 @@
 
 كشف التدقيق وجود تعريفات مكررة لبعض جداول المرحلة الأولى بين ملف التوافق والملفات المنفصلة. لم تُحذف الملفات التاريخية، بل تم توثيق ترتيب الاستخدام والتحقق المطلوب لتجنب إعادة تطبيقها على قاعدة قائمة.
 
-بعد تشغيل تحقق إضافي، تم تصحيح using مكرر في `NumberGeneratorService` ومعالجة nullable في `ChartOfAccountsController`. أصبح بناء API الآن ناجحًا بصفر تحذيرات وصفر أخطاء، مع بقاء الاختبارات الثلاثة ناجحة.
+بعد تشغيل تحقق إضافي، تم تصحيح using مكرر في `NumberGeneratorService` ومعالجة nullable في `ChartOfAccountsController` و`SystemSettingsController` و`FinancialVoucherController`، كما أزيلت منشئات الجلسة القديمة من وحدتي الشركات ومجموعات المستأجرين. أصبح بناء API الآن ناجحًا بصفر تحذيرات وصفر أخطاء، مع بقاء الاختبارات الثلاثة ناجحة.
+
+## تحديث فرع الشاشات الموحدة
+
+نُقلت الحزمة إلى فرع مستقل مبني على `agent/unified-phase1-screens` مع الحفاظ على مشاريع `AlTayerERP.Mobile.Office` وتغييرات الشاشات. أزيلت نسخة إعدادات المثال المكررة التي كانت تختلف فقط في حالة الأحرف، وهي مشكلة تؤدي إلى فشل البناء على Windows. أصبح GitHub Actions run `32206711750` ناجحًا في مساري API والاختبارات وWindows Desktop. تم فتح Pull Request رقم [20](https://github.com/shfeekalbhure/AlTayerERP/pull/20) للمراجعة قبل الدمج.
 
 ## العناصر المتبقية قبل الإنتاج
 
