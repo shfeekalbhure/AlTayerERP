@@ -20,6 +20,8 @@
 - `Database-Guide-AR.md`: دليل قاعدة البيانات.
 - `API-Guide-AR.md`: دليل واجهات API.
 - `Release-Notes-AR.md`: سجل الإصدارات.
+- `SECURITY-AND-SETUP-AR.md`: دليل إعداد الاتصال والأمان والتشغيل.
+- `READINESS-REVIEW-2026-08-19-AR.md`: تقرير مراجعة وتجهيز خط الأساس الحالي.
 
 ## المرجعية
 

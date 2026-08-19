@@ -22,6 +22,13 @@ var connectionString =
         "لم يتم ضبط DefaultConnection. عيّنه محلياً عبر User Secrets أو المتغير ConnectionStrings__DefaultConnection؛ لا تضع كلمة المرور داخل ملفات الإعداد المتتبعة."
     );
 
+if (string.IsNullOrWhiteSpace(connectionString))
+{
+    throw new InvalidOperationException(
+        "لم يتم ضبط نص الاتصال DefaultConnection. استخدم User Secrets أو متغير البيئة ConnectionStrings__DefaultConnection."
+    );
+}
+
 // توحيد ترميز جلسة MySQL مع نموذج EF Core حتى لا يحمل المعامل النصي
 // Collation مختلفة عن أعمدة سندات القبض والحسابات.
 var mysqlConnection = new MySqlConnectionStringBuilder(connectionString)
@@ -37,18 +44,28 @@ builder.Services.AddDbContext<AppDbContext>(options =>
     )
 );
 
+// سياسة CORS مرتبطة بأصول البيئة فقط. عدم وجود أصول يعني تعطيل CORS افتراضيًا.
+var allowedOrigins = builder.Configuration
+    .GetSection("Cors:AllowedOrigins")
+    .Get<string[]>() ?? Array.Empty<string>();
+
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AlTayerERPClients", policy =>
     {
-        policy.WithOrigins(
-                "https://localhost:7021",
-                "http://localhost:5021",
-                "https://localhost:7022",
-                "http://localhost:5022",
-                "http://172.16.4.250:5021")
-            .AllowAnyMethod()
-            .AllowAnyHeader();
+        var origins = allowedOrigins
+            .Where(origin => !string.IsNullOrWhiteSpace(origin))
+            .Select(origin => origin.Trim())
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+
+        if (origins.Length > 0)
+        {
+            policy
+                .WithOrigins(origins)
+                .AllowAnyMethod()
+                .AllowAnyHeader();
+        }
     });
 });
 
