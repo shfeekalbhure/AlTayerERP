@@ -118,7 +118,7 @@ namespace AlTayerERP.Desktop
                 MessageBox.Show(message, title, MessageBoxButtons.OK, icon);
         }
 
-        private async void BranchForm_Load(object sender, EventArgs e)
+        private async void BranchForm_Load(object? sender, EventArgs e)
         {
             SetupBranchesGrid();
             ClearBranchTypes();
@@ -176,7 +176,7 @@ namespace AlTayerERP.Desktop
             {
                 ShowLookupWarningOnce("branch-types-not-found", "تعذر تحميل قائمة أنواع الفروع لأن خدمة أنواع الفروع غير موجودة في API المشغّل. حدّث API ثم أعد تشغيله.", "قائمة أنواع الفروع");
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 ShowLookupWarningOnce("branch-types-error", "تعذر تحميل قائمة أنواع الفروع. تحقق من اتصال API ثم أعد المحاولة.", "قائمة أنواع الفروع");
             }
@@ -200,7 +200,7 @@ namespace AlTayerERP.Desktop
             {
                 ShowLookupWarningOnce("currencies-not-found", "تعذر تحميل قائمة عملات الشركة لأن الشركة أو خدمة العملات غير موجودة في API المشغّل.", "قائمة عملات الشركة");
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 ShowLookupWarningOnce("currencies-error", "تعذر تحميل قائمة عملات الشركة. تحقق من اتصال API ثم أعد المحاولة.", "قائمة عملات الشركة");
             }
@@ -227,7 +227,7 @@ namespace AlTayerERP.Desktop
                 cmbCompanies.SelectedValue = CurrentSession.Company_ID;
                 await LoadBranchReferenceDataAsync(cmbCompanies.SelectedValue?.ToString());
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 ShowLookupWarningOnce("companies-error", "تعذر تحميل قائمة الشركات. تحقق من اتصال API ثم أعد المحاولة.", "قائمة الشركات");
             }

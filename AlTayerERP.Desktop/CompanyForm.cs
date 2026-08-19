@@ -202,13 +202,14 @@ namespace AlTayerERP.Desktop
                 return;
             }
 
-            byte[] logoBytes = null;
+            byte[]? logoBytes = null;
             if (picCompanyLogo.Tag != null)
             {
                 try
                 {
-                    string imagePath = picCompanyLogo.Tag.ToString();
-                    if (File.Exists(imagePath)) logoBytes = File.ReadAllBytes(imagePath);
+                    string? imagePath = picCompanyLogo.Tag?.ToString();
+                    if (!string.IsNullOrWhiteSpace(imagePath) && File.Exists(imagePath))
+                        logoBytes = File.ReadAllBytes(imagePath);
                 }
                 catch (Exception ex) { MessageBox.Show($"فشل قراءة ملف الصورة: {ex.Message}"); }
             }
@@ -236,7 +237,7 @@ namespace AlTayerERP.Desktop
                 if (response.IsSuccessStatusCode)
                 {
                     MessageBox.Show("تم تأسيس الشركة بنجاح!", "نجاح", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                    btnNew_Click(null, null);
+                    btnNew_Click(this, EventArgs.Empty);
                     await LoadCompaniesAsync();
                 }
                 else
@@ -313,10 +314,11 @@ namespace AlTayerERP.Desktop
                 return;
             }
 
-            byte[] logoBytes = null;
-            if (picCompanyLogo.Tag != null && File.Exists(picCompanyLogo.Tag.ToString()))
+            byte[]? logoBytes = null;
+            string? logoPath = picCompanyLogo.Tag?.ToString();
+            if (!string.IsNullOrWhiteSpace(logoPath) && File.Exists(logoPath))
             {
-                logoBytes = File.ReadAllBytes(picCompanyLogo.Tag.ToString());
+                logoBytes = File.ReadAllBytes(logoPath);
             }
             else if (picCompanyLogo.Image != null)
             {
@@ -351,7 +353,7 @@ namespace AlTayerERP.Desktop
                 if (response.IsSuccessStatusCode)
                 {
                     MessageBox.Show("تم تحديث بيانات الشركة بنجاح!", "نجاح", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                    btnNew_Click(null, null);
+                    btnNew_Click(this, EventArgs.Empty);
                     await LoadCompaniesAsync();
                 }
             }
@@ -390,7 +392,7 @@ namespace AlTayerERP.Desktop
                     if (response.IsSuccessStatusCode)
                     {
                         MessageBox.Show("تم إيقاف الشركة بنجاح مع حفظ تاريخها.", "تم الإيقاف", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                        btnNew_Click(null, null);
+                        btnNew_Click(this, EventArgs.Empty);
                         await LoadCompaniesAsync();
                     }
                     else
@@ -559,7 +561,7 @@ namespace AlTayerERP.Desktop
         {
             await LoadGroupsAsync();
             await LoadCompaniesAsync();
-            btnNew_Click(null, null);
+            btnNew_Click(this, EventArgs.Empty);
         }
 
         // ======================================================

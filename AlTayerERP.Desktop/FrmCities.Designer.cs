@@ -1,5 +1,7 @@
 using AlTayerERP.Desktop.Common;
 
+#nullable enable
+
 namespace AlTayerERP.Desktop;
 
 partial class FrmCities : BaseForm
