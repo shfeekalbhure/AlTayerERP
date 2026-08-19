@@ -32,12 +32,15 @@ public sealed class ApiDiagnosticResult
 
     public static string GetMessage(ApiErrorType errorType) => errorType switch
     {
-        ApiErrorType.ConnectionRefused or ApiErrorType.Timeout or ApiErrorType.Dns => "تعذر الاتصال بخدمة النظام. تأكد من تشغيل الخادم واتصال الجهاز.",
+        ApiErrorType.ConnectionRefused => "لم يتم العثور على خادم API على العنوان المختار. شغّل AlTayerERP.API وتحقق من المنفذ 5021 وعنوان IP.",
+        ApiErrorType.Timeout => "انتهت مهلة الاتصال بخادم API. تأكد من أن الهاتف والخادم على الشبكة نفسها وأن المنفذ 5021 مسموح في الجدار الناري.",
+        ApiErrorType.Dns => "عنوان خادم API غير صحيح أو غير قابل للوصول. أدخل عنوان IP المحلي للخادم، مثل 192.168.1.10.",
         ApiErrorType.Unauthorized => "انتهت جلسة الدخول. يرجى تسجيل الدخول من جديد.",
         ApiErrorType.Forbidden => "ليس لديك صلاحية لتنفيذ هذه العملية.",
         ApiErrorType.NotFound => "البيانات المطلوبة غير موجودة أو لا يسمح لك بالوصول إليها.",
         ApiErrorType.Conflict => "تم تعديل البيانات من مستخدم آخر. سيتم تحميل أحدث نسخة.",
-        ApiErrorType.ServerError or ApiErrorType.DeserializeFailure => "حدث خطأ في خدمة النظام. حاول مرة أخرى أو تواصل مع المسؤول.",
+        ApiErrorType.ServerError => "تم الوصول إلى API، لكنه غير جاهز أو لا يستطيع الاتصال بقاعدة البيانات. تحقق من /api/health.",
+        ApiErrorType.DeserializeFailure => "استجاب خادم API بتنسيق غير متوافق. راجع إصدار التطبيق والخادم.",
         _ => "حدث خطأ في خدمة النظام. حاول مرة أخرى أو تواصل مع المسؤول."
     };
 }

@@ -154,10 +154,19 @@ public partial class MainPage : ContentPage
                 ? result.ConnectionKind == ApiConnectionKind.USB
                     ? "تم الاتصال بالخادم عبر USB."
                     : "تم الاتصال بالخادم عبر شبكة Wi-Fi."
-                : "تعذر الاتصال بالخادم عبر USB أو شبكة Wi-Fi.";
+                : result.ErrorType switch
+                {
+                    ApiErrorType.ConnectionRefused => "لم يتم العثور على API. شغّل الخادم وتحقق من المنفذ 5021.",
+                    ApiErrorType.Timeout => "انتهت مهلة الاتصال. تحقق من الشبكة والجدار الناري والمنفذ 5021.",
+                    ApiErrorType.Dns => "عنوان IP غير صحيح أو غير قابل للوصول من الهاتف.",
+                    ApiErrorType.ServerError => "تم الوصول إلى API، لكن قاعدة البيانات غير جاهزة. افحص /api/health.",
+                    _ => "فشل فحص API. راجع العنوان وإعدادات الاتصال."
+                };
             DevelopmentDatabaseLabel.Text = result.ErrorType == ApiErrorType.None && !string.IsNullOrWhiteSpace(result.DatabaseName)
                 ? $"قاعدة التطوير: {result.DatabaseName}"
-                : string.Empty;
+                : !string.IsNullOrWhiteSpace(result.BaseAddress)
+                    ? $"العنوان المختبر: {result.BaseAddress}"
+                    : string.Empty;
 
             if (result.ErrorType == ApiErrorType.None && !_companiesLoaded)
                 await LoadCompaniesAsync();
