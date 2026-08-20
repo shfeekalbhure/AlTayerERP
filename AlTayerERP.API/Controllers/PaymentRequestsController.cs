@@ -17,6 +17,7 @@ public sealed class PaymentRequestsController : ControllerBase
     private readonly AuditTrailService _audit;
     private readonly FinancialVoucherService _vouchers;
     private readonly NumberGeneratorService _numbers;
+    private const string PaymentRequestApprovalType = "PAYMENT_REQUEST";
 
     public PaymentRequestsController(
         AppDbContext db,
@@ -184,6 +185,8 @@ public sealed class PaymentRequestsController : ControllerBase
         if (row == null) return NotFound();
         if (row.Status != "PENDING_APPROVAL")
             return Conflict(new { message = "الحالة الحالية لا تسمح بالاعتماد." });
+        if (IsRequester(row))
+            return Conflict(new { message = "لا يمكن لمقدم الطلب تنفيذ قرار على طلبه. اختر مستخدماً مخولاً آخر." });
 
         var amount = row.Details.Sum(x => x.Local_Amount);
         var limit = await FindFinancialLimitAsync(row);
@@ -195,6 +198,7 @@ public sealed class PaymentRequestsController : ControllerBase
         row.Approval_Reason = dto.Reason.Trim();
         row.Updated_By = Session().User_ID.ToString();
         row.Updated_At = DateTime.UtcNow;
+        await SynchronizeApprovalRequestAsync(row, ApprovalStatus.Approved, dto.Reason);
         _audit.Add(Session(), HttpContext, "payment_requests", id.ToString(), "APPROVE", null,
             new { row.Status, row.Approved_Local_Total }, dto.Reason);
         await _db.SaveChangesAsync();
@@ -371,15 +375,82 @@ public sealed class PaymentRequestsController : ControllerBase
         if (row == null) return NotFound();
         if (row.Status != from)
             return Conflict(new { message = "الحالة الحالية لا تسمح بهذه العملية." });
+        if ((operation is ScreenOperation.Approve or ScreenOperation.Unapprove) && IsRequester(row))
+            return Conflict(new { message = "لا يمكن لمقدم الطلب تنفيذ قرار على طلبه. اختر مستخدماً مخولاً آخر." });
 
         row.Status = to;
         row.Review_Reason = Text(reason);
         row.Updated_By = Session().User_ID.ToString();
         row.Updated_At = DateTime.UtcNow;
+        if (string.Equals(action, "SUBMIT", StringComparison.Ordinal))
+            await CreateApprovalRequestIfNeededAsync(row);
+        else if (string.Equals(action, "REVIEW", StringComparison.Ordinal))
+            await SynchronizeApprovalRequestAsync(row, ApprovalStatus.UnderReview, reason);
+        else if (string.Equals(action, "REJECT", StringComparison.Ordinal))
+            await SynchronizeApprovalRequestAsync(row, ApprovalStatus.Rejected, reason);
+        else if (string.Equals(action, "RETURN", StringComparison.Ordinal))
+            await SynchronizeApprovalRequestAsync(row, ApprovalStatus.Returned, reason);
         _audit.Add(Session(), HttpContext, "payment_requests", id.ToString(), action, null,
             new { row.Status }, reason);
         await _db.SaveChangesAsync();
         return Ok(row);
+    }
+
+    private bool IsRequester(PaymentRequest row) =>
+        !string.IsNullOrWhiteSpace(row.Created_By) &&
+        string.Equals(row.Created_By, Session().User_ID.ToString(), StringComparison.OrdinalIgnoreCase);
+
+    private async Task CreateApprovalRequestIfNeededAsync(PaymentRequest row)
+    {
+        var referenceId = row.Payment_Request_ID.ToString();
+        var hasOpenRequest = await _db.Approval_Requests.AnyAsync(x =>
+            x.Company_ID == Session().Company_ID &&
+            x.Reference_Type == PaymentRequestApprovalType &&
+            x.Reference_ID == referenceId &&
+            (x.Status == ApprovalStatus.Pending.ToString() || x.Status == ApprovalStatus.UnderReview.ToString()));
+        if (hasOpenRequest) return;
+
+        _db.Approval_Requests.Add(new ApprovalRequest
+        {
+            Company_ID = Session().Company_ID,
+            Request_Type = "PaymentRequest",
+            Reference_Type = PaymentRequestApprovalType,
+            Reference_ID = referenceId,
+            Entity_Type = PaymentRequestApprovalType,
+            Entity_ID = referenceId,
+            Amount = row.Details.Sum(x => x.Local_Amount),
+            Reason = row.Description,
+            Status = ApprovalStatus.Pending.ToString(),
+            Requested_By = row.Created_By,
+            Requested_At = DateTime.UtcNow
+        });
+    }
+
+    private async Task SynchronizeApprovalRequestAsync(
+        PaymentRequest row, ApprovalStatus target, string? reason)
+    {
+        var referenceId = row.Payment_Request_ID.ToString();
+        var approval = await _db.Approval_Requests
+            .Where(x => x.Company_ID == Session().Company_ID &&
+                        x.Reference_Type == PaymentRequestApprovalType &&
+                        x.Reference_ID == referenceId &&
+                        (x.Status == ApprovalStatus.Pending.ToString() || x.Status == ApprovalStatus.UnderReview.ToString()))
+            .OrderByDescending(x => x.Requested_At)
+            .FirstOrDefaultAsync();
+        if (approval is null) return;
+
+        approval.Status = target.ToString();
+        approval.Approval_Notes = Text(reason) ?? approval.Approval_Notes;
+        if (target == ApprovalStatus.Approved)
+        {
+            approval.Approved_By = Session().User_ID.ToString();
+            approval.Approved_At = DateTime.UtcNow;
+        }
+        else
+        {
+            approval.Approved_By = null;
+            approval.Approved_At = null;
+        }
     }
 
     private Task<IActionResult> Close(long id, string to, ReasonDto dto, string action) =>

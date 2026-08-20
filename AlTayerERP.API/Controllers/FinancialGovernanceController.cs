@@ -10,6 +10,7 @@ namespace AlTayerERP.API.Controllers;
 [Route("api/financial-governance")]
 public sealed class FinancialGovernanceController : ControllerBase
 {
+    private const string PaymentRequestApprovalType="PAYMENT_REQUEST";
     private readonly AppDbContext _db; private readonly ScreenAuthorizationService _auth; private readonly AuditTrailService _audit;
     public FinancialGovernanceController(AppDbContext db, ScreenAuthorizationService auth, AuditTrailService audit){_db=db;_auth=auth;_audit=audit;}
     private ServerSession Session()=>HttpContext.Items["ServerSession"] as ServerSession??throw new InvalidOperationException("جلسة الخادم غير متاحة.");
@@ -38,10 +39,36 @@ public sealed class FinancialGovernanceController : ControllerBase
         if(request==null||string.IsNullOrWhiteSpace(request.Reason))return BadRequest(new{message="السبب إلزامي لهذه العملية."});
         var row=await _db.Approval_Requests.FirstOrDefaultAsync(x=>x.Approval_ID==id&&x.Company_ID==Session().Company_ID);if(row==null)return NotFound();
         if(row.Status is nameof(ApprovalStatus.Approved) or nameof(ApprovalStatus.Rejected) or nameof(ApprovalStatus.Canceled))return Conflict(new{message="الطلب مغلق ولا يمكن تغيير حالته."});
+        if(!string.IsNullOrWhiteSpace(row.Requested_By)&&string.Equals(row.Requested_By,Session().User_ID.ToString(),StringComparison.OrdinalIgnoreCase))return Conflict(new{message="لا يمكن لمقدم الطلب تنفيذ قرار على طلبه. اختر مستخدماً مخولاً آخر."});
+        var linkedRequestValidation=await ValidateLinkedPaymentRequestTransitionAsync(row,target);if(linkedRequestValidation is not null)return Conflict(new{message=linkedRequestValidation});
         var before=new{row.Status,row.Approved_By,row.Approved_At,row.Approval_Notes};row.Status=target.ToString();row.Approval_Notes=request.Reason.Trim();
         if(target==ApprovalStatus.Approved){row.Approved_By=Session().User_ID.ToString();row.Approved_At=DateTime.UtcNow;}
+        await SynchronizeLinkedPaymentRequestAsync(row,target,row.Approval_Notes);
         _audit.Add(Session(),HttpContext,"approval_requests",id.ToString(),action,before,new{row.Status,row.Approved_By,row.Approved_At,row.Approval_Notes},request.Reason);
         await _db.SaveChangesAsync();return Ok(row);
+    }
+
+    private async Task<string?> ValidateLinkedPaymentRequestTransitionAsync(ApprovalRequest approval,ApprovalStatus target)
+    {
+        if(!string.Equals(approval.Reference_Type,PaymentRequestApprovalType,StringComparison.Ordinal)||!long.TryParse(approval.Reference_ID,out var requestId))return null;
+        var request=await _db.Payment_Requests.AsNoTracking().SingleOrDefaultAsync(x=>x.Payment_Request_ID==requestId&&x.Company_ID==Session().Company_ID);
+        if(request is null)return "طلب الصرف المرتبط غير موجود ضمن الشركة الحالية.";
+        return target switch
+        {
+            ApprovalStatus.UnderReview when request.Status!="PENDING_REVIEW"=>"حالة طلب الصرف المرتبط لا تسمح بالمراجعة.",
+            ApprovalStatus.Approved or ApprovalStatus.Rejected or ApprovalStatus.Returned when request.Status!="PENDING_APPROVAL"=>"حالة طلب الصرف المرتبط لا تسمح بالقرار النهائي.",
+            _=>null
+        };
+    }
+
+    private async Task SynchronizeLinkedPaymentRequestAsync(ApprovalRequest approval,ApprovalStatus target,string? reason)
+    {
+        if(!string.Equals(approval.Reference_Type,PaymentRequestApprovalType,StringComparison.Ordinal)||!long.TryParse(approval.Reference_ID,out var requestId))return;
+        var request=await _db.Payment_Requests.Include(x=>x.Details).SingleOrDefaultAsync(x=>x.Payment_Request_ID==requestId&&x.Company_ID==Session().Company_ID);if(request is null)return;
+        request.Status=target switch{ApprovalStatus.UnderReview=>"PENDING_APPROVAL",ApprovalStatus.Approved=>"APPROVED",ApprovalStatus.Rejected=>"REJECTED",ApprovalStatus.Returned=>"RETURNED",_=>request.Status};
+        request.Review_Reason=reason;request.Updated_By=Session().User_ID.ToString();request.Updated_At=DateTime.UtcNow;
+        if(target==ApprovalStatus.Approved)request.Approved_Local_Total=request.Details.Sum(x=>x.Local_Amount);
+        _audit.Add(Session(),HttpContext,"payment_requests",request.Payment_Request_ID.ToString(),$"APPROVAL_{target.ToString().ToUpperInvariant()}",null,new{request.Status,request.Approved_Local_Total},reason);
     }
 
     [HttpGet("limits")]
