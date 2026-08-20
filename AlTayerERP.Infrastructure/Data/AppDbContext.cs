@@ -151,6 +151,21 @@ namespace AlTayerERP.Infrastructure.Data
         public DbSet<PaymentRequestAttachment> Payment_Request_Attachments { get; set; } = null!;
         #endregion
 
+        /// <summary>
+        /// يدوّر رمز التزامن قبل الحفظ. يبقى الرمز الأصلي متابعاً لدى EF داخل
+        /// شرط UPDATE، ولذلك يفشل الحفظ المتأخر بدلاً من الكتابة فوق تغيير أحدث.
+        /// </summary>
+        public override Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess, CancellationToken cancellationToken = default)
+        {
+            foreach (var entry in ChangeTracker.Entries<PaymentRequest>()
+                         .Where(entry => entry.State == EntityState.Modified))
+            {
+                entry.Entity.RowVersion = Guid.NewGuid();
+            }
+
+            return base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
+        }
+
         #region إعداد الجداول والعلاقات باستخدام (Fluent API)
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -348,7 +363,7 @@ namespace AlTayerERP.Infrastructure.Data
                 entity.HasIndex(e => new { e.Status, e.Created_At })
                     .HasDatabaseName("IX_Idempotency_Record_Status_Created");
             });
-            modelBuilder.Entity<PaymentRequest>(entity => { entity.ToTable("payment_requests"); entity.HasKey(e=>e.Payment_Request_ID); entity.HasIndex(e=>new {e.Company_ID,e.Branch_ID,e.Fiscal_Year_ID,e.Request_No}).IsUnique(); entity.Property(e=>e.Approved_Local_Total).HasPrecision(19,4); entity.HasMany(e=>e.Details).WithOne(e=>e.PaymentRequest).HasForeignKey(e=>e.Payment_Request_ID).OnDelete(DeleteBehavior.Restrict); });
+            modelBuilder.Entity<PaymentRequest>(entity => { entity.ToTable("payment_requests"); entity.HasKey(e=>e.Payment_Request_ID); entity.HasIndex(e=>new {e.Company_ID,e.Branch_ID,e.Fiscal_Year_ID,e.Request_No}).IsUnique(); entity.Property(e=>e.Approved_Local_Total).HasPrecision(19,4); entity.Property(e => e.RowVersion).HasColumnType("char(36)").IsConcurrencyToken(); entity.HasMany(e=>e.Details).WithOne(e=>e.PaymentRequest).HasForeignKey(e=>e.Payment_Request_ID).OnDelete(DeleteBehavior.Restrict); });
             modelBuilder.Entity<PaymentRequestLine>(entity => { entity.ToTable("payment_request_lines"); entity.HasKey(e=>e.Payment_Request_Line_ID); entity.HasIndex(e=>new {e.Payment_Request_ID,e.Line_No}).IsUnique(); entity.Property(e=>e.Exchange_Rate).HasPrecision(19,8); entity.Property(e=>e.Foreign_Amount).HasPrecision(19,4); entity.Property(e=>e.Local_Amount).HasPrecision(19,4); });
             modelBuilder.Entity<PaymentRequestAttachment>(entity => { entity.ToTable("payment_request_attachments"); entity.HasKey(e=>e.Payment_Request_Attachment_ID); entity.HasIndex(e=>new {e.Payment_Request_ID,e.Is_Active}); });
 

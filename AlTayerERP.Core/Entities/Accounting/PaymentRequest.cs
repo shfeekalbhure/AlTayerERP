@@ -26,6 +26,10 @@ public sealed class PaymentRequest
     public DateTime Created_At { get; set; }=DateTime.UtcNow;
     public string? Updated_By { get; set; }
     public DateTime? Updated_At { get; set; }
+    /// <summary>
+    /// رمز تزامن تفاؤلي يتغير في كل تعديل ناجح لمنع الكتابة فوق تعديل أحدث.
+    /// </summary>
+    public Guid RowVersion { get; set; } = Guid.NewGuid();
     public List<PaymentRequestLine> Details { get; set; }=new();
 }
 [Table("payment_request_lines")]

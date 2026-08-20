@@ -229,6 +229,10 @@ public sealed class PaymentRequestsController : ControllerBase
 
         var row = await Scoped().SingleOrDefaultAsync(x => x.Payment_Request_ID == id);
         if (row == null) return NotFound(Error("PAYMENT_REQUEST_NOT_FOUND", "طلب الصرف غير موجود ضمن النطاق الحالي."));
+        // اختياري لحماية توافق عملاء سطح المكتب والجوال الأقدم؛ العملاء المحدثون
+        // يرسلون الرمز الذي استلموه من GET/POST لتلقي تعارض واضح قبل الحفظ.
+        if (dto.RowVersion.HasValue && dto.RowVersion.Value != row.RowVersion)
+            return Conflict(Error("PAYMENT_REQUEST_CONCURRENCY_CONFLICT", "تم تعديل طلب الصرف بواسطة مستخدم آخر. حدّث البيانات ثم أعد المحاولة."));
         if (row.Status is not ("DRAFT" or "RETURNED"))
             return Conflict(Error("PAYMENT_REQUEST_STATE_NOT_EDITABLE", "لا يعدل إلا طلب مسودة أو معاد."));
 
@@ -250,7 +254,14 @@ public sealed class PaymentRequestsController : ControllerBase
 
         _audit.Add(Session(), HttpContext, "payment_requests", id.ToString(), "UPDATE", before,
             new { row.Status, row.Beneficiary_Name, Lines = row.Details.Count });
-        await _db.SaveChangesAsync();
+        try
+        {
+            await _db.SaveChangesAsync();
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            return Conflict(Error("PAYMENT_REQUEST_CONCURRENCY_CONFLICT", "تم تعديل طلب الصرف بواسطة مستخدم آخر. حدّث البيانات ثم أعد المحاولة."));
+        }
         return Ok(row);
     }
 
@@ -671,6 +682,11 @@ public sealed class PaymentRequestsController : ControllerBase
         public int? Payment_Method_ID { get; set; }
         public string? Header_Reference_No { get; set; }
         public string? Description { get; set; }
+        /// <summary>
+        /// رمز التزامن الاختياري الذي يعاد من الخادم. غيابه يحافظ على توافق
+        /// العملاء القديمة، ووجوده يمنع الكتابة فوق نسخة أحدث من الطلب.
+        /// </summary>
+        public Guid? RowVersion { get; set; }
         public List<PaymentRequestLineDto> Lines { get; set; } = [];
     }
 

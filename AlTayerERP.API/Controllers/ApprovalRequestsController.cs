@@ -120,6 +120,61 @@ public sealed class ApprovalRequestsController : ControllerBase
         return row is null ? NotFound(new { message = "طلب الاعتماد غير موجود ضمن الشركة الحالية." }) : Ok(row);
     }
 
+    /// <summary>
+    /// يعرض تسلسل قرارات الاعتماد من سجل التدقيق المركزي، شاملاً صاحب القرار
+    /// ووقته وملاحظته. لا يعيد قيماً قديمة أو جديدة حساسة لا تحتاجها شاشة الاعتماد.
+    /// </summary>
+    [HttpGet("{id:int}/decision-log")]
+    public async Task<IActionResult> DecisionLog(int id)
+    {
+        var denial = await RequireAsync(ScreenOperation.View);
+        if (denial is not null) return denial;
+
+        var exists = await _db.Approval_Requests.AsNoTracking()
+            .AnyAsync(x => x.Approval_ID == id && x.Company_ID == Session().Company_ID);
+        if (!exists)
+            return NotFound(new { message = "طلب الاعتماد غير موجود ضمن الشركة الحالية." });
+
+        var actions = await _db.Audit_Logs.AsNoTracking()
+            .Where(x => x.Table_Name == "approval_requests" &&
+                        x.Record_ID == id.ToString() &&
+                        (x.Action_Type == "REVIEW" ||
+                         x.Action_Type == "APPROVE" ||
+                         x.Action_Type == "REJECT" ||
+                         x.Action_Type == "RETURN"))
+            .OrderByDescending(x => x.Action_At)
+            .ThenByDescending(x => x.Audit_ID)
+            .Take(200)
+            .ToListAsync();
+
+        var userIds = actions
+            .Select(x => x.User_ID)
+            .Where(x => int.TryParse(x, out _))
+            .Select(x => int.Parse(x!))
+            .Distinct()
+            .ToList();
+        var users = userIds.Count == 0
+            ? new Dictionary<int, string>()
+            : await _db.Users.AsNoTracking()
+                .Where(x => x.Company_ID == Session().Company_ID && userIds.Contains(x.User_ID))
+                .ToDictionaryAsync(x => x.User_ID, x => x.Full_Name);
+
+        string UserName(string? userId) =>
+            int.TryParse(userId, out var idValue) && users.TryGetValue(idValue, out var fullName)
+                ? fullName
+                : string.IsNullOrWhiteSpace(userId) ? "—" : userId;
+
+        return Ok(actions.Select(x => new
+        {
+            x.Audit_ID,
+            Decision = x.Action_Type,
+            Decision_By = UserName(x.User_ID),
+            x.Action_At,
+            Decision_Note = x.Notes,
+            x.Action_Channel
+        }));
+    }
+
     [HttpPost("{id:int}/review")]
     public Task<IActionResult> Review(int id, [FromBody] ApprovalDecisionRequest request) =>
         ChangeStatusAsync(id, new[] { ApprovalStatus.Pending.ToString() }, ApprovalStatus.UnderReview,
