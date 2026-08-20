@@ -61,6 +61,8 @@ public sealed class ReceiptVoucherHeaderDto
     public int PrintCount { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime? UpdatedAt { get; set; }
+    /// <summary>رمز التزامن المستلم مع نسخة السند المحمّلة للتعديل.</summary>
+    public Guid? RowVersion { get; set; }
     public string WorkflowStatus => IsPosted ? "مرحّل" : ApprovalStatus == 2 ? "معتمد" : ReviewStatus == 2 ? "تمت المراجعة" : ReviewStatus == 3 ? "معاد للتصحيح" : "مسودة";
 }
 

@@ -283,6 +283,7 @@ public partial class NewVoucherPage
         var dto = new UpdateMobileVoucherDto
         {
             Voucher_ID = _editVoucherId,
+            RowVersion = _editHeader?.RowVersion ?? _paymentEditHeader!.RowVersion,
             Voucher_Type_ID = _editHeader?.VoucherTypeId ?? _paymentEditHeader!.VoucherTypeId,
             Voucher_Status_ID = _editHeader?.VoucherStatusId ?? _paymentEditHeader!.VoucherStatusId,
             Voucher_Date = voucherDate.Date,

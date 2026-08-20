@@ -139,7 +139,7 @@ public sealed class VoucherEntryService(HttpClient httpClient, SessionStorageSer
         // نعرض فقط رسالة عربية قصيرة ومضبوطة صادرة من API؛ أما النص الخام
         // فيبقى في سجل التطوير حتى لا تظهر تفاصيل تقنية أو أسرار للمستخدم.
         var serverMessage = ExtractSafeServerMessage(developerDetails);
-        throw new InvalidOperationException(serverMessage ?? fallback);
+        throw MobileApiErrorHandler.CreateException(response, null, serverMessage ?? fallback);
     }
 
     private static string? ExtractSafeServerMessage(string payload)

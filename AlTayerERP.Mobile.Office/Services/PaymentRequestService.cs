@@ -106,6 +106,6 @@ public sealed class PaymentRequestService(HttpClient httpClient, SessionStorageS
         if (response.IsSuccessStatusCode) return;
 
         var raw = await response.Content.ReadAsStringAsync(cancellationToken);
-        throw new InvalidOperationException(MobileApiErrorHandler.FromPayload(raw, fallback));
+        throw MobileApiErrorHandler.CreateException(response, raw, fallback);
     }
 }

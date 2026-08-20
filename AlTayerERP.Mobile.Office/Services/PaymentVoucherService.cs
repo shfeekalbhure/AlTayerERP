@@ -1,6 +1,5 @@
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
-using System.Text.Json;
 using AlTayerERP.Mobile.Office.DTOs;
 
 namespace AlTayerERP.Mobile.Office.Services;
@@ -61,19 +60,6 @@ public sealed class PaymentVoucherService(HttpClient httpClient, SessionStorageS
     {
         if (response.IsSuccessStatusCode) return;
         var raw = await response.Content.ReadAsStringAsync(cancellationToken);
-        if (!string.IsNullOrWhiteSpace(raw))
-        {
-            try
-            {
-                using var json = JsonDocument.Parse(raw);
-                if (json.RootElement.TryGetProperty("message", out var message))
-                    throw new InvalidOperationException(message.GetString() ?? fallback);
-            }
-            catch (JsonException)
-            {
-                // نستخدم الرسالة الافتراضية عند عدم صلاحية JSON.
-            }
-        }
-        throw new InvalidOperationException(fallback);
+        throw MobileApiErrorHandler.CreateException(response, raw, fallback);
     }
 }

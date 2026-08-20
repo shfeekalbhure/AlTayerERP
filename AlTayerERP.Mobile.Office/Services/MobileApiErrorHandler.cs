@@ -30,6 +30,19 @@ public sealed class MobileApiErrorHandler(SessionStorageService sessionStorage)
     }
 
     /// <summary>
+    /// يحافظ على حالة HTTP عند تحويل الاستجابة إلى رسالة عربية آمنة. بذلك تستطيع
+    /// الواجهة تمييز انتهاء الجلسة والتعارض بدلاً من معاملتهما كخطأ عام.
+    /// </summary>
+    public static MobileApiException CreateException(
+        HttpResponseMessage response,
+        string? payload,
+        string fallback) =>
+        new(
+            response.StatusCode,
+            response.RequestMessage?.RequestUri?.ToString(),
+            FromPayload(payload, fallback));
+
+    /// <summary>
     /// يقبل الرسائل المعرفة صراحة داخل JSON فقط، ويعيد الرسالة البديلة عند وجود HTML
     /// أو نص وسيط أو تفاصيل تشغيلية. لا يعرض جسم HTTP الخام أبداً.
     /// </summary>
@@ -72,6 +85,9 @@ public sealed class MobileApiErrorHandler(SessionStorageService sessionStorage)
             sessionStorage.Clear();
             RedirectToLogin();
         }
+
+        if (exception is MobileApiException api && IsSafeLocalMessage(api.UserMessage))
+            return api.UserMessage;
 
         return errorType == ApiErrorType.Unknown && IsSafeLocalMessage(exception.Message)
             ? exception.Message
@@ -181,8 +197,12 @@ public sealed class MobileApiErrorHandler(SessionStorageService sessionStorage)
     }
 }
 
-public sealed class MobileApiException(HttpStatusCode statusCode, string? endpoint) : Exception()
+public sealed class MobileApiException(
+    HttpStatusCode statusCode,
+    string? endpoint,
+    string? userMessage = null) : Exception(userMessage)
 {
     public HttpStatusCode StatusCode { get; } = statusCode;
     public string? Endpoint { get; } = endpoint;
+    public string UserMessage { get; } = userMessage ?? string.Empty;
 }

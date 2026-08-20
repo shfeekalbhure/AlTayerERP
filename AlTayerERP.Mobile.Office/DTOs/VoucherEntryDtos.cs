@@ -103,6 +103,8 @@ public sealed class CreateDocumentAllocationDto
 public sealed class UpdateMobileVoucherDto
 {
     public long Voucher_ID { get; set; }
+    /// <summary>نسخة السند المقروءة؛ يعيد الخادم تعارضًا بدلاً من فقدان تعديل مستخدم آخر.</summary>
+    public Guid? RowVersion { get; set; }
     public int Voucher_Type_ID { get; set; }
     public int Voucher_Status_ID { get; set; }
     public string Branch_ID { get; set; } = string.Empty;

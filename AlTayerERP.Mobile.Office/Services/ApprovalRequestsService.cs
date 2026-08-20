@@ -74,6 +74,6 @@ public sealed class ApprovalRequestsService(HttpClient httpClient, SessionStorag
     {
         if (response.IsSuccessStatusCode) return;
         var raw = await response.Content.ReadAsStringAsync(cancellationToken);
-        throw new InvalidOperationException(MobileApiErrorHandler.FromPayload(raw, fallback));
+        throw MobileApiErrorHandler.CreateException(response, raw, fallback);
     }
 }

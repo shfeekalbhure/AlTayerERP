@@ -150,7 +150,9 @@ public sealed class MobileReceiptVouchersController : ControllerBase
             editCount = voucher.Edit_Count,
             printCount = voucher.Print_Count,
             createdAt = voucher.Created_At,
-            updatedAt = voucher.Updated_At
+            updatedAt = voucher.Updated_At,
+            // يعاد إلى العميل كي لا يكتب تعديل متأخر فوق نسخة أحدث من السند.
+            rowVersion = voucher.RowVersion
         };
 
         var details = await (

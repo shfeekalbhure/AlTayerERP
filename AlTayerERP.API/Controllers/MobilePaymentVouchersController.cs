@@ -128,7 +128,9 @@ public sealed class MobilePaymentVouchersController : ControllerBase
             isPosted = voucher.Is_Posted, journalEntryId = voucher.Journal_Entry_ID, approvalStatus = voucher.Approval_Status,
             reviewStatus = voucher.Review_Status, reviewNotes = voucher.Review_Notes, voucherTypeId = voucher.Voucher_Type_ID,
             voucherStatusId = voucher.Voucher_Status_ID, requiresApproval = voucher.Requires_Approval, editCount = voucher.Edit_Count,
-            printCount = voucher.Print_Count, createdAt = voucher.Created_At, updatedAt = voucher.Updated_At
+            printCount = voucher.Print_Count, createdAt = voucher.Created_At, updatedAt = voucher.Updated_At,
+            // يعاد إلى العميل كي لا يكتب تعديل متأخر فوق نسخة أحدث من السند.
+            rowVersion = voucher.RowVersion
         };
 
         var details = await (from d in _db.Financial_Voucher_Details.AsNoTracking()

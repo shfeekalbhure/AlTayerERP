@@ -637,6 +637,15 @@ namespace AlTayerERP.API.Controllers
 
             if (!result.Success)
             {
+                if (result.Message.Contains("من مستخدم آخر", StringComparison.Ordinal))
+                {
+                    return Conflict(new
+                    {
+                        success = false,
+                        message = result.Message
+                    });
+                }
+
                 return BadRequest(new
                 {
                     success = false,

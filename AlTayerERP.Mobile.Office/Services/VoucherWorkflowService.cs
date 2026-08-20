@@ -66,7 +66,7 @@ public sealed class VoucherWorkflowService(HttpClient httpClient, SessionStorage
         if (response.IsSuccessStatusCode) return;
 
         var raw = await response.Content.ReadAsStringAsync(cancellationToken);
-        throw new InvalidOperationException(MobileApiErrorHandler.FromPayload(raw, fallback));
+        throw MobileApiErrorHandler.CreateException(response, raw, fallback);
     }
 
     private static string? Clean(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
