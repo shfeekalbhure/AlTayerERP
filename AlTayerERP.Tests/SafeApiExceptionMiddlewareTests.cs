@@ -1,4 +1,5 @@
 using AlTayerERP.API.Controllers;
+using AlTayerERP.API.Middleware;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
@@ -17,7 +18,7 @@ public sealed class SafeApiExceptionMiddlewareTests
         var middleware = Activator.CreateInstance(
             middlewareType!,
             new RequestDelegate(_ => throw new InvalidOperationException("internal database detail")),
-            NullLoggerFactory.Instance.CreateLogger("exception-test"));
+            NullLogger<SafeApiExceptionMiddleware>.Instance);
         Assert.NotNull(middleware);
 
         var context = new DefaultHttpContext();

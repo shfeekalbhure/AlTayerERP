@@ -10,9 +10,11 @@ namespace AlTayerERP.API.Middleware;
 public sealed class SafeApiExceptionMiddleware
 {
     private readonly RequestDelegate _next;
-    private readonly ILogger _logger;
+    private readonly ILogger<SafeApiExceptionMiddleware> _logger;
 
-    public SafeApiExceptionMiddleware(RequestDelegate next, ILogger logger)
+    public SafeApiExceptionMiddleware(
+        RequestDelegate next,
+        ILogger<SafeApiExceptionMiddleware> logger)
     {
         _next = next;
         _logger = logger;
