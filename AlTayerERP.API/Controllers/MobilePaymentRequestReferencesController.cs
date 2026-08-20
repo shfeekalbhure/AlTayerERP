@@ -1,3 +1,4 @@
+using AlTayerERP.API.DTOs;
 using AlTayerERP.API.Services;
 using AlTayerERP.Infrastructure.Data;
 using Microsoft.AspNetCore.Authorization;
@@ -26,7 +27,10 @@ public sealed class MobilePaymentRequestReferencesController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<IActionResult> Get([FromQuery] string? type, CancellationToken cancellationToken)
+    public async Task<IActionResult> Get(
+        [FromQuery] string? type,
+        [FromQuery] bool includeLookupData = true,
+        CancellationToken cancellationToken = default)
     {
         var stage = "التحقق من جلسة المستخدم";
 
@@ -56,31 +60,32 @@ public sealed class MobilePaymentRequestReferencesController : ControllerBase
                     stage
                 });
 
-            stage = "تحميل الحسابات المحاسبية";
-            var accounts = await _db.Chart_Of_Accounts.AsNoTracking()
-                .Where(x => x.Company_ID == session.Company_ID && x.Is_Active && x.Is_Postable && !x.Is_Summary_Account)
-                .OrderBy(x => x.Account_Code)
-                .Select(x => new
-                {
-                    id = x.Account_ID,
-                    code = x.Account_Code,
-                    name = x.Account_Name_AR,
-                    displayName = x.Account_Code + " - " + x.Account_Name_AR
-                })
-                .ToListAsync(cancellationToken);
+            var accounts = new List<MobileReferenceLookupItemDto>();
+            var costCenters = new List<MobileReferenceLookupItemDto>();
+            if (includeLookupData)
+            {
+                stage = "تحميل الحسابات المحاسبية";
+                accounts = await _db.Chart_Of_Accounts.AsNoTracking()
+                    .Where(x => x.Company_ID == session.Company_ID && x.Is_Active && x.Is_Postable && !x.Is_Summary_Account)
+                    .OrderBy(x => x.Account_Code)
+                    .Select(x => new MobileReferenceLookupItemDto(
+                        x.Account_ID,
+                        x.Account_Code,
+                        x.Account_Name_AR,
+                        x.Account_Code + " - " + x.Account_Name_AR))
+                    .ToListAsync(cancellationToken);
 
-            stage = "تحميل مراكز التكلفة";
-            var costCenters = await _db.Cost_Centers.AsNoTracking()
-                .Where(x => x.Company_ID == session.Company_ID && x.Is_Active && x.Is_Postable)
-                .OrderBy(x => x.Center_Code)
-                .Select(x => new
-                {
-                    id = x.Cost_Center_ID,
-                    code = x.Center_Code,
-                    name = x.Center_Name_AR,
-                    displayName = x.Center_Code + " - " + x.Center_Name_AR
-                })
-                .ToListAsync(cancellationToken);
+                stage = "تحميل مراكز التكلفة";
+                costCenters = await _db.Cost_Centers.AsNoTracking()
+                    .Where(x => x.Company_ID == session.Company_ID && x.Is_Active && x.Is_Postable)
+                    .OrderBy(x => x.Center_Code)
+                    .Select(x => new MobileReferenceLookupItemDto(
+                        x.Cost_Center_ID,
+                        x.Center_Code,
+                        x.Center_Name_AR,
+                        x.Center_Code + " - " + x.Center_Name_AR))
+                    .ToListAsync(cancellationToken);
+            }
 
             stage = "تحميل العملات";
             var currencies = await _db.Currencies.AsNoTracking()
@@ -225,5 +230,111 @@ public sealed class MobilePaymentRequestReferencesController : ControllerBase
                 stage
             });
         }
+    }
+
+    [HttpGet("lookup")]
+    public async Task<IActionResult> Lookup(
+        [FromQuery] string? resource,
+        [FromQuery] string? search,
+        [FromQuery] int limit = MobileReferenceLookupPolicy.DefaultLimit,
+        CancellationToken cancellationToken = default)
+    {
+        if (HttpContext.Items["ServerSession"] is not ServerSession session)
+            return Unauthorized(new ApiErrorResponse(
+                "INVALID_SESSION",
+                "انتهت الجلسة أو أنها غير صالحة.",
+                HttpContext.TraceIdentifier));
+
+        var allowed = await _authorization.IsExplicitlyAllowedAsync(
+            session,
+            "PaymentRequest",
+            ScreenOperation.View,
+            cancellationToken);
+        if (!allowed)
+            return StatusCode(StatusCodes.Status403Forbidden, new ApiErrorResponse(
+                "ACCESS_DENIED",
+                "لا توجد الصلاحية المطلوبة لتحميل البيانات المرجعية.",
+                HttpContext.TraceIdentifier));
+
+        var normalizedResource = resource?.Trim().ToUpperInvariant();
+        var normalizedSearch = MobileReferenceLookupPolicy.NormalizeSearch(search);
+        var normalizedLimit = MobileReferenceLookupPolicy.NormalizeLimit(limit);
+
+        return normalizedResource switch
+        {
+            "ACCOUNT" or "ACCOUNTS" => Ok(await LookupAccountsAsync(session.Company_ID, normalizedSearch, normalizedLimit, cancellationToken)),
+            "COST_CENTER" or "COST_CENTERS" => Ok(await LookupCostCentersAsync(session.Company_ID, normalizedSearch, normalizedLimit, cancellationToken)),
+            "PARTY" or "PARTIES" => Ok(await LookupPartiesAsync(session.Company_ID, normalizedSearch, normalizedLimit, cancellationToken)),
+            _ => BadRequest(new ApiErrorResponse(
+                "INVALID_LOOKUP_RESOURCE",
+                "نوع البيانات المرجعية المطلوب غير مدعوم.",
+                HttpContext.TraceIdentifier))
+        };
+    }
+
+    private async Task<MobileReferenceLookupResponseDto> LookupAccountsAsync(
+        string companyId,
+        string search,
+        int limit,
+        CancellationToken cancellationToken)
+    {
+        var query = _db.Chart_Of_Accounts.AsNoTracking()
+            .Where(x => x.Company_ID == companyId && x.Is_Active && x.Is_Postable && !x.Is_Summary_Account);
+        if (!string.IsNullOrWhiteSpace(search))
+            query = query.Where(x => x.Account_Code.Contains(search) || x.Account_Name_AR.Contains(search));
+
+        var items = await query.OrderBy(x => x.Account_Code)
+            .Select(x => new MobileReferenceLookupItemDto(x.Account_ID, x.Account_Code, x.Account_Name_AR, x.Account_Code + " - " + x.Account_Name_AR))
+            .Take(limit + 1)
+            .ToListAsync(cancellationToken);
+
+        return BuildLookupResponse(items, limit, search);
+    }
+
+    private async Task<MobileReferenceLookupResponseDto> LookupCostCentersAsync(
+        string companyId,
+        string search,
+        int limit,
+        CancellationToken cancellationToken)
+    {
+        var query = _db.Cost_Centers.AsNoTracking()
+            .Where(x => x.Company_ID == companyId && x.Is_Active && x.Is_Postable);
+        if (!string.IsNullOrWhiteSpace(search))
+            query = query.Where(x => x.Center_Code.Contains(search) || x.Center_Name_AR.Contains(search));
+
+        var items = await query.OrderBy(x => x.Center_Code)
+            .Select(x => new MobileReferenceLookupItemDto(x.Cost_Center_ID, x.Center_Code, x.Center_Name_AR, x.Center_Code + " - " + x.Center_Name_AR))
+            .Take(limit + 1)
+            .ToListAsync(cancellationToken);
+
+        return BuildLookupResponse(items, limit, search);
+    }
+
+    private async Task<MobileReferenceLookupResponseDto> LookupPartiesAsync(
+        string companyId,
+        string search,
+        int limit,
+        CancellationToken cancellationToken)
+    {
+        var query = _db.Parties.AsNoTracking()
+            .Where(x => x.Company_ID == companyId && x.Is_Active);
+        if (!string.IsNullOrWhiteSpace(search))
+            query = query.Where(x => x.Party_Code.Contains(search) || x.Party_Name_AR.Contains(search));
+
+        var items = await query.OrderBy(x => x.Party_Name_AR)
+            .Select(x => new MobileReferenceLookupItemDto(x.Party_ID, x.Party_Code, x.Party_Name_AR, x.Party_Code + " - " + x.Party_Name_AR))
+            .Take(limit + 1)
+            .ToListAsync(cancellationToken);
+
+        return BuildLookupResponse(items, limit, search);
+    }
+
+    private static MobileReferenceLookupResponseDto BuildLookupResponse(
+        List<MobileReferenceLookupItemDto> items,
+        int limit,
+        string search)
+    {
+        var hasMore = items.Count > limit;
+        return new MobileReferenceLookupResponseDto(items.Take(limit).ToList(), limit, search, hasMore);
     }
 }

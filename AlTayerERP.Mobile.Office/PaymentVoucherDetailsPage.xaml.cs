@@ -77,7 +77,7 @@ public partial class PaymentVoucherDetailsPage : ContentPage
                 });
             }
         }
-        catch (Exception ex) { ShowMessage(ex.Message); }
+        catch (Exception ex) { ShowMessage(MobileApiErrorHandler.GetUserMessage(ex)); }
         finally { BusyIndicator.IsVisible = BusyIndicator.IsRunning = false; }
     }
 
@@ -149,7 +149,7 @@ public partial class PaymentVoucherDetailsPage : ContentPage
             await _service.RecordPrintAsync(_voucherId);
             await LoadAsync();
         }
-        catch (Exception ex) { ShowMessage(ex.Message); }
+        catch (Exception ex) { ShowMessage(MobileApiErrorHandler.GetUserMessage(ex)); }
         finally { BusyIndicator.IsVisible = BusyIndicator.IsRunning = false; }
     }
     private static ReceiptVoucherDetailsDto ToPrintableVoucher(PaymentVoucherDetailsDto source) => new()
@@ -179,7 +179,7 @@ public partial class PaymentVoucherDetailsPage : ContentPage
     {
         BusyIndicator.IsVisible = BusyIndicator.IsRunning = true; MessageLabel.IsVisible = false;
         try { await action(); await DisplayAlertAsync("تمت العملية", successMessage, "موافق"); if (reloadAfter) await LoadAsync(); }
-        catch (Exception ex) { ShowMessage(ex.Message); }
+        catch (Exception ex) { ShowMessage(MobileApiErrorHandler.GetUserMessage(ex)); }
         finally { BusyIndicator.IsVisible = BusyIndicator.IsRunning = false; }
     }
     private void ShowMessage(string message) { MessageLabel.Text = message; MessageLabel.IsVisible = true; }

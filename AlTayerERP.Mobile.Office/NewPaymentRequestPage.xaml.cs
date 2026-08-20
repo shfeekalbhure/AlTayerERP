@@ -50,9 +50,7 @@ public partial class NewPaymentRequestPage : ContentPage
         HideStatus();
         try
         {
-            _references = await _referenceService.GetAsync();
-            AccountPicker.ItemsSource = _references.Accounts;
-            CostCenterPicker.ItemsSource = _references.CostCenters;
+            _references = await _referenceService.GetAsync(includeLookupData: false);
             CurrencyPicker.ItemsSource = _references.Currencies;
             PaymentMethodPicker.ItemsSource = _references.PaymentMethods;
 
@@ -74,7 +72,7 @@ public partial class NewPaymentRequestPage : ContentPage
             _hasOpenPeriod = false;
             OpenPeriodLabel.Text = "تعذر تحميل الفترات المالية المفتوحة.";
             OpenPeriodLabel.TextColor = Color.FromArgb("#B42318");
-            ShowStatus(ex.Message);
+            ShowStatus(MobileApiErrorHandler.GetUserMessage(ex));
         }
         finally
         {
@@ -158,6 +156,78 @@ public partial class NewPaymentRequestPage : ContentPage
 
     private async void OnSaveDraftClicked(object? sender, EventArgs e) => await SaveAsync(false);
     private async void OnSaveAndSubmitClicked(object? sender, EventArgs e) => await SaveAsync(true);
+
+    private async void OnSelectAccountClicked(object? sender, EventArgs e)
+    {
+        var account = await SelectLookupReferenceAsync("اختيار الحساب المدين", "accounts");
+        if (account == null)
+            return;
+
+        AccountPicker.SelectedItem = account;
+        AccountSearchButton.Text = account.DisplayName;
+    }
+
+    private async void OnSelectCostCenterClicked(object? sender, EventArgs e)
+    {
+        var costCenter = await SelectLookupReferenceAsync("اختيار مركز التكلفة", "cost-centers", allowClear: true);
+        if (costCenter == null)
+            return;
+
+        CostCenterPicker.SelectedItem = costCenter.Id.Length == 0 ? null : costCenter;
+        CostCenterSearchButton.Text = costCenter.Id.Length == 0
+            ? "اختيار مركز التكلفة - اختياري 🔍"
+            : costCenter.DisplayName;
+    }
+
+    private async Task<PaymentRequestReferenceItemDto?> SelectLookupReferenceAsync(
+        string title,
+        string resource,
+        bool allowClear = false)
+    {
+        var search = await DisplayPromptAsync(title, "اكتب رمزاً أو اسماً للبحث (يمكن تركه فارغاً لأول النتائج):", "بحث", "إلغاء");
+        if (search == null)
+            return null;
+
+        SetBusy(true);
+        try
+        {
+            var lookup = await _referenceService.GetLookupAsync(resource, search, limit: 25);
+            var options = lookup.Items.Select(x => new VoucherOption(x.Id, x.DisplayName)).ToList();
+            if (options.Count == 0)
+            {
+                ShowStatus("لا توجد نتائج مطابقة. غيّر عبارة البحث وحاول مجدداً.");
+                return null;
+            }
+
+            var page = new SearchableVoucherOptionPage(title, options, allowClear);
+            await Navigation.PushModalAsync(new NavigationPage(page)
+            {
+                FlowDirection = FlowDirection.RightToLeft,
+                BarBackgroundColor = Color.FromArgb("#17324D"),
+                BarTextColor = Colors.White
+            });
+            var selected = await page.WaitForSelectionAsync();
+            if (selected == null)
+                return null;
+
+            return new PaymentRequestReferenceItemDto
+            {
+                Id = selected.Id,
+                DisplayName = selected.DisplayName,
+                Code = selected.DisplayName,
+                Name = selected.DisplayName
+            };
+        }
+        catch (Exception ex)
+        {
+            ShowStatus(MobileApiErrorHandler.GetUserMessage(ex));
+            return null;
+        }
+        finally
+        {
+            SetBusy(false);
+        }
+    }
 
     private void OnCurrencyChanged(object? sender, EventArgs e)
     {
@@ -350,7 +420,7 @@ public partial class NewPaymentRequestPage : ContentPage
         }
         catch (Exception ex)
         {
-            ShowStatus(ex.Message);
+            ShowStatus(MobileApiErrorHandler.GetUserMessage(ex));
         }
         finally
         {
@@ -362,6 +432,8 @@ public partial class NewPaymentRequestPage : ContentPage
     {
         AccountPicker.SelectedItem = null;
         CostCenterPicker.SelectedItem = null;
+        AccountSearchButton.Text = "اختيار الحساب المدين 🔍";
+        CostCenterSearchButton.Text = "اختيار مركز التكلفة - اختياري 🔍";
         CurrencyPicker.SelectedItem = _references?.Currencies.FirstOrDefault(x => x.IsDefault)
                                       ?? _references?.Currencies.FirstOrDefault(x => x.IsLocal)
                                       ?? _references?.Currencies.FirstOrDefault();

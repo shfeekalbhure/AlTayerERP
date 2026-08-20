@@ -108,6 +108,10 @@ public sealed class PaymentRequestAttachmentsController : ControllerBase
         if (file == null || file.Length == 0 || file.Length > 20 * 1024 * 1024)
             return BadRequest(new { message = "ملف المرفق غير صالح أو يتجاوز 20MB." });
 
+        var validation = await AttachmentUploadPolicy.ValidateAsync(file, HttpContext.RequestAborted);
+        if (!validation.IsValid)
+            return BadRequest(new { message = validation.Message });
+
         var session = Session();
         var safeName = Path.GetFileName(file.FileName);
         var storageKey = Path.Combine(
@@ -131,7 +135,7 @@ public sealed class PaymentRequestAttachmentsController : ControllerBase
             Fiscal_Year_ID = session.Year_ID,
             Original_File_Name = safeName,
             Storage_Key = storageKey,
-            Content_Type = string.IsNullOrWhiteSpace(file.ContentType) ? "application/octet-stream" : file.ContentType,
+            Content_Type = validation.ContentType!,
             File_Size = file.Length,
             Created_By = session.User_ID.ToString(),
             Created_At = DateTime.UtcNow,

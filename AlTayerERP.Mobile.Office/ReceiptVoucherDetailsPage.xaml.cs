@@ -84,7 +84,7 @@ public partial class ReceiptVoucherDetailsPage : ContentPage
         }
         catch (Exception ex)
         {
-            ShowMessage(ex.Message);
+            ShowMessage(MobileApiErrorHandler.GetUserMessage(ex));
         }
         finally
         {
@@ -176,7 +176,7 @@ public partial class ReceiptVoucherDetailsPage : ContentPage
         }
         catch (Exception ex)
         {
-            ShowMessage(ex.Message);
+            ShowMessage(MobileApiErrorHandler.GetUserMessage(ex));
         }
         finally
         {
@@ -208,7 +208,7 @@ public partial class ReceiptVoucherDetailsPage : ContentPage
         }
         catch (Exception ex)
         {
-            ShowMessage(ex.Message);
+            ShowMessage(MobileApiErrorHandler.GetUserMessage(ex));
         }
         finally
         {
@@ -234,7 +234,7 @@ public partial class ReceiptVoucherDetailsPage : ContentPage
         }
         catch (Exception ex)
         {
-            ShowMessage(ex.Message);
+            ShowMessage(MobileApiErrorHandler.GetUserMessage(ex));
         }
         finally
         {

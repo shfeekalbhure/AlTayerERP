@@ -17,6 +17,14 @@ public sealed class PaymentRequestReferenceItemDto
     public string DisplayName { get; set; } = string.Empty;
 }
 
+public sealed class PaymentRequestReferenceLookupDto
+{
+    public List<PaymentRequestReferenceItemDto> Items { get; set; } = [];
+    public int Limit { get; set; }
+    public string Search { get; set; } = string.Empty;
+    public bool HasMore { get; set; }
+}
+
 public sealed class PaymentRequestMethodDto
 {
     public int Id { get; set; }

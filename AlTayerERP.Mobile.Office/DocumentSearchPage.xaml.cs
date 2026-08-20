@@ -48,7 +48,7 @@ public partial class DocumentSearchPage : ContentPage
         }
         catch (Exception ex)
         {
-            ShowMessage(ex.Message);
+            ShowMessage(MobileApiErrorHandler.GetUserMessage(ex));
         }
         finally
         {

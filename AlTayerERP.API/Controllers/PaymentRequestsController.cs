@@ -1,5 +1,6 @@
 using AlTayerERP.API.Services;
 using AlTayerERP.API.Services.Accounting;
+using AlTayerERP.API.DTOs;
 using AlTayerERP.Core.Entities;
 using AlTayerERP.Core.Entities.Accounting;
 using AlTayerERP.Infrastructure.Data;
@@ -43,6 +44,12 @@ public sealed class PaymentRequestsController : ControllerBase
         HttpContext.Items["ServerSession"] as ServerSession
         ?? throw new InvalidOperationException("جلسة الخادم غير متاحة.");
 
+    private ApiErrorResponse Error(string code, string? message) =>
+        new ApiErrorResponse(
+            code,
+            string.IsNullOrWhiteSpace(message) ? "تعذر إتمام العملية. راجع البيانات ثم أعد المحاولة." : message,
+            HttpContext.TraceIdentifier);
+
     private async Task<IActionResult?> Allow(ScreenOperation operation) =>
         await _auth.IsExplicitlyAllowedAsync(Session(), "PaymentRequest", operation)
             ? null
@@ -77,7 +84,9 @@ public sealed class PaymentRequestsController : ControllerBase
         if (denial != null) return denial;
 
         var request = await Scoped().AsNoTracking().SingleOrDefaultAsync(x => x.Payment_Request_ID == id);
-        return request == null ? NotFound() : Ok(request);
+        return request == null
+            ? NotFound(Error("PAYMENT_REQUEST_NOT_FOUND", "طلب الصرف غير موجود ضمن النطاق الحالي."))
+            : Ok(request);
     }
 
     [HttpPost]
@@ -87,10 +96,10 @@ public sealed class PaymentRequestsController : ControllerBase
         if (denial != null) return denial;
 
         var validation = await Validate(dto);
-        if (validation != null) return BadRequest(new { message = validation });
+        if (validation != null) return BadRequest(Error("PAYMENT_REQUEST_VALIDATION_FAILED", validation));
 
         if (!TryGetIdempotencyKey(out var idempotencyKey, out var idempotencyError))
-            return BadRequest(new { message = idempotencyError });
+            return BadRequest(Error("IDEMPOTENCY_KEY_INVALID", idempotencyError));
 
         // يظل سطح المكتب والعملاء الأقدم متوافقين إن لم يرسلوا الرأس الاختياري.
         if (string.IsNullOrWhiteSpace(idempotencyKey))
@@ -101,7 +110,7 @@ public sealed class PaymentRequestsController : ControllerBase
             }
             catch (NumberingException ex)
             {
-                return BadRequest(new { message = ex.Message });
+                return BadRequest(Error("PAYMENT_REQUEST_NUMBERING_FAILED", ex.Message));
             }
         }
 
@@ -123,13 +132,13 @@ public sealed class PaymentRequestsController : ControllerBase
             if (begin.State == IdempotencyBeginState.PayloadMismatch)
             {
                 await transaction.RollbackAsync(cancellationToken);
-                return Conflict(new { message = "تم استخدام مفتاح حفظ طلب الصرف نفسه مع بيانات مختلفة." });
+                return Conflict(Error("IDEMPOTENCY_KEY_PAYLOAD_MISMATCH", "تم استخدام مفتاح حفظ طلب الصرف نفسه مع بيانات مختلفة."));
             }
 
             if (begin.State is IdempotencyBeginState.InProgress or IdempotencyBeginState.Contended)
             {
                 await transaction.RollbackAsync(cancellationToken);
-                return Conflict(new { message = "طلب الصرف ما زال قيد المعالجة. أعد المحاولة بالمفتاح نفسه بعد لحظات." });
+                return Conflict(Error("IDEMPOTENCY_IN_PROGRESS", "طلب الصرف ما زال قيد المعالجة. أعد المحاولة بالمفتاح نفسه بعد لحظات."));
             }
 
             if (begin.State == IdempotencyBeginState.Completed)
@@ -139,7 +148,7 @@ public sealed class PaymentRequestsController : ControllerBase
                     x => x.Payment_Request_ID == begin.Record.Resource_ID,
                     cancellationToken);
                 return existing == null
-                    ? Conflict(new { message = "تمت معالجة الطلب سابقاً، لكن لا يمكن استعادة نتيجته ضمن نطاق الجلسة الحالية." })
+                    ? Conflict(Error("IDEMPOTENCY_RESULT_NOT_FOUND", "تمت معالجة الطلب سابقاً، لكن لا يمكن استعادة نتيجته ضمن نطاق الجلسة الحالية."))
                     : Ok(existing);
             }
 
@@ -155,20 +164,18 @@ public sealed class PaymentRequestsController : ControllerBase
         catch (NumberingException ex)
         {
             await transaction.RollbackAsync(cancellationToken);
-            return BadRequest(new { message = ex.Message });
+            return BadRequest(Error("PAYMENT_REQUEST_NUMBERING_FAILED", ex.Message));
         }
         catch (DbUpdateException)
         {
             await transaction.RollbackAsync(cancellationToken);
-            return Conflict(new { message = "تعذر حجز رقم طلب الصرف بسبب عملية متزامنة. أعد المحاولة بالمفتاح نفسه." });
+            return Conflict(Error("PAYMENT_REQUEST_NUMBER_CONTENTION", "تعذر حجز رقم طلب الصرف بسبب عملية متزامنة. أعد المحاولة بالمفتاح نفسه."));
         }
         catch
         {
             await transaction.RollbackAsync(cancellationToken);
-            return StatusCode(StatusCodes.Status500InternalServerError, new
-            {
-                message = "تعذر حفظ طلب الصرف حالياً. تحقق من حالة الطلب قبل إعادة المحاولة."
-            });
+            return StatusCode(StatusCodes.Status500InternalServerError,
+                Error("PAYMENT_REQUEST_CREATE_FAILED", "تعذر حفظ طلب الصرف حالياً. تحقق من حالة الطلب قبل إعادة المحاولة."));
         }
     }
 
@@ -221,12 +228,12 @@ public sealed class PaymentRequestsController : ControllerBase
         if (denial != null) return denial;
 
         var row = await Scoped().SingleOrDefaultAsync(x => x.Payment_Request_ID == id);
-        if (row == null) return NotFound();
+        if (row == null) return NotFound(Error("PAYMENT_REQUEST_NOT_FOUND", "طلب الصرف غير موجود ضمن النطاق الحالي."));
         if (row.Status is not ("DRAFT" or "RETURNED"))
-            return Conflict(new { message = "لا يعدل إلا طلب مسودة أو معاد." });
+            return Conflict(Error("PAYMENT_REQUEST_STATE_NOT_EDITABLE", "لا يعدل إلا طلب مسودة أو معاد."));
 
         var validation = await Validate(dto);
-        if (validation != null) return BadRequest(new { message = validation });
+        if (validation != null) return BadRequest(Error("PAYMENT_REQUEST_VALIDATION_FAILED", validation));
 
         var before = new { row.Beneficiary_Name, row.Status, row.Approved_Local_Total };
         row.Beneficiary_Name = dto.Beneficiary_Name.Trim();
@@ -262,19 +269,19 @@ public sealed class PaymentRequestsController : ControllerBase
         var denial = await Allow(ScreenOperation.Approve);
         if (denial != null) return denial;
         if (string.IsNullOrWhiteSpace(dto?.Reason))
-            return BadRequest(new { message = "سبب الاعتماد إلزامي." });
+            return BadRequest(Error("APPROVAL_REASON_REQUIRED", "سبب الاعتماد إلزامي."));
 
         var row = await Scoped().SingleOrDefaultAsync(x => x.Payment_Request_ID == id);
-        if (row == null) return NotFound();
+        if (row == null) return NotFound(Error("PAYMENT_REQUEST_NOT_FOUND", "طلب الصرف غير موجود ضمن النطاق الحالي."));
         if (row.Status != "PENDING_APPROVAL")
-            return Conflict(new { message = "الحالة الحالية لا تسمح بالاعتماد." });
+            return Conflict(Error("PAYMENT_REQUEST_STATE_CONFLICT", "الحالة الحالية لا تسمح بالاعتماد."));
         if (IsRequester(row))
-            return Conflict(new { message = "لا يمكن لمقدم الطلب تنفيذ قرار على طلبه. اختر مستخدماً مخولاً آخر." });
+            return Conflict(Error("SEGREGATION_OF_DUTIES", "لا يمكن لمقدم الطلب تنفيذ قرار على طلبه. اختر مستخدماً مخولاً آخر."));
 
         var amount = row.Details.Sum(x => x.Local_Amount);
         var limit = await FindFinancialLimitAsync(row);
         if (limit != null && amount > limit.Limit_Amount - limit.Used_Amount)
-            return Conflict(new { message = "المبلغ يتجاوز السقف المالي المتاح." });
+            return Conflict(Error("FINANCIAL_LIMIT_EXCEEDED", "المبلغ يتجاوز السقف المالي المتاح."));
 
         row.Status = "APPROVED";
         row.Approved_Local_Total = amount;
@@ -302,7 +309,7 @@ public sealed class PaymentRequestsController : ControllerBase
         var denial = await Allow(ScreenOperation.Add);
         if (denial != null) return denial;
         if (string.IsNullOrWhiteSpace(dto.Cash_Account_ID))
-            return BadRequest(new { message = "الصندوق/البنك الدائن مطلوب." });
+            return BadRequest(Error("PAYMENT_VOUCHER_CASH_ACCOUNT_REQUIRED", "الصندوق/البنك الدائن مطلوب."));
 
         await using var transaction = await _db.Database.BeginTransactionAsync(
             System.Data.IsolationLevel.Serializable);
@@ -310,19 +317,19 @@ public sealed class PaymentRequestsController : ControllerBase
         {
             var session = Session();
             var row = await Scoped().SingleOrDefaultAsync(x => x.Payment_Request_ID == id);
-            if (row == null) return NotFound();
+            if (row == null) return NotFound(Error("PAYMENT_REQUEST_NOT_FOUND", "طلب الصرف غير موجود ضمن النطاق الحالي."));
             if (row.Status != "APPROVED" || row.Payment_Voucher_ID.HasValue)
-                return Conflict(new { message = "لا ينشأ سند الصرف إلا مرة واحدة من طلب معتمد." });
+                return Conflict(Error("PAYMENT_VOUCHER_ALREADY_CREATED", "لا ينشأ سند الصرف إلا مرة واحدة من طلب معتمد."));
             if (!row.Payment_Method_ID.HasValue)
-                return Conflict(new { message = "طلب الصرف لا يحتوي طريقة سداد صالحة." });
+                return Conflict(Error("PAYMENT_METHOD_INVALID", "طلب الصرف لا يحتوي طريقة سداد صالحة."));
 
             var local = row.Details.Sum(x => x.Local_Amount);
             if (local <= 0 || local > row.Approved_Local_Total)
-                return Conflict(new { message = "مبلغ السند يجب أن يكون موجباً وألا يتجاوز المبلغ المعتمد." });
+                return Conflict(Error("PAYMENT_VOUCHER_AMOUNT_INVALID", "مبلغ السند يجب أن يكون موجباً وألا يتجاوز المبلغ المعتمد."));
 
             var limit = await FindFinancialLimitAsync(row);
             if (limit != null && local > limit.Limit_Amount - limit.Used_Amount)
-                return Conflict(new { message = "السقف المالي لم يعد متاحاً لإنشاء سند الصرف." });
+                return Conflict(Error("FINANCIAL_LIMIT_UNAVAILABLE", "السقف المالي لم يعد متاحاً لإنشاء سند الصرف."));
 
             var type = await _db.Voucher_Types
                 .Where(x => x.Is_Active && x.Voucher_Type_Code == "PAYMENT")
@@ -397,7 +404,7 @@ public sealed class PaymentRequestsController : ControllerBase
             if (!result.Success)
             {
                 await transaction.RollbackAsync();
-                return BadRequest(new { message = result.Message });
+                return BadRequest(Error("PAYMENT_VOUCHER_CREATE_FAILED", result.Message));
             }
 
             row.Payment_Voucher_ID = result.VoucherId;
@@ -435,8 +442,8 @@ public sealed class PaymentRequestsController : ControllerBase
         catch
         {
             await transaction.RollbackAsync();
-            return Problem("تعذر إنشاء سند الصرف؛ لم يتم تسجيل أي تعديل.",
-                statusCode: StatusCodes.Status500InternalServerError);
+            return StatusCode(StatusCodes.Status500InternalServerError,
+                Error("PAYMENT_VOUCHER_CREATE_FAILED", "تعذر إنشاء سند الصرف؛ لم يتم تسجيل أي تعديل."));
         }
     }
 
@@ -452,14 +459,14 @@ public sealed class PaymentRequestsController : ControllerBase
         var denial = await Allow(operation);
         if (denial != null) return denial;
         if (reasonRequired && string.IsNullOrWhiteSpace(reason))
-            return BadRequest(new { message = "سبب الإجراء إلزامي." });
+            return BadRequest(Error("ACTION_REASON_REQUIRED", "سبب الإجراء إلزامي."));
 
         var row = await Scoped().SingleOrDefaultAsync(x => x.Payment_Request_ID == id);
-        if (row == null) return NotFound();
+        if (row == null) return NotFound(Error("PAYMENT_REQUEST_NOT_FOUND", "طلب الصرف غير موجود ضمن النطاق الحالي."));
         if (row.Status != from)
-            return Conflict(new { message = "الحالة الحالية لا تسمح بهذه العملية." });
+            return Conflict(Error("STATE_TRANSITION_NOT_ALLOWED", "الحالة الحالية لا تسمح بهذه العملية."));
         if ((operation is ScreenOperation.Approve or ScreenOperation.Unapprove) && IsRequester(row))
-            return Conflict(new { message = "لا يمكن لمقدم الطلب تنفيذ قرار على طلبه. اختر مستخدماً مخولاً آخر." });
+            return Conflict(Error("SEGREGATION_OF_DUTIES", "لا يمكن لمقدم الطلب تنفيذ قرار على طلبه. اختر مستخدماً مخولاً آخر."));
 
         row.Status = to;
         row.Review_Reason = Text(reason);
@@ -538,7 +545,7 @@ public sealed class PaymentRequestsController : ControllerBase
 
     private Task<IActionResult> Close(long id, string to, ReasonDto dto, string action) =>
         string.IsNullOrWhiteSpace(dto?.Reason)
-            ? Task.FromResult<IActionResult>(BadRequest(new { message = "السبب إلزامي." }))
+            ? Task.FromResult<IActionResult>(BadRequest(Error("ACTION_REASON_REQUIRED", "السبب إلزامي.")))
             : Transition(id, "PENDING_APPROVAL", to, ScreenOperation.Unapprove,
                 dto.Reason, action, true);
 

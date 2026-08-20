@@ -15,6 +15,7 @@ public sealed class MobileWorkflowErrorSanitizationTests
         {
             "ApprovalRequestsService.cs",
             "PaymentRequestService.cs",
+            "PaymentRequestReferenceService.cs",
             "VoucherWorkflowService.cs"
         };
 
@@ -22,6 +23,26 @@ public sealed class MobileWorkflowErrorSanitizationTests
         {
             var source = File.ReadAllText(Path.Combine(root, "AlTayerERP.Mobile.Office", "Services", service));
             Assert.Contains("MobileApiErrorHandler.FromPayload", source, StringComparison.Ordinal);
+        }
+    }
+
+    [Fact]
+    public void Maui_pages_do_not_present_raw_exception_messages()
+    {
+        var root = FindRepositoryRoot();
+        var mobileProject = Path.Combine(root, "AlTayerERP.Mobile.Office");
+        var pageSources = Directory
+            .EnumerateFiles(mobileProject, "*.cs", SearchOption.TopDirectoryOnly)
+            .Where(path => Path.GetFileName(path).Contains("Page", StringComparison.Ordinal))
+            .ToArray();
+
+        Assert.NotEmpty(pageSources);
+
+        foreach (var pageSource in pageSources)
+        {
+            var source = File.ReadAllText(pageSource);
+            Assert.DoesNotContain("ex.Message", source, StringComparison.Ordinal);
+            Assert.DoesNotContain("exception.Message", source, StringComparison.Ordinal);
         }
     }
 

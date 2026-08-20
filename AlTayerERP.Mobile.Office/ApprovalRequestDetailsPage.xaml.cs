@@ -50,7 +50,7 @@ public partial class ApprovalRequestDetailsPage : ContentPage
         }
         catch (Exception ex)
         {
-            ShowError(ex.Message);
+            ShowError(MobileApiErrorHandler.GetUserMessage(ex));
         }
         finally
         {
@@ -104,7 +104,7 @@ public partial class ApprovalRequestDetailsPage : ContentPage
         }
         catch (Exception ex)
         {
-            ShowError(ex.Message);
+            ShowError(MobileApiErrorHandler.GetUserMessage(ex));
         }
         finally
         {

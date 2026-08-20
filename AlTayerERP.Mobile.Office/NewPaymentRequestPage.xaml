@@ -28,8 +28,10 @@
 
             <Label Text="إضافة سطر صرف" FontSize="18" FontAttributes="Bold" TextColor="#17324D" Margin="0,8,0,0" />
 
-            <Picker x:Name="AccountPicker" Title="اختر الحساب المدين" TextColor="#17324D" TitleColor="#7A8896" BackgroundColor="White" ItemDisplayBinding="{Binding DisplayName}" />
-            <Picker x:Name="CostCenterPicker" Title="اختر مركز التكلفة - اختياري" TextColor="#17324D" TitleColor="#7A8896" BackgroundColor="White" ItemDisplayBinding="{Binding DisplayName}" />
+            <Button x:Name="AccountSearchButton" Text="اختيار الحساب المدين 🔍" HeightRequest="48" CornerRadius="12" BackgroundColor="White" TextColor="#17324D" BorderColor="#D9E2EC" BorderWidth="1" Clicked="OnSelectAccountClicked" />
+            <Button x:Name="CostCenterSearchButton" Text="اختيار مركز التكلفة - اختياري 🔍" HeightRequest="48" CornerRadius="12" BackgroundColor="White" TextColor="#17324D" BorderColor="#D9E2EC" BorderWidth="1" Clicked="OnSelectCostCenterClicked" />
+            <Picker x:Name="AccountPicker" IsVisible="False" ItemDisplayBinding="{Binding DisplayName}" />
+            <Picker x:Name="CostCenterPicker" IsVisible="False" ItemDisplayBinding="{Binding DisplayName}" />
             <Picker x:Name="CurrencyPicker" Title="اختر العملة" TextColor="#17324D" TitleColor="#7A8896" BackgroundColor="White" ItemDisplayBinding="{Binding DisplayName}" SelectedIndexChanged="OnCurrencyChanged" />
             <Entry x:Name="ExchangeRateEntry" Placeholder="سعر الصرف" Keyboard="Numeric" Text="1" TextColor="#17324D" PlaceholderColor="#7A8896" BackgroundColor="White" />
             <Entry x:Name="ForeignAmountEntry" Placeholder="المبلغ الأجنبي - صفر للعملة المحلية" Keyboard="Numeric" Text="0" TextColor="#17324D" PlaceholderColor="#7A8896" BackgroundColor="White" TextChanged="OnForeignAmountChanged" />

@@ -30,7 +30,7 @@ public partial class PaymentRequestAttachmentsPage : ContentPage
         }
         catch (Exception ex)
         {
-            ShowStatus(ex.Message);
+            ShowStatus(MobileApiErrorHandler.GetUserMessage(ex));
         }
         finally
         {
@@ -57,7 +57,7 @@ public partial class PaymentRequestAttachmentsPage : ContentPage
         }
         catch (Exception ex)
         {
-            ShowStatus(ex.Message);
+            ShowStatus(MobileApiErrorHandler.GetUserMessage(ex));
         }
         finally
         {
@@ -82,7 +82,7 @@ public partial class PaymentRequestAttachmentsPage : ContentPage
         }
         catch (Exception ex)
         {
-            ShowStatus(ex.Message);
+            ShowStatus(MobileApiErrorHandler.GetUserMessage(ex));
         }
     }
 
@@ -110,7 +110,7 @@ public partial class PaymentRequestAttachmentsPage : ContentPage
         }
         catch (Exception ex)
         {
-            ShowStatus(ex.Message);
+            ShowStatus(MobileApiErrorHandler.GetUserMessage(ex));
         }
     }
 

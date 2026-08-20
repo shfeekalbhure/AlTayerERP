@@ -42,7 +42,7 @@ public partial class PaymentRequestsPage : ContentPage
         }
         catch (Exception ex)
         {
-            await DisplayAlertAsync("تعذر التحميل", ex.Message, "موافق");
+            await DisplayAlertAsync("تعذر التحميل", MobileApiErrorHandler.GetUserMessage(ex), "موافق");
         }
         finally
         {

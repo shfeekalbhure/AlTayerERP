@@ -81,7 +81,7 @@ public partial class HomePage : ContentPage
         }
         catch (Exception ex)
         {
-            PermissionsStatusLabel.Text = ex.Message;
+            PermissionsStatusLabel.Text = MobileApiErrorHandler.GetUserMessage(ex);
             PermissionsStatusLabel.TextColor = Color.FromArgb("#B42318");
         }
         finally

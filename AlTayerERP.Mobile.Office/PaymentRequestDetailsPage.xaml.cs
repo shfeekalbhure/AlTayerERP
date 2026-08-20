@@ -79,7 +79,7 @@ public partial class PaymentRequestDetailsPage : ContentPage
         }
         catch (Exception ex)
         {
-            ShowMessage(ex.Message);
+            ShowMessage(MobileApiErrorHandler.GetUserMessage(ex));
         }
         finally
         {
@@ -132,7 +132,7 @@ public partial class PaymentRequestDetailsPage : ContentPage
         }
         catch (Exception ex)
         {
-            ShowMessage(ex.Message);
+            ShowMessage(MobileApiErrorHandler.GetUserMessage(ex));
         }
         finally
         {
@@ -192,7 +192,7 @@ public partial class PaymentRequestDetailsPage : ContentPage
             await DisplayAlertAsync("تمت العملية", successMessage, "موافق");
             await LoadAsync();
         }
-        catch (Exception ex) { ShowMessage(ex.Message); }
+        catch (Exception ex) { ShowMessage(MobileApiErrorHandler.GetUserMessage(ex)); }
         finally { SetBusy(false); }
     }
 
