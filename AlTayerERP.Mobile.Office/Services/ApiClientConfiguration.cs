@@ -186,11 +186,20 @@ public sealed class ApiClientConfiguration
     private static string NormalizeWifiAddress(string? value)
     {
         var address = (value ?? string.Empty).Trim();
-        if (address.StartsWith("http://", StringComparison.OrdinalIgnoreCase))
-            address = address[7..];
-        if (address.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
-            address = address[8..];
-        return address.TrimEnd('/');
+        if (string.IsNullOrWhiteSpace(address))
+            return string.Empty;
+
+        var candidate = address.Contains("://", StringComparison.Ordinal)
+            ? address
+            : $"http://{address}";
+
+        if (!Uri.TryCreate(candidate, UriKind.Absolute, out var uri) || string.IsNullOrWhiteSpace(uri.Host))
+            return address.TrimEnd('/');
+
+        // حقل المنفذ مستقل في الواجهة؛ نحتفظ بالمضيف فقط حتى لا ينتج عنوان مثل host:5021:5021.
+        return uri.HostNameType == UriHostNameType.IPv6
+            ? $"[{uri.Host}]"
+            : uri.Host;
     }
 
     internal static ApiErrorType Classify(Exception exception) => exception switch

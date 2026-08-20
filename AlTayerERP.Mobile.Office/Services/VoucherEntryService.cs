@@ -30,7 +30,7 @@ public sealed class VoucherEntryService(HttpClient httpClient, SessionStorageSer
         }
         catch (HttpRequestException ex)
         {
-            throw new InvalidOperationException($"تعذر الاتصال بخادم القوائم: {ex.Message}", ex);
+            throw new InvalidOperationException("تعذر الاتصال بخادم القوائم. تحقق من إعداد الاتصال ثم أعد المحاولة.", ex);
         }
         catch (TaskCanceledException ex) when (!cancellationToken.IsCancellationRequested)
         {
@@ -52,7 +52,7 @@ public sealed class VoucherEntryService(HttpClient httpClient, SessionStorageSer
             }
             catch (JsonException ex)
             {
-                throw new InvalidOperationException($"تعذر قراءة بيانات منسدلات السند: {ex.Message}");
+                throw new InvalidOperationException("تعذر قراءة بيانات منسدلات السند القادمة من الخادم.", ex);
             }
 
             if (result == null)
@@ -76,10 +76,7 @@ public sealed class VoucherEntryService(HttpClient httpClient, SessionStorageSer
             if (allCoreListsEmpty)
             {
                 throw new InvalidOperationException(
-                    $"لم تصل أي بيانات للمنسدلات. الشركة: {session.CompanyId}، الفرع: {session.BranchId}، السنة: {session.YearId}. " +
-                    $"الصناديق/البنوك: {result.Sources.Count}، الحسابات: {result.Accounts.Count}، العملات: {result.Currencies.Count}، " +
-                    $"الأطراف: {result.Parties.Count}، طرق السداد: {result.PaymentMethods.Count}. " +
-                    "تأكد أن الـAPI الذي يعمل هو آخر نسخة وأنه متصل بقاعدة altayer_erp_db.");
+                    "لم تصل بيانات كافية لإدخال السند. تحقق من صلاحيات المستخدم وربط الشركة والفرع والسنة المالية، ثم أعد تحميل البيانات.");
             }
 
             return result;
