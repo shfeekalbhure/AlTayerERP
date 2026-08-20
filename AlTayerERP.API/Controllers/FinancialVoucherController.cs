@@ -511,6 +511,78 @@ namespace AlTayerERP.API.Controllers
         }
 
         /// <summary>
+        /// عرض مختصر متوافق للسند المالي، مخصص للقوائم والشاشات التي لا تحتاج
+        /// تفاصيل القيد أو بيانات سجل العمليات والتدقيق الداخلي.
+        /// </summary>
+        [HttpGet("{voucherId:long}/summary")]
+        public async Task<IActionResult> GetSummary(long voucherId)
+        {
+            var permissionFailure = await RequireReceiptVoucherPermissionAsync(
+                ScreenOperation.View, voucherId: voucherId);
+            if (permissionFailure != null)
+            {
+                return permissionFailure;
+            }
+
+            if (voucherId <= 0)
+            {
+                return BadRequest(new
+                {
+                    success = false,
+                    message = "معرف السند غير صحيح."
+                });
+            }
+
+            var voucher = await _service.GetByIdAsync(voucherId);
+            var session = GetServerSession();
+            if (voucher == null ||
+                !string.Equals(voucher.Branch_ID, session.Branch_ID.ToString(), StringComparison.Ordinal) ||
+                voucher.Fiscal_Year_ID != session.Year_ID)
+            {
+                return NotFound(new
+                {
+                    success = false,
+                    message = "السند المالي غير موجود ضمن الشركة والفرع والسنة المالية الحالية."
+                });
+            }
+
+            return Ok(new
+            {
+                success = true,
+                data = ToSummary(voucher)
+            });
+        }
+
+        private static FinancialVoucherSummaryDto ToSummary(FinancialVoucherResponseDto voucher) => new()
+        {
+            Voucher_ID = voucher.Voucher_ID,
+            Voucher_No = voucher.Voucher_No,
+            Voucher_Type_ID = voucher.Voucher_Type_ID,
+            Voucher_Type_Name = voucher.Voucher_Type_Name,
+            Voucher_Status_ID = voucher.Voucher_Status_ID,
+            Voucher_Status_Name = voucher.Voucher_Status_Name,
+            Voucher_Date = voucher.Voucher_Date,
+            Transaction_Date = voucher.Transaction_Date,
+            Cash_Account_Name = voucher.Cash_Account_Name,
+            Party_Name = voucher.Party_Name,
+            Received_From_Name = voucher.Received_From_Name,
+            Payment_Method_Name = voucher.Payment_Method_Name,
+            Currency_Name = voucher.Currency_Name,
+            Exchange_Rate = voucher.Exchange_Rate,
+            Amount = voucher.Amount,
+            Foreign_Total = voucher.Foreign_Total,
+            Local_Total = voucher.Local_Total,
+            Reference_No = voucher.Reference_No,
+            Reference_Date = voucher.Reference_Date,
+            Description = voucher.Description,
+            Requires_Approval = voucher.Requires_Approval,
+            Approval_Status = voucher.Approval_Status,
+            Review_Status = voucher.Review_Status,
+            Is_Posted = voucher.Is_Posted,
+            Journal_Entry_No = voucher.Journal_Entry_No
+        };
+
+        /// <summary>
         /// تعديل سند مالي.
         /// </summary>
         [HttpPut("{voucherId:long}")]
