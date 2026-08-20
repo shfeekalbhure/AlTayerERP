@@ -16,6 +16,12 @@ namespace AlTayerERP.API.DTOs.Accounting
         [Range(1, long.MaxValue, ErrorMessage = "معرف السند غير صحيح.")]
         public long Voucher_ID { get; set; }
 
+        /// <summary>
+        /// رمز النسخة الذي استلمه العميل عند قراءة السند. يبقى اختيارياً
+        /// للمحافظة على توافق العملاء القديمة، ويمنع التعديل المتأخر عند إرساله.
+        /// </summary>
+        public Guid? RowVersion { get; set; }
+
         [Required(ErrorMessage = "نوع السند مطلوب.")]
         public int Voucher_Type_ID { get; set; }
 

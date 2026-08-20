@@ -17,7 +17,7 @@ namespace AlTayerERP.Infrastructure.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "8.0.12")
+                .HasAnnotation("ProductVersion", "8.0.2")
                 .HasAnnotation("Relational:MaxIdentifierLength", 64);
 
             MySqlModelBuilderExtensions.AutoIncrementColumns(modelBuilder);
@@ -159,6 +159,89 @@ namespace AlTayerERP.Infrastructure.Migrations
                     b.HasKey("Audit_ID");
 
                     b.ToTable("audit_logs", (string)null);
+                });
+
+            modelBuilder.Entity("AlTayerERP.Core.Entities.Accounting.BankAccount", b =>
+                {
+                    b.Property<int>("Bank_Account_ID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasColumnName("Bank_Account_ID");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Bank_Account_ID"));
+
+                    b.Property<string>("Account_No")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)")
+                        .HasColumnName("Account_No");
+
+                    b.Property<string>("Bank_Code")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)")
+                        .HasColumnName("Bank_Code");
+
+                    b.Property<string>("Bank_Name_AR")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)")
+                        .HasColumnName("Bank_Name_AR");
+
+                    b.Property<string>("Bank_Name_EN")
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)")
+                        .HasColumnName("Bank_Name_EN");
+
+                    b.Property<string>("Branch_Name")
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)")
+                        .HasColumnName("Branch_Name");
+
+                    b.Property<string>("Company_ID")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)")
+                        .HasColumnName("Company_ID");
+
+                    b.Property<DateTime>("Created_At")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("Created_At");
+
+                    b.Property<string>("Currency_Code")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("varchar(20)")
+                        .HasColumnName("Currency_Code");
+
+                    b.Property<string>("GL_Account")
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)")
+                        .HasColumnName("GL_Account");
+
+                    b.Property<string>("IBAN")
+                        .HasMaxLength(64)
+                        .HasColumnType("varchar(64)")
+                        .HasColumnName("IBAN");
+
+                    b.Property<bool>("Is_Active")
+                        .HasColumnType("tinyint(1)")
+                        .HasColumnName("Is_Active");
+
+                    b.Property<string>("Notes")
+                        .HasColumnType("longtext")
+                        .HasColumnName("Notes");
+
+                    b.Property<DateTime?>("Updated_At")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("Updated_At");
+
+                    b.HasKey("Bank_Account_ID");
+
+                    b.HasIndex("Company_ID", "Account_No")
+                        .IsUnique();
+
+                    b.ToTable("bank_accounts", (string)null);
                 });
 
             modelBuilder.Entity("AlTayerERP.Core.Entities.Accounting.DocumentAllocation", b =>
@@ -492,6 +575,11 @@ namespace AlTayerERP.Infrastructure.Migrations
                         .HasColumnType("varchar(500)")
                         .HasColumnName("Against_Text");
 
+                    b.Property<decimal>("Amount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)")
+                        .HasColumnName("Amount");
+
                     b.Property<DateTime?>("Approval_Requested_At")
                         .HasColumnType("datetime(6)")
                         .HasColumnName("Approval_Requested_At");
@@ -636,6 +724,11 @@ namespace AlTayerERP.Infrastructure.Migrations
                         .HasColumnType("int")
                         .HasColumnName("Print_Count");
 
+                    b.Property<string>("Received_From_Name")
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)")
+                        .HasColumnName("Received_From_Name");
+
                     b.Property<DateTime?>("Reference_Date")
                         .HasColumnType("datetime(6)")
                         .HasColumnName("Reference_Date");
@@ -662,6 +755,29 @@ namespace AlTayerERP.Infrastructure.Migrations
                     b.Property<bool>("Requires_Approval")
                         .HasColumnType("tinyint(1)")
                         .HasColumnName("Requires_Approval");
+
+                    b.Property<string>("Review_Notes")
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)")
+                        .HasColumnName("Review_Notes");
+
+                    b.Property<byte>("Review_Status")
+                        .HasColumnType("tinyint unsigned")
+                        .HasColumnName("Review_Status");
+
+                    b.Property<DateTime?>("Reviewed_At")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("Reviewed_At");
+
+                    b.Property<string>("Reviewed_By_User_ID")
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)")
+                        .HasColumnName("Reviewed_By_User_ID");
+
+                    b.Property<Guid>("RowVersion")
+                        .IsConcurrencyToken()
+                        .HasColumnType("char(36)")
+                        .HasColumnName("RowVersion");
 
                     b.Property<string>("Source_Document_No")
                         .HasMaxLength(100)
@@ -748,6 +864,88 @@ namespace AlTayerERP.Infrastructure.Migrations
                         .HasDatabaseName("UQ_Financial_Voucher_Branch_Year_Type_No");
 
                     b.ToTable("financial_voucher_headers", (string)null);
+                });
+
+            modelBuilder.Entity("AlTayerERP.Core.Entities.Accounting.IdempotencyRecord", b =>
+                {
+                    b.Property<long>("Idempotency_Record_ID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("Idempotency_Record_ID");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<long>("Idempotency_Record_ID"));
+
+                    b.Property<string>("Branch_ID")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)")
+                        .HasColumnName("Branch_ID");
+
+                    b.Property<string>("Company_ID")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)")
+                        .HasColumnName("Company_ID");
+
+                    b.Property<DateTime?>("Completed_At")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("Completed_At");
+
+                    b.Property<DateTime>("Created_At")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("Created_At");
+
+                    b.Property<int>("Fiscal_Year_ID")
+                        .HasColumnType("int")
+                        .HasColumnName("Fiscal_Year_ID");
+
+                    b.Property<string>("Idempotency_Key")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)")
+                        .HasColumnName("Idempotency_Key");
+
+                    b.Property<string>("Operation")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("varchar(80)")
+                        .HasColumnName("Operation");
+
+                    b.Property<string>("Request_Fingerprint")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("char(64)")
+                        .HasColumnName("Request_Fingerprint");
+
+                    b.Property<long?>("Resource_ID")
+                        .HasColumnType("bigint")
+                        .HasColumnName("Resource_ID");
+
+                    b.Property<string>("Resource_No")
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)")
+                        .HasColumnName("Resource_No");
+
+                    b.Property<byte>("Status")
+                        .HasColumnType("tinyint unsigned")
+                        .HasColumnName("Status");
+
+                    b.Property<string>("User_ID")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)")
+                        .HasColumnName("User_ID");
+
+                    b.HasKey("Idempotency_Record_ID");
+
+                    b.HasIndex("Status", "Created_At")
+                        .HasDatabaseName("IX_Idempotency_Record_Status_Created");
+
+                    b.HasIndex("Operation", "Idempotency_Key", "Company_ID", "Branch_ID", "Fiscal_Year_ID", "User_ID")
+                        .IsUnique()
+                        .HasDatabaseName("UQ_Idempotency_Record_Scope_Key");
+
+                    b.ToTable("idempotency_records", (string)null);
                 });
 
             modelBuilder.Entity("AlTayerERP.Core.Entities.Accounting.JournalEntryDetail", b =>
@@ -1219,6 +1417,192 @@ namespace AlTayerERP.Infrastructure.Migrations
                     b.ToTable("payment_methods", (string)null);
                 });
 
+            modelBuilder.Entity("AlTayerERP.Core.Entities.Accounting.PaymentRequest", b =>
+                {
+                    b.Property<long>("Payment_Request_ID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<long>("Payment_Request_ID"));
+
+                    b.Property<string>("Approval_Reason")
+                        .HasColumnType("longtext");
+
+                    b.Property<decimal>("Approved_Local_Total")
+                        .HasPrecision(19, 4)
+                        .HasColumnType("decimal(19,4)");
+
+                    b.Property<string>("Beneficiary_Name")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<int>("Branch_ID")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Company_ID")
+                        .IsRequired()
+                        .HasColumnType("varchar(255)");
+
+                    b.Property<DateTime>("Created_At")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("Created_By")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("Description")
+                        .HasColumnType("longtext");
+
+                    b.Property<int>("Fiscal_Year_ID")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Header_Reference_No")
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("Party_ID")
+                        .HasColumnType("longtext");
+
+                    b.Property<int?>("Payment_Method_ID")
+                        .HasColumnType("int");
+
+                    b.Property<long?>("Payment_Voucher_ID")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("Request_Date")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("Request_No")
+                        .IsRequired()
+                        .HasColumnType("varchar(255)");
+
+                    b.Property<string>("Review_Reason")
+                        .HasColumnType("longtext");
+
+                    b.Property<Guid>("RowVersion")
+                        .IsConcurrencyToken()
+                        .HasColumnType("char(36)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<DateTime?>("Updated_At")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("Updated_By")
+                        .HasColumnType("longtext");
+
+                    b.HasKey("Payment_Request_ID");
+
+                    b.HasIndex("Company_ID", "Branch_ID", "Fiscal_Year_ID", "Request_No")
+                        .IsUnique();
+
+                    b.ToTable("payment_requests", (string)null);
+                });
+
+            modelBuilder.Entity("AlTayerERP.Core.Entities.Accounting.PaymentRequestAttachment", b =>
+                {
+                    b.Property<long>("Payment_Request_Attachment_ID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<long>("Payment_Request_Attachment_ID"));
+
+                    b.Property<int>("Branch_ID")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Company_ID")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("Content_Type")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<DateTime>("Created_At")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("Created_By")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<long>("File_Size")
+                        .HasColumnType("bigint");
+
+                    b.Property<int>("Fiscal_Year_ID")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("Is_Active")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<string>("Original_File_Name")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<long>("Payment_Request_ID")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("Storage_Key")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.HasKey("Payment_Request_Attachment_ID");
+
+                    b.HasIndex("Payment_Request_ID", "Is_Active");
+
+                    b.ToTable("payment_request_attachments", (string)null);
+                });
+
+            modelBuilder.Entity("AlTayerERP.Core.Entities.Accounting.PaymentRequestLine", b =>
+                {
+                    b.Property<long>("Payment_Request_Line_ID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<long>("Payment_Request_Line_ID"));
+
+                    b.Property<string>("Account_ID")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("Cost_Center_ID")
+                        .HasColumnType("longtext");
+
+                    b.Property<int>("Currency_ID")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Description")
+                        .HasColumnType("longtext");
+
+                    b.Property<decimal>("Exchange_Rate")
+                        .HasPrecision(19, 8)
+                        .HasColumnType("decimal(19,8)");
+
+                    b.Property<decimal>("Foreign_Amount")
+                        .HasPrecision(19, 4)
+                        .HasColumnType("decimal(19,4)");
+
+                    b.Property<int>("Line_No")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("Local_Amount")
+                        .HasPrecision(19, 4)
+                        .HasColumnType("decimal(19,4)");
+
+                    b.Property<long>("Payment_Request_ID")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("Reference_No")
+                        .HasColumnType("longtext");
+
+                    b.HasKey("Payment_Request_Line_ID");
+
+                    b.HasIndex("Payment_Request_ID", "Line_No")
+                        .IsUnique();
+
+                    b.ToTable("payment_request_lines", (string)null);
+                });
+
             modelBuilder.Entity("AlTayerERP.Core.Entities.Accounting.VoucherActionLog", b =>
                 {
                     b.Property<long>("Voucher_Action_ID")
@@ -1434,8 +1818,8 @@ namespace AlTayerERP.Infrastructure.Migrations
                         .HasColumnName("Requested_By");
 
                     b.Property<string>("Status")
-                        .IsRequired()
                         .IsConcurrencyToken()
+                        .IsRequired()
                         .HasColumnType("longtext")
                         .HasColumnName("Status");
 
@@ -1539,7 +1923,7 @@ namespace AlTayerERP.Infrastructure.Migrations
                         .HasColumnType("longtext")
                         .HasColumnName("Account_Path");
 
-                    b.Property<int?>("Account_Serial")
+                    b.Property<int>("Account_Serial")
                         .HasColumnType("int")
                         .HasColumnName("Account_Serial");
 
@@ -1565,6 +1949,11 @@ namespace AlTayerERP.Infrastructure.Migrations
                         .HasColumnType("longtext")
                         .HasColumnName("Company_ID");
 
+                    b.Property<string>("Control_Account_Type")
+                        .HasMaxLength(30)
+                        .HasColumnType("varchar(30)")
+                        .HasColumnName("Control_Account_Type");
+
                     b.Property<DateTime>("Created_At")
                         .HasColumnType("datetime(6)")
                         .HasColumnName("Created_At");
@@ -1580,6 +1969,10 @@ namespace AlTayerERP.Infrastructure.Migrations
                     b.Property<bool>("Is_Active")
                         .HasColumnType("tinyint(1)")
                         .HasColumnName("Is_Active");
+
+                    b.Property<bool>("Is_Control_Account")
+                        .HasColumnType("tinyint(1)")
+                        .HasColumnName("Is_Control_Account");
 
                     b.Property<bool>("Is_Postable")
                         .HasColumnType("tinyint(1)")
@@ -1670,6 +2063,14 @@ namespace AlTayerERP.Infrastructure.Migrations
                         .HasColumnType("datetime(6)")
                         .HasColumnName("Created_At");
 
+                    b.Property<int?>("Created_By")
+                        .HasColumnType("int")
+                        .HasColumnName("Created_By");
+
+                    b.Property<int>("Edit_Count")
+                        .HasColumnType("int")
+                        .HasColumnName("Edit_Count");
+
                     b.Property<string>("Email")
                         .HasColumnType("longtext")
                         .HasColumnName("Email");
@@ -1691,6 +2092,30 @@ namespace AlTayerERP.Infrastructure.Migrations
                         .HasColumnType("longtext")
                         .HasColumnName("Phone");
 
+                    b.Property<string>("Reactivate_Reason")
+                        .HasColumnType("longtext")
+                        .HasColumnName("Reactivate_Reason");
+
+                    b.Property<DateTime?>("Reactivated_At")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("Reactivated_At");
+
+                    b.Property<int?>("Reactivated_By")
+                        .HasColumnType("int")
+                        .HasColumnName("Reactivated_By");
+
+                    b.Property<DateTime?>("Stopped_At")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("Stopped_At");
+
+                    b.Property<int?>("Stopped_By")
+                        .HasColumnType("int")
+                        .HasColumnName("Stopped_By");
+
+                    b.Property<string>("Stopped_Reason")
+                        .HasColumnType("longtext")
+                        .HasColumnName("Stopped_Reason");
+
                     b.Property<string>("Tax_Number")
                         .HasColumnType("longtext")
                         .HasColumnName("Tax_Number");
@@ -1698,6 +2123,10 @@ namespace AlTayerERP.Infrastructure.Migrations
                     b.Property<DateTime?>("Updated_At")
                         .HasColumnType("datetime(6)")
                         .HasColumnName("Updated_At");
+
+                    b.Property<int?>("Updated_By")
+                        .HasColumnType("int")
+                        .HasColumnName("Updated_By");
 
                     b.HasKey("Company_ID");
 
@@ -1810,6 +2239,69 @@ namespace AlTayerERP.Infrastructure.Migrations
                     b.HasKey("Currency_ID");
 
                     b.ToTable("currencies", (string)null);
+                });
+
+            modelBuilder.Entity("AlTayerERP.Core.Entities.ExchangeRate", b =>
+                {
+                    b.Property<int>("Exchange_Rate_ID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasColumnName("Exchange_Rate_ID");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Exchange_Rate_ID"));
+
+                    b.Property<string>("Company_ID")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)")
+                        .HasColumnName("Company_ID");
+
+                    b.Property<DateTime>("Created_At")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("Created_At");
+
+                    b.Property<string>("Currency_Code")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("varchar(20)")
+                        .HasColumnName("Currency_Code");
+
+                    b.Property<decimal>("Exchange_Rate_Value")
+                        .HasColumnType("decimal(65,30)")
+                        .HasColumnName("Exchange_Rate");
+
+                    b.Property<bool>("Is_Active")
+                        .HasColumnType("tinyint(1)")
+                        .HasColumnName("Is_Active");
+
+                    b.Property<bool>("Is_Default")
+                        .HasColumnType("tinyint(1)")
+                        .HasColumnName("Is_Default");
+
+                    b.Property<decimal?>("Max_Rate")
+                        .HasColumnType("decimal(65,30)")
+                        .HasColumnName("Max_Rate");
+
+                    b.Property<decimal?>("Min_Rate")
+                        .HasColumnType("decimal(65,30)")
+                        .HasColumnName("Min_Rate");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)")
+                        .HasColumnName("Notes");
+
+                    b.Property<DateTime>("Rate_Date")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("Rate_Date");
+
+                    b.Property<DateTime?>("Updated_At")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("Updated_At");
+
+                    b.HasKey("Exchange_Rate_ID");
+
+                    b.ToTable("exchange_rates");
                 });
 
             modelBuilder.Entity("AlTayerERP.Core.Entities.FinancialPolicy", b =>
@@ -1945,6 +2437,79 @@ namespace AlTayerERP.Infrastructure.Migrations
                     b.ToTable("financial_limit_movements", (string)null);
                 });
 
+            modelBuilder.Entity("AlTayerERP.Core.Entities.FiscalPeriod", b =>
+                {
+                    b.Property<int>("Fiscal_Period_ID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasColumnName("Fiscal_Period_ID");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Fiscal_Period_ID"));
+
+                    b.Property<int>("Branch_ID")
+                        .HasColumnType("int")
+                        .HasColumnName("Branch_ID");
+
+                    b.Property<DateTime?>("Close_Date")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("Close_Date");
+
+                    b.Property<string>("Close_Reason")
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)")
+                        .HasColumnName("Close_Reason");
+
+                    b.Property<string>("Company_ID")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)")
+                        .HasColumnName("Company_ID");
+
+                    b.Property<DateTime>("Created_At")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("Created_At");
+
+                    b.Property<DateTime>("End_Date")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("End_Date");
+
+                    b.Property<int>("Fiscal_Year_ID")
+                        .HasColumnType("int")
+                        .HasColumnName("Fiscal_Year_ID");
+
+                    b.Property<bool>("Is_Active")
+                        .HasColumnType("tinyint(1)")
+                        .HasColumnName("Is_Active");
+
+                    b.Property<bool>("Is_Closed")
+                        .HasColumnType("tinyint(1)")
+                        .HasColumnName("Is_Closed");
+
+                    b.Property<string>("Period_Code")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)")
+                        .HasColumnName("Period_Code");
+
+                    b.Property<string>("Period_Name")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("varchar(150)")
+                        .HasColumnName("Period_Name");
+
+                    b.Property<DateTime>("Start_Date")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("Start_Date");
+
+                    b.Property<DateTime?>("Updated_At")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("Updated_At");
+
+                    b.HasKey("Fiscal_Period_ID");
+
+                    b.ToTable("fiscal_periods");
+                });
+
             modelBuilder.Entity("AlTayerERP.Core.Entities.FiscalYear", b =>
                 {
                     b.Property<int>("Fiscal_Year_ID")
@@ -1997,86 +2562,75 @@ namespace AlTayerERP.Infrastructure.Migrations
                     b.ToTable("fiscal_years", (string)null);
                 });
 
-            modelBuilder.Entity("AlTayerERP.Core.Entities.Accounting.IdempotencyRecord", b =>
+            modelBuilder.Entity("AlTayerERP.Core.Entities.LoginAttempt", b =>
                 {
-                    b.Property<long>("Idempotency_Record_ID")
+                    b.Property<long>("Login_Attempt_ID")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bigint")
-                        .HasColumnName("Idempotency_Record_ID");
+                        .HasColumnName("Login_Attempt_ID");
 
-                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<long>("Idempotency_Record_ID"));
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<long>("Login_Attempt_ID"));
 
-                    b.Property<string>("Branch_ID")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("varchar(50)")
+                    b.Property<DateTime>("Attempted_At")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("Attempted_At");
+
+                    b.Property<int?>("Branch_ID")
+                        .HasColumnType("int")
                         .HasColumnName("Branch_ID");
 
                     b.Property<string>("Company_ID")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("varchar(50)")
+                        .HasColumnType("longtext")
                         .HasColumnName("Company_ID");
 
-                    b.Property<DateTime?>("Completed_At")
-                        .HasColumnType("datetime(6)")
-                        .HasColumnName("Completed_At");
+                    b.Property<string>("Device_ID")
+                        .HasColumnType("longtext")
+                        .HasColumnName("Device_ID");
 
-                    b.Property<DateTime>("Created_At")
-                        .HasColumnType("datetime(6)")
-                        .HasColumnName("Created_At");
+                    b.Property<string>("Failure_Reason")
+                        .HasColumnType("longtext")
+                        .HasColumnName("Failure_Reason");
 
-                    b.Property<int>("Fiscal_Year_ID")
+                    b.Property<int?>("Fiscal_Year_ID")
                         .HasColumnType("int")
                         .HasColumnName("Fiscal_Year_ID");
 
-                    b.Property<string>("Idempotency_Key")
+                    b.Property<string>("IP_Address")
+                        .HasColumnType("longtext")
+                        .HasColumnName("IP_Address");
+
+                    b.Property<bool>("Is_Success")
+                        .HasColumnType("tinyint(1)")
+                        .HasColumnName("Is_Success");
+
+                    b.Property<DateTime?>("Lockout_Until")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("Lockout_Until");
+
+                    b.Property<string>("Login_Name")
                         .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("varchar(100)")
-                        .HasColumnName("Idempotency_Key");
+                        .HasColumnType("varchar(255)")
+                        .HasColumnName("Login_Name");
 
-                    b.Property<string>("Operation")
-                        .IsRequired()
-                        .HasMaxLength(80)
-                        .HasColumnType("varchar(80)")
-                        .HasColumnName("Operation");
+                    b.Property<string>("Session_ID")
+                        .HasColumnType("longtext")
+                        .HasColumnName("Session_ID");
 
-                    b.Property<string>("Request_Fingerprint")
-                        .IsRequired()
-                        .HasMaxLength(64)
-                        .HasColumnType("char(64)")
-                        .HasColumnName("Request_Fingerprint");
+                    b.Property<string>("User_Agent")
+                        .HasColumnType("longtext")
+                        .HasColumnName("User_Agent");
 
-                    b.Property<long?>("Resource_ID")
-                        .HasColumnType("bigint")
-                        .HasColumnName("Resource_ID");
-
-                    b.Property<string>("Resource_No")
-                        .HasMaxLength(100)
-                        .HasColumnType("varchar(100)")
-                        .HasColumnName("Resource_No");
-
-                    b.Property<byte>("Status")
-                        .HasColumnType("tinyint unsigned")
-                        .HasColumnName("Status");
-
-                    b.Property<string>("User_ID")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("varchar(50)")
+                    b.Property<int?>("User_ID")
+                        .HasColumnType("int")
                         .HasColumnName("User_ID");
 
-                    b.HasKey("Idempotency_Record_ID");
+                    b.HasKey("Login_Attempt_ID");
 
-                    b.HasIndex("Status", "Created_At")
-                        .HasDatabaseName("IX_Idempotency_Record_Status_Created");
+                    b.HasIndex("Login_Name", "Attempted_At");
 
-                    b.HasIndex("Operation", "Idempotency_Key", "Company_ID", "Branch_ID", "Fiscal_Year_ID", "User_ID")
-                        .IsUnique()
-                        .HasDatabaseName("UQ_Idempotency_Record_Scope_Key");
+                    b.HasIndex("User_ID", "Attempted_At");
 
-                    b.ToTable("idempotency_records", (string)null);
+                    b.ToTable("login_attempts", (string)null);
                 });
 
             modelBuilder.Entity("AlTayerERP.Core.Entities.NumberingCounter", b =>
@@ -2091,14 +2645,14 @@ namespace AlTayerERP.Infrastructure.Migrations
                         .HasColumnType("int");
 
                     b.Property<string>("Company_ID")
-                        .HasColumnType("longtext");
+                        .HasColumnType("varchar(255)");
 
                     b.Property<DateTime>("Created_At")
                         .HasColumnType("datetime(6)");
 
                     b.Property<string>("Document_Type")
                         .IsRequired()
-                        .HasColumnType("longtext");
+                        .HasColumnType("varchar(255)");
 
                     b.Property<int>("Last_Number")
                         .HasColumnType("int");
@@ -2110,6 +2664,10 @@ namespace AlTayerERP.Infrastructure.Migrations
                         .HasColumnType("int");
 
                     b.HasKey("Counter_ID");
+
+                    b.HasIndex("Document_Type", "Company_ID", "Branch_ID", "Year_Value")
+                        .IsUnique()
+                        .HasDatabaseName("UQ_Numbering_Counter_Scope");
 
                     b.ToTable("numbering_counters", (string)null);
                 });
@@ -2165,6 +2723,79 @@ namespace AlTayerERP.Infrastructure.Migrations
                     b.HasKey("Numbering_ID");
 
                     b.ToTable("numbering_settings", (string)null);
+                });
+
+            modelBuilder.Entity("AlTayerERP.Core.Entities.RefreshToken", b =>
+                {
+                    b.Property<long>("Refresh_Token_ID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("Refresh_Token_ID");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<long>("Refresh_Token_ID"));
+
+                    b.Property<int>("Branch_ID")
+                        .HasColumnType("int")
+                        .HasColumnName("Branch_ID");
+
+                    b.Property<string>("Company_ID")
+                        .IsRequired()
+                        .HasColumnType("longtext")
+                        .HasColumnName("Company_ID");
+
+                    b.Property<DateTime>("Created_At")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("Created_At");
+
+                    b.Property<string>("Device_ID")
+                        .IsRequired()
+                        .HasColumnType("longtext")
+                        .HasColumnName("Device_ID");
+
+                    b.Property<DateTime>("Expires_At")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("Expires_At");
+
+                    b.Property<int>("Fiscal_Year_ID")
+                        .HasColumnType("int")
+                        .HasColumnName("Fiscal_Year_ID");
+
+                    b.Property<string>("Replaced_By_Hash")
+                        .HasColumnType("longtext")
+                        .HasColumnName("Replaced_By_Hash");
+
+                    b.Property<DateTime?>("Revoked_At")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("Revoked_At");
+
+                    b.Property<string>("Revoked_Reason")
+                        .HasColumnType("longtext")
+                        .HasColumnName("Revoked_Reason");
+
+                    b.Property<string>("Session_ID")
+                        .IsRequired()
+                        .HasColumnType("varchar(255)")
+                        .HasColumnName("Session_ID");
+
+                    b.Property<string>("Token_Hash")
+                        .IsRequired()
+                        .HasColumnType("varchar(255)")
+                        .HasColumnName("Token_Hash");
+
+                    b.Property<int>("User_ID")
+                        .HasColumnType("int")
+                        .HasColumnName("User_ID");
+
+                    b.HasKey("Refresh_Token_ID");
+
+                    b.HasIndex("Session_ID");
+
+                    b.HasIndex("Token_Hash")
+                        .IsUnique();
+
+                    b.HasIndex("User_ID", "Expires_At");
+
+                    b.ToTable("refresh_tokens", (string)null);
                 });
 
             modelBuilder.Entity("AlTayerERP.Core.Entities.Role", b =>
@@ -2349,6 +2980,78 @@ namespace AlTayerERP.Infrastructure.Migrations
                     b.ToTable("system_screens", (string)null);
                 });
 
+            modelBuilder.Entity("AlTayerERP.Core.Entities.SystemSetting", b =>
+                {
+                    b.Property<int>("Setting_ID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasColumnName("Setting_ID");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Setting_ID"));
+
+                    b.Property<int>("Branch_ID")
+                        .HasColumnType("int")
+                        .HasColumnName("Branch_ID");
+
+                    b.Property<string>("Company_ID")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)")
+                        .HasColumnName("Company_ID");
+
+                    b.Property<DateTime>("Created_At")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("Created_At");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("longtext")
+                        .HasColumnName("Description");
+
+                    b.Property<DateTime?>("Effective_Date")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("Effective_Date");
+
+                    b.Property<int>("Fiscal_Year_ID")
+                        .HasColumnType("int")
+                        .HasColumnName("Fiscal_Year_ID");
+
+                    b.Property<bool>("Is_Active")
+                        .HasColumnType("tinyint(1)")
+                        .HasColumnName("Is_Active");
+
+                    b.Property<string>("Scope")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("varchar(20)")
+                        .HasColumnName("Scope");
+
+                    b.Property<string>("Setting_Key")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)")
+                        .HasColumnName("Setting_Key");
+
+                    b.Property<string>("Setting_Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)")
+                        .HasColumnName("Setting_Name");
+
+                    b.Property<string>("Setting_Value")
+                        .IsRequired()
+                        .HasColumnType("longtext")
+                        .HasColumnName("Setting_Value");
+
+                    b.Property<DateTime?>("Updated_At")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("Updated_At");
+
+                    b.HasKey("Setting_ID");
+
+                    b.ToTable("system_settings");
+                });
+
             modelBuilder.Entity("AlTayerERP.Core.Entities.TenantBranch", b =>
                 {
                     b.Property<int>("Branch_ID")
@@ -2393,6 +3096,10 @@ namespace AlTayerERP.Infrastructure.Migrations
                         .HasColumnType("longtext")
                         .HasColumnName("Company_ID");
 
+                    b.Property<int?>("Created_By")
+                        .HasColumnType("int")
+                        .HasColumnName("Created_By");
+
                     b.Property<DateTime>("Created_Date")
                         .HasColumnType("datetime(6)")
                         .HasColumnName("Created_Date");
@@ -2400,6 +3107,10 @@ namespace AlTayerERP.Infrastructure.Migrations
                     b.Property<int>("Currency_ID")
                         .HasColumnType("int")
                         .HasColumnName("Currency_ID");
+
+                    b.Property<int>("Edit_Count")
+                        .HasColumnType("int")
+                        .HasColumnName("Edit_Count");
 
                     b.Property<string>("Email")
                         .HasColumnType("longtext")
@@ -2429,6 +3140,34 @@ namespace AlTayerERP.Infrastructure.Migrations
                         .HasColumnType("longtext")
                         .HasColumnName("Phone");
 
+                    b.Property<string>("Reactivate_Reason")
+                        .HasColumnType("longtext")
+                        .HasColumnName("Reactivate_Reason");
+
+                    b.Property<DateTime?>("Reactivated_At")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("Reactivated_At");
+
+                    b.Property<int?>("Reactivated_By")
+                        .HasColumnType("int")
+                        .HasColumnName("Reactivated_By");
+
+                    b.Property<DateTime?>("Stopped_At")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("Stopped_At");
+
+                    b.Property<int?>("Stopped_By")
+                        .HasColumnType("int")
+                        .HasColumnName("Stopped_By");
+
+                    b.Property<string>("Stopped_Reason")
+                        .HasColumnType("longtext")
+                        .HasColumnName("Stopped_Reason");
+
+                    b.Property<int?>("Updated_By")
+                        .HasColumnType("int")
+                        .HasColumnName("Updated_By");
+
                     b.Property<DateTime?>("Updated_Date")
                         .HasColumnType("datetime(6)")
                         .HasColumnName("Updated_Date");
@@ -2452,15 +3191,30 @@ namespace AlTayerERP.Infrastructure.Migrations
                     b.Property<DateTime>("Created_At")
                         .HasColumnType("datetime(6)");
 
+                    b.Property<string>("Group_Code")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
                     b.Property<string>("Group_Name_AR")
                         .IsRequired()
                         .HasColumnType("longtext");
 
                     b.Property<string>("Group_Name_EN")
-                        .IsRequired()
                         .HasColumnType("longtext");
 
                     b.Property<bool>("Is_Active")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<bool>("Is_Default")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<string>("Notes")
+                        .HasColumnType("longtext");
+
+                    b.Property<bool>("Show_In_Login")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<bool>("Show_In_Tree")
                         .HasColumnType("tinyint(1)");
 
                     b.HasKey("Group_ID");
@@ -2494,6 +3248,10 @@ namespace AlTayerERP.Infrastructure.Migrations
                         .HasColumnType("longtext")
                         .HasColumnName("Email");
 
+                    b.Property<int>("Failed_Login_Count")
+                        .HasColumnType("int")
+                        .HasColumnName("Failed_Login_Count");
+
                     b.Property<string>("Full_Name")
                         .IsRequired()
                         .HasColumnType("longtext")
@@ -2502,6 +3260,22 @@ namespace AlTayerERP.Infrastructure.Migrations
                     b.Property<bool>("Is_Active")
                         .HasColumnType("tinyint(1)")
                         .HasColumnName("Is_Active");
+
+                    b.Property<DateTime?>("Last_Failed_Login_At")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("Last_Failed_Login_At");
+
+                    b.Property<DateTime?>("Last_Login_At")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("Last_Login_At");
+
+                    b.Property<string>("Last_Login_IP")
+                        .HasColumnType("longtext")
+                        .HasColumnName("Last_Login_IP");
+
+                    b.Property<DateTime?>("Locked_Until")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("Locked_Until");
 
                     b.Property<string>("Login_Name")
                         .IsRequired()
@@ -2644,6 +3418,17 @@ namespace AlTayerERP.Infrastructure.Migrations
                     b.Navigation("JournalEntry");
                 });
 
+            modelBuilder.Entity("AlTayerERP.Core.Entities.Accounting.PaymentRequestLine", b =>
+                {
+                    b.HasOne("AlTayerERP.Core.Entities.Accounting.PaymentRequest", "PaymentRequest")
+                        .WithMany("Details")
+                        .HasForeignKey("Payment_Request_ID")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("PaymentRequest");
+                });
+
             modelBuilder.Entity("AlTayerERP.Core.Entities.Accounting.VoucherActionLog", b =>
                 {
                     b.HasOne("AlTayerERP.Core.Entities.Accounting.FinancialVoucherHeader", "Voucher")
@@ -2674,6 +3459,11 @@ namespace AlTayerERP.Infrastructure.Migrations
                 });
 
             modelBuilder.Entity("AlTayerERP.Core.Entities.Accounting.JournalEntryHeader", b =>
+                {
+                    b.Navigation("Details");
+                });
+
+            modelBuilder.Entity("AlTayerERP.Core.Entities.Accounting.PaymentRequest", b =>
                 {
                     b.Navigation("Details");
                 });

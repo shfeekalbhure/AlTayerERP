@@ -317,6 +317,14 @@ namespace AlTayerERP.Core.Entities.Accounting
 
         [Column("Updated_At")]
         public DateTime? Updated_At { get; set; }
+
+        /// <summary>
+        /// رمز التزامن التفاؤلي للسند. يتغير مع كل تعديل ناجح ليمنع كاتباً
+        /// متأخراً من الكتابة فوق رأس السند أو تفاصيله الأحدث.
+        /// </summary>
+        [Required]
+        [Column("RowVersion", TypeName = "char(36)")]
+        public Guid RowVersion { get; set; } = Guid.NewGuid();
         #endregion
 
         #region العلاقات (Navigation Properties)

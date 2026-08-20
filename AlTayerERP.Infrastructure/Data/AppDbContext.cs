@@ -163,6 +163,12 @@ namespace AlTayerERP.Infrastructure.Data
                 entry.Entity.RowVersion = Guid.NewGuid();
             }
 
+            foreach (var entry in ChangeTracker.Entries<FinancialVoucherHeader>()
+                         .Where(entry => entry.State == EntityState.Modified))
+            {
+                entry.Entity.RowVersion = Guid.NewGuid();
+            }
+
             return base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
         }
 
@@ -490,6 +496,7 @@ namespace AlTayerERP.Infrastructure.Data
                 entity.Property(e => e.Received_From_Name).HasMaxLength(200);
                 entity.Property(e => e.Review_Notes).HasMaxLength(500);
                 entity.Property(e => e.Reviewed_By_User_ID).HasMaxLength(50);
+                entity.Property(e => e.RowVersion).HasColumnType("char(36)").IsConcurrencyToken();
 
                 // علاقة رأس وتفاصيل (One-to-Many): السند يمتلك تفاصيل متعددة، وعند حذف السند تُحذف تفاصيله تلقائيًا
                 entity.HasMany(e => e.Details)

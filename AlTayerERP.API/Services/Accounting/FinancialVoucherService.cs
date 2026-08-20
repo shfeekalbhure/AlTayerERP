@@ -450,6 +450,12 @@ namespace AlTayerERP.API.Services.Accounting
                     return (false, "السند المالي غير موجود.");
                 }
 
+                if (dto.RowVersion.HasValue && dto.RowVersion.Value != voucher.RowVersion)
+                {
+                    await transaction.RollbackAsync();
+                    return (false, "تم تعديل السند المالي من مستخدم آخر. يرجى إعادة تحميل السند قبل الحفظ.");
+                }
+
                 if (voucher.Is_Posted)
                 {
                     await transaction.RollbackAsync();
@@ -604,6 +610,11 @@ namespace AlTayerERP.API.Services.Accounting
                 await transaction.CommitAsync();
 
                 return (true, $"تم تعديل السند المالي بنجاح. رقم السند: {voucher.Voucher_No}");
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                await transaction.RollbackAsync();
+                return (false, "تم تعديل السند المالي من مستخدم آخر. يرجى إعادة تحميل السند قبل الحفظ.");
             }
             catch (DbUpdateException)
             {
@@ -1072,7 +1083,10 @@ namespace AlTayerERP.API.Services.Accounting
                         voucher.Updated_By,
 
                     Updated_At =
-                        voucher.Updated_At
+                        voucher.Updated_At,
+
+                    RowVersion =
+                        voucher.RowVersion
                 };
 
             #endregion

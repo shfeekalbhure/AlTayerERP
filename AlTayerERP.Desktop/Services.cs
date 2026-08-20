@@ -14,8 +14,16 @@ namespace AlTayerERP.Desktop.Services
     /// </summary>
     public static class ApiService
     {
-        /// <summary>رابط API المحلي لبيئة التطوير وينتهي بشرطة مائلة.</summary>
-        public static readonly string BaseUrl = "http://localhost:5021/api/";
+#if DEBUG
+        // يسمح بـ HTTP فقط لخادم التطوير المحلي.
+        private const string DefaultBaseUrl = "http://localhost:5021/api/";
+#else
+        // إصدار التشغيل يفرض HTTPS ولا يرجع إلى HTTP عند فشل الاتصال.
+        private const string DefaultBaseUrl = "https://localhost:5021/api/";
+#endif
+
+        /// <summary>رابط API من إعداد التشغيل أو الافتراضي الآمن، وينتهي بشرطة مائلة.</summary>
+        public static readonly string BaseUrl = ResolveBaseUrl();
 
         /// <summary>عميل الاتصال المشترك بجميع الشاشات.</summary>
         public static readonly HttpClient Client = new(new SafeApiErrorHandler(new HttpClientHandler()))
@@ -43,6 +51,24 @@ namespace AlTayerERP.Desktop.Services
         {
             Client.DefaultRequestHeaders.Authorization = null;
             Client.DefaultRequestHeaders.Remove("X-Session-Token");
+        }
+
+        private static string ResolveBaseUrl()
+        {
+            var configured = Environment.GetEnvironmentVariable("ALTAYER_API_BASE_URL");
+            var value = string.IsNullOrWhiteSpace(configured) ? DefaultBaseUrl : configured.Trim();
+
+            if (!Uri.TryCreate(value, UriKind.Absolute, out var uri))
+                throw new InvalidOperationException("عنوان خادم AlTayerERP غير صالح.");
+
+#if !DEBUG
+            if (!string.Equals(uri.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase))
+                throw new InvalidOperationException("يتطلب إصدار التشغيل عنوان API يعمل عبر HTTPS.");
+#endif
+
+            return uri.AbsoluteUri.EndsWith("/", StringComparison.Ordinal)
+                ? uri.AbsoluteUri
+                : uri.AbsoluteUri + "/";
         }
 
         /// <summary>

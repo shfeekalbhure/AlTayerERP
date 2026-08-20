@@ -86,6 +86,7 @@ builder.Services.AddScoped<ScreenAuthorizationService>();
 builder.Services.AddScoped<SettingsResolverService>();
 builder.Services.AddScoped<AuditTrailService>();
 builder.Services.AddScoped<IdempotencyService>();
+builder.Services.AddSingleton<IAttachmentMalwareScanner, ClamAvAttachmentMalwareScanner>();
 
 builder.Services
     .AddAuthentication(ServerSessionAuthenticationHandler.SchemeName)

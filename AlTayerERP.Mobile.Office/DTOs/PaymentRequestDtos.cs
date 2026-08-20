@@ -5,6 +5,7 @@ namespace AlTayerERP.Mobile.Office.DTOs;
 public sealed class PaymentRequestListItemDto
 {
     public long Payment_Request_ID { get; set; }
+    public Guid? RowVersion { get; set; }
     public string Request_No { get; set; } = string.Empty;
     public DateTime Request_Date { get; set; }
     public string Status { get; set; } = string.Empty;
@@ -48,6 +49,7 @@ public sealed class CreatePaymentRequestDto
 {
     [JsonIgnore]
     public string? Idempotency_Key { get; set; }
+    public Guid? RowVersion { get; set; }
     public DateTime Request_Date { get; set; } = DateTime.Today;
     public string Beneficiary_Name { get; set; } = string.Empty;
     public string? Party_ID { get; set; }

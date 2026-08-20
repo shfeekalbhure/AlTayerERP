@@ -2,9 +2,10 @@ name: AlTayerERP CI
 
 on:
   push:
-    branches: [ master, "chore/**", "feature/**", "fix/**" ]
+    branches: [ master, "agent/unified-phase1-screens", "chore/**", "feature/**", "fix/**" ]
   pull_request:
-    branches: [ master ]
+    branches: [ master, "agent/unified-phase1-screens" ]
+  workflow_dispatch:
 
 permissions:
   contents: read

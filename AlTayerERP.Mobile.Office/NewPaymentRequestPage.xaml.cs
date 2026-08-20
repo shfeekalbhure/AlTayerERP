@@ -398,6 +398,8 @@ public partial class NewPaymentRequestPage : ContentPage
                 Description = x.Description
             }).ToList()
         };
+        if (_editingRequest != null)
+            dto.RowVersion = _editingRequest.RowVersion;
 
         SetBusy(true);
         try

@@ -8,7 +8,15 @@ namespace AlTayerERP.Mobile.Office.Services;
 /// <summary>إعداد اتصال محلي قابل للتبديل بين USB وشبكة Wi-Fi في بيئة التطوير.</summary>
 public sealed class ApiClientConfiguration
 {
-    private const string UsbAddress = "http://127.0.0.1:5021/";
+#if DEBUG
+    // يسمح بـ HTTP فقط لتشخيص الخادم المحلي عبر USB أثناء التطوير.
+    private const string ApiScheme = "http";
+#else
+    // لا يقبل إصدار التشغيل أي نقل غير مشفر.
+    private const string ApiScheme = "https";
+#endif
+
+    private const string UsbAddress = ApiScheme + "://127.0.0.1:5021/";
     private const string ConnectionModeKey = "api.connection.mode";
     private const string WifiAddressKey = "api.connection.wifi.address";
     private const string PortKey = "api.connection.port";
@@ -180,7 +188,7 @@ public sealed class ApiClientConfiguration
         if (string.IsNullOrWhiteSpace(WifiBaseAddress))
             return null;
 
-        return Uri.TryCreate($"http://{WifiBaseAddress}:{Port}/", UriKind.Absolute, out var address) ? address : null;
+        return Uri.TryCreate($"{ApiScheme}://{WifiBaseAddress}:{Port}/", UriKind.Absolute, out var address) ? address : null;
     }
 
     private static string NormalizeWifiAddress(string? value)
@@ -191,7 +199,7 @@ public sealed class ApiClientConfiguration
 
         var candidate = address.Contains("://", StringComparison.Ordinal)
             ? address
-            : $"http://{address}";
+            : $"{ApiScheme}://{address}";
 
         if (!Uri.TryCreate(candidate, UriKind.Absolute, out var uri) || string.IsNullOrWhiteSpace(uri.Host))
             return address.TrimEnd('/');

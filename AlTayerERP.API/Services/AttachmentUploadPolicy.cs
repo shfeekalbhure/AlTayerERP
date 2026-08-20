@@ -1,3 +1,4 @@
+using System.IO.Compression;
 using Microsoft.AspNetCore.Http;
 
 namespace AlTayerERP.API.Services;
@@ -16,7 +17,9 @@ public static class AttachmentUploadPolicy
             [".pdf"] = "application/pdf",
             [".png"] = "image/png",
             [".jpg"] = "image/jpeg",
-            [".jpeg"] = "image/jpeg"
+            [".jpeg"] = "image/jpeg",
+            [".xlsx"] = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            [".docx"] = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
         };
 
     public static async Task<AttachmentUploadValidationResult> ValidateAsync(
@@ -34,6 +37,13 @@ public static class AttachmentUploadPolicy
         if (!MatchesExtensionSignature(extension, header.AsSpan(0, read)))
             return AttachmentUploadValidationResult.Reject("محتوى الملف لا يطابق نوعه المسموح.");
 
+        if (extension.Equals(".xlsx", StringComparison.OrdinalIgnoreCase) || extension.Equals(".docx", StringComparison.OrdinalIgnoreCase))
+        {
+            var officeValidation = ValidateOpenXmlContainer(stream, extension);
+            if (!officeValidation.IsValid)
+                return officeValidation;
+        }
+
         return AttachmentUploadValidationResult.Accept(contentType);
     }
 
@@ -43,8 +53,35 @@ public static class AttachmentUploadPolicy
             ".pdf" => header.Length >= 5 && header[..5].SequenceEqual("%PDF-"u8),
             ".png" => header.Length >= 8 && header[..8].SequenceEqual(new byte[] { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A }),
             ".jpg" or ".jpeg" => header.Length >= 3 && header[..3].SequenceEqual(new byte[] { 0xFF, 0xD8, 0xFF }),
+            ".xlsx" or ".docx" => header.Length >= 4 && header[..4].SequenceEqual("PK\x03\x04"u8),
             _ => false
         };
+
+    private static AttachmentUploadValidationResult ValidateOpenXmlContainer(Stream stream, string extension)
+    {
+        const int maxEntries = 512;
+        const long maxUncompressedBytes = 50L * 1024 * 1024;
+
+        try
+        {
+            if (stream.CanSeek) stream.Position = 0;
+            using var archive = new ZipArchive(stream, ZipArchiveMode.Read, leaveOpen: true);
+            if (archive.Entries.Count > maxEntries || archive.Entries.Sum(entry => entry.Length) > maxUncompressedBytes)
+                return AttachmentUploadValidationResult.Reject("ملف Office يتجاوز حدود المحتوى المسموح.");
+
+            var requiredEntry = extension.Equals(".xlsx", StringComparison.OrdinalIgnoreCase)
+                ? "xl/workbook.xml"
+                : "word/document.xml";
+            if (archive.GetEntry("[Content_Types].xml") is null || archive.GetEntry(requiredEntry) is null)
+                return AttachmentUploadValidationResult.Reject("بنية ملف Office لا تطابق نوعه المسموح.");
+
+            return AttachmentUploadValidationResult.Accept(AllowedExtensions[extension]);
+        }
+        catch (InvalidDataException)
+        {
+            return AttachmentUploadValidationResult.Reject("ملف Office غير صالح أو لا يمكن قراءته بأمان.");
+        }
+    }
 }
 
 public sealed record AttachmentUploadValidationResult(bool IsValid, string Message, string? ContentType)

@@ -18,6 +18,11 @@
 		<PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2" />
 		<!-- إصدار والتحقق من JWT الموقّع في طبقة API. -->
 		<PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="7.6.2" />
+		<!-- مرجع أدوات EF وقت التصميم فقط لتشغيل فحص النموذج والترحيلات محلياً. -->
+		<PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.2">
+			<PrivateAssets>all</PrivateAssets>
+			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+		</PackageReference>
 	</ItemGroup>
 
 	<ItemGroup>
