@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="AlTayerERP.Mobile.Office.JournalVoucherDetailsPage"
+             FlowDirection="RightToLeft"
+             BackgroundColor="#F6F8FB"
+             Title="تفاصيل القيد اليومي">
+    <ScrollView>
+        <VerticalStackLayout Padding="16" Spacing="14">
+            <Border BackgroundColor="#17324D" StrokeThickness="0" Padding="16" StrokeShape="RoundRectangle 16">
+                <VerticalStackLayout Spacing="6">
+                    <Label x:Name="VoucherNoLabel" FontSize="21" FontAttributes="Bold" TextColor="White" />
+                    <Label x:Name="StatusLabel" FontSize="14" TextColor="#D9EAF7" />
+                </VerticalStackLayout>
+            </Border>
+
+            <Border BackgroundColor="White" Stroke="#D9E2EC" Padding="14" StrokeShape="RoundRectangle 14">
+                <VerticalStackLayout Spacing="8">
+                    <Label x:Name="DateLabel" TextColor="#35566F" />
+                    <Label x:Name="DescriptionLabel" TextColor="#35566F" />
+                    <Label x:Name="ReferenceLabel" TextColor="#35566F" />
+                    <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
+                        <Label x:Name="DebitTotalLabel" FontAttributes="Bold" TextColor="#17324D" />
+                        <Label x:Name="CreditTotalLabel" Grid.Column="1" FontAttributes="Bold" TextColor="#17324D" />
+                    </Grid>
+                    <Label x:Name="BalanceLabel" FontAttributes="Bold" HorizontalTextAlignment="Center" />
+                </VerticalStackLayout>
+            </Border>
+
+            <Label Text="سطور القيد" FontSize="18" FontAttributes="Bold" TextColor="#17324D" />
+            <CollectionView x:Name="LinesList" SelectionMode="None" HeightRequest="420">
+                <CollectionView.ItemTemplate>
+                    <DataTemplate>
+                        <Border Margin="0,0,0,8" Padding="12" Stroke="#D9E2EC" BackgroundColor="White" StrokeShape="RoundRectangle 12">
+                            <VerticalStackLayout Spacing="5">
+                                <Label Text="{Binding AccountId, StringFormat='الحساب: {0}'}" FontAttributes="Bold" TextColor="#17324D" />
+                                <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
+                                    <Label Text="{Binding DebitAmount, StringFormat='مدين: {0:N2}'}" TextColor="#17324D" />
+                                    <Label Grid.Column="1" Text="{Binding CreditAmount, StringFormat='دائن: {0:N2}'}" TextColor="#17324D" />
+                                </Grid>
+                                <Label Text="{Binding CostCenterId, StringFormat='مركز التكلفة: {0}'}" FontSize="12" TextColor="#7A8896" />
+                                <Label Text="{Binding CurrencyId, StringFormat='العملة: {0}'}" FontSize="12" TextColor="#7A8896" />
+                                <Label Text="{Binding Description}" TextColor="#35566F" />
+                            </VerticalStackLayout>
+                        </Border>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+
+            <ActivityIndicator x:Name="BusyIndicator" Color="#0B6B87" IsVisible="False" IsRunning="False" />
+            <Label x:Name="MessageLabel" TextColor="#B42318" HorizontalTextAlignment="Center" IsVisible="False" />
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

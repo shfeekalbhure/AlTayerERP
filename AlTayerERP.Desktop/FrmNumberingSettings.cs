@@ -32,6 +32,10 @@ namespace AlTayerERP.Desktop
         {
             InitializeComponent();
 
+            // آخر رقم للعرض فقط: العداد المركزي في API هو المالك الوحيد لهذه القيمة.
+            numLastNumber.Enabled = false;
+            numLastNumber.ReadOnly = true;
+
             // تطبيق الثيم العربي الموحد والاختصارات على الشاشة القديمة.
 // ==================================================
             // ربط حدث فتح الشاشة
@@ -75,7 +79,7 @@ namespace AlTayerERP.Desktop
         // ======================================================
         // عند فتح الشاشة
         // ======================================================
-        private async void FrmNumberingSettings_Load(object sender, EventArgs e)
+        private async void FrmNumberingSettings_Load(object? sender, EventArgs e)
         {
             FillCombos();
             ClearForm();
@@ -124,7 +128,7 @@ namespace AlTayerERP.Desktop
 // عند اختيار نوع المستند
 // يتم اقتراح البادئة وعدد الأرقام وطريقة التصفير تلقائياً
 // ======================================================
-private void cmbDocumentType_SelectedIndexChanged(object sender, EventArgs e)
+private void cmbDocumentType_SelectedIndexChanged(object? sender, EventArgs e)
         {
             switch (cmbDocumentType.Text)
             {
@@ -267,7 +271,8 @@ private void cmbDocumentType_SelectedIndexChanged(object sender, EventArgs e)
                 dgvNumberingSettings.Columns["Prefix"].HeaderText = "البادئة";
                 dgvNumberingSettings.Columns["Digits_Count"].HeaderText = "عدد الأرقام";
                 dgvNumberingSettings.Columns["Reset_Type"].HeaderText = "طريقة التصفير";
-                dgvNumberingSettings.Columns["Last_Number"].HeaderText = "آخر رقم";
+                if (dgvNumberingSettings.Columns.Contains("Last_Number"))
+                    dgvNumberingSettings.Columns["Last_Number"].HeaderText = "آخر رقم محجوز (للعرض فقط)";
                 dgvNumberingSettings.Columns["Use_Company"].HeaderText = "حسب الشركة";
                 dgvNumberingSettings.Columns["Use_Branch"].HeaderText = "حسب الفرع";
                 dgvNumberingSettings.Columns["Use_Year"].HeaderText = "حسب السنة";
@@ -337,7 +342,7 @@ private void cmbDocumentType_SelectedIndexChanged(object sender, EventArgs e)
         // ======================================================
         // زر جديد
         // ======================================================
-        private void btnNew_Click(object sender, EventArgs e)
+        private void btnNew_Click(object? sender, EventArgs e)
         {
             ClearForm();
         }
@@ -345,7 +350,7 @@ private void cmbDocumentType_SelectedIndexChanged(object sender, EventArgs e)
         // ======================================================
         // زر حفظ سجل جديد فقط
         // ======================================================
-        private async void btnSave_Click(object sender, EventArgs e)
+        private async void btnSave_Click(object? sender, EventArgs e)
         {
             if (_selectedNumberingId != 0)
             {
@@ -389,7 +394,7 @@ private void cmbDocumentType_SelectedIndexChanged(object sender, EventArgs e)
         // ======================================================
         // زر تعديل السجل المحدد
         // ======================================================
-        private async void btnEdit_Click(object sender, EventArgs e)
+        private async void btnEdit_Click(object? sender, EventArgs e)
         {
             if (_selectedNumberingId == 0)
             {
@@ -429,7 +434,7 @@ private void cmbDocumentType_SelectedIndexChanged(object sender, EventArgs e)
         // ======================================================
         // زر حذف السجل المحدد
         // ======================================================
-        private async void btnDelete_Click(object sender, EventArgs e)
+        private async void btnDelete_Click(object? sender, EventArgs e)
         {
             if (_selectedNumberingId == 0)
             {
@@ -472,7 +477,7 @@ private void cmbDocumentType_SelectedIndexChanged(object sender, EventArgs e)
         // ======================================================
         // زر تحديث
         // ======================================================
-        private async void btnRefresh_Click(object sender, EventArgs e)
+        private async void btnRefresh_Click(object? sender, EventArgs e)
         {
             await LoadNumberingSettings();
         }
@@ -480,7 +485,7 @@ private void cmbDocumentType_SelectedIndexChanged(object sender, EventArgs e)
         // ======================================================
         // زر إغلاق
         // ======================================================
-        private void btnClose_Click(object sender, EventArgs e)
+        private void btnClose_Click(object? sender, EventArgs e)
         {
             this.Close();
         }
@@ -489,7 +494,7 @@ private void cmbDocumentType_SelectedIndexChanged(object sender, EventArgs e)
         // عند الضغط على صف من الجدول
         // يتم نقل بياناته إلى الحقول
         // ======================================================
-        private void dgvNumberingSettings_CellClick(object sender, DataGridViewCellEventArgs e)
+        private void dgvNumberingSettings_CellClick(object? sender, DataGridViewCellEventArgs e)
         {
             if (e.RowIndex < 0)
                 return;
@@ -515,7 +520,10 @@ private void cmbDocumentType_SelectedIndexChanged(object sender, EventArgs e)
             cmbResetType.Text = GetResetTypeArabic(
                 row.Cells["Reset_Type"].Value?.ToString());
 
-            numLastNumber.Value = Convert.ToDecimal(row.Cells["Last_Number"].Value);
+            numLastNumber.Value = dgvNumberingSettings.Columns.Contains("Last_Number") &&
+                row.Cells["Last_Number"].Value != null
+                ? Convert.ToDecimal(row.Cells["Last_Number"].Value)
+                : 0;
 
             chkUseCompany.Checked = Convert.ToBoolean(row.Cells["Use_Company"].Value);
             chkUseBranch.Checked = Convert.ToBoolean(row.Cells["Use_Branch"].Value);
@@ -639,7 +647,6 @@ private void cmbDocumentType_SelectedIndexChanged(object sender, EventArgs e)
                 Prefix = txtPrefix.Text.Trim().ToUpper(),
                 Digits_Count = (int)numDigitsCount.Value,
                 Reset_Type = GetResetTypeCode(),
-                Last_Number = (int)numLastNumber.Value,
                 Use_Company = chkUseCompany.Checked,
                 Use_Branch = chkUseBranch.Checked,
                 Use_Year = chkUseYear.Checked,
@@ -671,7 +678,7 @@ private void cmbDocumentType_SelectedIndexChanged(object sender, EventArgs e)
         // ======================================================
         // حدث فارغ أنشأه المصمم
         // ======================================================
-        private void grpNumbering_Enter(object sender, EventArgs e)
+        private void grpNumbering_Enter(object? sender, EventArgs e)
         {
         }
     }

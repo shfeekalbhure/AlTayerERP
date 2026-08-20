@@ -1,15 +1,17 @@
 using AlTayerERP.API.Services;
 using AlTayerERP.Core.Entities;
 using AlTayerERP.Infrastructure.Data;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace AlTayerERP.API.Controllers
 {
     /// <summary>
-    /// إدارة الإعدادات العامة والمالية بالنطاق الحالي للجلسة.
-    /// لا تقبل الشركة أو الفرع أو السنة من العميل؛ يفرضها الخادم حسب نطاق الإعداد.
+    /// إعدادات النظام متعددة المستويات (SystemSettings).
+    /// الأولوية عند القراءة: FISCAL_YEAR ثم BRANCH ثم COMPANY ثم SYSTEM.
     /// </summary>
+    [Authorize]
     [ApiController]
     [Route("api/[controller]")]
     public sealed class SystemSettingsController : ControllerBase
@@ -20,112 +22,100 @@ namespace AlTayerERP.API.Controllers
         };
 
         private readonly AppDbContext _context;
+        private readonly ScreenAuthorizationService _authorization;
+        private readonly AuditTrailService _audit;
+        private readonly SettingsResolverService _resolver;
 
-        public SystemSettingsController(AppDbContext context) => _context = context;
-
-        private ServerSession? GetSession() =>
-            HttpContext.Items["ServerSession"] as ServerSession;
-
-        private IActionResult? RequireSystemAdmin(out ServerSession? session)
+        public SystemSettingsController(
+            AppDbContext context,
+            ScreenAuthorizationService authorization,
+            AuditTrailService audit,
+            SettingsResolverService resolver)
         {
-            session = GetSession();
-            if (session == null)
-                return Unauthorized(new { message = "انتهت الجلسة أو أنها غير صالحة. سجل الدخول من جديد." });
-
-            if (!session.Is_System_Admin)
-                return Forbid();
-
-            return null;
+            _context = context;
+            _authorization = authorization;
+            _audit = audit;
+            _resolver = resolver;
         }
 
-        /// <summary>
-        /// يعرض إعدادات النظام والسياق الحالي فقط، مرتبة من العام إلى الأكثر تخصيصاً.
-        /// </summary>
+        private async Task<IActionResult?> DenyUnlessAsync(ScreenOperation operation)
+        {
+            if (HttpContext.Items["ServerSession"] is not ServerSession session)
+                return Unauthorized();
+            return await _authorization.IsAllowedAsync(session, "GeneralSettings", operation)
+                ? null : Forbid();
+        }
+
         [HttpGet]
         public async Task<IActionResult> Get()
         {
-            var accessError = RequireSystemAdmin(out var session);
-            if (accessError != null || session == null)
-                return accessError!;
+            var denied = await DenyUnlessAsync(ScreenOperation.View);
+            if (denied != null) return denied;
+            var session = (ServerSession)HttpContext.Items["ServerSession"]!;
 
-            var settings = await _context.System_Settings
-                .AsNoTracking()
-                .Where(x =>
-                    x.Scope == "SYSTEM" ||
-                    (x.Company_ID == session.Company_ID &&
-                     ((x.Scope == "COMPANY" && x.Branch_ID == 0 && x.Fiscal_Year_ID == 0) ||
-                      (x.Scope == "BRANCH" && x.Branch_ID == session.Branch_ID && x.Fiscal_Year_ID == 0) ||
-                      (x.Scope == "FISCAL_YEAR" && x.Branch_ID == session.Branch_ID &&
-                       x.Fiscal_Year_ID == session.Year_ID))))
+            var settings = await _context.System_Settings.AsNoTracking()
+                .Where(x => IsVisibleInSession(x, session))
                 .OrderBy(x => x.Setting_Key)
                 .ThenBy(x => x.Scope)
                 .ToListAsync();
-
             return Ok(settings);
         }
 
-        /// <summary>
-        /// يضيف أو يعدل إعداداً. يسمح فقط بالنطاقات المعتمدة ولا يسمح بتجاوز سياق الجلسة.
-        /// </summary>
+        /// <summary>يعيد القيمة الفعالة بعد تطبيق ترتيب الأولويات، ولا يكشف نطاقات أخرى.</summary>
+        [HttpGet("Resolve/{settingKey}")]
+        public async Task<IActionResult> Resolve(string settingKey, CancellationToken cancellationToken)
+        {
+            var denied = await DenyUnlessAsync(ScreenOperation.View);
+            if (denied != null) return denied;
+            var session = (ServerSession)HttpContext.Items["ServerSession"]!;
+
+            var result = await _resolver.ResolveAsync(settingKey, session, cancellationToken: cancellationToken);
+            return result == null
+                ? NotFound(new { message = "لا توجد قيمة فعالة لهذا الإعداد ضمن نطاق الجلسة." })
+                : Ok(result);
+        }
+
         [HttpPost]
         public async Task<IActionResult> Save([FromBody] SaveSystemSettingRequest request)
         {
-            var accessError = RequireSystemAdmin(out var session);
-            if (accessError != null || session == null)
-                return accessError!;
+            var denied = await DenyUnlessAsync(request?.Setting_ID > 0 ? ScreenOperation.Edit : ScreenOperation.Add);
+            if (denied != null) return denied;
+            var session = (ServerSession)HttpContext.Items["ServerSession"]!;
 
-            if (request == null ||
-                string.IsNullOrWhiteSpace(request.Setting_Key) ||
+            if (request == null || string.IsNullOrWhiteSpace(request.Setting_Key) ||
                 string.IsNullOrWhiteSpace(request.Setting_Name))
-            {
                 return BadRequest(new { message = "مفتاح الإعداد واسمه مطلوبان." });
-            }
 
-            // تقبل الواجهة قيمة عرض عربية مثل "SYSTEM | عام للنظام"،
-            // لكن التخزين يتم دائماً بالكود الثابت الإنجليزي.
             var scope = NormalizeScope(request.Scope);
             if (!ValidScopes.Contains(scope))
-            {
-                return BadRequest(new
-                {
-                    message = "النطاق غير صالح. الخيارات هي: SYSTEM أو COMPANY أو BRANCH أو FISCAL_YEAR."
-                });
-            }
+                return BadRequest(new { message = "النطاق غير صالح." });
 
-            var key = request.Setting_Key.Trim();
+            var key = request.Setting_Key.Trim().ToUpperInvariant();
             var name = request.Setting_Name.Trim();
             if (key.Length > 100 || name.Length > 200)
                 return BadRequest(new { message = "مفتاح الإعداد أو اسمه أطول من الحد المسموح به." });
 
             var (companyId, branchId, yearId) = ResolveScope(session, scope);
-
             var duplicate = await _context.System_Settings.AnyAsync(x =>
-                x.Setting_Key == key &&
-                x.Scope == scope &&
-                x.Company_ID == companyId &&
-                x.Branch_ID == branchId &&
-                x.Fiscal_Year_ID == yearId &&
+                x.Setting_Key == key && x.Scope == scope && x.Company_ID == companyId &&
+                x.Branch_ID == branchId && x.Fiscal_Year_ID == yearId &&
                 x.Setting_ID != request.Setting_ID);
-            if (duplicate)
-                return BadRequest(new { message = "يوجد إعداد بالمفتاح نفسه داخل هذا النطاق." });
+            if (duplicate) return Conflict(new { message = "يوجد إعداد بالمفتاح نفسه داخل هذا النطاق." });
 
             SystemSetting setting;
+            object? before = null;
             if (request.Setting_ID > 0)
             {
-                var existingSetting = await _context.System_Settings
-                    .FirstOrDefaultAsync(x => x.Setting_ID == request.Setting_ID);
-                if (existingSetting == null)
-                    return NotFound(new { message = "الإعداد غير موجود." });
+                var existing = await _context.System_Settings.FirstOrDefaultAsync(x => x.Setting_ID == request.Setting_ID);
+                if (existing == null || !IsVisibleInSession(existing, session))
+                    return NotFound(new { message = "الإعداد غير موجود ضمن نطاق الجلسة." });
 
-                // لا يسمح بتعديل إعداد من سياق شركة/فرع/سنة أخرى.
-                if (!IsVisibleInSession(existingSetting, session))
-                    return NotFound(new { message = "الإعداد غير موجود ضمن نطاق الجلسة الحالية." });
-
-                setting = existingSetting;
+                setting = existing;
+                before = new { setting.Setting_Key, setting.Setting_Value, setting.Scope, setting.Is_Active };
             }
             else
             {
-                setting = new SystemSetting { Created_At = DateTime.Now };
+                setting = new SystemSetting { Created_At = DateTime.UtcNow };
                 _context.System_Settings.Add(setting);
             }
 
@@ -139,15 +129,34 @@ namespace AlTayerERP.API.Controllers
             setting.Effective_Date = request.Effective_Date?.Date;
             setting.Description = request.Description?.Trim() ?? string.Empty;
             setting.Is_Active = request.Is_Active;
-            setting.Updated_At = DateTime.Now;
+            setting.Updated_At = DateTime.UtcNow;
+
+            _audit.Add(session, HttpContext, "system_settings",
+                request.Setting_ID == 0 ? "new" : request.Setting_ID.ToString(),
+                request.Setting_ID == 0 ? "CREATE" : "UPDATE", before,
+                new { setting.Setting_Key, setting.Setting_Value, setting.Scope, setting.Is_Active });
 
             await _context.SaveChangesAsync();
+            return Ok(new { message = request.Setting_ID == 0 ? "تمت إضافة الإعداد." : "تم تعديل الإعداد.", setting.Setting_ID });
+        }
 
-            return Ok(new
-            {
-                message = request.Setting_ID > 0 ? "تم تعديل الإعداد." : "تمت إضافة الإعداد.",
-                setting.Setting_ID
-            });
+        [HttpDelete("{id:int}")]
+        public async Task<IActionResult> Deactivate(int id)
+        {
+            var denied = await DenyUnlessAsync(ScreenOperation.Delete);
+            if (denied != null) return denied;
+            var session = (ServerSession)HttpContext.Items["ServerSession"]!;
+
+            var setting = await _context.System_Settings.FirstOrDefaultAsync(x => x.Setting_ID == id);
+            if (setting == null || !IsVisibleInSession(setting, session))
+                return NotFound(new { message = "الإعداد غير موجود ضمن نطاق الجلسة." });
+
+            setting.Is_Active = false;
+            setting.Updated_At = DateTime.UtcNow;
+            _audit.Add(session, HttpContext, "system_settings", id.ToString(), "DEACTIVATE",
+                new { Is_Active = true }, new { Is_Active = false });
+            await _context.SaveChangesAsync();
+            return Ok(new { message = "تم إيقاف الإعداد." });
         }
 
         private static string NormalizeScope(string? scope)
@@ -176,9 +185,6 @@ namespace AlTayerERP.API.Controllers
                setting.Fiscal_Year_ID == session.Year_ID)));
     }
 
-    /// <summary>
-    /// عقد الحفظ لا يحتوي على مفاتيح الشركة أو الفرع أو السنة؛ الخادم يحددها من الجلسة.
-    /// </summary>
     public sealed class SaveSystemSettingRequest
     {
         public int Setting_ID { get; set; }

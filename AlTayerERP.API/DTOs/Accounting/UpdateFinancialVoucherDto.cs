@@ -16,6 +16,12 @@ namespace AlTayerERP.API.DTOs.Accounting
         [Range(1, long.MaxValue, ErrorMessage = "معرف السند غير صحيح.")]
         public long Voucher_ID { get; set; }
 
+        /// <summary>
+        /// رمز النسخة الذي استلمه العميل عند قراءة السند. يبقى اختيارياً
+        /// للمحافظة على توافق العملاء القديمة، ويمنع التعديل المتأخر عند إرساله.
+        /// </summary>
+        public Guid? RowVersion { get; set; }
+
         [Required(ErrorMessage = "نوع السند مطلوب.")]
         public int Voucher_Type_ID { get; set; }
 
@@ -39,16 +45,14 @@ namespace AlTayerERP.API.DTOs.Accounting
 
         #region بيانات الصندوق أو البنك
 
-        [Required(ErrorMessage = "حساب الصندوق أو البنك مطلوب.")]
         [MaxLength(50)]
         public string Cash_Account_ID { get; set; } = string.Empty;
 
         [MaxLength(50)]
         public string? Party_ID { get; set; }
 
-        [Required(ErrorMessage = "اسم الشخص في حقل استلمت من السيد مطلوب.")]
         [MaxLength(200)]
-        public string Received_From_Name { get; set; } = string.Empty;
+        public string? Received_From_Name { get; set; }
 
         public int? Payment_Method_ID { get; set; }
 

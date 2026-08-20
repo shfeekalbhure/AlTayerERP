@@ -163,6 +163,9 @@ namespace AlTayerERP.API.DTOs.Accounting
 
         public DateTime? Updated_At { get; set; }
 
+        /// <summary>رمز التزامن التفاؤلي — يُعاد إرساله في طلب التعديل لمنع التعارض.</summary>
+        public Guid RowVersion { get; set; }
+
         #endregion
 
         #region التفاصيل

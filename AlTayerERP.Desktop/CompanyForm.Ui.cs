@@ -1,0 +1,319 @@
+using System;
+using System.Drawing;
+using System.Linq;
+using System.Text.Json;
+using System.Threading.Tasks;
+using System.Windows.Forms;
+
+namespace AlTayerERP.Desktop
+{
+    /// <summary>
+    /// الجزء المسؤول عن اللمسات النهائية وتجربة الاستخدام الموحدة لشاشة الشركات.
+    /// تم فصله عن منطق الاتصال بالـ API حتى تبقى الشاشة سهلة الصيانة.
+    /// </summary>
+    public partial class CompanyForm
+    {
+        private TextBox? _txtQuickSearch;
+        private bool _unifiedUiInitialized;
+        private int _localPrintCount;
+
+        /// <summary>
+        /// تهيئة واجهة الشركات بعد إنشاء مقبض النافذة.
+        /// استخدام هذه المرحلة يمنع التعارض مع دورة OnShown الموجودة في BaseForm.
+        /// </summary>
+        protected override void OnHandleCreated(EventArgs e)
+        {
+            base.OnHandleCreated(e);
+
+            if (_unifiedUiInitialized)
+                return;
+
+            _unifiedUiInitialized = true;
+            KeyPreview = true;
+
+            InitializeQuickSearch();
+            InitializeGridAppearance();
+            InitializeActionStates();
+            ResetAuditView();
+
+            dgvCompanies.SelectionChanged += DgvCompanies_SelectionChanged;
+            dgvCompanies.CellDoubleClick += DgvCompanies_CellDoubleClick;
+            KeyDown += CompanyForm_KeyDown;
+        }
+
+        /// <summary>
+        /// إضافة مربع البحث الفوري أعلى قائمة الشركات.
+        /// </summary>
+        private void InitializeQuickSearch()
+        {
+            lblListTitle.Dock = DockStyle.Top;
+            lblListTitle.TextAlign = ContentAlignment.MiddleRight;
+
+            _txtQuickSearch = new TextBox
+            {
+                Name = "txtQuickSearch",
+                Dock = DockStyle.Bottom,
+                Height = 29,
+                Font = new Font("Segoe UI", 9.5F),
+                PlaceholderText = "ابحث بالاسم أو الرمز أو الهاتف...",
+                RightToLeft = RightToLeft.Yes,
+                Margin = new Padding(0)
+            };
+
+            _txtQuickSearch.TextChanged += TxtQuickSearch_TextChanged;
+            pnlListHeader.Height = 82;
+            pnlListHeader.Controls.Add(_txtQuickSearch);
+            _txtQuickSearch.BringToFront();
+        }
+
+        /// <summary>
+        /// تنسيق جدول الشركات ليطابق الهوية البصرية الموحدة للنظام.
+        /// </summary>
+        private void InitializeGridAppearance()
+        {
+            dgvCompanies.EnableHeadersVisualStyles = false;
+            dgvCompanies.ColumnHeadersDefaultCellStyle.BackColor = Color.FromArgb(31, 78, 121);
+            dgvCompanies.ColumnHeadersDefaultCellStyle.ForeColor = Color.White;
+            dgvCompanies.ColumnHeadersDefaultCellStyle.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+            dgvCompanies.ColumnHeadersDefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleCenter;
+            dgvCompanies.DefaultCellStyle.Font = new Font("Segoe UI", 9F);
+            dgvCompanies.DefaultCellStyle.SelectionBackColor = Color.FromArgb(214, 228, 242);
+            dgvCompanies.DefaultCellStyle.SelectionForeColor = Color.FromArgb(25, 45, 65);
+            dgvCompanies.AlternatingRowsDefaultCellStyle.BackColor = Color.FromArgb(248, 250, 252);
+            dgvCompanies.GridColor = Color.FromArgb(220, 226, 232);
+            dgvCompanies.CellBorderStyle = DataGridViewCellBorderStyle.SingleHorizontal;
+
+            SetColumnVisibility("Company_ID", false);
+            SetColumnVisibility("Address", false);
+            SetColumnVisibility("Email", false);
+            SetColumnFillWeight("Company_Name_AR", 150F);
+            SetColumnFillWeight("Company_Name_EN", 120F);
+        }
+
+        private void SetColumnVisibility(string columnName, bool visible)
+        {
+            DataGridViewColumn? column = dgvCompanies.Columns
+                .Cast<DataGridViewColumn>()
+                .FirstOrDefault(x => string.Equals(x.Name, columnName, StringComparison.OrdinalIgnoreCase));
+
+            if (column is not null)
+                column.Visible = visible;
+        }
+
+        private void SetColumnFillWeight(string columnName, float fillWeight)
+        {
+            DataGridViewColumn? column = dgvCompanies.Columns
+                .Cast<DataGridViewColumn>()
+                .FirstOrDefault(x => string.Equals(x.Name, columnName, StringComparison.OrdinalIgnoreCase));
+
+            if (column is not null)
+                column.FillWeight = fillWeight;
+        }
+
+        /// <summary>
+        /// ضبط حالة الأزرار عند فتح الشاشة دون اختيار شركة.
+        /// </summary>
+        private void InitializeActionStates()
+        {
+            btnSaveCompany.Enabled = true;
+            btnEdit.Enabled = false;
+            btnDelete.Enabled = false;
+            btnApprove.Enabled = false;
+            btnPreview.Enabled = false;
+            btnPrint.Enabled = true;
+        }
+
+        /// <summary>
+        /// البحث الفوري داخل القائمة المحملة دون تنفيذ طلب جديد على الخادم.
+        /// </summary>
+        private void TxtQuickSearch_TextChanged(object? sender, EventArgs e)
+        {
+            string keyword = _txtQuickSearch?.Text.Trim() ?? string.Empty;
+
+            if (keyword.Length == 0)
+            {
+                PopulateGrid(_originalCompaniesList);
+                return;
+            }
+
+            var filtered = _originalCompaniesList
+                .Where(company =>
+                    ContainsText(company.Company_Name_AR, keyword) ||
+                    ContainsText(company.Company_Name_EN, keyword) ||
+                    ContainsText(company.Company_Prefix, keyword) ||
+                    ContainsText(company.Phone, keyword) ||
+                    ContainsText(company.Email, keyword))
+                .ToList();
+
+            PopulateGrid(filtered);
+        }
+
+        private static bool ContainsText(string? source, string keyword)
+        {
+            return !string.IsNullOrWhiteSpace(source) &&
+                   source.IndexOf(keyword, StringComparison.CurrentCultureIgnoreCase) >= 0;
+        }
+
+        /// <summary>
+        /// تفعيل الإجراءات المرتبطة بالسجل وتحميل حقول التدقيق عند تحديد شركة.
+        /// </summary>
+        private async void DgvCompanies_SelectionChanged(object? sender, EventArgs e)
+        {
+            bool hasSelection = dgvCompanies.SelectedRows.Count > 0;
+            btnEdit.Enabled = hasSelection;
+            btnDelete.Enabled = hasSelection;
+            btnApprove.Enabled = hasSelection;
+            btnPreview.Enabled = hasSelection;
+
+            if (!hasSelection)
+            {
+                ResetAuditView();
+                return;
+            }
+
+            object? idValue = dgvCompanies.SelectedRows[0].Cells[0].Value;
+            if (idValue is null)
+            {
+                ResetAuditView();
+                return;
+            }
+
+            await LoadAuditViewAsync(idValue.ToString() ?? string.Empty);
+        }
+
+        /// <summary>
+        /// قراءة حقول التدقيق مباشرة من استجابة الشركة دون ربط الشاشة بكائن قاعدة البيانات.
+        /// </summary>
+        private async Task LoadAuditViewAsync(string companyId)
+        {
+            if (string.IsNullOrWhiteSpace(companyId))
+            {
+                ResetAuditView();
+                return;
+            }
+
+            try
+            {
+                using var response = await _client.GetAsync($"{_baseUrl}Companies/{companyId}");
+                if (!response.IsSuccessStatusCode)
+                {
+                    ResetAuditView();
+                    return;
+                }
+
+                await using var stream = await response.Content.ReadAsStreamAsync();
+                using JsonDocument document = await JsonDocument.ParseAsync(stream);
+                JsonElement root = document.RootElement;
+
+                lblCreatedBy.Text = ReadJsonValue(root, "Created_By", "created_By", "createdBy");
+                lblCreatedAt.Text = FormatDate(ReadJsonValue(root, "Created_At", "created_At", "createdAt"));
+                lblModifiedBy.Text = ReadJsonValue(root, "Updated_By", "updated_By", "updatedBy");
+                lblModifiedAt.Text = FormatDate(ReadJsonValue(root, "Updated_At", "updated_At", "updatedAt"));
+                lblEditCount.Text = ReadJsonValue(root, "Edit_Count", "edit_Count", "editCount", fallback: "0");
+            }
+            catch
+            {
+                ResetAuditView();
+            }
+        }
+
+        private static string ReadJsonValue(JsonElement root, string name1, string name2, string name3, string fallback = "—")
+        {
+            foreach (string name in new[] { name1, name2, name3 })
+            {
+                if (!root.TryGetProperty(name, out JsonElement value) || value.ValueKind == JsonValueKind.Null)
+                    continue;
+
+                string? text = value.ValueKind switch
+                {
+                    JsonValueKind.String => value.GetString(),
+                    JsonValueKind.Number => value.GetRawText(),
+                    JsonValueKind.True => "نعم",
+                    JsonValueKind.False => "لا",
+                    _ => value.ToString()
+                };
+
+                if (!string.IsNullOrWhiteSpace(text))
+                    return text;
+            }
+
+            return fallback;
+        }
+
+        private static string FormatDate(string value)
+        {
+            if (value == "—")
+                return value;
+
+            return DateTime.TryParse(value, out DateTime date)
+                ? date.ToLocalTime().ToString("yyyy/MM/dd HH:mm")
+                : value;
+        }
+
+        /// <summary>
+        /// النقر المزدوج ينقل التركيز مباشرة إلى بيانات الشركة للتعديل السريع.
+        /// </summary>
+        private void DgvCompanies_CellDoubleClick(object? sender, DataGridViewCellEventArgs e)
+        {
+            if (e.RowIndex < 0)
+                return;
+
+            txtCompanyNameAr.Focus();
+            txtCompanyNameAr.SelectAll();
+        }
+
+        /// <summary>
+        /// اختصارات موحدة لجميع العمليات الأساسية في الشاشة.
+        /// </summary>
+        private void CompanyForm_KeyDown(object? sender, KeyEventArgs e)
+        {
+            if (e.Control && e.KeyCode == Keys.N)
+            {
+                btnNew.PerformClick();
+                ResetAuditView();
+                e.SuppressKeyPress = true;
+            }
+            else if (e.Control && e.KeyCode == Keys.S)
+            {
+                btnSaveCompany.PerformClick();
+                e.SuppressKeyPress = true;
+            }
+            else if (e.Control && e.KeyCode == Keys.F)
+            {
+                _txtQuickSearch?.Focus();
+                _txtQuickSearch?.SelectAll();
+                e.SuppressKeyPress = true;
+            }
+            else if (e.Control && e.KeyCode == Keys.P)
+            {
+                _localPrintCount++;
+                lblPrintCount.Text = _localPrintCount.ToString();
+                btnPrint.PerformClick();
+                e.SuppressKeyPress = true;
+            }
+            else if (e.KeyCode == Keys.F5)
+            {
+                btnRefresh.PerformClick();
+                e.SuppressKeyPress = true;
+            }
+            else if (e.KeyCode == Keys.Escape)
+            {
+                btnClose.PerformClick();
+                e.SuppressKeyPress = true;
+            }
+        }
+
+        /// <summary>
+        /// إعادة حقول التدقيق إلى حالتها الافتراضية عند إنشاء سجل جديد.
+        /// </summary>
+        private void ResetAuditView()
+        {
+            lblCreatedBy.Text = "—";
+            lblCreatedAt.Text = "—";
+            lblModifiedBy.Text = "—";
+            lblModifiedAt.Text = "—";
+            lblEditCount.Text = "0";
+            lblPrintCount.Text = _localPrintCount.ToString();
+        }
+    }
+}

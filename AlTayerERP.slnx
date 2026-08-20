@@ -3,4 +3,6 @@
   <Project Path="AlTayerERP.Core/AlTayerERP.Core.csproj" />
   <Project Path="AlTayerERP.Desktop/AlTayerERP.Desktop.csproj" />
   <Project Path="AlTayerERP.Infrastructure/AlTayerERP.Infrastructure.csproj" />
+  <Project Path="AlTayerERP.Mobile.Office/AlTayerERP.Mobile.Office.csproj" Id="43df3461-b06f-4261-b7b4-7e2715ad3e31" />
+  <Project Path="AlTayerERP.Tests/AlTayerERP.Tests.csproj" />
 </Solution>

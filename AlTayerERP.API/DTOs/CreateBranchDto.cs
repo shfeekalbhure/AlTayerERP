@@ -1,64 +1,48 @@
-﻿using System; // استدعاء المكتبات الأساسية للنظام
+using System.ComponentModel.DataAnnotations;
 
-namespace AlTayerERP.API.DTOs
+namespace AlTayerERP.API.DTOs;
+
+/// <summary>
+/// بيانات إنشاء أو تعديل فرع. لا تتضمن حقول الحالة أو التدقيق.
+/// الدولة والمحافظة لا تستقبلان من العميل؛ يستخرجهما الخادم من المدينة المختارة.
+/// </summary>
+public sealed class CreateBranchDto
 {
-    // =================================================================================
-    // نموذج نقل البيانات (Data Transfer Object) المخصص لاستقبال بيانات الفروع من الواجهات
-    // الغرض منه: فصل حقول واجهة المستخدم عن الكيان الرئيسي لقاعدة البيانات لضمان الأمن والأداء
-    // =================================================================================
-    public class CreateBranchDto
-    {
-        // معرف الشركة الفريد التابع لها هذا الفرع (حقل ربط إلزامي)
-        public string Company_ID { get; set; } = string.Empty;
+    [Required(ErrorMessage = "الشركة مطلوبة.")]
+    public string Company_ID { get; set; } = string.Empty;
 
-        // كود أو رمز الفرع المالي والإداري (مثال: BR-108)، وإذا تُرِك فارغاً يقوم السيرفر بتوليده تلقائياً
-        public string Branch_Code { get; set; } = string.Empty;
+    /// <summary>يمكن تركه فارغاً عند الإنشاء ليولده نظام الترقيم مركزياً.</summary>
+    public string Branch_Code { get; set; } = string.Empty;
 
-        // اسم الفرع الرسمي باللغة العربية (حقل إلزامى للتعاملات داخل النظام والتقارير)
-        public string Branch_Name { get; set; } = string.Empty;
+    [Required(ErrorMessage = "اسم الفرع بالعربية مطلوب.")]
+    public string Branch_Name { get; set; } = string.Empty;
 
-        // اسم الفرع باللغة الإنجليزية (يستخدم في الفواتير والتقارير الموجهة باللغة الأجنبية)
-        public string Branch_Name_EN { get; set; } = string.Empty;
+    public string Branch_Name_EN { get; set; } = string.Empty;
+    public string Address { get; set; } = string.Empty;
 
-        // العنوان الجغرافي أو الموقع التفصيلي للفرع (مثال: عدن، شارع التسعين)
-        public string Address { get; set; } = string.Empty;
+    /// <summary>كود أو اسم نوع فرع نشط قادم من جدول branch_types.</summary>
+    [Required(ErrorMessage = "نوع الفرع مطلوب.")]
+    public string Branch_Type { get; set; } = string.Empty;
 
-        // نوع وطبيعة عمل الفرع ويأخذ قيم ثابتة محددة بالشاشة مثل: (رئيسي، فرعي، نقطة توزيع، مستودع)
-        public string Branch_Type { get; set; } = string.Empty;
+    public int? Parent_Branch_ID { get; set; }
 
-        // معرف الفرع الرئيسي الأعلى في الهيكلية الشجرية (يأخذ قيمة رقمية في حال كان الفرع "فرعي" ويتبع لفرع "رئيسي")
-        // تم تعيينه كـ ?int لكي يقبل قيمة فارغة (Null) إذا كان الفرع نفسه هو الفرع الرئيسي الأعلى
-        public int? Parent_Branch_ID { get; set; }
+    /// <summary>
+    /// المدينة المرجعية المختارة. يستخرج الخادم منها Country_ID وGovernorate_ID
+    /// لضمان عدم إرسال تسلسل جغرافي متعارض من الواجهة.
+    /// </summary>
+    [Range(1, int.MaxValue, ErrorMessage = "المدينة مطلوبة.")]
+    public int? City_ID { get; set; }
 
-        // رقم الهاتف الأرضي الثابت الخاص بالفرع
-        public string Phone { get; set; } = string.Empty;
+    public string Phone { get; set; } = string.Empty;
+    public string Mobile { get; set; } = string.Empty;
+    public string Email { get; set; } = string.Empty;
+    public string Website { get; set; } = string.Empty;
+    public string Manager_Name { get; set; } = string.Empty;
+    public string Notes { get; set; } = string.Empty;
+    public bool Allow_Credit { get; set; }
+    public bool Allow_Percentage { get; set; }
 
-        // رقم الهاتف الجوال أو المحمول الرسمي للتواصل السريع مع الفرع
-        public string Mobile { get; set; } = string.Empty;
-
-        // البريد الإلكتروني الرسمي للفرع والمخصص لاستقبال الإشعارات والمراسلات التلقائية
-        public string Email { get; set; } = string.Empty;
-
-        // الرابط أو الموقع الإلكتروني الخاص بالفرع إن وجد
-        public string Website { get; set; } = string.Empty;
-
-        // اسم الشخص المسؤول أو مدير الفرع الحالي المخول بإدارة العمليات اللوجستية والإدارية
-        public string Manager_Name { get; set; } = string.Empty;
-
-        // ملاحظات أو تفاصيل إضافية يدخلها المستخدم لشرح طبيعة الفرع أو قيود معينة حوله
-        public string Notes { get; set; } = string.Empty;
-
-        // خاصية منطقية (True/False): تحدد ما إذا كان يُسمح للفرع بإجراء عمليات البيع والشحن بالآجل للعملاء أم لا
-        public bool Allow_Credit { get; set; }
-
-        // خاصية منطقية (True/False): تحدد صلاحية الفرع في منح نسب الخصومات والصلاحيات المئوية في المعاملات المالية
-        public bool Allow_Percentage { get; set; }
-
-        // حالة الفرع الحالية في النظام (True تعني "نشط" ويظهر في كل القوائم، False تعني "موقوف" ويتم تجميد عملياته)
-        // ترتبط مباشرة بالكومبو بوكس cmbStatus في شاشة الويندوز فورم
-        public bool Is_Active { get; set; }
-
-        // معرف العملة الافتراضية المعتمدة لعمليات الفرع الحسابية، وتم إسناد القيمة الافتراضية 1 (مثل الريال اليمني/السعودي حسب تهيئة النظام)
-        public int Currency_ID { get; set; } = 1;
-    }
+    /// <summary>عملة نشطة تابعة للشركة المختارة؛ لا توجد قيمة ثابتة افتراضية.</summary>
+    [Range(1, int.MaxValue, ErrorMessage = "العملة الافتراضية للفرع مطلوبة.")]
+    public int Currency_ID { get; set; }
 }

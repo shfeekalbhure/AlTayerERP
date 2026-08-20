@@ -14,6 +14,9 @@ namespace AlTayerERP.API.Services.Accounting
     /// </summary>
     public class FinancialVoucherService
     {
+        // يستخدم عند قراءة حسابات السند من قواعد MySQL ذات Collation مختلط.
+        private const string CanonicalMySqlCollation = "utf8mb4_unicode_ci";
+
         private readonly AppDbContext _context;
         private readonly VoucherValidationService _validator;
 
@@ -38,8 +41,13 @@ namespace AlTayerERP.API.Services.Accounting
                 return (false, validation.ErrorMessage, null, null);
             }
 
-            // 2) بدء معاملة قاعدة بيانات لضمان حفظ الرأس والتفاصيل والتوزيعات معًا
-            await using var transaction = await _context.Database.BeginTransactionAsync();
+            // 2) بدء معاملة قاعدة بيانات عند عدم وجود معاملة خارجية. تسمح هذه
+            // الصيغة لطلب الصرف بضم إنشاء السند وتحديث السقف وربط الطلب في معاملة
+            // واحدة، من دون بدء معاملة متداخلة على نفس DbContext.
+            var ownsTransaction = _context.Database.CurrentTransaction is null;
+            var transaction = ownsTransaction
+                ? await _context.Database.BeginTransactionAsync()
+                : null;
 
             try
             {
@@ -49,7 +57,7 @@ namespace AlTayerERP.API.Services.Accounting
 
                 if (totalDebit != totalCredit)
                 {
-                    await transaction.RollbackAsync();
+                    if (ownsTransaction) await transaction!.RollbackAsync();
 
                     return (false, "إجمالي المدين لا يساوي إجمالي الدائن.", null, null);
                 }
@@ -62,7 +70,7 @@ namespace AlTayerERP.API.Services.Accounting
 
                 decimal foreignTotal = cashCurrencies.Count == 1
                     ? decimal.Round(cashLines.Sum(x => x.Foreign_Amount), 2)
-                    : 0m;
+                    : decimal.Round(dto.Details.Sum(x => x.Foreign_Amount), 2);
 
                 // 4) توليد رقم السند الرسمي من إعدادات الترقيم. 
                 // يتم تحديث آخر رقم داخل نفس المعاملة، لذلك إذا فشل الحفظ يتم التراجع عن الرقم والسند معًا.
@@ -81,7 +89,7 @@ namespace AlTayerERP.API.Services.Accounting
                     Transaction_Date = dto.Transaction_Date,
                     Cash_Account_ID = dto.Cash_Account_ID,
                     Party_ID = dto.Party_ID,
-                    Received_From_Name = dto.Received_From_Name.Trim(),
+                    Received_From_Name = string.IsNullOrWhiteSpace(dto.Received_From_Name) ? null : dto.Received_From_Name.Trim(),
                     Payment_Method_ID = dto.Payment_Method_ID,
                     Currency_ID = dto.Currency_ID,
                     Exchange_Rate = dto.Exchange_Rate,
@@ -147,7 +155,7 @@ namespace AlTayerERP.API.Services.Accounting
 
                     if (remainingBalance < 0)
                     {
-                        await transaction.RollbackAsync();
+                        if (ownsTransaction) await transaction!.RollbackAsync();
                         return (false, $"المبلغ المحصل للمستند {allocationDto.Document_No} أكبر من رصيده المتبقي.", null, null);
                     }
 
@@ -187,7 +195,7 @@ namespace AlTayerERP.API.Services.Accounting
                 // 9) حفظ جميع البيانات
                 await _context.Financial_Voucher_Headers.AddAsync(voucher);
                 await _context.SaveChangesAsync();
-                await transaction.CommitAsync();
+                if (ownsTransaction) await transaction!.CommitAsync();
 
                 return (
                     true,
@@ -196,19 +204,20 @@ namespace AlTayerERP.API.Services.Accounting
                     voucher.Voucher_No
                 );
             }
-            catch (DbUpdateException ex)
+            catch (DbUpdateException)
             {
-                await transaction.RollbackAsync();
-
-                string error = ex.InnerException?.Message ?? ex.Message;
-
-                return (false, $"تعذر حفظ السند في قاعدة البيانات: {error}", null, null);
+                if (ownsTransaction) await transaction!.RollbackAsync();
+                return (false, "تعذر حفظ السند. يرجى المحاولة أو مراجعة الإدارة.", null, null);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                await transaction.RollbackAsync();
-
-                return (false, $"حدث خطأ أثناء حفظ السند المالي: {ex.Message}", null, null);
+                if (ownsTransaction) await transaction!.RollbackAsync();
+                return (false, "تعذر إكمال حفظ السند حالياً.", null, null);
+            }
+            finally
+            {
+                if (transaction != null)
+                    await transaction.DisposeAsync();
             }
         }
 
@@ -219,19 +228,26 @@ namespace AlTayerERP.API.Services.Accounting
         private async Task<string> GenerateOfficialVoucherNoAsync(CreateFinancialVoucherDto dto)
         {
             #region تحديد نوع المستند
-            // تحديد كود إعداد الترقيم بحسب نوع السند المالي.
-            string documentType = dto.Voucher_Type_ID switch
+            // يحدد كود نوع المستند من البيانات المرجعية النشطة؛ لا نعتمد على
+            // معرفات رقمية ثابتة لأنها تختلف بين قواعد الشركات.
+            var voucherTypeCode = await _context.Voucher_Types.AsNoTracking()
+                .Where(x => x.Voucher_Type_ID == dto.Voucher_Type_ID && x.Is_Active)
+                .Select(x => x.Voucher_Type_Code)
+                .SingleOrDefaultAsync();
+
+            string documentType = voucherTypeCode?.Trim().ToUpperInvariant() switch
             {
-                1 => "RECEIPT_VOUCHER",
-                2 => "PAYMENT_VOUCHER",
-                3 => "JOURNAL_ENTRY",
-                _ => throw new InvalidOperationException($"نوع السند رقم {dto.Voucher_Type_ID} غير مدعوم في إعدادات الترقيم.")
+                "RECEIPT" => "RECEIPT_VOUCHER",
+                "PAYMENT" => "PAYMENT_VOUCHER",
+                "JOURNAL" => "JOURNAL_ENTRY",
+                _ => throw new InvalidOperationException("نوع السند غير معروف أو موقوف في إعدادات الترقيم.")
             };
             #endregion
 
             #region جلب إعداد الترقيم
             var setting = await _context.Numbering_Settings
-                .FirstOrDefaultAsync(x => x.Document_Type == documentType && x.Is_Active);
+                // يحمي توليد الرقم الرسمي من اختلاف ترميز Document_Type بين قواعد البيانات.
+                .FirstOrDefaultAsync(x => EF.Functions.Collate(x.Document_Type, CanonicalMySqlCollation) == documentType && x.Is_Active);
 
             if (setting == null)
             {
@@ -261,7 +277,7 @@ namespace AlTayerERP.API.Services.Accounting
             // إضافة الشركة بحسب إعداد الترقيم.
             if (setting.Use_Company)
             {
-                numberParts.Add(CurrentCompanyId(dto));
+                numberParts.Add(await ResolveCompanyIdAsync(dto));
             }
 
             // إضافة الفرع بحسب إعداد الترقيم.
@@ -288,12 +304,23 @@ namespace AlTayerERP.API.Services.Accounting
         /// <summary>
         /// استخراج معرف الشركة المستخدم في رقم المستند.
         /// </summary>
-        private string CurrentCompanyId(CreateFinancialVoucherDto dto)
+        /// <summary>
+        /// يحدد الشركة من الفرع الموثوق المحفوظ في السند، ولا يقبل أي قيمة ثابتة
+        /// أو قيمة شركة مرسلة من العميل.
+        /// </summary>
+        private async Task<string> ResolveCompanyIdAsync(CreateFinancialVoucherDto dto)
         {
-            // إذا كان DTO يحتوي Company_ID استخدم:
-            // return dto.Company_ID;
-            // حاليًا نستخدم الشركة المعتمدة في النظام.
-            return "FG-00001";
+            if (!int.TryParse(dto.Branch_ID, out var branchId))
+                throw new InvalidOperationException("معرف الفرع غير صالح لتوليد رقم المستند.");
+
+            var companyId = await _context.Tenant_Branches.AsNoTracking()
+                .Where(x => x.Branch_ID == branchId && x.Is_Active)
+                .Select(x => x.Company_ID)
+                .SingleOrDefaultAsync();
+
+            return string.IsNullOrWhiteSpace(companyId)
+                ? throw new InvalidOperationException("تعذر تحديد الشركة التابعة للفرع عند توليد رقم المستند.")
+                : companyId;
         }
 
         /// <summary>
@@ -302,6 +329,60 @@ namespace AlTayerERP.API.Services.Accounting
         public async Task<(bool Success, string Message)> UpdateAsync(
             UpdateFinancialVoucherDto dto)
         {
+            // يستخدم التحقق المركزي نفسه الخاص بالإنشاء حتى لا يصبح مسار التعديل
+            // ثغرة تسمح بحساب غير قابل للترحيل أو عملة/فترة غير صالحة.
+            var validation = await _validator.ValidateAsync(new CreateFinancialVoucherDto
+            {
+                Voucher_Type_ID = dto.Voucher_Type_ID,
+                Voucher_Status_ID = dto.Voucher_Status_ID,
+                Branch_ID = dto.Branch_ID,
+                Fiscal_Year_ID = dto.Fiscal_Year_ID,
+                Voucher_Date = dto.Voucher_Date,
+                Transaction_Date = dto.Transaction_Date,
+                Cash_Account_ID = dto.Cash_Account_ID,
+                Party_ID = dto.Party_ID,
+                Received_From_Name = dto.Received_From_Name,
+                Payment_Method_ID = dto.Payment_Method_ID,
+                Currency_ID = dto.Currency_ID,
+                Exchange_Rate = dto.Exchange_Rate,
+                Amount = dto.Amount,
+                Foreign_Total = dto.Foreign_Total,
+                Local_Total = dto.Local_Total,
+                Reference_No = dto.Reference_No,
+                Reference_Date = dto.Reference_Date,
+                Against_Text = dto.Against_Text,
+                Description = dto.Description,
+                Notes = dto.Notes,
+                Module_ID = dto.Module_ID,
+                Document_Type_ID = dto.Document_Type_ID,
+                Document_ID = dto.Document_ID,
+                Source_Document_No = dto.Source_Document_No,
+                Requires_Approval = dto.Requires_Approval,
+                Created_By = dto.Updated_By,
+                Details = dto.Details.Select(x => new CreateFinancialVoucherDetailDto
+                {
+                    Line_No = x.Line_No,
+                    Account_ID = x.Account_ID,
+                    Description = x.Description,
+                    Cost_Center_ID = x.Cost_Center_ID,
+                    Project_ID = x.Project_ID,
+                    Reference_Type = x.Reference_Type,
+                    Reference_No = x.Reference_No,
+                    Reference_Name = x.Reference_Name,
+                    Reference_Date = x.Reference_Date,
+                    Currency_ID = x.Currency_ID,
+                    Exchange_Rate = x.Exchange_Rate,
+                    Foreign_Amount = x.Foreign_Amount,
+                    Local_Amount = x.Local_Amount,
+                    Debit_Amount = x.Debit_Amount,
+                    Credit_Amount = x.Credit_Amount,
+                    Line_Type = x.Line_Type,
+                    Notes = x.Notes
+                }).ToList()
+            });
+            if (!validation.IsValid)
+                return (false, validation.ErrorMessage);
+
             if (dto.Details == null || dto.Details.Count < 2)
             {
                 return (false, "يجب أن يحتوي السند على سطرين محاسبيين على الأقل.");
@@ -338,16 +419,21 @@ namespace AlTayerERP.API.Services.Accounting
                 return (false, "إجمالي المدين لا يساوي إجمالي الدائن.");
             }
 
+            var isJournal = await _context.Voucher_Types.AsNoTracking()
+                .AnyAsync(x => x.Voucher_Type_ID == dto.Voucher_Type_ID && x.Is_Active &&
+                    x.Voucher_Type_Code.ToUpper() == "JOURNAL");
             var cashLines = dto.Details.Where(x => x.Line_Type == 1).ToList();
-            if (cashLines.Count != 1)
+            if ((!isJournal && cashLines.Count != 1) || (isJournal && cashLines.Count != 0))
             {
-                return (false, "يجب أن يحتوي السند على سطر صندوق أو بنك واحد فقط.");
+                return (false, isJournal
+                    ? "القيد اليومي لا يحتوي سطر صندوق أو بنك."
+                    : "يجب أن يحتوي السند على سطر صندوق أو بنك واحد فقط.");
             }
 
             var cashCurrencies = cashLines.Select(x => x.Currency_ID).Distinct().ToList();
             decimal foreignTotal = cashCurrencies.Count == 1
                 ? decimal.Round(cashLines.Sum(x => x.Foreign_Amount), 2)
-                : 0m;
+                : decimal.Round(dto.Details.Sum(x => x.Foreign_Amount), 2);
 
             await using var transaction = await _context.Database.BeginTransactionAsync();
 
@@ -362,6 +448,12 @@ namespace AlTayerERP.API.Services.Accounting
                 {
                     await transaction.RollbackAsync();
                     return (false, "السند المالي غير موجود.");
+                }
+
+                if (dto.RowVersion.HasValue && dto.RowVersion.Value != voucher.RowVersion)
+                {
+                    await transaction.RollbackAsync();
+                    return (false, "تم تعديل السند المالي من مستخدم آخر. يرجى إعادة تحميل السند قبل الحفظ.");
                 }
 
                 if (voucher.Is_Posted)
@@ -387,7 +479,9 @@ namespace AlTayerERP.API.Services.Accounting
                 voucher.Transaction_Date = dto.Transaction_Date;
                 voucher.Cash_Account_ID = dto.Cash_Account_ID;
                 voucher.Party_ID = dto.Party_ID;
-                voucher.Received_From_Name = dto.Received_From_Name.Trim();
+                voucher.Received_From_Name = string.IsNullOrWhiteSpace(dto.Received_From_Name)
+                    ? null
+                    : dto.Received_From_Name.Trim();
                 voucher.Payment_Method_ID = dto.Payment_Method_ID;
                 voucher.Currency_ID = dto.Currency_ID;
                 voucher.Exchange_Rate = dto.Exchange_Rate;
@@ -517,16 +611,20 @@ namespace AlTayerERP.API.Services.Accounting
 
                 return (true, $"تم تعديل السند المالي بنجاح. رقم السند: {voucher.Voucher_No}");
             }
-            catch (DbUpdateException ex)
+            catch (DbUpdateConcurrencyException)
             {
                 await transaction.RollbackAsync();
-                string error = ex.InnerException?.Message ?? ex.Message;
-                return (false, $"تعذر تعديل السند في قاعدة البيانات: {error}");
+                return (false, "تم تعديل السند المالي من مستخدم آخر. يرجى إعادة تحميل السند قبل الحفظ.");
             }
-            catch (Exception ex)
+            catch (DbUpdateException)
             {
                 await transaction.RollbackAsync();
-                return (false, $"حدث خطأ أثناء تعديل السند المالي: {ex.Message}");
+                return (false, "تعذر حفظ تعديل السند. يرجى المحاولة أو مراجعة الإدارة.");
+            }
+            catch (Exception)
+            {
+                await transaction.RollbackAsync();
+                return (false, "تعذر إكمال تعديل السند حالياً.");
             }
         }
 
@@ -589,14 +687,13 @@ namespace AlTayerERP.API.Services.Accounting
                 await _context.SaveChangesAsync();
                 return (true, $"تم حذف السند رقم {voucher.Voucher_No} بنجاح.");
             }
-            catch (DbUpdateException ex)
+            catch (DbUpdateException)
             {
-                string error = ex.InnerException?.Message ?? ex.Message;
-                return (false, $"تعذر حذف السند في قاعدة البيانات: {error}");
+                return (false, "تعذر حذف السند حالياً.");
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return (false, $"حدث خطأ أثناء حذف السند: {ex.Message}");
+                return (false, "تعذر حذف السند حالياً.");
             }
         }
 
@@ -658,9 +755,9 @@ namespace AlTayerERP.API.Services.Accounting
                 await _context.SaveChangesAsync();
                 return (true, $"تمت مراجعة السند رقم {voucher.Voucher_No} بنجاح.");
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return (false, $"حدث خطأ أثناء مراجعة السند: {ex.Message}");
+                return (false, "تعذر إتمام مراجعة السند حالياً.");
             }
         }
 
@@ -728,9 +825,9 @@ namespace AlTayerERP.API.Services.Accounting
                 await _context.SaveChangesAsync();
                 return (true, $"تمت إعادة السند رقم {voucher.Voucher_No} للتصحيح.");
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return (false, $"حدث خطأ أثناء إعادة السند للتصحيح: {ex.Message}");
+                return (false, "تعذر إعادة السند للتصحيح حالياً.");
             }
         }
 
@@ -864,7 +961,8 @@ namespace AlTayerERP.API.Services.Accounting
                    
                     Cash_Account_Name =
                  _context.Chart_Of_Accounts
-                   .Where(a => a.Account_ID == voucher.Cash_Account_ID)
+                   // قراءة اسم حساب الصندوق بالترميز الموحد لتفادي تعطل استعراض السند المحفوظ.
+                   .Where(a => EF.Functions.Collate(a.Account_ID, CanonicalMySqlCollation) == voucher.Cash_Account_ID)
                    .Select(a => a.Account_Name_AR)
                    .FirstOrDefault() ?? string.Empty,
 
@@ -985,7 +1083,10 @@ namespace AlTayerERP.API.Services.Accounting
                         voucher.Updated_By,
 
                     Updated_At =
-                        voucher.Updated_At
+                        voucher.Updated_At,
+
+                    RowVersion =
+                        voucher.RowVersion
                 };
 
             #endregion
@@ -1010,7 +1111,8 @@ namespace AlTayerERP.API.Services.Accounting
 
                             Account_Name =
                           _context.Chart_Of_Accounts
-                         .Where(a => a.Account_ID == x.Account_ID)
+                         // قراءة أسماء تفاصيل القيد بالترميز الموحد.
+                         .Where(a => EF.Functions.Collate(a.Account_ID, CanonicalMySqlCollation) == x.Account_ID)
                          .Select(a => a.Account_Name_AR)
                           .FirstOrDefault() ?? string.Empty,
 

@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="AlTayerERP.Mobile.Office.PaymentRequestsPage"
+             FlowDirection="RightToLeft"
+             BackgroundColor="#F6F8FB"
+             Title="طلبات الصرف">
+    <Grid RowDefinitions="Auto,Auto,Auto,*" Padding="16" RowSpacing="12">
+        <Button Grid.Row="0"
+                Text="+ طلب صرف جديد"
+                HeightRequest="50"
+                CornerRadius="12"
+                BackgroundColor="#17324D"
+                TextColor="White"
+                Clicked="OnNewClicked" />
+
+        <Grid Grid.Row="1" ColumnDefinitions="*,Auto" ColumnSpacing="8">
+            <Entry x:Name="RequestNoEntry"
+                   Grid.Column="0"
+                   Placeholder="بحث برقم الطلب"
+                   TextColor="#17324D"
+                   PlaceholderColor="#7A8896"
+                   BackgroundColor="White" />
+            <Button Grid.Column="1"
+                    Text="بحث"
+                    BackgroundColor="#0B6B87"
+                    TextColor="White"
+                    Clicked="OnSearchClicked" />
+        </Grid>
+
+        <Picker x:Name="StatusPicker"
+                Grid.Row="2"
+                Title="كل الحالات"
+                TextColor="#17324D"
+                TitleColor="#7A8896"
+                BackgroundColor="White"
+                SelectedIndexChanged="OnStatusChanged" />
+
+        <RefreshView x:Name="RequestsRefresh"
+                     Grid.Row="3"
+                     Refreshing="OnRefreshing">
+            <CollectionView x:Name="RequestsList"
+                            SelectionMode="Single"
+                            SelectionChanged="OnRequestSelected">
+                <CollectionView.EmptyView>
+                    <VerticalStackLayout Padding="20" Spacing="10">
+                        <Label Text="لا توجد طلبات صرف مطابقة."
+                               HorizontalTextAlignment="Center"
+                               TextColor="#7A8896" />
+                    </VerticalStackLayout>
+                </CollectionView.EmptyView>
+                <CollectionView.ItemTemplate>
+                    <DataTemplate>
+                        <Border Margin="0,0,0,10"
+                                Padding="14"
+                                Stroke="#D9E2EC"
+                                BackgroundColor="White"
+                                StrokeShape="RoundRectangle 14">
+                            <Grid RowDefinitions="Auto,Auto,Auto" ColumnDefinitions="*,Auto" RowSpacing="6">
+                                <Label Grid.Row="0" Grid.Column="0"
+                                       Text="{Binding Request_No}"
+                                       FontAttributes="Bold"
+                                       FontSize="16"
+                                       TextColor="#17324D" />
+                                <Label Grid.Row="0" Grid.Column="1"
+                                       Text="{Binding StatusDisplay}"
+                                       TextColor="#0B6B87" />
+                                <Label Grid.Row="1" Grid.ColumnSpan="2"
+                                       Text="{Binding Beneficiary_Name}"
+                                       TextColor="#35566F" />
+                                <Grid Grid.Row="2" Grid.ColumnSpan="2" ColumnDefinitions="*,Auto">
+                                    <Label Text="{Binding Request_Date, StringFormat='التاريخ: {0:yyyy/MM/dd}'}"
+                                           TextColor="#7A8896"
+                                           FontSize="12" />
+                                    <Label Grid.Column="1"
+                                           Text="{Binding LocalTotal, StringFormat='الإجمالي: {0:N2}'}"
+                                           TextColor="#17324D"
+                                           FontAttributes="Bold" />
+                                </Grid>
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+        </RefreshView>
+    </Grid>
+</ContentPage>

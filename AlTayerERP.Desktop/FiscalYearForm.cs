@@ -12,10 +12,11 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 // استدعاء المجلد المركزي لخدمات الـ API
 using AlTayerERP.Desktop.Services;
+using AlTayerERP.Desktop.Common;
 
 namespace AlTayerERP.Desktop
 {
-    public partial class FiscalYearForm : Form
+    public partial class FiscalYearForm : BaseForm
     {
 // إنشاء كائن ثابت لـ HttpClient للتعامل مع اتصالات الشبكة والـ API
 private readonly HttpClient _client = ApiService.Client;
@@ -35,6 +36,13 @@ private readonly HttpClient _client = ApiService.Client;
         public FiscalYearForm()
         {
             InitializeComponent();
+            ApplyBaseFormStyle();
+            // الإقفال والإيقاف لا ينفذان من حقول واجهة عامة؛ الفترة المالية تدار من شاشة الفترات المدققة.
+            chkIsClosed.Enabled = false;
+            chkIsClosed.TabStop = false;
+            cmbStatus.Enabled = false;
+            cmbStatus.TabStop = false;
+            btnDelete.Text = "إيقاف";
 
             // توحيد شكل الشاشة القديمة والاختصارات العربية دون تغيير منطقها.
 // إعداد أعمدة وخصائص جدول عرض البيانات
@@ -59,7 +67,7 @@ private readonly HttpClient _client = ApiService.Client;
         // ======================================================
         // حدث تحميل الشاشة (Form Load)
         // ======================================================
-        private async void FiscalYearForm_Load(object sender, EventArgs e)
+        private async void FiscalYearForm_Load(object? sender, EventArgs e)
         {
             // تهيئة خيارات قائمة الحالة وتحديد الخيار الافتراضي "نشط"
             cmbStatus.Items.Clear();
@@ -150,7 +158,7 @@ private readonly HttpClient _client = ApiService.Client;
         // ======================================================
         // حدث النقر على صف في الجدول لنقل البيانات إلى حقول الإدخال
         // ======================================================
-        private void dgvFiscalYears_CellClick(object sender, DataGridViewCellEventArgs e)
+        private void dgvFiscalYears_CellClick(object? sender, DataGridViewCellEventArgs e)
         {
             if (e.RowIndex < 0) return;
 
@@ -178,7 +186,7 @@ private readonly HttpClient _client = ApiService.Client;
         // ======================================================
         // حدث زر "جديد" لتفريغ الحقول وتهيئة الواجهة للإضافة
         // ======================================================
-        private void btnNew_Click(object sender, EventArgs e)
+        private void btnNew_Click(object? sender, EventArgs e)
         {
             ClearFormFields();
             txtYearName.Focus();
@@ -187,7 +195,7 @@ private readonly HttpClient _client = ApiService.Client;
         // ======================================================
         // حدث زر "حفظ" لإضافة سنة مالية جديدة بالكامل للسيرفر
         // ======================================================
-        private async void btnSave_Click(object sender, EventArgs e)
+        private async void btnSave_Click(object? sender, EventArgs e)
         {
             if (_selectedFiscalYearId > 0)
             {
@@ -209,8 +217,9 @@ private readonly HttpClient _client = ApiService.Client;
                 Start_Date = dtpStartDate.Value,
                 End_Date = dtpEndDate.Value,
                 Is_Default = chkIsDefault.Checked,
-                Is_Closed = chkIsClosed.Checked,
-                Is_Active = cmbStatus.Text == "نشط"
+                // قيم الحالة للعرض فقط؛ الخادم يمنع تغييرها عبر DTO العام.
+                Is_Closed = false,
+                Is_Active = true
             };
 
             try
@@ -238,7 +247,7 @@ private readonly HttpClient _client = ApiService.Client;
         // ======================================================
         // حدث زر "تعديل" لحفظ تعديلات سنة مالية محددة مسبقاً (btnEdit)
         // ======================================================
-        private async void btnEdit_Click(object sender, EventArgs e)
+        private async void btnEdit_Click(object? sender, EventArgs e)
         {
             if (_selectedFiscalYearId == 0)
             {
@@ -289,7 +298,7 @@ private readonly HttpClient _client = ApiService.Client;
         // ======================================================
         // حدث زر "حذف" لإزالة السنة المالية المحددة
         // ======================================================
-        private async void btnDelete_Click(object sender, EventArgs e)
+        private async void btnDelete_Click(object? sender, EventArgs e)
         {
             if (_selectedFiscalYearId == 0)
             {
@@ -306,7 +315,7 @@ private readonly HttpClient _client = ApiService.Client;
 
                 if (response.IsSuccessStatusCode)
                 {
-                    MessageBox.Show("تم حذف السنة المالية بنجاح.", "تم الحذف", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    MessageBox.Show("تم إيقاف السنة المالية مع الاحتفاظ بتاريخها.", "تم الإيقاف", MessageBoxButtons.OK, MessageBoxIcon.Information);
                     ClearFormFields();
                     await LoadFiscalYearsAsync();
                 }
@@ -325,7 +334,7 @@ private readonly HttpClient _client = ApiService.Client;
         // ======================================================
         // حدث زر "بحث" (مربوط بـ btnSearch_Click_1 المعتمد بالـ Designer)
         // ======================================================
-        private void btnSearch_Click_1(object sender, EventArgs e)
+        private void btnSearch_Click_1(object? sender, EventArgs e)
         {
             // يعتمد البحث الذكي المحلي على حقل txtYearName نظراً لعدم وجود حقل بحث مستقل بالـ Designer
             string searchKey = txtYearName.Text.Trim().ToLower();
@@ -346,7 +355,7 @@ private readonly HttpClient _client = ApiService.Client;
         // ======================================================
         // حدث زر "تحديث" لإعادة قراءة البيانات الطازجة من قاعدة البيانات
         // ======================================================
-        private async void btnRefresh_Click(object sender, EventArgs e)
+        private async void btnRefresh_Click(object? sender, EventArgs e)
         {
             await LoadFiscalYearsAsync();
         }
@@ -354,7 +363,7 @@ private readonly HttpClient _client = ApiService.Client;
         // ======================================================
         // حدث زر "إغلاق" لإنهاء الشاشة والعودة للقائمة الرئيسية
         // ======================================================
-        private void btnClose_Click(object sender, EventArgs e)
+        private void btnClose_Click(object? sender, EventArgs e)
         {
             this.Close();
         }
@@ -372,7 +381,7 @@ private readonly HttpClient _client = ApiService.Client;
         // ======================================================
         // 🖨️ حدث زر الطباعة المباشرة (btnPrint)
         // ======================================================
-        private void btnPrint_Click(object sender, EventArgs e)
+        private void btnPrint_Click(object? sender, EventArgs e)
         {
             PrintDialog printDialog = new PrintDialog();
             printDialog.Document = printDocument;
@@ -386,7 +395,7 @@ private readonly HttpClient _client = ApiService.Client;
         // ======================================================
         // 🎨 محرك رسم صفحة التقرير للطباعة (PrintPage)
         // ======================================================
-        private void PrintDocument_PrintPage(object sender, PrintPageEventArgs e)
+        private void PrintDocument_PrintPage(object? sender, PrintPageEventArgs e)
         {
             Font titleFont = new Font("Arial", 18, FontStyle.Bold);
             Font headerFont = new Font("Arial", 12, FontStyle.Bold);
@@ -396,14 +405,15 @@ private readonly HttpClient _client = ApiService.Client;
             Pen grayPen = new Pen(Color.LightGray, 1);
 
             int yPosition = 50;
-            e.Graphics.DrawString("شركة الطاير السعيد للنقل والخدمات", headerFont, blackBrush, new PointF(550, yPosition));
+            Graphics graphics = e.Graphics ?? throw new InvalidOperationException("تعذر الحصول على سطح الرسم للطباعة.");
+            graphics.DrawString("شركة الطاير السعيد للنقل والخدمات", headerFont, blackBrush, new PointF(550, yPosition));
             yPosition += 30;
-            e.Graphics.DrawString("تقرير السنوات المالية المسجلة بالنظام", titleFont, blackBrush, new PointF(250, yPosition));
+            graphics.DrawString("تقرير السنوات المالية المسجلة بالنظام", titleFont, blackBrush, new PointF(250, yPosition));
             yPosition += 30;
-            e.Graphics.DrawString($"تاريخ استخراج التقرير: {DateTime.Now.ToShortDateString()}", dataFont, blackBrush, new PointF(50, yPosition));
+            graphics.DrawString($"تاريخ استخراج التقرير: {DateTime.Now.ToShortDateString()}", dataFont, blackBrush, new PointF(50, yPosition));
             yPosition += 40;
 
-            e.Graphics.DrawLine(new Pen(Color.Black, 2), 50, yPosition, 750, yPosition);
+            graphics.DrawLine(new Pen(Color.Black, 2), 50, yPosition, 750, yPosition);
             yPosition += 20;
 
             int[] columnWidths = { 80, 150, 110, 110, 80, 80, 80 };
@@ -412,12 +422,12 @@ private readonly HttpClient _client = ApiService.Client;
             int xPosition = 50;
             for (int i = 0; i < headers.Length; i++)
             {
-                e.Graphics.DrawString(headers[i], headerFont, blackBrush, new PointF(xPosition, yPosition));
+                graphics.DrawString(headers[i], headerFont, blackBrush, new PointF(xPosition, yPosition));
                 xPosition += columnWidths[i];
             }
 
             yPosition += 25;
-            e.Graphics.DrawLine(new Pen(Color.Black, 1), 50, yPosition, 750, yPosition);
+            graphics.DrawLine(new Pen(Color.Black, 1), 50, yPosition, 750, yPosition);
             yPosition += 10;
 
             foreach (DataGridViewRow row in dgvFiscalYears.Rows)
@@ -432,12 +442,12 @@ private readonly HttpClient _client = ApiService.Client;
                 for (int i = 0; i < row.Cells.Count; i++)
                 {
                     string cellValue = row.Cells[i].Value?.ToString() ?? "";
-                    e.Graphics.DrawString(cellValue, dataFont, blackBrush, new PointF(xPosition, yPosition));
+                    graphics.DrawString(cellValue, dataFont, blackBrush, new PointF(xPosition, yPosition));
                     xPosition += columnWidths[i];
                 }
 
                 yPosition += 25;
-                e.Graphics.DrawLine(grayPen, 50, yPosition, 750, yPosition);
+                graphics.DrawLine(grayPen, 50, yPosition, 750, yPosition);
                 yPosition += 5;
             }
         }
@@ -456,11 +466,11 @@ private readonly HttpClient _client = ApiService.Client;
             cmbStatus.Text = "نشط";
         }
 
-        private void panel2_Paint(object sender, PaintEventArgs e) { }
-        private void panel3_Paint(object sender, PaintEventArgs e) { }
+        private void panel2_Paint(object? sender, PaintEventArgs e) { }
+        private void panel3_Paint(object? sender, PaintEventArgs e) { }
 
 
-        private void btnPreview_Click(object sender, EventArgs e)
+        private void btnPreview_Click(object? sender, EventArgs e)
         {
             OpenPrintPreview();
         }

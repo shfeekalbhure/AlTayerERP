@@ -466,7 +466,7 @@ namespace AlTayerERP.Desktop
             new("Party_Name_AR", "الاسم العربي"),
             new("Party_Name_EN", "الاسم الإنجليزي"),
             new("Party_Type", "نوع الطرف", ReferenceEditorFieldKind.Choice,
-                Options: new[] { "عميل", "مورد", "موظف", "مندوب", "وكيل", "جهة حكومية", "أخرى" }),
+                Options: new[] { "عميل", "مورد", "موظف", "سائق", "مندوب", "وكيل", "جهة حكومية", "أخرى" }),
             new("Mobile_No", "الجوال"),
             new("Phone_No", "الهاتف"),
             new("Identity_No", "رقم الهوية"),
@@ -506,7 +506,7 @@ namespace AlTayerERP.Desktop
             new("Period_Name", "اسم الفترة"),
             new("Start_Date", "تاريخ البداية", ReferenceEditorFieldKind.Date),
             new("End_Date", "تاريخ النهاية", ReferenceEditorFieldKind.Date),
-            new("Is_Closed", "مقفلة", ReferenceEditorFieldKind.Boolean),
+            new("Is_Closed", "الحالة", ReferenceEditorFieldKind.Boolean),
             new("Close_Date", "تاريخ الإقفال", ReferenceEditorFieldKind.Date),
             new("Close_Reason", "سبب الإقفال"),
             new("Is_Active", "فعالة", ReferenceEditorFieldKind.Boolean, DefaultBoolean: true)) { }

@@ -3,7 +3,12 @@ using AlTayerERP.API.DTOs.Accounting;
 using AlTayerERP.API.Services;
 using AlTayerERP.API.Services.Accounting;
 using AlTayerERP.API.Services.Accounting.VoucherWorkflow;
+using AlTayerERP.Infrastructure.Data;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using System.Security.Cryptography;
+using System.Text;
+using System.Text.Json;
 
 
 
@@ -25,6 +30,9 @@ namespace AlTayerERP.API.Controllers
         private readonly VoucherApprovalService _approvalService;
         private readonly VoucherPostingService _postingService;
         private readonly ScreenAuthorizationService _screenAuthorization;
+        private readonly IdempotencyService _idempotencyService;
+        private readonly AppDbContext _context;
+        private readonly ILogger<FinancialVoucherController> _logger;
 
         #endregion
 
@@ -35,13 +43,19 @@ namespace AlTayerERP.API.Controllers
             JournalEntryInquiryService journalEntryInquiryService,
             VoucherApprovalService approvalService,
             VoucherPostingService postingService,
-            ScreenAuthorizationService screenAuthorization)
+            ScreenAuthorizationService screenAuthorization,
+            IdempotencyService idempotencyService,
+            AppDbContext context,
+            ILogger<FinancialVoucherController> logger)
         {
             _service = service;
             _journalEntryInquiryService = journalEntryInquiryService;
             _approvalService = approvalService;
             _postingService = postingService;
             _screenAuthorization = screenAuthorization;
+            _idempotencyService = idempotencyService;
+            _context = context;
+            _logger = logger;
         }
 
         #endregion
@@ -54,11 +68,42 @@ namespace AlTayerERP.API.Controllers
         /// <summary>
         /// يفرض صلاحية العملية من الخادم حتى لا تكفي معرفة رابط API أو إظهار زر في الواجهة.
         /// </summary>
-        private async Task<IActionResult?> RequireReceiptVoucherPermissionAsync(ScreenOperation operation)
+        private async Task<IActionResult?> RequireReceiptVoucherPermissionAsync(
+            ScreenOperation operation,
+            long? voucherId = null,
+            int? voucherTypeId = null)
         {
+            if (!voucherTypeId.HasValue && voucherId.HasValue)
+            {
+                voucherTypeId = (await _service.GetByIdAsync(voucherId.Value))?.Voucher_Type_ID;
+            }
+
+            if (!voucherTypeId.HasValue)
+            {
+                return Forbid();
+            }
+
+            var voucherTypeCode = await _context.Voucher_Types.AsNoTracking()
+                .Where(x => x.Voucher_Type_ID == voucherTypeId.Value && x.Is_Active)
+                .Select(x => x.Voucher_Type_Code)
+                .SingleOrDefaultAsync();
+
+            var screenCode = voucherTypeCode?.Trim().ToUpperInvariant() switch
+            {
+                "RECEIPT" => "ReceiptVoucher",
+                "PAYMENT" => "PaymentVoucher",
+                "JOURNAL" => "JournalVoucher",
+                _ => null
+            };
+
+            if (string.IsNullOrWhiteSpace(screenCode))
+            {
+                return Forbid();
+            }
+
             var allowed = await _screenAuthorization.IsAllowedAsync(
                 GetServerSession(),
-                "ReceiptVoucher",
+                screenCode,
                 operation);
 
             return allowed ? null : Forbid();
@@ -150,9 +195,14 @@ namespace AlTayerERP.API.Controllers
         /// </summary>
         [HttpPost]
         public async Task<IActionResult> Create(
-            [FromBody] CreateFinancialVoucherDto dto)
+            [FromBody] CreateFinancialVoucherDto? dto,
+            CancellationToken cancellationToken)
         {
-            var permissionFailure = await RequireReceiptVoucherPermissionAsync(ScreenOperation.Add);
+            if (dto is null)
+                return BadRequest(new { success = false, message = "بيانات السند مطلوبة." });
+
+            var permissionFailure = await RequireReceiptVoucherPermissionAsync(
+                ScreenOperation.Add, voucherTypeId: dto.Voucher_Type_ID);
             if (permissionFailure != null)
             {
                 return permissionFailure;
@@ -168,13 +218,116 @@ namespace AlTayerERP.API.Controllers
 
             if (!ModelState.IsValid)
             {
-                return BadRequest(ModelState);
+                return BadRequest(new { success = false, message = "بيانات سند القيد غير مكتملة أو غير صالحة." });
             }
 
+            if (!TryGetIdempotencyKey(out var idempotencyKey, out var idempotencyError))
+            {
+                return BadRequest(new { success = false, message = idempotencyError });
+            }
+
+            // يظل العميل القديم متوافقاً؛ تعمل الحماية الدائمة عند إرسال الرأس الاختياري.
+            if (string.IsNullOrWhiteSpace(idempotencyKey))
+            {
+                return await CreateWithoutIdempotencyAsync(dto);
+            }
+
+            var fingerprint = ComputeRequestFingerprint(dto);
+            // بعد تعارض الفهرس الفريد، يجب أن ترى إعادة القراءة السجل الذي ثبته
+            // الطلب المنافس؛ العزل Repeatable Read قد يحتفظ بلقطة تسبق ذلك السجل.
+            await using var transaction = await _context.Database.BeginTransactionAsync(
+                System.Data.IsolationLevel.ReadCommitted,
+                cancellationToken);
+            try
+            {
+                var begin = await _idempotencyService.BeginAsync(
+                    session,
+                    "FINANCIAL_VOUCHER_CREATE",
+                    idempotencyKey,
+                    fingerprint,
+                    cancellationToken);
+
+                if (begin.State == IdempotencyBeginState.PayloadMismatch)
+                {
+                    await transaction.RollbackAsync(cancellationToken);
+                    return Conflict(new
+                    {
+                        success = false,
+                        message = "تم استخدام مفتاح الحفظ نفسه مع بيانات مختلفة. أنشئ عملية حفظ جديدة ثم أعد المحاولة."
+                    });
+                }
+
+                if (begin.State is IdempotencyBeginState.InProgress or IdempotencyBeginState.Contended)
+                {
+                    await transaction.RollbackAsync(cancellationToken);
+                    return Conflict(new
+                    {
+                        success = false,
+                        message = "عملية حفظ السند ما زالت قيد المعالجة. انتظر قليلاً قبل إعادة المحاولة."
+                    });
+                }
+
+                if (begin.State == IdempotencyBeginState.Completed)
+                {
+                    await transaction.RollbackAsync(cancellationToken);
+                    return Ok(new
+                    {
+                        success = true,
+                        message = "تمت استعادة نتيجة الحفظ السابقة ولم يُنشأ سند مكرر.",
+                        voucher_ID = begin.Record.Resource_ID,
+                        voucher_No = begin.Record.Resource_No
+                    });
+                }
+
+                var result = await _service.CreateAsync(dto);
+                if (!result.Success || !result.VoucherId.HasValue || string.IsNullOrWhiteSpace(result.VoucherNo))
+                {
+                    await transaction.RollbackAsync(cancellationToken);
+                    _logger.LogWarning(
+                        "Financial voucher creation rejected. VoucherTypeId={VoucherTypeId}; Message={Message}",
+                        dto.Voucher_Type_ID,
+                        result.Message);
+                    return BadRequest(new { success = false, message = result.Message });
+                }
+
+                await _idempotencyService.CompleteAsync(
+                    begin.Record,
+                    result.VoucherId.Value,
+                    result.VoucherNo,
+                    cancellationToken);
+                await transaction.CommitAsync(cancellationToken);
+
+                return Ok(new
+                {
+                    success = true,
+                    message = result.Message,
+                    voucher_ID = result.VoucherId,
+                    voucher_No = result.VoucherNo
+                });
+            }
+            catch (Exception ex)
+            {
+                await transaction.RollbackAsync(cancellationToken);
+                _logger.LogError(ex, "Financial voucher creation failed while applying idempotency protection.");
+                return StatusCode(StatusCodes.Status500InternalServerError, new
+                {
+                    success = false,
+                    message = "تعذر إكمال حفظ السند حالياً. تحقق من حالة السند قبل إعادة المحاولة."
+                });
+            }
+        }
+
+        private async Task<IActionResult> CreateWithoutIdempotencyAsync(CreateFinancialVoucherDto dto)
+        {
             var result = await _service.CreateAsync(dto);
 
             if (!result.Success)
             {
+                _logger.LogWarning(
+                    "Financial voucher creation rejected. VoucherTypeId={VoucherTypeId}; Message={Message}",
+                    dto.Voucher_Type_ID,
+                    result.Message);
+
                 return BadRequest(new
                 {
                     success = false,
@@ -191,6 +344,78 @@ namespace AlTayerERP.API.Controllers
             });
         }
 
+        private bool TryGetIdempotencyKey(out string? key, out string? error)
+        {
+            key = HttpContext.Request.Headers["Idempotency-Key"].ToString().Trim();
+            error = null;
+
+            if (string.IsNullOrWhiteSpace(key))
+            {
+                key = null;
+                return true;
+            }
+
+            if (key.Length > 100 || key.Any(character =>
+                    !(char.IsAsciiLetterOrDigit(character) || character is '-' or '_' or '.')))
+            {
+                error = "مفتاح منع تكرار الحفظ غير صالح.";
+                return false;
+            }
+
+            return true;
+        }
+
+        private static string ComputeRequestFingerprint(CreateFinancialVoucherDto dto)
+        {
+            var payload = JsonSerializer.Serialize(dto);
+            return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(payload)));
+        }
+
+        /// <summary>
+        /// حسابات قابلة للاختيار في سطور السند. النطاق والصلاحية يفرضان من جلسة
+        /// الخادم، لذلك لا تستطيع الواجهة تمرير شركة أخرى أو اختيار حساب تجميعي.
+        /// </summary>
+        [HttpGet("accounts")]
+        public async Task<IActionResult> GetPostingAccounts([FromQuery] int voucherTypeId)
+        {
+            var permissionFailure = await RequireReceiptVoucherPermissionAsync(
+                ScreenOperation.View, voucherTypeId: voucherTypeId);
+            if (permissionFailure != null)
+                return permissionFailure;
+
+            var session = GetServerSession();
+            var accounts = await _context.Chart_Of_Accounts.AsNoTracking()
+                .Where(x => x.Company_ID == session.Company_ID && x.Is_Active)
+                .OrderBy(x => x.Account_Code)
+                .Select(x => new
+                {
+                    x.Account_ID,
+                    x.Parent_Account_ID,
+                    x.Account_Code,
+                    x.Account_Name_AR,
+                    x.Is_Postable,
+                    x.Is_Summary_Account,
+                    x.Allow_ManualEntry,
+                    x.Is_Control_Account
+                })
+                .ToListAsync();
+
+            return Ok(new
+            {
+                success = true,
+                data = accounts
+                    .Select(x => new
+                    {
+                        x.Account_ID,
+                        x.Parent_Account_ID,
+                        x.Account_Code,
+                        x.Account_Name_AR,
+                        IsSelectable = x.Is_Postable && !x.Is_Summary_Account &&
+                                       x.Allow_ManualEntry && !x.Is_Control_Account
+                    })
+            });
+        }
+
         /// <summary>
         /// استعلام عن القيد المحاسبي بواسطة رقم السند.
         /// </summary>
@@ -200,7 +425,8 @@ namespace AlTayerERP.API.Controllers
             [FromQuery] string? branchId = null,
             [FromQuery] int? voucherTypeId = null)
         {
-            var permissionFailure = await RequireReceiptVoucherPermissionAsync(ScreenOperation.View);
+            var permissionFailure = await RequireReceiptVoucherPermissionAsync(
+                ScreenOperation.View, voucherTypeId: voucherTypeId);
             if (permissionFailure != null)
             {
                 return permissionFailure;
@@ -220,7 +446,8 @@ namespace AlTayerERP.API.Controllers
                 await _journalEntryInquiryService.GetByVoucherNoAsync(
                     voucherNo,
                     session.Branch_ID.ToString(),
-                    voucherTypeId);
+                    voucherTypeId,
+                    session.Year_ID);
 
             if (result == null)
             {
@@ -246,7 +473,8 @@ namespace AlTayerERP.API.Controllers
         [HttpGet("{voucherId:long}")]
         public async Task<IActionResult> GetById(long voucherId)
         {
-            var permissionFailure = await RequireReceiptVoucherPermissionAsync(ScreenOperation.View);
+            var permissionFailure = await RequireReceiptVoucherPermissionAsync(
+                ScreenOperation.View, voucherId: voucherId);
             if (permissionFailure != null)
             {
                 return permissionFailure;
@@ -283,6 +511,78 @@ namespace AlTayerERP.API.Controllers
         }
 
         /// <summary>
+        /// عرض مختصر متوافق للسند المالي، مخصص للقوائم والشاشات التي لا تحتاج
+        /// تفاصيل القيد أو بيانات سجل العمليات والتدقيق الداخلي.
+        /// </summary>
+        [HttpGet("{voucherId:long}/summary")]
+        public async Task<IActionResult> GetSummary(long voucherId)
+        {
+            var permissionFailure = await RequireReceiptVoucherPermissionAsync(
+                ScreenOperation.View, voucherId: voucherId);
+            if (permissionFailure != null)
+            {
+                return permissionFailure;
+            }
+
+            if (voucherId <= 0)
+            {
+                return BadRequest(new
+                {
+                    success = false,
+                    message = "معرف السند غير صحيح."
+                });
+            }
+
+            var voucher = await _service.GetByIdAsync(voucherId);
+            var session = GetServerSession();
+            if (voucher == null ||
+                !string.Equals(voucher.Branch_ID, session.Branch_ID.ToString(), StringComparison.Ordinal) ||
+                voucher.Fiscal_Year_ID != session.Year_ID)
+            {
+                return NotFound(new
+                {
+                    success = false,
+                    message = "السند المالي غير موجود ضمن الشركة والفرع والسنة المالية الحالية."
+                });
+            }
+
+            return Ok(new
+            {
+                success = true,
+                data = ToSummary(voucher)
+            });
+        }
+
+        private static FinancialVoucherSummaryDto ToSummary(FinancialVoucherResponseDto voucher) => new()
+        {
+            Voucher_ID = voucher.Voucher_ID,
+            Voucher_No = voucher.Voucher_No,
+            Voucher_Type_ID = voucher.Voucher_Type_ID,
+            Voucher_Type_Name = voucher.Voucher_Type_Name,
+            Voucher_Status_ID = voucher.Voucher_Status_ID,
+            Voucher_Status_Name = voucher.Voucher_Status_Name,
+            Voucher_Date = voucher.Voucher_Date,
+            Transaction_Date = voucher.Transaction_Date,
+            Cash_Account_Name = voucher.Cash_Account_Name,
+            Party_Name = voucher.Party_Name,
+            Received_From_Name = voucher.Received_From_Name,
+            Payment_Method_Name = voucher.Payment_Method_Name,
+            Currency_Name = voucher.Currency_Name,
+            Exchange_Rate = voucher.Exchange_Rate,
+            Amount = voucher.Amount,
+            Foreign_Total = voucher.Foreign_Total,
+            Local_Total = voucher.Local_Total,
+            Reference_No = voucher.Reference_No,
+            Reference_Date = voucher.Reference_Date,
+            Description = voucher.Description,
+            Requires_Approval = voucher.Requires_Approval,
+            Approval_Status = voucher.Approval_Status,
+            Review_Status = voucher.Review_Status,
+            Is_Posted = voucher.Is_Posted,
+            Journal_Entry_No = voucher.Journal_Entry_No
+        };
+
+        /// <summary>
         /// تعديل سند مالي.
         /// </summary>
         [HttpPut("{voucherId:long}")]
@@ -290,7 +590,8 @@ namespace AlTayerERP.API.Controllers
             long voucherId,
             [FromBody] UpdateFinancialVoucherDto dto)
         {
-            var permissionFailure = await RequireReceiptVoucherPermissionAsync(ScreenOperation.Edit);
+            var permissionFailure = await RequireReceiptVoucherPermissionAsync(
+                ScreenOperation.Edit, voucherId: voucherId);
             if (permissionFailure != null)
             {
                 return permissionFailure;
@@ -329,13 +630,22 @@ namespace AlTayerERP.API.Controllers
 
             if (!ModelState.IsValid)
             {
-                return BadRequest(ModelState);
+                return BadRequest(new { success = false, message = "بيانات تعديل سند القيد غير مكتملة أو غير صالحة." });
             }
 
             var result = await _service.UpdateAsync(dto);
 
             if (!result.Success)
             {
+                if (result.Message.Contains("من مستخدم آخر", StringComparison.Ordinal))
+                {
+                    return Conflict(new
+                    {
+                        success = false,
+                        message = result.Message
+                    });
+                }
+
                 return BadRequest(new
                 {
                     success = false,
@@ -356,7 +666,8 @@ namespace AlTayerERP.API.Controllers
         [HttpDelete("{voucherId:long}")]
         public async Task<IActionResult> Delete(long voucherId)
         {
-            var permissionFailure = await RequireReceiptVoucherPermissionAsync(ScreenOperation.Delete);
+            var permissionFailure = await RequireReceiptVoucherPermissionAsync(
+                ScreenOperation.Delete, voucherId: voucherId);
             if (permissionFailure != null)
             {
                 return permissionFailure;
@@ -404,7 +715,8 @@ namespace AlTayerERP.API.Controllers
             [FromQuery] int? fiscalYearId = null,
             [FromQuery] int? voucherTypeId = null)
         {
-            var permissionFailure = await RequireReceiptVoucherPermissionAsync(ScreenOperation.View);
+            var permissionFailure = await RequireReceiptVoucherPermissionAsync(
+                ScreenOperation.View, voucherTypeId: voucherTypeId);
             if (permissionFailure != null)
             {
                 return permissionFailure;
@@ -460,7 +772,7 @@ namespace AlTayerERP.API.Controllers
             long voucherId,
             [FromBody] VoucherActionRequest request)
         {
-            var permissionFailure = await RequireReceiptVoucherPermissionAsync(ScreenOperation.Approve);
+            var permissionFailure = await RequireReceiptVoucherPermissionAsync(ScreenOperation.Approve, voucherId: voucherId);
             if (permissionFailure != null)
             {
                 return permissionFailure;
@@ -492,7 +804,7 @@ namespace AlTayerERP.API.Controllers
             long voucherId,
             [FromBody] VoucherReasonActionRequest request)
         {
-            var permissionFailure = await RequireReceiptVoucherPermissionAsync(ScreenOperation.Unapprove);
+            var permissionFailure = await RequireReceiptVoucherPermissionAsync(ScreenOperation.Unapprove, voucherId: voucherId);
             if (permissionFailure != null)
             {
                 return permissionFailure;
@@ -525,7 +837,7 @@ namespace AlTayerERP.API.Controllers
             long voucherId,
             [FromBody] VoucherActionRequest request)
         {
-            var permissionFailure = await RequireReceiptVoucherPermissionAsync(ScreenOperation.Print);
+            var permissionFailure = await RequireReceiptVoucherPermissionAsync(ScreenOperation.Print, voucherId: voucherId);
             if (permissionFailure != null)
             {
                 return permissionFailure;
@@ -559,7 +871,7 @@ namespace AlTayerERP.API.Controllers
             long voucherId,
             [FromBody] VoucherActionRequest request)
         {
-            var permissionFailure = await RequireReceiptVoucherPermissionAsync(ScreenOperation.Approve);
+            var permissionFailure = await RequireReceiptVoucherPermissionAsync(ScreenOperation.Approve, voucherId: voucherId);
             if (permissionFailure != null)
             {
                 return permissionFailure;
@@ -640,7 +952,7 @@ namespace AlTayerERP.API.Controllers
             long voucherId,
             [FromBody] VoucherReasonActionRequest request)
         {
-            var permissionFailure = await RequireReceiptVoucherPermissionAsync(ScreenOperation.Unapprove);
+            var permissionFailure = await RequireReceiptVoucherPermissionAsync(ScreenOperation.Unapprove, voucherId: voucherId);
             if (permissionFailure != null)
             {
                 return permissionFailure;
@@ -719,7 +1031,7 @@ namespace AlTayerERP.API.Controllers
             long voucherId,
             [FromBody] VoucherActionRequest request)
         {
-            var permissionFailure = await RequireReceiptVoucherPermissionAsync(ScreenOperation.Approve);
+            var permissionFailure = await RequireReceiptVoucherPermissionAsync(ScreenOperation.Approve, voucherId: voucherId);
             if (permissionFailure != null)
             {
                 return permissionFailure;
@@ -808,7 +1120,7 @@ namespace AlTayerERP.API.Controllers
             long voucherId,
             [FromBody] VoucherReasonActionRequest request)
         {
-            var permissionFailure = await RequireReceiptVoucherPermissionAsync(ScreenOperation.Unapprove);
+            var permissionFailure = await RequireReceiptVoucherPermissionAsync(ScreenOperation.Unapprove, voucherId: voucherId);
             if (permissionFailure != null)
             {
                 return permissionFailure;
@@ -886,7 +1198,9 @@ namespace AlTayerERP.API.Controllers
         public async Task<IActionResult> GetWorkflowStatus(
             long voucherId)
         {
-            var permissionFailure = await RequireReceiptVoucherPermissionAsync(ScreenOperation.View);
+            var permissionFailure = await RequireReceiptVoucherPermissionAsync(
+                ScreenOperation.View,
+                voucherId: voucherId);
             if (permissionFailure != null)
             {
                 return permissionFailure;

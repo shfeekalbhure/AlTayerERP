@@ -51,7 +51,7 @@ namespace AlTayerERP.Desktop
         //====================================
         // تحميل الشاشة
         //====================================
-        private async void FrmCostCenters_Load(object sender, EventArgs e)
+        private async void FrmCostCenters_Load(object? sender, EventArgs e)
         {
             try
             {
@@ -280,7 +280,7 @@ namespace AlTayerERP.Desktop
         //====================================
         // حفظ
         //====================================
-        private async void btnSave_Click(object sender, EventArgs e)
+        private async void btnSave_Click(object? sender, EventArgs e)
         {
             if (string.IsNullOrWhiteSpace(txtCostCenterNameAR.Text))
             {
@@ -319,7 +319,7 @@ namespace AlTayerERP.Desktop
         //====================================
         // تعديل
         //====================================
-        private async void btnEdit_Click(object sender, EventArgs e)
+        private async void btnEdit_Click(object? sender, EventArgs e)
         {
             if (string.IsNullOrWhiteSpace(_selectedCostCenterId))
             {
@@ -357,7 +357,7 @@ namespace AlTayerERP.Desktop
         //====================================
         // حذف
         //====================================
-        private async void btnDelete_Click(object sender, EventArgs e)
+        private async void btnDelete_Click(object? sender, EventArgs e)
         {
             if (string.IsNullOrWhiteSpace(_selectedCostCenterId))
             {
@@ -400,12 +400,12 @@ namespace AlTayerERP.Desktop
         //====================================
         // جديد وتحديث وإغلاق
         //====================================
-        private void btnNew_Click(object sender, EventArgs e)
+        private void btnNew_Click(object? sender, EventArgs e)
         {
             ClearForm();
         }
 
-        private async void btnRefresh_Click(object sender, EventArgs e)
+        private async void btnRefresh_Click(object? sender, EventArgs e)
         {
             try
             {
@@ -431,7 +431,7 @@ namespace AlTayerERP.Desktop
             }
         }
 
-        private void btnClose_Click(object sender, EventArgs e)
+        private void btnClose_Click(object? sender, EventArgs e)
         {
             this.Close();
         }
@@ -439,7 +439,7 @@ namespace AlTayerERP.Desktop
         //====================================
         // أحداث اختيار البيانات من العناصر
         //====================================
-        private void dgvCostCenters_CellClick(object sender, DataGridViewCellEventArgs e)
+        private void dgvCostCenters_CellClick(object? sender, DataGridViewCellEventArgs e)
         {
             if (_isBinding || e.RowIndex < 0)
                 return;
@@ -452,7 +452,7 @@ namespace AlTayerERP.Desktop
                 BindModelToForm(selected);
         }
 
-        private void tvCostCenters_AfterSelect(object sender, TreeViewEventArgs e)
+        private void tvCostCenters_AfterSelect(object? sender, TreeViewEventArgs e)
         {
             if (_isBinding || e.Node?.Tag == null)
                 return;
@@ -511,7 +511,7 @@ namespace AlTayerERP.Desktop
             }
         }
 
-        private void cmbParentCostCenter_SelectedIndexChanged(object sender, EventArgs e)
+        private void cmbParentCostCenter_SelectedIndexChanged(object? sender, EventArgs e)
         {
             if (_isBinding)
                 return;
@@ -536,7 +536,7 @@ namespace AlTayerERP.Desktop
         //====================================
         // البحث الفلترة
         //====================================
-        private void btnSearch_Click(object sender, EventArgs e)
+        private void btnSearch_Click(object? sender, EventArgs e)
         {
             string keyword =
                 Microsoft.VisualBasic.Interaction.InputBox(
@@ -582,7 +582,7 @@ namespace AlTayerERP.Desktop
             BuildFilteredTree(result);
         }
 
-        private void txtSearchTree_TextChanged(object sender, EventArgs e)
+        private void txtSearchTree_TextChanged(object? sender, EventArgs e)
         {
             SearchCostCenters(txtSearchTree.Text);
         }

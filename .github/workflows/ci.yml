@@ -1,0 +1,53 @@
+name: AlTayerERP CI
+
+on:
+  push:
+    branches: [ master, "agent/unified-phase1-screens", "chore/**", "feature/**", "fix/**" ]
+  pull_request:
+    branches: [ master, "agent/unified-phase1-screens" ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  api-core-infrastructure:
+    name: API, Core, Infrastructure and Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Restore server and test projects
+        run: |
+          dotnet restore AlTayerERP.API/AlTayerERP.API.csproj
+          dotnet restore AlTayerERP.Tests/AlTayerERP.Tests.csproj
+
+      - name: Build server projects
+        run: dotnet build AlTayerERP.API/AlTayerERP.API.csproj --configuration Release --no-restore
+
+      - name: Run automated tests
+        run: dotnet test AlTayerERP.Tests/AlTayerERP.Tests.csproj --configuration Release --no-restore --verbosity normal
+
+  desktop:
+    name: Windows Desktop Build
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Restore desktop project
+        run: dotnet restore AlTayerERP.Desktop/AlTayerERP.Desktop.csproj
+
+      - name: Build desktop project
+        run: dotnet build AlTayerERP.Desktop/AlTayerERP.Desktop.csproj --configuration Release --no-restore

@@ -1,0 +1,42 @@
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="AlTayerERP.Mobile.Office.ApprovalRequestDetailsPage"
+             FlowDirection="RightToLeft"
+             BackgroundColor="#F6F8FB"
+             Title="تفاصيل طلب الاعتماد">
+    <ScrollView>
+        <VerticalStackLayout Padding="16" Spacing="10">
+            <Label x:Name="TitleLabel" FontSize="20" FontAttributes="Bold" TextColor="#17324D" />
+            <Label x:Name="StatusLabel" FontAttributes="Bold" TextColor="#0B6B87" />
+            <Border Padding="12" BackgroundColor="White" Stroke="#D9E2EC" StrokeShape="RoundRectangle 12">
+                <VerticalStackLayout Spacing="7">
+                    <Label x:Name="RequestTypeLabel" TextColor="#35566F" />
+                    <Label x:Name="ReferenceLabel" TextColor="#35566F" />
+                    <Label x:Name="EntityLabel" TextColor="#35566F" />
+                    <Label x:Name="AmountLabel" FontAttributes="Bold" TextColor="#17324D" />
+                    <Label x:Name="RequestedByLabel" FontSize="12" TextColor="#7A8896" />
+                    <Label x:Name="RequestedAtLabel" FontSize="12" TextColor="#7A8896" />
+                    <Label x:Name="ReasonLabel" TextColor="#35566F" />
+                    <Label x:Name="ApprovalNotesLabel" TextColor="#7A8896" />
+                </VerticalStackLayout>
+            </Border>
+            <Editor x:Name="DecisionReasonEditor"
+                    Placeholder="سبب القرار (مطلوب للاعتماد أو الرفض أو الإعادة)"
+                    BackgroundColor="White"
+                    TextColor="#17324D"
+                    PlaceholderColor="#7A8896"
+                    MinimumHeightRequest="90"
+                    AutoSize="TextChanges" />
+            <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
+                <Button x:Name="ReviewButton" Text="بدء المراجعة" BackgroundColor="#0B6B87" TextColor="White" Clicked="OnReviewClicked" />
+                <Button x:Name="ApproveButton" Grid.Column="1" Text="اعتماد" BackgroundColor="#18794E" TextColor="White" Clicked="OnApproveClicked" />
+            </Grid>
+            <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
+                <Button x:Name="ReturnButton" Text="إعادة للتعديل" BackgroundColor="#B7791F" TextColor="White" Clicked="OnReturnClicked" />
+                <Button x:Name="RejectButton" Grid.Column="1" Text="رفض" BackgroundColor="#B42318" TextColor="White" Clicked="OnRejectClicked" />
+            </Grid>
+            <ActivityIndicator x:Name="BusyIndicator" Color="#0B6B87" IsVisible="False" IsRunning="False" />
+            <Label x:Name="StatusMessageLabel" IsVisible="False" HorizontalTextAlignment="Center" TextColor="#B42318" />
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>
