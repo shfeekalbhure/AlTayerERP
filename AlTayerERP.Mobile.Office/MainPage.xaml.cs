@@ -200,7 +200,7 @@ public partial class MainPage : ContentPage
                 Company_ID = company.Company_ID,
                 Login_Name = requestedLoginName,
                 Password = PasswordEntry.Text,
-                Device_ID = GetDeviceId()
+                Device_ID = null
             });
 
             if (_loginOptions.Branches.Count == 0 || _loginOptions.Years.Count == 0)
@@ -301,7 +301,7 @@ public partial class MainPage : ContentPage
             User_ID = _loginOptions.User_ID,
             Login_Name = LoginNameEntry.Text.Trim(),
             Password = PasswordEntry.Text,
-            Device_ID = GetDeviceId()
+            Device_ID = null
         });
 
         PasswordEntry.Text = string.Empty;
@@ -392,9 +392,6 @@ public partial class MainPage : ContentPage
         StatusLabel.Text = string.Empty;
         StatusLabel.IsVisible = false;
     }
-
-    private static string GetDeviceId() =>
-        $"{DeviceInfo.Current.Platform}-{DeviceInfo.Current.Model}";
 
     private void InitializeDevelopmentConnectionSettings()
     {

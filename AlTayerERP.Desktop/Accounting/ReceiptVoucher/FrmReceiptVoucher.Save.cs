@@ -7,6 +7,7 @@ using System.Net.Http;
 using System.Net.Http.Json;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using AlTayerERP.Desktop.Services;
 
 namespace AlTayerERP.Desktop
 {
@@ -774,9 +775,9 @@ namespace AlTayerERP.Desktop
             return new FinancialVoucherApiResponse
             {
                 Success = httpResponse.IsSuccessStatusCode, // تحديد النجاح بناءً على رمز الحالة الخاص بـ HTTP (مثل 200 OK)
-                Message = string.IsNullOrWhiteSpace(rawMessage)
-                    ? (httpResponse.IsSuccessStatusCode ? "تم حفظ سند القبض بنجاح." : $"فشل حفظ سند القبض. رمز الاستجابة: {(int)httpResponse.StatusCode}")
-                    : rawMessage
+                Message = httpResponse.IsSuccessStatusCode
+                    ? "تم حفظ سند القبض بنجاح."
+                    : ApiErrorMessageFormatter.FromPayload(httpResponse.StatusCode, rawMessage)
             };
         }
 
@@ -831,13 +832,9 @@ namespace AlTayerERP.Desktop
             {
                 Success = httpResponse.IsSuccessStatusCode,
 
-                Message = string.IsNullOrWhiteSpace(rawMessage)
-                    ? httpResponse.IsSuccessStatusCode
-                        ? "تم تعديل سند القبض بنجاح."
-                        : $"فشل تعديل سند القبض. " +
-                          $"رمز الاستجابة: " +
-                          $"{(int)httpResponse.StatusCode}"
-                    : rawMessage
+                Message = httpResponse.IsSuccessStatusCode
+                    ? "تم تعديل سند القبض بنجاح."
+                    : ApiErrorMessageFormatter.FromPayload(httpResponse.StatusCode, rawMessage)
             };
         }
 

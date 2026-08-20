@@ -4,16 +4,24 @@ using AlTayerERP.Mobile.Office.DTOs;
 
 namespace AlTayerERP.Mobile.Office.Services;
 
-public sealed class AuthenticationService(HttpClient httpClient, SessionStorageService sessionStorage, ApiConnectionDiagnosticsService diagnostics)
+public sealed class AuthenticationService(
+    HttpClient httpClient,
+    SessionStorageService sessionStorage,
+    ApiConnectionDiagnosticsService diagnostics,
+    DeviceIdentityService deviceIdentity)
 {
     public async Task<List<LoginCompanyOptionDto>> GetLoginCompaniesAsync(CancellationToken cancellationToken = default) =>
         await GetJsonAsync<List<LoginCompanyOptionDto>>(HttpMethod.Get, "api/Auth/LoginCompanies", null, null, cancellationToken) ?? [];
 
-    public Task<LoginOptionsResponseDto> GetLoginOptionsAsync(LoginOptionsRequestDto request, CancellationToken cancellationToken = default) =>
-        GetJsonAsync<LoginOptionsResponseDto>(HttpMethod.Post, "api/Auth/LoginOptions", request, null, cancellationToken);
+    public async Task<LoginOptionsResponseDto> GetLoginOptionsAsync(LoginOptionsRequestDto request, CancellationToken cancellationToken = default)
+    {
+        request.Device_ID = await deviceIdentity.GetAsync();
+        return await GetJsonAsync<LoginOptionsResponseDto>(HttpMethod.Post, "api/Auth/LoginOptions", request, null, cancellationToken);
+    }
 
     public async Task<LoginResponseDto> LoginAsync(LoginRequestDto request, CancellationToken cancellationToken = default)
     {
+        request.Device_ID = await deviceIdentity.GetAsync();
         var result = await GetJsonAsync<LoginResponseDto>(HttpMethod.Post, "api/Auth/Login", request, null, cancellationToken);
         await sessionStorage.SaveAsync(result);
         return result;
@@ -21,15 +29,55 @@ public sealed class AuthenticationService(HttpClient httpClient, SessionStorageS
 
     public async Task<StoredSessionDto?> RestoreSessionAsync(CancellationToken cancellationToken = default)
     {
-        var stored = await sessionStorage.GetAsync();
-        if (stored == null || stored.AccessTokenExpiresAt <= DateTimeOffset.UtcNow) { sessionStorage.Clear(); return null; }
-        try { await GetJsonAsync<object>(HttpMethod.Get, "api/Auth/CurrentSession", null, stored, cancellationToken); return stored; }
-        catch (ApiDiagnosticException) { sessionStorage.Clear(); return null; }
+        var stored = await sessionStorage.GetStoredAsync();
+        if (stored == null)
+            return null;
+
+        if (stored.AccessTokenExpiresAt > DateTimeOffset.UtcNow)
+        {
+            try
+            {
+                await GetJsonAsync<object>(HttpMethod.Get, "api/Auth/CurrentSession", null, stored, cancellationToken);
+                return stored;
+            }
+            catch (ApiDiagnosticException exception) when (exception.Diagnostic.ErrorType != ApiErrorType.Unauthorized)
+            {
+                // لا نمسح جلسة صالحة محلياً بسبب عطل شبكة عابر أو خدمة غير متاحة.
+                return null;
+            }
+        }
+
+        if (stored.RefreshTokenExpiresAt <= DateTimeOffset.UtcNow || string.IsNullOrWhiteSpace(stored.RefreshToken))
+        {
+            sessionStorage.Clear();
+            return null;
+        }
+
+        try
+        {
+            var renewed = await GetJsonAsync<LoginResponseDto>(
+                HttpMethod.Post,
+                "api/Auth/Refresh",
+                new RefreshRequestDto
+                {
+                    Refresh_Token = stored.RefreshToken,
+                    Device_ID = await deviceIdentity.GetAsync()
+                },
+                null,
+                cancellationToken);
+
+            return await sessionStorage.SaveAsync(renewed);
+        }
+        catch (ApiDiagnosticException exception) when (exception.Diagnostic.ErrorType == ApiErrorType.Unauthorized)
+        {
+            sessionStorage.Clear();
+            return null;
+        }
     }
 
     public async Task LogoutAsync(CancellationToken cancellationToken = default)
     {
-        var stored = await sessionStorage.GetAsync();
+        var stored = await sessionStorage.GetStoredAsync();
         try { if (stored != null) await SendAsync(HttpMethod.Post, "api/Auth/Logout", null, stored, cancellationToken); }
         finally { sessionStorage.Clear(); }
     }

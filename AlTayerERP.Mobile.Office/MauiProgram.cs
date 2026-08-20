@@ -35,6 +35,7 @@ public static class MauiProgram
             return client;
         });
         builder.Services.AddSingleton<SessionStorageService>();
+        builder.Services.AddSingleton<DeviceIdentityService>();
         builder.Services.AddSingleton<MobileApiErrorHandler>();
         builder.Services.AddSingleton<ApiConnectionDiagnosticsService>();
         builder.Services.AddSingleton<AuthenticationService>();

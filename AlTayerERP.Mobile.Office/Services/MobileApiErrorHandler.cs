@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Net;
+using System.Text.Json;
 using AlTayerERP.Mobile.Office.DTOs;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -26,6 +27,39 @@ public sealed class MobileApiErrorHandler(SessionStorageService sessionStorage)
             return;
 
         throw new MobileApiException(response.StatusCode, response.RequestMessage?.RequestUri?.ToString());
+    }
+
+    /// <summary>
+    /// يقبل الرسائل المعرفة صراحة داخل JSON فقط، ويعيد الرسالة البديلة عند وجود HTML
+    /// أو نص وسيط أو تفاصيل تشغيلية. لا يعرض جسم HTTP الخام أبداً.
+    /// </summary>
+    public static string FromPayload(string? payload, string fallback)
+    {
+        if (string.IsNullOrWhiteSpace(payload))
+            return fallback;
+
+        try
+        {
+            using var document = JsonDocument.Parse(payload);
+            if (document.RootElement.ValueKind != JsonValueKind.Object)
+                return fallback;
+
+            foreach (var name in new[] { "message", "detail", "title" })
+            {
+                if (document.RootElement.TryGetProperty(name, out var value) &&
+                    value.ValueKind == JsonValueKind.String &&
+                    IsSafeServerMessage(value.GetString()))
+                {
+                    return value.GetString()!.Trim();
+                }
+            }
+        }
+        catch (JsonException)
+        {
+            // لا تعرض صفحات البروكسي أو نصوص الاستضافة غير المنظمة للمستخدم.
+        }
+
+        return fallback;
     }
 
     private string GetUserMessageCore(Exception exception)
@@ -112,6 +146,18 @@ public sealed class MobileApiErrorHandler(SessionStorageService sessionStorage)
         !message.Contains("token", StringComparison.OrdinalIgnoreCase) &&
         !message.Contains("stack", StringComparison.OrdinalIgnoreCase) &&
         !message.Contains("connection string", StringComparison.OrdinalIgnoreCase);
+
+    private static bool IsSafeServerMessage(string? message) =>
+        !string.IsNullOrWhiteSpace(message) &&
+        message.Length <= 300 &&
+        !message.Contains('<') &&
+        !message.Contains("http", StringComparison.OrdinalIgnoreCase) &&
+        !message.Contains("json", StringComparison.OrdinalIgnoreCase) &&
+        !message.Contains("token", StringComparison.OrdinalIgnoreCase) &&
+        !message.Contains("stack", StringComparison.OrdinalIgnoreCase) &&
+        !message.Contains("System.", StringComparison.OrdinalIgnoreCase) &&
+        !message.Contains("MySql", StringComparison.OrdinalIgnoreCase) &&
+        !message.Contains(" at ", StringComparison.OrdinalIgnoreCase);
 
     [Conditional("DEBUG")]
     private static void WriteDevelopment(Exception exception, ApiErrorType errorType)

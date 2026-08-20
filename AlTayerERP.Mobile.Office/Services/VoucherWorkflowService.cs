@@ -1,6 +1,5 @@
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
-using System.Text.Json;
 
 namespace AlTayerERP.Mobile.Office.Services;
 
@@ -67,25 +66,7 @@ public sealed class VoucherWorkflowService(HttpClient httpClient, SessionStorage
         if (response.IsSuccessStatusCode) return;
 
         var raw = await response.Content.ReadAsStringAsync(cancellationToken);
-        if (!string.IsNullOrWhiteSpace(raw))
-        {
-            try
-            {
-                using var json = JsonDocument.Parse(raw);
-                if (json.RootElement.TryGetProperty("message", out var message))
-                    throw new InvalidOperationException(message.GetString() ?? fallback);
-                if (json.RootElement.TryGetProperty("detail", out var detail))
-                    throw new InvalidOperationException(detail.GetString() ?? fallback);
-                if (json.RootElement.TryGetProperty("title", out var title))
-                    throw new InvalidOperationException(title.GetString() ?? fallback);
-            }
-            catch (JsonException)
-            {
-                // نستخدم الرسالة الافتراضية عندما لا تكون الاستجابة JSON.
-            }
-        }
-
-        throw new InvalidOperationException(fallback);
+        throw new InvalidOperationException(MobileApiErrorHandler.FromPayload(raw, fallback));
     }
 
     private static string? Clean(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();

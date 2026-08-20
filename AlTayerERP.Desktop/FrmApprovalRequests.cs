@@ -361,7 +361,8 @@ public sealed class FrmApprovalRequests : BaseForm
         var response = await ApiService.Client.PostAsJsonAsync($"approval-requests/{_selectedId}/{action}", new { reason = _reason.Text.Trim() });
         if (!response.IsSuccessStatusCode)
         {
-            MessageBox.Show(await response.Content.ReadAsStringAsync(), "طلبات الاعتماد", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            var message = await ApiErrorMessageFormatter.FromResponseAsync(response);
+            MessageBox.Show(message, "طلبات الاعتماد", MessageBoxButtons.OK, MessageBoxIcon.Warning);
             return;
         }
 
