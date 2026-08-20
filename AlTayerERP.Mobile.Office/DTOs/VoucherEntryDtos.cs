@@ -1,5 +1,7 @@
 namespace AlTayerERP.Mobile.Office.DTOs;
 
+using System.Text.Json.Serialization;
+
 public sealed class VoucherEntryReferencesDto
 {
     public VoucherEntryTypeDto VoucherType { get; set; } = new();
@@ -28,6 +30,10 @@ public sealed class VoucherEntryPeriodDto { public DateTime StartDate { get; set
 
 public sealed class CreateMobileVoucherDto
 {
+    // لا يرسل ضمن JSON؛ يظل على كائن الإدخال نفسه حتى تستخدم إعادة المحاولة المفتاح ذاته.
+    [JsonIgnore]
+    public string? Idempotency_Key { get; set; }
+
     public int Voucher_Type_ID { get; set; }
     public int Voucher_Status_ID { get; set; }
     public string Branch_ID { get; set; } = string.Empty;

@@ -1996,6 +1996,88 @@ namespace AlTayerERP.Infrastructure.Migrations
                     b.ToTable("fiscal_years", (string)null);
                 });
 
+            modelBuilder.Entity("AlTayerERP.Core.Entities.Accounting.IdempotencyRecord", b =>
+                {
+                    b.Property<long>("Idempotency_Record_ID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("Idempotency_Record_ID");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<long>("Idempotency_Record_ID"));
+
+                    b.Property<string>("Branch_ID")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)")
+                        .HasColumnName("Branch_ID");
+
+                    b.Property<string>("Company_ID")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)")
+                        .HasColumnName("Company_ID");
+
+                    b.Property<DateTime?>("Completed_At")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("Completed_At");
+
+                    b.Property<DateTime>("Created_At")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("Created_At");
+
+                    b.Property<int>("Fiscal_Year_ID")
+                        .HasColumnType("int")
+                        .HasColumnName("Fiscal_Year_ID");
+
+                    b.Property<string>("Idempotency_Key")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)")
+                        .HasColumnName("Idempotency_Key");
+
+                    b.Property<string>("Operation")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("varchar(80)")
+                        .HasColumnName("Operation");
+
+                    b.Property<string>("Request_Fingerprint")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("char(64)")
+                        .HasColumnName("Request_Fingerprint");
+
+                    b.Property<long?>("Resource_ID")
+                        .HasColumnType("bigint")
+                        .HasColumnName("Resource_ID");
+
+                    b.Property<string>("Resource_No")
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)")
+                        .HasColumnName("Resource_No");
+
+                    b.Property<byte>("Status")
+                        .HasColumnType("tinyint unsigned")
+                        .HasColumnName("Status");
+
+                    b.Property<string>("User_ID")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)")
+                        .HasColumnName("User_ID");
+
+                    b.HasKey("Idempotency_Record_ID");
+
+                    b.HasIndex("Status", "Created_At")
+                        .HasDatabaseName("IX_Idempotency_Record_Status_Created");
+
+                    b.HasIndex("Operation", "Idempotency_Key", "Company_ID", "Branch_ID", "Fiscal_Year_ID", "User_ID")
+                        .IsUnique()
+                        .HasDatabaseName("UQ_Idempotency_Record_Scope_Key");
+
+                    b.ToTable("idempotency_records", (string)null);
+                });
+
             modelBuilder.Entity("AlTayerERP.Core.Entities.NumberingCounter", b =>
                 {
                     b.Property<int>("Counter_ID")

@@ -84,6 +84,9 @@ namespace AlTayerERP.Infrastructure.Data
         // جدول طلبات الاعتماد والموافقات الإدارية على المستندات
         public DbSet<ApprovalRequest> Approval_Requests { get; set; } = null!;
 
+        // سجلات مفاتيح عدم التكرار للعمليات الحساسة مثل إنشاء السند المالي.
+        public DbSet<IdempotencyRecord> Idempotency_Records { get; set; } = null!;
+
         #endregion
 
         #region 4. دليل الحسابات والعملات ومراكز التكلفة
@@ -322,6 +325,25 @@ namespace AlTayerERP.Infrastructure.Data
             {
                 entity.ToTable("approval_requests");
                 entity.HasKey(e => e.Approval_ID);
+            });
+            modelBuilder.Entity<IdempotencyRecord>(entity =>
+            {
+                entity.ToTable("idempotency_records");
+                entity.HasKey(e => e.Idempotency_Record_ID);
+                entity.Property(e => e.Request_Fingerprint).HasColumnType("char(64)");
+                entity.HasIndex(e => new
+                {
+                    e.Operation,
+                    e.Idempotency_Key,
+                    e.Company_ID,
+                    e.Branch_ID,
+                    e.Fiscal_Year_ID,
+                    e.User_ID
+                })
+                .IsUnique()
+                .HasDatabaseName("UQ_Idempotency_Record_Scope_Key");
+                entity.HasIndex(e => new { e.Status, e.Created_At })
+                    .HasDatabaseName("IX_Idempotency_Record_Status_Created");
             });
             modelBuilder.Entity<PaymentRequest>(entity => { entity.ToTable("payment_requests"); entity.HasKey(e=>e.Payment_Request_ID); entity.HasIndex(e=>new {e.Company_ID,e.Branch_ID,e.Fiscal_Year_ID,e.Request_No}).IsUnique(); entity.Property(e=>e.Approved_Local_Total).HasPrecision(19,4); entity.HasMany(e=>e.Details).WithOne(e=>e.PaymentRequest).HasForeignKey(e=>e.Payment_Request_ID).OnDelete(DeleteBehavior.Restrict); });
             modelBuilder.Entity<PaymentRequestLine>(entity => { entity.ToTable("payment_request_lines"); entity.HasKey(e=>e.Payment_Request_Line_ID); entity.HasIndex(e=>new {e.Payment_Request_ID,e.Line_No}).IsUnique(); entity.Property(e=>e.Exchange_Rate).HasPrecision(19,8); entity.Property(e=>e.Foreign_Amount).HasPrecision(19,4); entity.Property(e=>e.Local_Amount).HasPrecision(19,4); });

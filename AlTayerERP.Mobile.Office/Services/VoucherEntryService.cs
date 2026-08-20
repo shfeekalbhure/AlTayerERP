@@ -90,6 +90,8 @@ public sealed class VoucherEntryService(HttpClient httpClient, SessionStorageSer
         dto.Fiscal_Year_ID = session.YearId;
 
         using var request = CreateRequest(HttpMethod.Post, "api/FinancialVoucher", session.AccessToken);
+        dto.Idempotency_Key ??= Guid.NewGuid().ToString("N");
+        request.Headers.TryAddWithoutValidation("Idempotency-Key", dto.Idempotency_Key);
         request.Content = JsonContent.Create(dto);
         using var response = await httpClient.SendAsync(request, cancellationToken);
         await EnsureSuccessAsync(response, "تعذر حفظ السند.", cancellationToken);

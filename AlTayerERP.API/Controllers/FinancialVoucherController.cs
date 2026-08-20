@@ -6,6 +6,9 @@ using AlTayerERP.API.Services.Accounting.VoucherWorkflow;
 using AlTayerERP.Infrastructure.Data;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Cryptography;
+using System.Text;
+using System.Text.Json;
 
 
 
@@ -27,6 +30,7 @@ namespace AlTayerERP.API.Controllers
         private readonly VoucherApprovalService _approvalService;
         private readonly VoucherPostingService _postingService;
         private readonly ScreenAuthorizationService _screenAuthorization;
+        private readonly IdempotencyService _idempotencyService;
         private readonly AppDbContext _context;
         private readonly ILogger<FinancialVoucherController> _logger;
 
@@ -40,6 +44,7 @@ namespace AlTayerERP.API.Controllers
             VoucherApprovalService approvalService,
             VoucherPostingService postingService,
             ScreenAuthorizationService screenAuthorization,
+            IdempotencyService idempotencyService,
             AppDbContext context,
             ILogger<FinancialVoucherController> logger)
         {
@@ -48,6 +53,7 @@ namespace AlTayerERP.API.Controllers
             _approvalService = approvalService;
             _postingService = postingService;
             _screenAuthorization = screenAuthorization;
+            _idempotencyService = idempotencyService;
             _context = context;
             _logger = logger;
         }
@@ -189,7 +195,8 @@ namespace AlTayerERP.API.Controllers
         /// </summary>
         [HttpPost]
         public async Task<IActionResult> Create(
-            [FromBody] CreateFinancialVoucherDto? dto)
+            [FromBody] CreateFinancialVoucherDto? dto,
+            CancellationToken cancellationToken)
         {
             if (dto is null)
                 return BadRequest(new { success = false, message = "بيانات السند مطلوبة." });
@@ -214,6 +221,104 @@ namespace AlTayerERP.API.Controllers
                 return BadRequest(new { success = false, message = "بيانات سند القيد غير مكتملة أو غير صالحة." });
             }
 
+            if (!TryGetIdempotencyKey(out var idempotencyKey, out var idempotencyError))
+            {
+                return BadRequest(new { success = false, message = idempotencyError });
+            }
+
+            // يظل العميل القديم متوافقاً؛ تعمل الحماية الدائمة عند إرسال الرأس الاختياري.
+            if (string.IsNullOrWhiteSpace(idempotencyKey))
+            {
+                return await CreateWithoutIdempotencyAsync(dto);
+            }
+
+            var fingerprint = ComputeRequestFingerprint(dto);
+            // بعد تعارض الفهرس الفريد، يجب أن ترى إعادة القراءة السجل الذي ثبته
+            // الطلب المنافس؛ العزل Repeatable Read قد يحتفظ بلقطة تسبق ذلك السجل.
+            await using var transaction = await _context.Database.BeginTransactionAsync(
+                System.Data.IsolationLevel.ReadCommitted,
+                cancellationToken);
+            try
+            {
+                var begin = await _idempotencyService.BeginAsync(
+                    session,
+                    "FINANCIAL_VOUCHER_CREATE",
+                    idempotencyKey,
+                    fingerprint,
+                    cancellationToken);
+
+                if (begin.State == IdempotencyBeginState.PayloadMismatch)
+                {
+                    await transaction.RollbackAsync(cancellationToken);
+                    return Conflict(new
+                    {
+                        success = false,
+                        message = "تم استخدام مفتاح الحفظ نفسه مع بيانات مختلفة. أنشئ عملية حفظ جديدة ثم أعد المحاولة."
+                    });
+                }
+
+                if (begin.State == IdempotencyBeginState.InProgress)
+                {
+                    await transaction.RollbackAsync(cancellationToken);
+                    return Conflict(new
+                    {
+                        success = false,
+                        message = "عملية حفظ السند ما زالت قيد المعالجة. انتظر قليلاً قبل إعادة المحاولة."
+                    });
+                }
+
+                if (begin.State == IdempotencyBeginState.Completed)
+                {
+                    await transaction.RollbackAsync(cancellationToken);
+                    return Ok(new
+                    {
+                        success = true,
+                        message = "تمت استعادة نتيجة الحفظ السابقة ولم يُنشأ سند مكرر.",
+                        voucher_ID = begin.Record.Resource_ID,
+                        voucher_No = begin.Record.Resource_No
+                    });
+                }
+
+                var result = await _service.CreateAsync(dto);
+                if (!result.Success || !result.VoucherId.HasValue || string.IsNullOrWhiteSpace(result.VoucherNo))
+                {
+                    await transaction.RollbackAsync(cancellationToken);
+                    _logger.LogWarning(
+                        "Financial voucher creation rejected. VoucherTypeId={VoucherTypeId}; Message={Message}",
+                        dto.Voucher_Type_ID,
+                        result.Message);
+                    return BadRequest(new { success = false, message = result.Message });
+                }
+
+                await _idempotencyService.CompleteAsync(
+                    begin.Record,
+                    result.VoucherId.Value,
+                    result.VoucherNo,
+                    cancellationToken);
+                await transaction.CommitAsync(cancellationToken);
+
+                return Ok(new
+                {
+                    success = true,
+                    message = result.Message,
+                    voucher_ID = result.VoucherId,
+                    voucher_No = result.VoucherNo
+                });
+            }
+            catch (Exception ex)
+            {
+                await transaction.RollbackAsync(cancellationToken);
+                _logger.LogError(ex, "Financial voucher creation failed while applying idempotency protection.");
+                return StatusCode(StatusCodes.Status500InternalServerError, new
+                {
+                    success = false,
+                    message = "تعذر إكمال حفظ السند حالياً. تحقق من حالة السند قبل إعادة المحاولة."
+                });
+            }
+        }
+
+        private async Task<IActionResult> CreateWithoutIdempotencyAsync(CreateFinancialVoucherDto dto)
+        {
             var result = await _service.CreateAsync(dto);
 
             if (!result.Success)
@@ -237,6 +342,33 @@ namespace AlTayerERP.API.Controllers
                 voucher_ID = result.VoucherId,
                 voucher_No = result.VoucherNo
             });
+        }
+
+        private bool TryGetIdempotencyKey(out string? key, out string? error)
+        {
+            key = HttpContext.Request.Headers["Idempotency-Key"].ToString().Trim();
+            error = null;
+
+            if (string.IsNullOrWhiteSpace(key))
+            {
+                key = null;
+                return true;
+            }
+
+            if (key.Length > 100 || key.Any(character =>
+                    !(char.IsAsciiLetterOrDigit(character) || character is '-' or '_' or '.')))
+            {
+                error = "مفتاح منع تكرار الحفظ غير صالح.";
+                return false;
+            }
+
+            return true;
+        }
+
+        private static string ComputeRequestFingerprint(CreateFinancialVoucherDto dto)
+        {
+            var payload = JsonSerializer.Serialize(dto);
+            return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(payload)));
         }
 
         /// <summary>

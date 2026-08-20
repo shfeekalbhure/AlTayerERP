@@ -85,6 +85,7 @@ builder.Services.AddScoped<LoginSecurityService>();
 builder.Services.AddScoped<ScreenAuthorizationService>();
 builder.Services.AddScoped<SettingsResolverService>();
 builder.Services.AddScoped<AuditTrailService>();
+builder.Services.AddScoped<IdempotencyService>();
 
 builder.Services
     .AddAuthentication(ServerSessionAuthenticationHandler.SchemeName)
