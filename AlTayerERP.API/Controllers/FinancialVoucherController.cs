@@ -1117,7 +1117,9 @@ namespace AlTayerERP.API.Controllers
         public async Task<IActionResult> GetWorkflowStatus(
             long voucherId)
         {
-            var permissionFailure = await RequireReceiptVoucherPermissionAsync(ScreenOperation.View);
+            var permissionFailure = await RequireReceiptVoucherPermissionAsync(
+                ScreenOperation.View,
+                voucherId: voucherId);
             if (permissionFailure != null)
             {
                 return permissionFailure;

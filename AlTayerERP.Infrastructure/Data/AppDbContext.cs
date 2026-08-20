@@ -325,6 +325,9 @@ namespace AlTayerERP.Infrastructure.Data
             {
                 entity.ToTable("approval_requests");
                 entity.HasKey(e => e.Approval_ID);
+                // لا يحتاج هذا إلى عمود إضافي: تضمين الحالة الأصلية في UPDATE يمنع
+                // قرارين متزامنين من تجاوز انتقال الحالة نفسه.
+                entity.Property(e => e.Status).IsConcurrencyToken();
             });
             modelBuilder.Entity<IdempotencyRecord>(entity =>
             {

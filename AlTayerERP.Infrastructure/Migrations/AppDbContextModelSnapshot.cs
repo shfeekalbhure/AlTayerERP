@@ -1435,6 +1435,7 @@ namespace AlTayerERP.Infrastructure.Migrations
 
                     b.Property<string>("Status")
                         .IsRequired()
+                        .IsConcurrencyToken()
                         .HasColumnType("longtext")
                         .HasColumnName("Status");
 

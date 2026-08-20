@@ -162,8 +162,8 @@ public partial class MainPage : ContentPage
                     ApiErrorType.ServerError => "تم الوصول إلى API، لكن قاعدة البيانات غير جاهزة. افحص /api/health.",
                     _ => "فشل فحص API. راجع العنوان وإعدادات الاتصال."
                 };
-            DevelopmentDatabaseLabel.Text = result.ErrorType == ApiErrorType.None && !string.IsNullOrWhiteSpace(result.DatabaseName)
-                ? $"قاعدة التطوير: {result.DatabaseName}"
+            DevelopmentDatabaseLabel.Text = result.ErrorType == ApiErrorType.None
+                ? "حالة البيانات: جاهزة"
                 : !string.IsNullOrWhiteSpace(result.BaseAddress)
                     ? $"العنوان المختبر: {result.BaseAddress}"
                     : string.Empty;

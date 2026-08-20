@@ -165,7 +165,7 @@ namespace AlTayerERP.API.Controllers
                 return BadRequest("رمز التجديد مطلوب.");
 
             var suppliedHash = TokenService.Hash(request.Refresh_Token);
-            var storedToken = await _context.Refresh_Tokens
+            var storedToken = await _context.Refresh_Tokens.AsNoTracking()
                 .FirstOrDefaultAsync(x => x.Token_Hash == suppliedHash, cancellationToken);
 
             if (storedToken == null ||
@@ -181,33 +181,45 @@ namespace AlTayerERP.API.Controllers
                 storedToken.Fiscal_Year_ID, cancellationToken);
             if (context == null || _loginSecurity.IsLocked(context.User))
             {
-                storedToken.Revoked_At = DateTime.UtcNow;
-                storedToken.Revoked_Reason = "CONTEXT_INVALID";
-                await _context.SaveChangesAsync(cancellationToken);
+                await _context.Refresh_Tokens
+                    .Where(x => x.Refresh_Token_ID == storedToken.Refresh_Token_ID && x.Revoked_At == null)
+                    .ExecuteUpdateAsync(setters => setters
+                        .SetProperty(x => x.Revoked_At, DateTime.UtcNow)
+                        .SetProperty(x => x.Revoked_Reason, "CONTEXT_INVALID"), cancellationToken);
                 return Unauthorized("انتهت الجلسة أو لم يعد نطاق العمل صالحاً.");
             }
 
-            var session = _sessions.Create(
-                context.User.User_ID, context.Role.Role_ID, context.Role.Is_System_Admin,
-                storedToken.Company_ID, storedToken.Branch_ID, storedToken.Fiscal_Year_ID,
-                storedToken.Device_ID);
-            var access = _tokens.CreateAccessToken(session);
-
+            ServerSession? session = null;
             try
             {
                 await using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
-                storedToken.Revoked_At = DateTime.UtcNow;
-                storedToken.Revoked_Reason = "ROTATED";
+                var consumed = await _context.Refresh_Tokens
+                    .Where(x => x.Refresh_Token_ID == storedToken.Refresh_Token_ID && x.Revoked_At == null)
+                    .ExecuteUpdateAsync(setters => setters
+                        .SetProperty(x => x.Revoked_At, DateTime.UtcNow)
+                        .SetProperty(x => x.Revoked_Reason, "ROTATED"), cancellationToken);
+
+                if (consumed != 1)
+                    return Unauthorized("انتهت الجلسة أو رمز التجديد غير صالح.");
+
+                session = _sessions.Create(
+                    context.User.User_ID, context.Role.Role_ID, context.Role.Is_System_Admin,
+                    storedToken.Company_ID, storedToken.Branch_ID, storedToken.Fiscal_Year_ID,
+                    storedToken.Device_ID);
+                var access = _tokens.CreateAccessToken(session);
                 var refresh = await _tokens.IssueRefreshTokenAsync(session, storedToken.Device_ID, cancellationToken);
-                storedToken.Replaced_By_Hash = refresh.Token_Hash;
-                await _context.SaveChangesAsync(cancellationToken);
+                await _context.Refresh_Tokens
+                    .Where(x => x.Refresh_Token_ID == storedToken.Refresh_Token_ID)
+                    .ExecuteUpdateAsync(setters => setters
+                        .SetProperty(x => x.Replaced_By_Hash, refresh.Token_Hash), cancellationToken);
                 await transaction.CommitAsync(cancellationToken);
 
                 return Ok(CreateLoginResponse(context.User, session, access, refresh));
             }
             catch
             {
-                _sessions.Remove(session.Session_ID);
+                if (session != null)
+                    _sessions.Remove(session.Session_ID);
                 throw;
             }
         }

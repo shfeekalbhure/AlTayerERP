@@ -191,7 +191,18 @@ public sealed class ApprovalRequestsController : ControllerBase
         _audit.Add(Session(), HttpContext, "approval_requests", row.Approval_ID.ToString(), auditAction,
             before, new { row.Status, row.Approved_By, row.Approved_At, row.Approval_Notes }, row.Approval_Notes);
 
-        await _db.SaveChangesAsync();
+        try
+        {
+            await _db.SaveChangesAsync();
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            return Conflict(new
+            {
+                message = "تم تغيير حالة طلب الاعتماد من مستخدم آخر. حدّث القائمة ثم راجع الحالة الحالية قبل اتخاذ قرار جديد."
+            });
+        }
+
         return Ok(row);
     }
 

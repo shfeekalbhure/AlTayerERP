@@ -24,6 +24,8 @@ namespace AlTayerERP.Desktop
 
         private sealed class ApiHealthResponse
         {
+            public string? Api { get; set; }
+            public string? Database { get; set; }
             public string? Environment { get; set; }
             public string? DatabaseName { get; set; }
         }
@@ -245,16 +247,16 @@ namespace AlTayerERP.Desktop
 
                 var healthInfo = await health.Content.ReadFromJsonAsync<ApiHealthResponse>();
                 if (healthInfo is null ||
-                    string.IsNullOrWhiteSpace(healthInfo.Environment) ||
-                    string.IsNullOrWhiteSpace(healthInfo.DatabaseName))
+                    !string.Equals(healthInfo.Api, "ready", StringComparison.OrdinalIgnoreCase) ||
+                    !string.Equals(healthInfo.Database, "ready", StringComparison.OrdinalIgnoreCase))
                 {
-                    throw new InvalidOperationException("استجابة فحص الصحة لا تحتوي هوية البيئة أو اسم قاعدة البيانات.");
+                    throw new InvalidOperationException("استجابة فحص الصحة لا تؤكد جاهزية API وقاعدة البيانات.");
                 }
 
                 await LoadCompaniesAsync();
-                lblApiStatus.Text = $"API: متصل - {healthInfo.Environment}";
+                lblApiStatus.Text = "API: متصل";
                 lblApiStatus.ForeColor = Color.DarkGreen;
-                lblDatabaseStatus.Text = $"قاعدة البيانات: متصلة - {healthInfo.DatabaseName}";
+                lblDatabaseStatus.Text = "قاعدة البيانات: متصلة";
                 lblDatabaseStatus.ForeColor = Color.DarkGreen;
                 btnLogin.Enabled = true;
             }

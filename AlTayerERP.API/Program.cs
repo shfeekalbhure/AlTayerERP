@@ -2,6 +2,7 @@ using AlTayerERP.API.Services;
 using AlTayerERP.API.Contracts;
 using AlTayerERP.API.Services.Accounting;
 using AlTayerERP.API.Services.Accounting.VoucherWorkflow;
+using AlTayerERP.API.Middleware;
 using AlTayerERP.Infrastructure.Data;
 using Microsoft.AspNetCore.Authentication;
 using AlTayerERP.API.Security;
@@ -37,7 +38,6 @@ var mysqlConnection = new MySqlConnectionStringBuilder(connectionString)
     CharacterSet = "utf8mb4"
 };
 connectionString = mysqlConnection.ConnectionString;
-var databaseName = mysqlConnection.Database;
 
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseMySql(
@@ -129,6 +129,8 @@ if (!app.Environment.IsDevelopment())
     app.UseHttpsRedirection();
 }
 
+// تلتقط أخطاء التطبيق قبل وصولها إلى العميل وتبقي التفاصيل في سجلات الخادم.
+app.UseMiddleware<SafeApiExceptionMiddleware>();
 app.UseCors("AlTayerERPClients");
 app.UseAuthentication();
 
@@ -171,8 +173,8 @@ app.MapGet("/api/health", async (AppDbContext db) =>
             ? Results.Ok(new ApiHealthResponse(
                 Api: "ready",
                 Database: "ready",
-                Environment: app.Environment.EnvironmentName,
-                DatabaseName: string.IsNullOrWhiteSpace(databaseName) ? null : databaseName))
+                Environment: "restricted",
+                DatabaseName: "restricted"))
             : Results.StatusCode(StatusCodes.Status503ServiceUnavailable);
     }
     catch

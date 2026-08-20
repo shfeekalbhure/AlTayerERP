@@ -45,7 +45,15 @@ public sealed class FinancialGovernanceController : ControllerBase
         if(target==ApprovalStatus.Approved){row.Approved_By=Session().User_ID.ToString();row.Approved_At=DateTime.UtcNow;}
         await SynchronizeLinkedPaymentRequestAsync(row,target,row.Approval_Notes);
         _audit.Add(Session(),HttpContext,"approval_requests",id.ToString(),action,before,new{row.Status,row.Approved_By,row.Approved_At,row.Approval_Notes},request.Reason);
-        await _db.SaveChangesAsync();return Ok(row);
+        try
+        {
+            await _db.SaveChangesAsync();
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            return Conflict(new { message="تم تغيير حالة طلب الاعتماد من مستخدم آخر. حدّث القائمة ثم راجع الحالة الحالية قبل اتخاذ قرار جديد." });
+        }
+        return Ok(row);
     }
 
     private async Task<string?> ValidateLinkedPaymentRequestTransitionAsync(ApprovalRequest approval,ApprovalStatus target)
