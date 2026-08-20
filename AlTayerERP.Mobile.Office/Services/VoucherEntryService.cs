@@ -206,5 +206,4 @@ public sealed class VoucherEntryService(HttpClient httpClient, SessionStorageSer
         !message.Contains("token", StringComparison.OrdinalIgnoreCase) &&
         !message.Contains("stack trace", StringComparison.OrdinalIgnoreCase) &&
         !message.Contains(" at ", StringComparison.OrdinalIgnoreCase);
-    }
 }
