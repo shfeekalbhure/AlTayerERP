@@ -40,8 +40,12 @@ namespace AlTayerERP.API.Services
             // يسمح التكرار فقط عند سباق إنشاء صف عداد جديد، وتمنعه قاعدة البيانات بفهرس فريد.
             for (var attempt = 1; attempt <= 3; attempt++)
             {
-                await using var transaction = await _context.Database.BeginTransactionAsync(
-                    IsolationLevel.Serializable, cancellationToken);
+                // عند تغليف العملية المالية بمعاملة خادمية أوسع (مثل Idempotency)
+                // يجب أن ينضم العداد إلى المعاملة نفسها حتى لا يُحجز رقم لمستند فشل حفظه.
+                var ownsTransaction = _context.Database.CurrentTransaction is null;
+                await using var transaction = ownsTransaction
+                    ? await _context.Database.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken)
+                    : null;
                 try
                 {
                     var setting = await _context.Numbering_Settings
@@ -83,14 +87,15 @@ namespace AlTayerERP.API.Services
                     counter.Updated_At = DateTime.UtcNow;
 
                     await _context.SaveChangesAsync(cancellationToken);
-                    await transaction.CommitAsync(cancellationToken);
+                    if (transaction != null)
+                        await transaction.CommitAsync(cancellationToken);
 
                     var number = BuildDocumentNumber(setting, scope, next);
                     return new NumberReservation(
                         number, type, counter.Counter_ID, next,
                         scope.Company_ID, scope.Branch_ID, scope.Fiscal_Year_ID);
                 }
-                catch (DbUpdateException) when (attempt < 3)
+                catch (DbUpdateException) when (transaction != null && attempt < 3)
                 {
                     await transaction.RollbackAsync(cancellationToken);
                     _context.ChangeTracker.Clear();
@@ -98,7 +103,8 @@ namespace AlTayerERP.API.Services
                 }
                 catch
                 {
-                    await transaction.RollbackAsync(cancellationToken);
+                    if (transaction != null)
+                        await transaction.RollbackAsync(cancellationToken);
                     throw;
                 }
             }

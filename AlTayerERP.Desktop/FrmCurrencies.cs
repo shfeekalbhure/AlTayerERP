@@ -667,7 +667,7 @@ RegisterEvents();
         #region العملة المحلية
 
         private void chkIsLocalCurrency_CheckedChanged(
-            object sender,
+            object? sender,
             EventArgs e)
         {
             if (_isBinding)
@@ -762,7 +762,7 @@ RegisterEvents();
         #region اختيار صف من الجدول
 
         private void dgvCurrencies_CellClick(
-            object sender,
+            object? sender,
             DataGridViewCellEventArgs e)
         {
             if (e.RowIndex < 0)

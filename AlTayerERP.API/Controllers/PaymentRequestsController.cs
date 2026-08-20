@@ -5,6 +5,9 @@ using AlTayerERP.Core.Entities.Accounting;
 using AlTayerERP.Infrastructure.Data;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Cryptography;
+using System.Text;
+using System.Text.Json;
 
 namespace AlTayerERP.API.Controllers;
 
@@ -17,6 +20,7 @@ public sealed class PaymentRequestsController : ControllerBase
     private readonly AuditTrailService _audit;
     private readonly FinancialVoucherService _vouchers;
     private readonly NumberGeneratorService _numbers;
+    private readonly IdempotencyService _idempotencyService;
     private const string PaymentRequestApprovalType = "PAYMENT_REQUEST";
 
     public PaymentRequestsController(
@@ -24,13 +28,15 @@ public sealed class PaymentRequestsController : ControllerBase
         ScreenAuthorizationService auth,
         AuditTrailService audit,
         FinancialVoucherService vouchers,
-        NumberGeneratorService numbers)
+        NumberGeneratorService numbers,
+        IdempotencyService idempotencyService)
     {
         _db = db;
         _auth = auth;
         _audit = audit;
         _vouchers = vouchers;
         _numbers = numbers;
+        _idempotencyService = idempotencyService;
     }
 
     private ServerSession Session() =>
@@ -75,7 +81,7 @@ public sealed class PaymentRequestsController : ControllerBase
     }
 
     [HttpPost]
-    public async Task<IActionResult> Create([FromBody] PaymentRequestDto dto)
+    public async Task<IActionResult> Create([FromBody] PaymentRequestDto dto, CancellationToken cancellationToken)
     {
         var denial = await Allow(ScreenOperation.Add);
         if (denial != null) return denial;
@@ -83,17 +89,94 @@ public sealed class PaymentRequestsController : ControllerBase
         var validation = await Validate(dto);
         if (validation != null) return BadRequest(new { message = validation });
 
+        if (!TryGetIdempotencyKey(out var idempotencyKey, out var idempotencyError))
+            return BadRequest(new { message = idempotencyError });
+
+        // يظل سطح المكتب والعملاء الأقدم متوافقين إن لم يرسلوا الرأس الاختياري.
+        if (string.IsNullOrWhiteSpace(idempotencyKey))
+        {
+            try
+            {
+                return Ok(await CreateRowAsync(dto, cancellationToken));
+            }
+            catch (NumberingException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
         var session = Session();
-        NumberReservation reservation;
+        var fingerprint = ComputeRequestFingerprint(dto);
+        await using var transaction = await _db.Database.BeginTransactionAsync(
+            System.Data.IsolationLevel.Serializable,
+            cancellationToken);
+
         try
         {
-            reservation = await _numbers.ReserveNextNumberAsync(
-                "PAYMENT_REQUEST", session.Company_ID, session.Branch_ID, session.Year_ID);
+            var begin = await _idempotencyService.BeginAsync(
+                session,
+                "PAYMENT_REQUEST_CREATE",
+                idempotencyKey,
+                fingerprint,
+                cancellationToken);
+
+            if (begin.State == IdempotencyBeginState.PayloadMismatch)
+            {
+                await transaction.RollbackAsync(cancellationToken);
+                return Conflict(new { message = "تم استخدام مفتاح حفظ طلب الصرف نفسه مع بيانات مختلفة." });
+            }
+
+            if (begin.State is IdempotencyBeginState.InProgress or IdempotencyBeginState.Contended)
+            {
+                await transaction.RollbackAsync(cancellationToken);
+                return Conflict(new { message = "طلب الصرف ما زال قيد المعالجة. أعد المحاولة بالمفتاح نفسه بعد لحظات." });
+            }
+
+            if (begin.State == IdempotencyBeginState.Completed)
+            {
+                await transaction.RollbackAsync(cancellationToken);
+                var existing = await Scoped().AsNoTracking().SingleOrDefaultAsync(
+                    x => x.Payment_Request_ID == begin.Record.Resource_ID,
+                    cancellationToken);
+                return existing == null
+                    ? Conflict(new { message = "تمت معالجة الطلب سابقاً، لكن لا يمكن استعادة نتيجته ضمن نطاق الجلسة الحالية." })
+                    : Ok(existing);
+            }
+
+            var row = await CreateRowAsync(dto, cancellationToken);
+            await _idempotencyService.CompleteAsync(
+                begin.Record,
+                row.Payment_Request_ID,
+                row.Request_No,
+                cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
+            return Ok(row);
         }
         catch (NumberingException ex)
         {
+            await transaction.RollbackAsync(cancellationToken);
             return BadRequest(new { message = ex.Message });
         }
+        catch (DbUpdateException)
+        {
+            await transaction.RollbackAsync(cancellationToken);
+            return Conflict(new { message = "تعذر حجز رقم طلب الصرف بسبب عملية متزامنة. أعد المحاولة بالمفتاح نفسه." });
+        }
+        catch
+        {
+            await transaction.RollbackAsync(cancellationToken);
+            return StatusCode(StatusCodes.Status500InternalServerError, new
+            {
+                message = "تعذر حفظ طلب الصرف حالياً. تحقق من حالة الطلب قبل إعادة المحاولة."
+            });
+        }
+    }
+
+    private async Task<PaymentRequest> CreateRowAsync(PaymentRequestDto dto, CancellationToken cancellationToken)
+    {
+        var session = Session();
+        var reservation = await _numbers.ReserveNextNumberAsync(
+            "PAYMENT_REQUEST", session.Company_ID, session.Branch_ID, session.Year_ID, cancellationToken);
 
         var row = new PaymentRequest
         {
@@ -127,8 +210,8 @@ public sealed class PaymentRequestsController : ControllerBase
         _audit.Add(session, HttpContext, "payment_requests", "new", "CREATE", null,
             new { row.Request_No, row.Status, row.Beneficiary_Name, Lines = row.Details.Count });
 
-        await _db.SaveChangesAsync();
-        return Ok(row);
+        await _db.SaveChangesAsync(cancellationToken);
+        return row;
     }
 
     [HttpPut("{id:long}")]
@@ -546,6 +629,32 @@ public sealed class PaymentRequestsController : ControllerBase
 
     private static string? Text(string? value) =>
         string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+
+    private bool TryGetIdempotencyKey(out string? key, out string? error)
+    {
+        key = HttpContext.Request.Headers["Idempotency-Key"].ToString().Trim();
+        error = null;
+        if (string.IsNullOrWhiteSpace(key))
+        {
+            key = null;
+            return true;
+        }
+
+        if (key.Length > 100 || key.Any(character =>
+                !(char.IsAsciiLetterOrDigit(character) || character is '-' or '_' or '.')))
+        {
+            error = "مفتاح منع تكرار الحفظ غير صالح.";
+            return false;
+        }
+
+        return true;
+    }
+
+    private static string ComputeRequestFingerprint(PaymentRequestDto dto)
+    {
+        var payload = JsonSerializer.Serialize(dto);
+        return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(payload)));
+    }
 
     public sealed class PaymentRequestDto
     {

@@ -735,16 +735,17 @@ namespace AlTayerERP.Desktop
                 using var titleFont = new Font("Segoe UI", 14F, FontStyle.Bold);
                 using var headerFont = new Font("Segoe UI", 8.5F, FontStyle.Bold);
                 using var rowFont = new Font("Segoe UI", 8F);
+                if (e.Graphics is not { } graphics) return;
                 var bounds = e.MarginBounds;
-                e.Graphics.DrawString("قائمة المستخدمين", titleFont, Brushes.Black, bounds.Right - 180, bounds.Top);
+                graphics.DrawString("قائمة المستخدمين", titleFont, Brushes.Black, bounds.Right - 180, bounds.Top);
                 var y = bounds.Top + 42;
                 var visibleColumns = dgvUsers.Columns.Cast<DataGridViewColumn>().Where(c => c.Visible).ToList();
                 var cellWidth = Math.Max(75, bounds.Width / Math.Max(1, visibleColumns.Count));
                 var x = bounds.Right - cellWidth;
                 foreach (var column in visibleColumns)
                 {
-                    e.Graphics.DrawRectangle(Pens.Gray, x, y, cellWidth, 28);
-                    e.Graphics.DrawString(column.HeaderText, headerFont, Brushes.Black, new RectangleF(x + 2, y + 5, cellWidth - 4, 20));
+                    graphics.DrawRectangle(Pens.Gray, x, y, cellWidth, 28);
+                    graphics.DrawString(column.HeaderText, headerFont, Brushes.Black, new RectangleF(x + 2, y + 5, cellWidth - 4, 20));
                     x -= cellWidth;
                 }
                 y += 28;

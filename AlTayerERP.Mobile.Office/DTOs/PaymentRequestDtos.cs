@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace AlTayerERP.Mobile.Office.DTOs;
 
 public sealed class PaymentRequestListItemDto
@@ -44,6 +46,8 @@ public sealed class PaymentRequestLineItemDto
 
 public sealed class CreatePaymentRequestDto
 {
+    [JsonIgnore]
+    public string? Idempotency_Key { get; set; }
     public DateTime Request_Date { get; set; } = DateTime.Today;
     public string Beneficiary_Name { get; set; } = string.Empty;
     public string? Party_ID { get; set; }

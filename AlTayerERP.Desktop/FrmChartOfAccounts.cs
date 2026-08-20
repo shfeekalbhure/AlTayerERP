@@ -601,16 +601,17 @@ namespace AlTayerERP.Desktop
 
         private void PrintDocument_PrintPage(object? sender, PrintPageEventArgs e)
         {
-            Font titleFont = new("Arial", 16, FontStyle.Bold);
-            Font headerFont = new("Arial", 11, FontStyle.Bold);
-            Font dataFont = new("Arial", 10);
+            using var titleFont = new Font("Arial", 16, FontStyle.Bold);
+            using var headerFont = new Font("Arial", 11, FontStyle.Bold);
+            using var dataFont = new Font("Arial", 10);
+            if (e.Graphics is not { } graphics) return;
             int y = e.MarginBounds.Top;
 
             if (_currentPrintIndex == 0)
             {
-                e.Graphics.DrawString("شركة الطائر السعيد للنقل والخدمات اللوجستية", headerFont, Brushes.Black, 450, y);
+                graphics.DrawString("شركة الطائر السعيد للنقل والخدمات اللوجستية", headerFont, Brushes.Black, 450, y);
                 y += 30;
-                e.Graphics.DrawString("تقرير دليل الحسابات", titleFont, Brushes.Black, 250, y);
+                graphics.DrawString("تقرير دليل الحسابات", titleFont, Brushes.Black, 250, y);
                 y += 40;
             }
 
@@ -625,11 +626,11 @@ namespace AlTayerERP.Desktop
 
                 var account = rows[_currentPrintIndex++];
                 int indent = Math.Max(0, account.Account_Level - 1) * 15;
-                e.Graphics.DrawString(account.Account_Code ?? string.Empty, dataFont, Brushes.Black, e.MarginBounds.Left, y);
-                e.Graphics.DrawString(account.Account_Name_AR ?? string.Empty, dataFont, Brushes.Black, e.MarginBounds.Left + 120 + indent, y);
-                e.Graphics.DrawString(ConvertDbToAccountType(account.Account_Type), dataFont, Brushes.Black, e.MarginBounds.Left + 420, y);
-                e.Graphics.DrawString(CategoryName(account.Account_Category), dataFont, Brushes.Black, e.MarginBounds.Left + 520, y);
-                e.Graphics.DrawString(ConvertDbToNormalBalance(account.Normal_Balance), dataFont, Brushes.Black, e.MarginBounds.Left + 650, y);
+                graphics.DrawString(account.Account_Code ?? string.Empty, dataFont, Brushes.Black, e.MarginBounds.Left, y);
+                graphics.DrawString(account.Account_Name_AR ?? string.Empty, dataFont, Brushes.Black, e.MarginBounds.Left + 120 + indent, y);
+                graphics.DrawString(ConvertDbToAccountType(account.Account_Type), dataFont, Brushes.Black, e.MarginBounds.Left + 420, y);
+                graphics.DrawString(CategoryName(account.Account_Category), dataFont, Brushes.Black, e.MarginBounds.Left + 520, y);
+                graphics.DrawString(ConvertDbToNormalBalance(account.Normal_Balance), dataFont, Brushes.Black, e.MarginBounds.Left + 650, y);
                 y += 22;
             }
 

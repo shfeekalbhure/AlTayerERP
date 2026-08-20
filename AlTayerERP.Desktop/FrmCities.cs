@@ -116,7 +116,15 @@ public partial class FrmCities : BaseForm
     private async Task PrintSelectedAsync()
     {
         if (_selectedId <= 0) { MessageBox.Show("اختر مدينة أولاً.", Text, MessageBoxButtons.OK, MessageBoxIcon.Warning); return; }
-        using var document = new PrintDocument { DocumentName = "بيانات المدينة - " + txtCityNameAr.Text }; document.PrintPage += (_, e) => { using var font = new Font("Segoe UI", 11); e.Graphics.DrawString($"بيانات المدينة\nالكود: {txtCityCode.Text}\nالاسم: {txtCityNameAr.Text}\nالمحافظة: {cmbGovernorate.Text}", font, Brushes.Black, 70, 70); }; using var preview = new PrintPreviewDialog { Document = document, Width = 900, Height = 700, RightToLeft = RightToLeft.Yes }; preview.ShowDialog(this);
+        using var document = new PrintDocument { DocumentName = "بيانات المدينة - " + txtCityNameAr.Text };
+        document.PrintPage += (_, e) =>
+        {
+            using var font = new Font("Segoe UI", 11);
+            if (e.Graphics is not { } graphics) return;
+            graphics.DrawString($"بيانات المدينة\nالكود: {txtCityCode.Text}\nالاسم: {txtCityNameAr.Text}\nالمحافظة: {cmbGovernorate.Text}", font, Brushes.Black, 70, 70);
+        };
+        using var preview = new PrintPreviewDialog { Document = document, Width = 900, Height = 700, RightToLeft = RightToLeft.Yes };
+        preview.ShowDialog(this);
         try { await ApiService.Client.PostAsync($"GeographicReferences/cities/{_selectedId}/print", null); }
         catch { /* لا تمنع معاينة الطباعة إذا تعذر تسجيلها. */ }
         await LoadAuditAsync(_selectedId);

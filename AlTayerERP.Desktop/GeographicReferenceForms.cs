@@ -601,8 +601,9 @@ public class FrmGeographicReference : BaseForm
         {
             using var titleFont = new Font("Segoe UI", 16, FontStyle.Bold);
             using var bodyFont = new Font("Segoe UI", 11);
-            e.Graphics.DrawString("بيانات الدولة", titleFont, Brushes.Navy, 80, 80);
-            e.Graphics.DrawString($"الكود: {_code.Text}\nالاسم بالعربية: {_nameAr.Text}\nالاسم بالإنجليزية: {_nameEn.Text}\nISO2: {_iso2.Text}\nISO3: {_iso3.Text}\nرمز العملة: {_currencyCode.Text}", bodyFont, Brushes.Black, new RectangleF(80, 135, 650, 300));
+            if (e.Graphics is not { } graphics) return;
+            graphics.DrawString("بيانات الدولة", titleFont, Brushes.Navy, 80, 80);
+            graphics.DrawString($"الكود: {_code.Text}\nالاسم بالعربية: {_nameAr.Text}\nالاسم بالإنجليزية: {_nameEn.Text}\nISO2: {_iso2.Text}\nISO3: {_iso3.Text}\nرمز العملة: {_currencyCode.Text}", bodyFont, Brushes.Black, new RectangleF(80, 135, 650, 300));
         };
         using var preview = new PrintPreviewDialog { Document = document, Width = 900, Height = 700, RightToLeft = RightToLeft.Yes };
         preview.ShowDialog(this);

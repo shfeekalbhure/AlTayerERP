@@ -257,7 +257,7 @@ namespace AlTayerERP.API.Controllers
                     });
                 }
 
-                if (begin.State == IdempotencyBeginState.InProgress)
+                if (begin.State is IdempotencyBeginState.InProgress or IdempotencyBeginState.Contended)
                 {
                     await transaction.RollbackAsync(cancellationToken);
                     return Conflict(new

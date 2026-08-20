@@ -281,9 +281,9 @@ namespace AlTayerERP.Desktop
             {
                 foreach (DataGridViewRow row in dgvFunctionPermissions.Rows)
                 {
-                    if (row.Cells[1].Value == null) continue;
-                    if (string.IsNullOrEmpty(search)) row.Visible = true;
-                    else row.Visible = row.Cells[1].Value.ToString().Contains(search, StringComparison.OrdinalIgnoreCase);
+                    var value = row.Cells[1].Value?.ToString();
+                    if (value is null) continue;
+                    row.Visible = string.IsNullOrEmpty(search) || value.Contains(search, StringComparison.OrdinalIgnoreCase);
                 }
             }
             catch (Exception) { }

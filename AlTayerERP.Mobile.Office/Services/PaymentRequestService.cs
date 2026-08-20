@@ -30,8 +30,11 @@ public sealed class PaymentRequestService(HttpClient httpClient, SessionStorageS
                ?? throw new InvalidOperationException("استجابة تفاصيل طلب الصرف غير صالحة.");
     }
 
-    public Task<PaymentRequestListItemDto> CreateAsync(CreatePaymentRequestDto dto, CancellationToken cancellationToken = default) =>
-        SaveAsync(HttpMethod.Post, "api/payment-requests", dto, "تعذر حفظ طلب الصرف.", cancellationToken);
+    public Task<PaymentRequestListItemDto> CreateAsync(CreatePaymentRequestDto dto, CancellationToken cancellationToken = default)
+    {
+        dto.Idempotency_Key ??= Guid.NewGuid().ToString("N");
+        return SaveAsync(HttpMethod.Post, "api/payment-requests", dto, "تعذر حفظ طلب الصرف.", cancellationToken, dto.Idempotency_Key);
+    }
 
     public Task<PaymentRequestListItemDto> UpdateAsync(long id, CreatePaymentRequestDto dto, CancellationToken cancellationToken = default) =>
         SaveAsync(HttpMethod.Put, $"api/payment-requests/{id}", dto, "تعذر تحديث طلب الصرف.", cancellationToken);
@@ -56,10 +59,12 @@ public sealed class PaymentRequestService(HttpClient httpClient, SessionStorageS
                ?? throw new InvalidOperationException("استجابة إنشاء سند الصرف غير صالحة.");
     }
 
-    private async Task<PaymentRequestListItemDto> SaveAsync(HttpMethod method, string url, CreatePaymentRequestDto dto, string fallback, CancellationToken cancellationToken)
+    private async Task<PaymentRequestListItemDto> SaveAsync(HttpMethod method, string url, CreatePaymentRequestDto dto, string fallback, CancellationToken cancellationToken, string? idempotencyKey = null)
     {
         var session = await GetSessionAsync();
         using var request = CreateRequest(method, url, session.AccessToken);
+        if (!string.IsNullOrWhiteSpace(idempotencyKey))
+            request.Headers.TryAddWithoutValidation("Idempotency-Key", idempotencyKey);
         request.Content = JsonContent.Create(dto);
         using var response = await httpClient.SendAsync(request, cancellationToken);
         await EnsureSuccessAsync(response, fallback, cancellationToken);

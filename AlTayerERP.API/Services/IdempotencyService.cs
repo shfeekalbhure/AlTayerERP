@@ -51,6 +51,13 @@ public sealed class IdempotencyService
             // إذا سبقنا طلب متزامن بالمفتاح نفسه، فلا ننشئ مستنداً ثانياً.
             // نقرأ سجل الفائز بعد أن تحسم قاعدة البيانات الفهرس الفريد.
             _context.ChangeTracker.Clear();
+
+            // في معاملة Serializable أوسع قد لا ترى لقطة القراءة السجل الذي ثبته
+            // الطلب الفائز للتو. لا نتابع الحفظ في هذه الحالة؛ نطلب من العميل
+            // إعادة المحاولة بالمفتاح نفسه ليحصل على النتيجة الأصلية.
+            if (_context.Database.CurrentTransaction != null)
+                return new(IdempotencyBeginState.Contended, new IdempotencyRecord());
+
             existing = await FindAsync(session, operation, key, cancellationToken);
             if (existing != null)
                 return Interpret(existing, requestFingerprint);
@@ -108,7 +115,8 @@ public enum IdempotencyBeginState
     New,
     Completed,
     InProgress,
-    PayloadMismatch
+    PayloadMismatch,
+    Contended
 }
 
 public sealed record IdempotencyBeginResult(

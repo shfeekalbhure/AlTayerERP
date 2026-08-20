@@ -279,7 +279,12 @@ public sealed class FrmJournalVoucher : BaseForm
         if (_voucherId <= 0) { ShowSafeError("احفظ السند أولاً قبل الطباعة."); return; }
         var response = await ApiService.Client.PostAsJsonAsync($"FinancialVoucher/{_voucherId}/record-print", new { Action_Channel = "DESKTOP" });
         if (!response.IsSuccessStatusCode) { ShowSafeError(ReadSafeMessage(await response.Content.ReadAsStringAsync(), "لا تملك صلاحية طباعة السند.")); return; }
-        using var print = new PrintDocument(); print.PrintPage += (_, e) => e.Graphics.DrawString($"سند قيد يومي\nرقم: {_number.Text}\nتاريخ: {_date.Value:yyyy/MM/dd}\nالبيان: {_narration.Text}\n\n{_total.Text}", new Font("Segoe UI", 12), Brushes.Black, new RectangleF(70, 70, e.MarginBounds.Width, e.MarginBounds.Height));
+        using var print = new PrintDocument(); print.PrintPage += (_, e) =>
+        {
+            if (e.Graphics is not { } graphics) return;
+            using var font = new Font("Segoe UI", 12);
+            graphics.DrawString($"سند قيد يومي\nرقم: {_number.Text}\nتاريخ: {_date.Value:yyyy/MM/dd}\nالبيان: {_narration.Text}\n\n{_total.Text}", font, Brushes.Black, new RectangleF(70, 70, e.MarginBounds.Width, e.MarginBounds.Height));
+        };
         using var preview = new PrintPreviewDialog { Document = print, RightToLeft = RightToLeft.Yes, RightToLeftLayout = true }; preview.ShowDialog(this);
     }
 

@@ -287,7 +287,8 @@ public partial class FrmGovernorates : BaseForm
         document.PrintPage += (_, e) =>
         {
             using var font = new Font("Segoe UI", 11);
-            e.Graphics.DrawString($"بيانات المحافظة\nالكود: {txtGovCode.Text}\nالاسم: {txtGovNameAr.Text}\nالدولة: {cmbCountry.Text}", font, Brushes.Black, 70, 70);
+            if (e.Graphics is not { } graphics) return;
+            graphics.DrawString($"بيانات المحافظة\nالكود: {txtGovCode.Text}\nالاسم: {txtGovNameAr.Text}\nالدولة: {cmbCountry.Text}", font, Brushes.Black, 70, 70);
         };
         using var preview = new PrintPreviewDialog { Document = document, Width = 900, Height = 700, RightToLeft = RightToLeft.Yes };
         preview.ShowDialog(this);

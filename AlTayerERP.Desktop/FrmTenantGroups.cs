@@ -582,8 +582,9 @@ public sealed class FrmTenantGroups : BaseForm, IWorkspaceDirtyAware
         {
             using var title = new Font("Segoe UI", 15F, FontStyle.Bold);
             using var body = new Font("Segoe UI", 11F);
-            e.Graphics.DrawString("بيانات المجموعة التجارية", title, Brushes.Navy, 70, 70);
-            e.Graphics.DrawString(
+            if (e.Graphics is not { } graphics) return;
+            graphics.DrawString("بيانات المجموعة التجارية", title, Brushes.Navy, 70, 70);
+            graphics.DrawString(
                 $"الكود: {_code.Text}\n" +
                 $"الاسم العربي: {_nameAr.Text}\n" +
                 $"الاسم الإنجليزي: {_nameEn.Text}\n" +
