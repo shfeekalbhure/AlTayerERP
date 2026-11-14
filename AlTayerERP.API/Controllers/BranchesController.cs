@@ -1,4 +1,5 @@
-﻿using AlTayerERP.API.DTOs;          // استدعاء حزمة نماذج نقل البيانات (Data Transfer Objects)
+﻿using System.Data;
+using AlTayerERP.API.DTOs;          // استدعاء حزمة نماذج نقل البيانات (Data Transfer Objects)
 using AlTayerERP.API.Services;      // استدعاء الخدمات الداخلية للنظام (مثل مولد الأرقام)
 using AlTayerERP.Core.Entities;     // استدعاء الكائنات الهيكلية الممثلة لجداول قاعدة البيانات
 using AlTayerERP.Infrastructure.Data; // استدعاء سياق الاتصال بقاعدة البيانات (DbContext)
@@ -17,13 +18,19 @@ namespace AlTayerERP.API.Controllers
         private readonly AppDbContext _context;
         private readonly NumberGeneratorService _numberGenerator;
         private readonly ServerSessionService _sessions;
+        private readonly ScreenAuthorizationService _authorization;
+        private readonly TransportOfficeSettingsService _officeSettings;
 
         // مشيد الكنترولر (Constructor): يتم فيه حقن الاعتماديات (Dependency Injection) لقاعدة البيانات والخدمة
-        public BranchesController(AppDbContext context, NumberGeneratorService numberGenerator, ServerSessionService sessions)
+        public BranchesController(
+            AppDbContext context, NumberGeneratorService numberGenerator, ServerSessionService sessions,
+            ScreenAuthorizationService authorization, TransportOfficeSettingsService officeSettings)
         {
             _context = context;
             _numberGenerator = numberGenerator;
             _sessions = sessions;
+            _authorization = authorization;
+            _officeSettings = officeSettings;
         }
 
         /// <summary>
@@ -41,8 +48,18 @@ namespace AlTayerERP.API.Controllers
                 return BadRequest("بيانات الفرع الأساسية غير مكتملة");
             }
 
+            dto.Company_ID = dto.Company_ID.Trim();
+            if (!CanAccessCompany(dto.Company_ID))
+                return StatusCode(StatusCodes.Status403Forbidden);
+            if (dto.OfficeSettings != null && !await CanConfigureOfficeAsync(ScreenOperation.Add))
+                return StatusCode(StatusCodes.Status403Forbidden);
+
             try
             {
+                await using var transaction = await _context.Database.BeginTransactionAsync(IsolationLevel.Serializable);
+                if (await ValidateBranchAsync(dto, null) is { } validationError)
+                    return BadRequest(validationError);
+
                 // إنشاء كائن جديد من نوع الفرع (TenantBranch) لنقله إلى قاعدة البيانات
                 var newBranch = new TenantBranch
                 {
@@ -84,10 +101,14 @@ namespace AlTayerERP.API.Controllers
                     Updated_Date = null
                 };
 
+                TransportOfficeSettingsService.Apply(newBranch, dto.OfficeSettings);
+
                 // إضافة كائن الفرع الجديد إلى ذاكرة الـ Entity Framework بشكل غير متزامن
                 await _context.Tenant_Branches.AddAsync(newBranch);
                 // حفظ التغييرات والفرع الجديد فعلياً داخل قاعدة البيانات (SQL Server مثلاً)
                 await _context.SaveChangesAsync();
+
+                await transaction.CommitAsync();
 
                 // إرجاع كود النجاح 201 (Created) مع البيانات المحفوظة، وهو الأصح هندسياً لعمليات الـ POST
                 return CreatedAtAction(nameof(GetBranches), new { companyId = newBranch.Company_ID }, newBranch);
@@ -105,6 +126,9 @@ namespace AlTayerERP.API.Controllers
         [HttpGet] // تحديد نوع الطلب كـ GET لقراءة البيانات
         public async Task<IActionResult> GetBranches([FromQuery] string companyId)
         {
+            if (!CanAccessCompany(companyId) || !await CanConfigureOfficeAsync(ScreenOperation.View))
+                return StatusCode(StatusCodes.Status403Forbidden);
+
             try
             {
                 // [التعديل المعتمد]: إزالة شرط Is_Active لعرض كافة الفروع لتسهيل التعديل والتحكم من الشاشة الإدارية
@@ -128,6 +152,22 @@ namespace AlTayerERP.API.Controllers
                         x.Manager_Name,
                         x.Notes,
                         x.Allow_Credit,
+                        OfficeSettings = new TransportOfficeSettingsDto
+                        {
+                            Country = x.Country,
+                            Governorate = x.Governorate,
+                            District = x.District,
+                            Locality = x.Locality,
+                            Credit_Limit = x.Allow_Credit ? x.Credit_Limit : null,
+                            Allow_Commission = x.Allow_Commission,
+                            Passenger_Commission = x.Passenger_Commission_Method != null && x.Passenger_Commission_Value.HasValue
+                                ? new OfficeCommissionDto(x.Passenger_Commission_Method, x.Passenger_Commission_Value.Value) : null,
+                            Outbound_Commission = x.Outbound_Commission_Method != null && x.Outbound_Commission_Value.HasValue
+                                ? new OfficeCommissionDto(x.Outbound_Commission_Method, x.Outbound_Commission_Value.Value) : null,
+                            Inbound_Commission = x.Inbound_Commission_Method != null && x.Inbound_Commission_Value.HasValue
+                                ? new OfficeCommissionDto(x.Inbound_Commission_Method, x.Inbound_Commission_Value.Value) : null,
+                            Analytical_Account_ID = x.Analytical_Account_ID
+                        },
                         x.Allow_Percentage,
                         x.Is_Active,
                         x.Currency_ID
@@ -142,6 +182,25 @@ namespace AlTayerERP.API.Controllers
                 // إرجاع كود الخطأ 500 في حال فشل الاتصال بقاعدة البيانات أو حدوث خطأ بالسيرفر
                 return StatusCode(500, ex.ToString());
             }
+        }
+
+        [HttpGet("AnalyticalAccountsLookup")]
+        public async Task<IActionResult> GetAnalyticalAccounts([FromQuery] string companyId, [FromQuery] int? branchId)
+        {
+            if (!CanAccessCompany(companyId) || !await CanConfigureOfficeAsync(ScreenOperation.View))
+                return StatusCode(StatusCodes.Status403Forbidden);
+
+            var usedByOtherBranches = _context.Tenant_Branches
+                .Where(x => x.Analytical_Account_ID != null && (branchId == null || x.Branch_ID != branchId))
+                .Select(x => x.Analytical_Account_ID);
+
+            var accounts = await _officeSettings.EligibleAccounts(companyId)
+                .Where(x => !usedByOtherBranches.Contains(x.Account_ID))
+                .OrderBy(x => x.Account_Code)
+                .Select(x => new { x.Account_ID, x.Account_Code, x.Account_Name_AR })
+                .ToListAsync();
+
+            return Ok(accounts);
         }
 
         /// <summary>
@@ -195,13 +254,21 @@ namespace AlTayerERP.API.Controllers
         public async Task<IActionResult> UpdateBranch(int id, [FromBody] CreateBranchDto dto)
         {
             // 1. التحقق من صحة واكتمال كائن البيانات القادم من الشاشة
-            if (dto == null || string.IsNullOrWhiteSpace(dto.Branch_Name))
+            if (dto == null || string.IsNullOrWhiteSpace(dto.Branch_Name) || string.IsNullOrWhiteSpace(dto.Company_ID))
             {
                 return BadRequest("البيانات المرسلة للتعديل غير مكتملة أو خاطئة.");
             }
 
+            dto.Company_ID = dto.Company_ID.Trim();
+            if (!CanAccessCompany(dto.Company_ID))
+                return StatusCode(StatusCodes.Status403Forbidden);
+            if (dto.OfficeSettings != null && !await CanConfigureOfficeAsync(ScreenOperation.Edit))
+                return StatusCode(StatusCodes.Status403Forbidden);
+
             try
             {
+                await using var transaction = await _context.Database.BeginTransactionAsync(IsolationLevel.Serializable);
+
                 // 2. البحث عن الفرع المستهدف بالتعديل داخل جدول الفروع بقاعدة البيانات
                 var existingBranch = await _context.Tenant_Branches.FirstOrDefaultAsync(b => b.Branch_ID == id);
 
@@ -209,6 +276,12 @@ namespace AlTayerERP.API.Controllers
                 {
                     return NotFound($"الفرع المطلوب ذو الرقم {id} غير موجود في قاعدة البيانات.");
                 }
+
+                if (!CanAccessCompany(existingBranch.Company_ID))
+                    return StatusCode(StatusCodes.Status403Forbidden);
+
+                if (await ValidateBranchAsync(dto, existingBranch) is { } validationError)
+                    return BadRequest(validationError);
 
                 // 3. تحديث وإسناد الحقول بالقيم الجديدة القادمة من الواجهة مع تنظيف النصوص عبر Trim
                 existingBranch.Company_ID = dto.Company_ID;
@@ -227,6 +300,7 @@ namespace AlTayerERP.API.Controllers
 
                 existingBranch.Allow_Credit = dto.Allow_Credit;
                 existingBranch.Allow_Percentage = dto.Allow_Percentage;
+                TransportOfficeSettingsService.Apply(existingBranch, dto.OfficeSettings);
 
                 // تحديث حالة النشاط (نشط/موقوف) وهي المسؤولة أيضاً عن تلبية طلبات أزرار الاعتماد وإلغاء الاعتماد
                 existingBranch.Is_Active = dto.Is_Active;
@@ -237,6 +311,8 @@ namespace AlTayerERP.API.Controllers
 
                 // 4. حفظ كافة التغييرات المباشرة بداخل قاعدة البيانات
                 await _context.SaveChangesAsync();
+
+                await transaction.CommitAsync();
 
                 // إرجاع كود النجاح 200 مع كائن الفرع بعد التحديث
                 return Ok(existingBranch);
@@ -261,6 +337,12 @@ namespace AlTayerERP.API.Controllers
             if (branch == null)
                 return NotFound("الفرع غير موجود.");
 
+            if (!CanAccessCompany(branch.Company_ID))
+                return StatusCode(StatusCodes.Status403Forbidden);
+
+            if (await _context.Tenant_Branches.AnyAsync(x => x.Parent_Branch_ID == id))
+                return BadRequest("أزل تبعية الفروع المرتبطة قبل حذف الفرع.");
+
             // التحقق من وجود عمليات مرتبطة بالفرع
             bool hasTransactions =
                 await _context.Users.AnyAsync(x => x.Branch_ID == id)
@@ -280,6 +362,44 @@ namespace AlTayerERP.API.Controllers
             return Ok("تم حذف الفرع بنجاح.");
         }
 
+
+        private bool CanAccessCompany(string companyId) =>
+            HttpContext.Items["ServerSession"] is ServerSession session &&
+            (session.Is_System_Admin || string.Equals(session.Company_ID, companyId, StringComparison.Ordinal));
+
+        private async Task<bool> CanConfigureOfficeAsync(ScreenOperation operation) =>
+            HttpContext.Items["ServerSession"] is ServerSession session &&
+            await _authorization.IsAllowedAsync(session, "Branches", operation);
+
+        private async Task<string?> ValidateBranchAsync(CreateBranchDto dto, TenantBranch? existing)
+        {
+            if (existing != null && !string.Equals(dto.Company_ID, existing.Company_ID, StringComparison.Ordinal))
+                return "لا يمكن نقل الفرع إلى شركة أخرى.";
+
+            if (existing == null && !await _context.Companies.AnyAsync(x => x.Company_ID == dto.Company_ID))
+                return "الشركة المحددة غير موجودة.";
+
+            dto.Branch_Type = dto.Branch_Type?.Trim() ?? string.Empty;
+            if (dto.OfficeSettings != null && (existing == null || dto.Branch_Type != existing.Branch_Type) &&
+                dto.Branch_Type is not ("فرع رئيسي" or "فرع فرعي" or "نقطة خدمة" or "وكيل"))
+                return "اختر تصنيف الجهة من القائمة.";
+
+            if (dto.Parent_Branch_ID is int parentId && dto.Parent_Branch_ID != existing?.Parent_Branch_ID)
+            {
+                var parents = await _context.Tenant_Branches.AsNoTracking()
+                    .Where(x => x.Company_ID == dto.Company_ID)
+                    .ToDictionaryAsync(x => x.Branch_ID, x => x.Parent_Branch_ID);
+
+                var visited = new HashSet<int>();
+                for (int? currentId = parentId; currentId is int id; currentId = parents[id])
+                {
+                    if (id == existing?.Branch_ID || !visited.Add(id) || !parents.ContainsKey(id))
+                        return "اختر فرعًا تابعًا للشركة نفسها دون تبعية دائرية.";
+                }
+            }
+
+            return await _officeSettings.ValidateAsync(dto, existing);
+        }
 
         /// <summary>
         /// جلب اسم الشركة واسم الفرع واسم السنة للجلسة الحالية

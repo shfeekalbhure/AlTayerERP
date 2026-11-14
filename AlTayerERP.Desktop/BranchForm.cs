@@ -56,7 +56,7 @@ this.Load -= BranchForm_Load;
         private void FillBranchTypes()
         {
             cmbBranchType.Items.Clear();
-            cmbBranchType.Items.AddRange(new string[] { "رئيسي", "فرعي", "نقطة توزيع", "مستودع" });
+            cmbBranchType.Items.AddRange(new[] { "فرع رئيسي", "فرع فرعي", "نقطة خدمة", "وكيل" });
             cmbBranchType.SelectedIndex = -1;
         }
 
@@ -94,7 +94,7 @@ this.Load -= BranchForm_Load;
 
         private void PopulateParentBranchComboBox()
         {
-            var parentBranches = _branchesList.Where(b => b.Branch_Type == "رئيسي").ToList();
+            var parentBranches = _branchesList.Where(b => b.Branch_Type is "رئيسي" or "فرع رئيسي").ToList();
             cmbParentBranch.DataSource = null;
             cmbParentBranch.DataSource = parentBranches;
             cmbParentBranch.DisplayMember = "Branch_Name";
@@ -163,7 +163,7 @@ this.Load -= BranchForm_Load;
             txtNotes.Clear();
 
             cmbCompanies.SelectedValue = CurrentSession.Company_ID;
-            cmbBranchType.SelectedIndex = -1;
+            FillBranchTypes();
             cmbParentBranch.SelectedIndex = -1;
             cmbManager.SelectedIndex = -1;
 
@@ -240,7 +240,7 @@ this.Load -= BranchForm_Load;
                 // [تصحيح الثغرة لحماية الحفظ]: فحص مزدوج قوي يمنع خطأ الـ Null النصي
                 Is_Active = cmbStatus.SelectedItem?.ToString() == "نشط" || cmbStatus.Text.Trim() == "نشط",
 
-                Currency_ID = 1
+                Currency_ID = _branchesList.FirstOrDefault(x => x.Branch_ID == _selectedBranchId)?.Currency_ID ?? 1
             };
         }
 
@@ -325,7 +325,13 @@ this.Load -= BranchForm_Load;
                 txtBranchNameAr.Text = branch.Branch_Name ?? "";
                 txtBranchNameEn.Text = branch.Branch_Name_EN ?? "";
                 txtLocation.Text = branch.Address ?? "";
-                cmbBranchType.Text = branch.Branch_Type ?? "";
+                FillBranchTypes();
+                if (!string.IsNullOrEmpty(branch.Branch_Type))
+                {
+                    if (!cmbBranchType.Items.Contains(branch.Branch_Type))
+                        cmbBranchType.Items.Add(branch.Branch_Type);
+                    cmbBranchType.SelectedItem = branch.Branch_Type;
+                }
 
                 // التثبيت بـ SelectedItem لحماية الحالة
                 cmbStatus.SelectedItem = branch.Is_Active ? "نشط" : "موقوف";
