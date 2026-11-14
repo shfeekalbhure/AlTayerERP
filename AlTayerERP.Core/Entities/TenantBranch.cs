@@ -49,6 +49,36 @@ namespace AlTayerERP.Core.Entities
         [Column("Address")]
         public string? Address { get; set; }
 
+        [MaxLength(100)]
+        public string? Country { get; set; }
+
+        [MaxLength(100)]
+        public string? Governorate { get; set; }
+
+        [MaxLength(100)]
+        public string? District { get; set; }
+
+        [MaxLength(100)]
+        public string? Locality { get; set; }
+
+        public decimal? Credit_Limit { get; set; }
+        public bool Allow_Commission { get; set; }
+
+        [MaxLength(12)]
+        public string? Passenger_Commission_Method { get; set; }
+        public decimal? Passenger_Commission_Value { get; set; }
+
+        [MaxLength(12)]
+        public string? Outbound_Commission_Method { get; set; }
+        public decimal? Outbound_Commission_Value { get; set; }
+
+        [MaxLength(12)]
+        public string? Inbound_Commission_Method { get; set; }
+        public decimal? Inbound_Commission_Value { get; set; }
+
+        [MaxLength(255)]
+        public string? Analytical_Account_ID { get; set; }
+
         // ======================================================
         // نوع الفرع وطبيعته (مثال: رئيسي، فرعي، نقطة توزيع، مستودع)
         // ======================================================

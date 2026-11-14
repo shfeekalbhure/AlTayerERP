@@ -42,6 +42,7 @@ builder.Services.AddCors(options =>
 // [3] تسجيل خدمات النظام الحالية
 // ====================================================================
 builder.Services.AddScoped<NumberGeneratorService>();
+builder.Services.AddScoped<TransportOfficeSettingsService>();
 builder.Services.AddScoped<CostCenterNumberService>();
 builder.Services.AddScoped<CashBoxNumberService>();
 builder.Services.AddScoped<ApprovalService>();

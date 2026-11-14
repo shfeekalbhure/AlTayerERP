@@ -168,6 +168,16 @@ namespace AlTayerERP.Infrastructure.Data
             {
                 entity.ToTable("tenant_branches");
                 entity.HasKey(e => e.Branch_ID);
+                entity.Property(e => e.Credit_Limit).HasPrecision(18, 6);
+                entity.Property(e => e.Passenger_Commission_Value).HasPrecision(18, 6);
+                entity.Property(e => e.Outbound_Commission_Value).HasPrecision(18, 6);
+                entity.Property(e => e.Inbound_Commission_Value).HasPrecision(18, 6);
+
+                entity.HasIndex(e => e.Analytical_Account_ID).IsUnique();
+                entity.HasOne<ChartOfAccount>()
+                    .WithMany()
+                    .HasForeignKey(e => e.Analytical_Account_ID)
+                    .OnDelete(DeleteBehavior.Restrict);
             });
 
             // إعدادات جدول السنوات المالية وتحديد المفتاح الرئيسي

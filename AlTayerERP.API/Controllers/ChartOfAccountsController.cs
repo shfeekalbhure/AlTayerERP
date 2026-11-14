@@ -303,6 +303,8 @@ namespace AlTayerERP.API.Controllers
                 bool hasChildren = await _context.Chart_Of_Accounts
                     .AnyAsync(x => x.Parent_Account_ID == id && x.Company_ID == companyId.Trim());
                 if (hasChildren) return BadRequest("لا يمكن حذف الحساب لأنه يحتوي على حسابات فرعية.");
+                if (await _context.Tenant_Branches.AnyAsync(x => x.Analytical_Account_ID == id))
+                    return BadRequest("لا يمكن حذف الحساب التحليلي لأنه مرتبط بفرع.");
                 _context.Chart_Of_Accounts.Remove(account);
                 await _context.SaveChangesAsync();
                 return Ok("تم حذف الحساب بنجاح.");

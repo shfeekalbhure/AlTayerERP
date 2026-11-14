@@ -51,6 +51,8 @@ namespace AlTayerERP.API.DTOs
         // خاصية منطقية (True/False): تحدد ما إذا كان يُسمح للفرع بإجراء عمليات البيع والشحن بالآجل للعملاء أم لا
         public bool Allow_Credit { get; set; }
 
+        public TransportOfficeSettingsDto? OfficeSettings { get; set; }
+
         // خاصية منطقية (True/False): تحدد صلاحية الفرع في منح نسب الخصومات والصلاحيات المئوية في المعاملات المالية
         public bool Allow_Percentage { get; set; }
 
